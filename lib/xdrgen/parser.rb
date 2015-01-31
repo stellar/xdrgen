@@ -18,6 +18,7 @@ end
 
 grammars = %w(
   base
+  declaration
   enum
   const
   struct

@@ -1,5 +1,6 @@
 grammar XdrMainGrammar
   include XdrBaseGrammar
+  include XdrDeclarationGrammar
   include XdrCommentsGrammar
   include XdrEnumGrammar
   include XdrTypedefGrammar
@@ -23,36 +24,6 @@ grammar XdrMainGrammar
     )
   end
 
-  rule declaration
-    (
-      ("void" 
-      <Xdrgen::AST::VoidDecl>) /
-
-      ("opaque" space identifier fixed_size_spec
-      <Xdrgen::AST::OpaqueDecl>) /
-
-      ("opaque" space identifier var_size_spec 
-      <Xdrgen::AST::VarOpaqueDecl>) /
-
-      ("string" space identifier var_size_spec 
-      <Xdrgen::AST::StringDecl>) /
-
-      (type_specifier space identifier fixed_size_spec
-      <Xdrgen::AST::ArrayDecl>) /
-
-      (type_specifier space identifier var_size_spec
-      <Xdrgen::AST::VarArrayDecl>) /
-
-      (type_specifier "*" space? identifier 
-      <Xdrgen::AST::OptionalDecl>) /
-
-      (type_specifier space? "*" identifier
-      <Xdrgen::AST::OptionalDecl>) /
-
-      (type_specifier space identifier
-      <Xdrgen::AST::SimpleDecl>)
-    )
-  end
 
   # Definitions
 

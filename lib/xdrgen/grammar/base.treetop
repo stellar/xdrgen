@@ -29,24 +29,6 @@ grammar XdrBaseGrammar
     <Xdrgen::AST::OctalConstant>
   end
 
-  rule type_specifier
-    ("unsigned" space "int") /
-    ("unsigned" space "hyper") /
-    enum_type_spec /
-    struct_type_spec /
-    union_type_spec /
-    identifier
-  end
-
-  rule fixed_size_spec
-    "[" size "]"
-    <Xdrgen::AST::FixedSize>
-  end
-
-  rule var_size_spec
-    "<" size? ">"
-    <Xdrgen::AST::VarSize>
-  end
 
   # Misc.
 
