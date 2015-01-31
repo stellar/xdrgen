@@ -1,0 +1,9 @@
+grammar XdrNamespaceGrammar
+
+  rule namespace_def
+    "namespace" space identifier space? "{"
+      children:definition*
+    "}" <NamespaceDef>
+  end
+
+end

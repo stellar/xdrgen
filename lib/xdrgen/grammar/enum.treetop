@@ -1,0 +1,20 @@
+grammar XdrEnumGrammar
+
+  rule enum_def
+    "enum" space? identifier enum_body <EnumDef>
+  end
+
+
+  rule enum_body
+    "{" 
+    space* 
+    (identifier space? ("=" space? value)?)+
+    space*
+    "}"
+  end
+
+  rule enum_type_spec
+    "enum" space enum_body
+  end
+
+end

@@ -1,0 +1,61 @@
+grammar XdrMainGrammar
+  include XdrBaseGrammar
+  include XdrEnumGrammar
+  include XdrTypedefGrammar
+  include XdrStructGrammar
+  include XdrUnionGrammar
+  include XdrConstGrammar
+  include XdrNamespaceGrammar
+
+  rule top
+    definition*
+  end
+
+  rule definition
+    (
+      type_def /
+      const_def / 
+      namespace_def /
+      line_comment / 
+      ampersand_line /
+      space
+    )
+  end
+
+  rule declaration
+    (
+      ("void") /
+      ("opaque" space identifier size_spec) /
+      ("string" space identifier var_size_spec) /
+      (type_specifier space identifier) /
+      (type_specifier space identifier size_spec) /
+      (type_specifier "*" identifier)
+    )
+    <Declaration>
+  end
+
+  # Definitions
+
+  rule type_def
+    (
+      typedef_def /
+      enum_def
+    )
+  end
+
+
+  # Comments
+
+  rule ampersand_line
+    "%" content:(!"\n" .)* "\n"?
+  end
+
+  rule block_comment
+    "/*" !("*/"+)  "*/"
+  end
+
+  rule line_comment
+    "//" content:(!"\n" .)* "\n"?
+  end
+
+end

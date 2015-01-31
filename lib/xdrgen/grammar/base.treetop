@@ -1,0 +1,62 @@
+grammar XdrBaseGrammar
+
+  rule identifier
+    ([a-zA-Z] ([a-zA-Z0-9_])*) <Identifier>
+  end
+
+  rule value
+    identifier / constant
+  end
+
+  rule constant
+    ( decimal_constant / hexadecimal_constant / octal_constant )
+  end
+
+  rule decimal_constant
+    "-"? [1-9] [0-9]* <DecimalConstant>
+  end
+
+  rule hexadecimal_constant
+    "0x" [a-fA-F0-9]+ <HexadecimalConstant>
+  end
+
+  rule octal_constant
+    "0"? [0-7]+ <OctalConstant>
+  end
+
+  rule type_specifier
+    (("unsigned" space)? "int") /
+    (("unsigned" space)? "hyper") /
+    "float" /
+    "double" /
+    "quadruple" /
+    "bool" /
+    identifier
+  end
+
+  rule size_spec
+    fixed_size_spec / var_size_spec
+  end
+
+  rule fixed_size_spec
+    "[" size "]"
+  end
+
+  rule var_size_spec
+    "<" size? ">"
+  end
+
+  # Misc.
+
+  rule size
+    ([1-9] [0-9]*)
+  end
+
+  rule space
+    ([\s])+
+  end
+
+  rule asterisk
+    "*"
+  end
+end

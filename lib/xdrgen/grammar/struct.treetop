@@ -1,0 +1,19 @@
+grammar XdrStructGrammar
+
+  rule struct_def
+    "struct" space? identifier struct_body <StructDef>
+  end
+
+  rule struct_body
+    "{" 
+    space* 
+    (declaration space? ";")+
+    space*
+    "}"
+  end
+
+  rule struct_type_spec
+    "struct" space struct_body
+  end
+
+end

@@ -1,0 +1,33 @@
+grammar XdrUnionGrammar
+
+  rule union_def
+    "union" space? identifier union_body <UnionDef>
+  end
+
+
+  rule union_body
+    "switch" space? "(" declaration ")"
+    "{" 
+    space* 
+    (case_spec)+
+    (default_case_spec)?
+    space*
+    "}"
+  end
+
+  rule union_type_spec
+    "union" space union_body
+  end
+
+  rule case_spec
+    ("case" space? value space? ":")+
+    declaration space? ";"
+  end
+
+  rule default_case_spec
+    "default" space? ":"
+    declaration space? ";"
+  end
+
+
+end

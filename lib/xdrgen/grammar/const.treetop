@@ -1,0 +1,8 @@
+grammar XdrConstGrammar
+
+  rule const_def
+    "const" space identifier space? "=" space? constant ";" 
+    <ConstDef>
+  end
+
+end

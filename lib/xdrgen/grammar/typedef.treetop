@@ -1,0 +1,7 @@
+grammar XdrTypedefGrammar
+
+  rule typedef_def
+    "typedef" space declaration ";" <TypedefDef>
+  end
+
+end
