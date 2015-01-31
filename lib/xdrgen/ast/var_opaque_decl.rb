@@ -1,8 +1,8 @@
 module Xdrgen::AST
-  class OpaqueDecl < Declaration 
+  class VarOpaqueDecl < Declaration 
     
-    def size
-      fixed_size_spec.
+    def max_size
+      var_size_spec.
       size.
       text_value.
       to_i

@@ -19,8 +19,13 @@ module Xdrgen::AST
   autoload :Declaration
   autoload :VoidDecl
   autoload :OpaqueDecl
+  autoload :VarOpaqueDecl
   autoload :StringDecl
   autoload :ArrayDecl
+  autoload :VarArrayDecl
   autoload :OptionalDecl
   autoload :SimpleDecl
+
+  autoload :FixedSize
+  autoload :VarSize
 end

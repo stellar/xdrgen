@@ -38,16 +38,14 @@ grammar XdrBaseGrammar
     identifier
   end
 
-  rule size_spec
-    fixed_size_spec / var_size_spec
-  end
-
   rule fixed_size_spec
     "[" size "]"
+    <Xdrgen::AST::FixedSize>
   end
 
   rule var_size_spec
     "<" size? ">"
+    <Xdrgen::AST::VarSize>
   end
 
   # Misc.

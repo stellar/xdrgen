@@ -1,9 +1,6 @@
 module Xdrgen::AST
   class TypedefDef < Definition
-    delegate :name, to: :identifier
+    delegate :name, to: :declaration
 
-    def type
-      raise NotImplementedError
-    end
   end
 end
