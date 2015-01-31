@@ -25,6 +25,7 @@ grammars = %w(
   typedef
   namespace
   main
+  comments
 )
 
 # setup node autloads 

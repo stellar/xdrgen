@@ -1,11 +1,23 @@
-enum TransactionType
+enum MessageType
 {
-    PAYMENT,
-    CREATE_OFFER,
-    CANCEL_OFFER,
-    SET_OPTIONS,
-    CHANGE_TRUST,
-    ALLOW_TRUST,
-    ACCOUNT_MERGE,
-    INFLATION
+    ERROR_MSG,    
+    HELLO,
+    DONT_HAVE,
+
+    GET_PEERS,   // gets a list of peers this guy knows about        
+    PEERS,
+
+    GET_TX_SET,  // gets a particular txset by hash        
+    TX_SET,    
+
+    GET_VALIDATIONS, // gets validations for a given ledger hash        
+    VALIDATIONS,    
+
+    TRANSACTION, //pass on a tx you have heard about        
+    JSON_TRANSACTION,
+
+    // FBA        
+    GET_FBA_QUORUMSET,        
+    FBA_QUORUMSET,    
+    FBA_MESSAGE
 };

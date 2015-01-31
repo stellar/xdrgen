@@ -1,14 +1,17 @@
 grammar XdrStructGrammar
 
   rule struct_def
-    "struct" space? identifier struct_body <StructDef>
+    "struct" space
+    identifier space? 
+    struct_body space? 
+    ";"
+    <StructDef>
   end
 
   rule struct_body
     "{" 
-    space* 
-    (declaration space? ";")+
-    space*
+    space?
+    (declaration space? ";" space?)+
     "}"
   end
 

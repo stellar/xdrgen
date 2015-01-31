@@ -1,7 +1,9 @@
 grammar XdrBaseGrammar
 
   rule identifier
-    ([a-zA-Z] ([a-zA-Z0-9_])*) <Identifier>
+    ([a-zA-Z] [0-9a-zA-Z_]*) 
+    ("::" [a-zA-Z] [0-9a-zA-Z_]*)* 
+    <Identifier>
   end
 
   rule value
@@ -25,12 +27,11 @@ grammar XdrBaseGrammar
   end
 
   rule type_specifier
-    (("unsigned" space)? "int") /
-    (("unsigned" space)? "hyper") /
-    "float" /
-    "double" /
-    "quadruple" /
-    "bool" /
+    ("unsigned" space "int") /
+    ("unsigned" space "hyper") /
+    enum_type_spec /
+    struct_type_spec /
+    union_type_spec /
     identifier
   end
 
@@ -53,7 +54,7 @@ grammar XdrBaseGrammar
   end
 
   rule space
-    ([\s])+
+    ([\s] / line_comment / block_comment)+
   end
 
   rule asterisk

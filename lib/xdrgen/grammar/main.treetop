@@ -1,5 +1,6 @@
 grammar XdrMainGrammar
   include XdrBaseGrammar
+  include XdrCommentsGrammar
   include XdrEnumGrammar
   include XdrTypedefGrammar
   include XdrStructGrammar
@@ -27,9 +28,10 @@ grammar XdrMainGrammar
       ("void") /
       ("opaque" space identifier size_spec) /
       ("string" space identifier var_size_spec) /
-      (type_specifier space identifier) /
       (type_specifier space identifier size_spec) /
-      (type_specifier "*" identifier)
+      (type_specifier "*" space? identifier) /
+      (type_specifier space? "*" identifier) /
+      (type_specifier space identifier)
     )
     <Declaration>
   end
@@ -39,7 +41,9 @@ grammar XdrMainGrammar
   rule type_def
     (
       typedef_def /
-      enum_def
+      enum_def /
+      struct_def /
+      union_def
     )
   end
 

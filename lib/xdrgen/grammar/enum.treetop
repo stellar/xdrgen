@@ -1,15 +1,17 @@
 grammar XdrEnumGrammar
 
   rule enum_def
-    "enum" space? identifier enum_body <EnumDef>
+    "enum" space identifier space? enum_body space? ";"
+    <EnumDef>
   end
 
 
   rule enum_body
     "{" 
-    space* 
-    (identifier space? ("=" space? value)?)+
-    space*
+    space? 
+    enum_member
+    (space? "," space? enum_member )*
+    space?
     "}"
   end
 
@@ -17,4 +19,7 @@ grammar XdrEnumGrammar
     "enum" space enum_body
   end
 
+  rule enum_member
+    (identifier space? ("=" space? value)?)
+  end
 end

@@ -1,0 +1,19 @@
+grammar XdrCommentsGrammar
+  
+  rule ampersand_line
+    "%" content:(!"\n" .)* "\n"?
+  end
+
+  rule block_comment
+    "/*" !("*/"+)  "*/"
+  end
+
+  rule line_comment
+    "//"
+  end
+
+  rule soc
+    (space / line_comment / block_comment)
+  end
+
+end
