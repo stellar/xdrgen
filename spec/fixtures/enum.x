@@ -1,0 +1,11 @@
+enum TransactionType
+{
+    PAYMENT,
+    CREATE_OFFER,
+    CANCEL_OFFER,
+    SET_OPTIONS,
+    CHANGE_TRUST,
+    ALLOW_TRUST,
+    ACCOUNT_MERGE,
+    INFLATION
+};

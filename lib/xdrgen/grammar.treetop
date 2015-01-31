@@ -1,22 +1,194 @@
 grammar XdrGrammar
   
   rule top
+    definition*
+  end
 
+  rule definition
+    (
+      type_def /
+      const_def / 
+      namespace_def /
+      line_comment / 
+      ampersand_line /
+      space
+    )
+  end
+
+  rule declaration
+    (
+      ("void") /
+      ("opaque" space identifier size_spec) /
+      ("string" space identifier var_size_spec) /
+      (type_specifier space identifier) /
+      (type_specifier space identifier size_spec) /
+      (type_specifier "*" identifier)
+    )
+    <Declaration>
+  end
+
+  # Definitions
+
+  rule type_def
+    (
+      typedef_def /
+      enum_def
+    )
+  end
+
+  rule namespace_def
+    "namespace" space identifier space? "{"
+      children:definition*
+    "}" <NamespaceDef>
+  end
+
+  rule const_def
+    "const" space identifier space? "=" space? constant ";" <ConstDef>
+  end
+
+  rule typedef_def
+    "typedef" space declaration ";" <TypedefDef>
+  end
+
+  rule enum_def
+    "enum" space? identifier enum_body <EnumDef>
+  end
+
+  rule struct_def
+    "struct" space? identifier struct_body <StructDef>
+  end
+
+  rule union_def
+    "union" space? identifier union_body <UnionDef>
+  end
+
+  # Bodies
+
+  rule enum_body
+    "{" 
+    space* 
+    (identifier space? ("=" space? value)?)+
+    space*
+    "}"
+  end
+
+  rule struct_body
+    "{" 
+    space* 
+    (declaration space? ";")+
+    space*
+    "}"
+  end
+
+  rule union_body
+    "switch" space? "(" declaration ")"
+    "{" 
+    space* 
+    (case_spec)+
+    (default_case_spec)?
+    space*
+    "}"
+  end
+
+  # Case spec
+
+  rule case_spec
+    ("case" space? value space? ":")+
+    declaration space? ";"
+  end
+
+  rule default_case_spec
+    "default" space? ":"
+    declaration space? ";"
+  end
+
+  # Type Specifiers
+  rule type_specifier
+    (("unsigned" space)? "int") /
+    (("unsigned" space)? "hyper") /
+    "float" /
+    "double" /
+    "quadruple" /
+    "bool" /
+    identifier
+  end
+
+  rule enum_type_spec
+    "enum" space enum_body
+  end
+
+  rule struct_type_spec
+    "struct" space struct_body
+  end
+
+  rule union_type_spec
+    "union" space union_body
+  end
+
+  rule size_spec
+    fixed_size_spec / var_size_spec
+  end
+
+  rule fixed_size_spec
+    "[" size "]"
+  end
+
+  rule var_size_spec
+    "<" size? ">"
+  end
+
+  # Misc.
+
+  rule size
+    ([1-9] [0-9])*
+  end
+
+  rule identifier
+    [a-zA-Z] [a-zA-Z0-9_]* <Identifier>
   end
 
   rule space
     [\s]+
   end
 
-  rule const
-    "const" space "=" value ";"
+  rule asterisk
+    "*"
   end
+
+  rule ampersand_line
+    "%" content:(!"\n" .)* "\n"?
+  end
+
+  # Values
 
   rule value
-    integer
+    identifier / constant
   end
 
-  rule integer
-    ('+' / '-')? [0-9]+ <IntegerLiteral>
+  rule constant
+    ( decimal_constant / hexadecimal_constant / octal_constant )
   end
+
+  rule decimal_constant
+    "-"? [1-9] [0-9]* <DecimalConstant>
+  end
+
+  rule hexadecimal_constant
+    "0x" [a-fA-F0-9]+ <HexadecimalConstant>
+  end
+
+  rule octal_constant
+    "0"? [0-7]+ <OctalConstant>
+  end
+
+  # Comments
+
+  rule block_comment
+    "/*" !("*/"+)  "*/"
+  end
+
+  rule line_comment
+    "//" content:(!"\n" .)* "\n"?
+  end
+
 end

@@ -1,18 +1,21 @@
 require 'treetop'
 require 'xdrgen/grammar/nodes'
 
-# Load our custom syntax node classes so the parser can use them
+# load the grammar file
+BASE_PATH = File.expand_path(File.dirname(__FILE__))
+Treetop.load("#{BASE_PATH}/grammar.treetop")
+
+
 module Xdrgen
-  BASE_PATH = File.expand_path(File.dirname(__FILE__))
   class Parser
+    def initialize
+      @grammar = XdrGrammarParser.new
+    end
     
-    Treetop.load("#{BASE_PATH}/grammar.treetop")
-    @@parser = XdrGrammarParser.new
-    
-    def self.parse(data)
-      @@parser.parse(data).tap do |tree|
+    def parse(data)
+      @grammar.parse(data).tap do |tree|
         if(tree.nil?)
-          raise XdrGen::ParseError, "Couldn't parse, failed at offset: #{@@parser.index}"
+          raise Xdrgen::ParseError, "Couldn't parse, failed at offset: #{@grammar.index}"
         end
       end
     end
