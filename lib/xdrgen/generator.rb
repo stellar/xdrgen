@@ -19,7 +19,7 @@ module Xdrgen
     end
 
     def visit_syntax_node(node)
-      recurse
+      recurse node.elements
     end
 
     def visit_const_def(const)
@@ -28,7 +28,9 @@ module Xdrgen
 
     def visit_namespace_def(namespace)
       out "module #{namespace.name.classify}"
-      indent{ recurse }
+      indent do 
+        recurse namespace.definitions
+      end
       out "end"
     end
 
@@ -43,7 +45,7 @@ module Xdrgen
                   size = typedef.declaration.max_size
                   "#{typedef.name} = XDR::VarOpaque[#{size}]"
                 when AST::SimpleDecl ;
-                  binding.pry
+                  ""
                 else
                   "TODO = XDR::Int32 #TODO"
                 end
@@ -66,8 +68,8 @@ module Xdrgen
       @result.puts indented_lines.join("\n")
     end
 
-    def recurse
-      children = @current_node.elements || []
+    def recurse(children)
+      children ||= []
       children.each{|c| visit(c)}
     end
   end
