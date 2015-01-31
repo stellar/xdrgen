@@ -1,0 +1,22 @@
+grammar XdrGrammar
+  
+  rule top
+
+  end
+
+  rule space
+    [\s]+
+  end
+
+  rule const
+    "const" space "=" value ";"
+  end
+
+  rule value
+    integer
+  end
+
+  rule integer
+    ('+' / '-')? [0-9]+ <IntegerLiteral>
+  end
+end
