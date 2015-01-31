@@ -1,12 +1,9 @@
-module XdrNamespaceGrammar
-
-  class NamespaceDef < Treetop::Runtime::SyntaxNode
-    include XdrMainGrammar::Definition
+module Xdrgen::AST
+  class NamespaceDef < Definition
     delegate :name, to: :identifier
 
     def definitions
       children.elements.select{|c| c.is_a?(Definition)}
     end
   end
-  
 end

@@ -25,15 +25,27 @@ grammar XdrMainGrammar
 
   rule declaration
     (
-      ("void") /
-      ("opaque" space identifier size_spec) /
-      ("string" space identifier var_size_spec) /
-      (type_specifier space identifier size_spec) /
-      (type_specifier "*" space? identifier) /
-      (type_specifier space? "*" identifier) /
+      ("void") 
+      <Xdrgen::AST::VoidDecl> /
+
+      ("opaque" space identifier size_spec) 
+      <Xdrgen::AST::OpaqueDecl> /
+
+      ("string" space identifier var_size_spec) 
+      <Xdrgen::AST::StringDecl> /
+
+      (type_specifier space identifier size_spec)
+      <Xdrgen::AST::ArrayDecl> /
+
+      (type_specifier "*" space? identifier) 
+      <Xdrgen::AST::OptionalDecl> /
+
+      (type_specifier space? "*" identifier)
+      <Xdrgen::AST::OptionalDecl> /
+
       (type_specifier space identifier)
+      <Xdrgen::AST::SimpleDecl>
     )
-    <Declaration>
   end
 
   # Definitions

@@ -3,7 +3,8 @@ grammar XdrNamespaceGrammar
   rule namespace_def
     "namespace" space identifier space? "{"
       children:definition*
-    "}" <NamespaceDef>
+    "}" 
+    <Xdrgen::AST::NamespaceDef>
   end
 
 end

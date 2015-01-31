@@ -24,15 +24,10 @@ grammars = %w(
   union
   typedef
   namespace
-  main
   comments
+  main
 )
 
-# setup node autloads 
-grammars.each do |g|
-  module_name = "xdr_#{g}_grammar".classify.to_sym
-  autoload module_name, "xdrgen/grammar/#{g}_nodes"
-end
 
 # load the grammar files
 grammars.each do |g|

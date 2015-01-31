@@ -8,6 +8,7 @@ require 'active_support/concern'
 module Xdrgen
   extend ActiveSupport::Autoload
 
+  autoload :AST
   autoload :CLI
   autoload :Generator
   autoload :Parser

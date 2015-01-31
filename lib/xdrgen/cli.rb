@@ -9,7 +9,7 @@ module Xdrgen::CLI
       raw     = IO.read(file)
       parsed  = parser.parse(raw)
       code    = generate.generate(parsed)
-      binding.pry
+      puts code
     end
   end
 end

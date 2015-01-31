@@ -2,7 +2,7 @@ grammar XdrEnumGrammar
 
   rule enum_def
     "enum" space identifier space? enum_body space? ";"
-    <EnumDef>
+    <Xdrgen::AST::EnumDef>
   end
 
 

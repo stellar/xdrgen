@@ -3,7 +3,7 @@ grammar XdrBaseGrammar
   rule identifier
     ([a-zA-Z] [0-9a-zA-Z_]*) 
     ("::" [a-zA-Z] [0-9a-zA-Z_]*)* 
-    <Identifier>
+    <Xdrgen::AST::Identifier>
   end
 
   rule value
@@ -15,15 +15,18 @@ grammar XdrBaseGrammar
   end
 
   rule decimal_constant
-    "-"? [1-9] [0-9]* <DecimalConstant>
+    "-"? [1-9] [0-9]* 
+    <Xdrgen::AST::DecimalConstant>
   end
 
   rule hexadecimal_constant
-    "0x" [a-fA-F0-9]+ <HexadecimalConstant>
+    "0x" [a-fA-F0-9]+ 
+    <Xdrgen::AST::HexadecimalConstant>
   end
 
   rule octal_constant
-    "0"? [0-7]+ <OctalConstant>
+    "0"? [0-7]+ 
+    <Xdrgen::AST::OctalConstant>
   end
 
   rule type_specifier

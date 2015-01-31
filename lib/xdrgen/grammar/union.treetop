@@ -5,7 +5,7 @@ grammar XdrUnionGrammar
     identifier space 
     union_body space? 
     ";" 
-    <UnionDef>
+    <Xdrgen::AST::UnionDef>
   end
 
 

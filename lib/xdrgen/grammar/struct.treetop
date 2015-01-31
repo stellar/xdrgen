@@ -5,7 +5,7 @@ grammar XdrStructGrammar
     identifier space? 
     struct_body space? 
     ";"
-    <StructDef>
+    <Xdrgen::AST::StructDef>
   end
 
   rule struct_body
