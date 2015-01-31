@@ -3,4 +3,8 @@ guard :rspec, cmd: 'rspec' do
   watch(%r{^lib/(.+)\.rb$})           { |m| "spec/lib/#{m[1]}_spec.rb" }
   watch('spec/spec_helper.rb')        { "spec" }
   watch(%r{^spec/support/(.+)\.rb$})  { "spec" }
+
+  watch(%r{^lib/(.+)\.treetop$})      { "spec/lib/xdrgen/parser_spec.rb" }
+  watch(%r{^lib/(.+)_nodes\.rb$})     { "spec/lib/xdrgen/parser_spec.rb" }
+  watch(%r{^spec/fixtures/(.+)\.x$})  { "spec/lib/xdrgen/parser_spec.rb" }
 end
