@@ -4,7 +4,7 @@ grammar XdrNamespaceGrammar
     "namespace" space 
     identifier space? 
     "{"
-      children:definition*
+      children_n:definition*
     "}" 
     <Xdrgen::AST::Definitions::Namespace>
   end

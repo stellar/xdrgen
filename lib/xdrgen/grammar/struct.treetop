@@ -11,7 +11,7 @@ grammar XdrStructGrammar
   rule struct_body
     "{" 
     space?
-    members_n:(struct_member)+
+    children_n:(struct_member)+
     "}"
     <Xdrgen::AST::Definitions::StructBody>
   end

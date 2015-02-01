@@ -1,6 +1,7 @@
 module Xdrgen::AST
   module Concerns
     module HasDefinitions
+      include HasChildren
       
       def typedefs
         find_children(Definitions::Typedef)
@@ -28,7 +29,7 @@ module Xdrgen::AST
 
       private
       def find_children(type)
-        children.elements.select{|c| c.is_a? type}
+        children.select{|c| c.is_a? type}
       end
     end
   end
