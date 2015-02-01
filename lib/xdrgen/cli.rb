@@ -6,9 +6,10 @@ module Xdrgen::CLI
     generate = Xdrgen::Generator.new
 
     args.each do |file|
-      raw     = IO.read(file)
-      parsed  = parser.parse(raw)
-      code    = generate.generate(parsed)
+      raw         = IO.read(file)
+      parsed      = parser.parse(raw)
+      parsed.path = file
+      code        = generate.generate(parsed)
       puts code
     end
   end

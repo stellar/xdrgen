@@ -10,6 +10,8 @@ module Xdrgen
     end
 
     def render_top(top)
+      out "# Automatically generated from #{top.path}"
+      out "# DO NOT EDIT or your changes may be overwritten"
       render_definitions(top)
     end
 
