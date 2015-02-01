@@ -28,7 +28,7 @@ grammar XdrUnionGrammar
   end
 
   rule case_spec
-    ("case" space? value space? ":")+
+    cases_n:("case" space? value space? ":")+
     space?
     declaration 
     space? 

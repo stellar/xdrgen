@@ -83,7 +83,11 @@ module Xdrgen
       indent do
         out "include XDR::Union"
         out
-        out "# TODO"
+        out "discriminate #{union.discriminant_type}, :#{union.discriminant_name}"
+        union.arms.each do |a|
+          discriminant = "#{union.discriminant_type}::#{}"
+          out "arm :#{a.name.underscore}, TODO, #{decl_string(a.declaration)}"
+        end
       end
       out "end"
     end
@@ -125,6 +129,8 @@ module Xdrgen
         "XDR::Option[#{decl.child_type}]"
       when AST::Declarations::Simple ;
         type_string(decl.type)
+      when AST::Declarations::Void ;
+        "XDR::Void"
       else
         raise "Unknown declaration type: #{decl.class.name}"
       end
@@ -144,7 +150,6 @@ module Xdrgen
         type.text_value.classify
       end
     end
-
 
   end
 end
