@@ -53,6 +53,8 @@ grammar XdrDeclarationGrammar
 
   rule type_specifier
     integral_type_spec /
+    float_type_spec /
+    boolean_type_spec /
     enum_type_spec /
     struct_type_spec /
     union_type_spec /
@@ -64,6 +66,18 @@ grammar XdrDeclarationGrammar
     size_t:("int" / "hyper") 
     &space
     <Xdrgen::AST::Typespecs::Int>
+  end
+
+  rule float_type_spec
+    size_t:("float" / "double" / "quadruple") 
+    &space
+    <Xdrgen::AST::Typespecs::Float>
+  end
+
+  rule boolean_type_spec
+    "bool"
+    &space
+    <Xdrgen::AST::Typespecs::Bool>
   end
 
 

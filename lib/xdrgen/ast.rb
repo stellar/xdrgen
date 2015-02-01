@@ -52,6 +52,8 @@ module Xdrgen::AST
 
     autoload :Base
     autoload :Int
+    autoload :Float
+    autoload :Bool
     autoload :Opaque
     autoload :String
     autoload :Enum

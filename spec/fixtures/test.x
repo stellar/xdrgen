@@ -27,6 +27,11 @@ struct MyStruct
     uint512 field1;
     optHash1 field2;
     int1 field3;
+    unsigned int field4;
+    float field5;
+    double field6;
+    quadruple field7;
+    bool field8;
 };
 
 }

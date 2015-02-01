@@ -94,6 +94,11 @@ module Xdrgen
       when AST::Typespecs::Int ;
         size_s = type.size.to_s.classify
         type.unsigned? ? "XDR::Unsigned#{size_s}" : "XDR::#{size_s}"
+      when AST::Typespecs::Float ;
+        size_s = type.size.to_s.classify
+        "XDR::#{size_s}"
+      when AST::Typespecs::Bool ;
+        "XDR::Bool"
       else
         type.text_value.classify
       end
