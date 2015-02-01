@@ -11,8 +11,17 @@ grammar XdrStructGrammar
   rule struct_body
     "{" 
     space?
-    (declaration space? ";" space?)+
+    members_n:(struct_member)+
     "}"
+    <Xdrgen::AST::Definitions::StructBody>
+  end
+
+  rule struct_member
+    declaration 
+    space? 
+    ";" 
+    space?
+    <Xdrgen::AST::Definitions::StructMember>
   end
 
   rule struct_type_spec

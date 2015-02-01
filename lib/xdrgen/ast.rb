@@ -6,10 +6,18 @@ module Xdrgen::AST
   autoload :HeadecimalConstant
   autoload :OctalConstant
 
+  autoload :Top
   autoload :Identifier
 
   autoload :FixedSize
   autoload :VarSize
+
+  module Concerns
+    extend ActiveSupport::Autoload
+    
+    autoload :Named
+    autoload :HasDefinitions
+  end
 
   module Definitions
     extend ActiveSupport::Autoload
@@ -19,6 +27,8 @@ module Xdrgen::AST
     autoload :Enum
     autoload :Typedef
     autoload :Struct
+    autoload :StructBody
+    autoload :StructMember
     autoload :Union
     autoload :Namespace
 

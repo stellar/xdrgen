@@ -1,5 +1,7 @@
-module Xdrgen::AST::Definitions
-  class Typedef < Base
-    delegate :name, to: :declaration
+module Xdrgen::AST
+  module Definitions
+    class Typedef < Base
+      include Concerns::Named
+    end
   end
 end

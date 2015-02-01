@@ -1,9 +1,8 @@
-module Xdrgen::AST::Definitions
-  class Namespace < Base
-    delegate :name, to: :identifier
-
-    def definitions
-      children.elements.select{|c| c.is_a?(Xdrgen::AST::Definitions::Base)}
+module Xdrgen::AST
+  module Definitions
+    class Namespace < Base
+      include Concerns::Named
+      include Concerns::HasDefinitions
     end
   end
 end

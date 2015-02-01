@@ -10,7 +10,8 @@ grammar XdrMainGrammar
   include XdrNamespaceGrammar
 
   rule top
-    definition*
+    children:definition*
+    <Xdrgen::AST::Top>
   end
 
   rule definition
