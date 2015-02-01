@@ -27,6 +27,36 @@ module Xdrgen::AST
         find_children(Definitions::Namespace)
       end
 
+      ##
+      # Collapse the flat list of definitions in this 
+      # container into a nested array, grouping the
+      # definitions by contiguous types:
+      # 
+      # Example:
+      # 
+      # [Typedef, Typedef, Typedef, Const, Struct, Struct, Typedef]
+      # 
+      # becomes:
+      # 
+      # [[Typedef, Typedef, Typedef], [Const], [Struct, Struct], [Typedef]]
+      # 
+      # 
+      def definition_blocks
+        children.each_with_object([]) do |child, result|
+          next unless child.is_a?(Definitions::Base)
+
+          current_group = result.last
+          
+          if current_group.blank?
+            result.push [child]
+          elsif current_group.last.is_a?(child.class)
+            current_group.push child
+          else
+            result.push [child]
+          end
+        end
+      end
+
       private
       def find_children(type)
         children.select{|c| c.is_a? type}
