@@ -18,7 +18,7 @@ module Xdrgen
       out ""
       node.typedefs.each    {|t| render_typedef t}
       out ""
-      node.enums.each       {|e| render_struct e}
+      node.enums.each       {|e| render_enum e}
       out ""
       node.structs.each     {|s| render_struct s}
       out ""
@@ -40,9 +40,28 @@ module Xdrgen
     def render_struct(struct)
       out "class #{struct.name.classify}"
       indent do
+        out "include XDR::Struct"
         struct.members.each do |m|
           out "attribute :#{m.name.underscore}, #{decl_string(m.declaration)}"
         end
+      end
+      out "end"
+    end
+
+    def render_enum(enum)
+      out "module #{enum.name.classify}"
+      indent do
+        out "include XDR::Enum"
+        out "# TODO"
+      end
+      out "end"
+    end
+
+    def render_union(union)
+      out "class #{union.name.classify}"
+      indent do
+        out "include XDR::Union"
+        out "# TODO"
       end
       out "end"
     end
