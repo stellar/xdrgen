@@ -25,9 +25,6 @@ grammar XdrMainGrammar
     )
   end
 
-
-  # Definitions
-
   rule type_def
     (
       typedef_def /
@@ -35,21 +32,6 @@ grammar XdrMainGrammar
       struct_def /
       union_def
     )
-  end
-
-
-  # Comments
-
-  rule ampersand_line
-    "%" content:(!"\n" .)* "\n"?
-  end
-
-  rule block_comment
-    "/*" !("*/"+)  "*/"
-  end
-
-  rule line_comment
-    "//" content:(!"\n" .)* "\n"?
   end
 
 end

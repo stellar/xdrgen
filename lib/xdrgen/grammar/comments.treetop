@@ -9,7 +9,7 @@ grammar XdrCommentsGrammar
   end
 
   rule line_comment
-    "//"
+    "//" content:(!"\n" .)* "\n"?
   end
 
   rule soc
