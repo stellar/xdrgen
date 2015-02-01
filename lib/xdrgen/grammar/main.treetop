@@ -16,21 +16,14 @@ grammar XdrMainGrammar
 
   rule definition
     (
-      type_def /
-      const_def / 
-      namespace_def /
-      line_comment / 
-      ampersand_line /
-      space
-    )
-  end
-
-  rule type_def
-    (
       typedef_def /
       enum_def /
       struct_def /
-      union_def
+      union_def /
+      const_def / 
+      namespace_def /
+      ampersand_line /
+      space
     )
   end
 

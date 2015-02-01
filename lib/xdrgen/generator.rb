@@ -12,19 +12,36 @@ module Xdrgen
     def render_top(top)
       out "# Automatically generated from #{top.path}"
       out "# DO NOT EDIT or your changes may be overwritten"
+      out ""
       render_definitions(top)
     end
 
     def render_definitions(node)
-      node.namespaces.each  {|n| render_namespace n}
-      out ""
-      node.typedefs.each    {|t| render_typedef t}
-      out ""
-      node.enums.each       {|e| render_enum e}
-      out ""
-      node.structs.each     {|s| render_struct s}
-      out ""
-      node.unions.each      {|u| render_union u}
+      node.definition_blocks.each{|b| render_definition_block b}
+    end
+
+    def render_definition_block(definitions)
+      return if definitions.blank?
+      
+      renderer =  case definitions.first
+                  when AST::Definitions::Namespace ;
+                    method(:render_namespace)
+                  when AST::Definitions::Const ;
+                    method(:render_const)
+                  when AST::Definitions::Typedef ;
+                    method(:render_typedef)
+                  when AST::Definitions::Enum ;
+                    method(:render_enum)
+                  when AST::Definitions::Struct ;
+                    method(:render_struct)
+                  when AST::Definitions::Union ;
+                    method(:render_union)
+                  else
+                    raise "Unknown definition type: #{klass}"
+                  end
+
+      definitions.each(&renderer)
+      out
     end
 
     def render_const(const)
@@ -43,6 +60,7 @@ module Xdrgen
       out "class #{struct.name.classify}"
       indent do
         out "include XDR::Struct"
+        out
         struct.members.each do |m|
           out "attribute :#{m.name.underscore}, #{decl_string(m.declaration)}"
         end
@@ -54,6 +72,7 @@ module Xdrgen
       out "module #{enum.name.classify}"
       indent do
         out "include XDR::Enum"
+        out
         out "# TODO"
       end
       out "end"
@@ -63,6 +82,7 @@ module Xdrgen
       out "class #{union.name.classify}"
       indent do
         out "include XDR::Union"
+        out
         out "# TODO"
       end
       out "end"
@@ -80,7 +100,7 @@ module Xdrgen
       @current_indent -= 1
     end
 
-    def out(s)
+    def out(s="")
       indent         = "  " * @current_indent
       indented_lines = s.split("\n").map{|l| indent + l}
 

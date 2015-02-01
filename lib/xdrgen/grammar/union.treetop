@@ -12,14 +12,15 @@ grammar XdrUnionGrammar
   rule union_body
     "switch" 
     space? 
-    "(" declaration ")"
+    "(" discriminant:declaration ")"
     space?
     "{" 
     space? 
-    (case_spec)+
+    children_n:(case_spec)+
     (default_case_spec)?
     space?
     "}"
+    <Xdrgen::AST::Definitions::UnionBody>
   end
 
   rule union_type_spec
@@ -33,6 +34,7 @@ grammar XdrUnionGrammar
     space? 
     ";" 
     space?
+    <Xdrgen::AST::Definitions::UnionArm>
   end
 
   rule default_case_spec
@@ -41,6 +43,7 @@ grammar XdrUnionGrammar
     declaration 
     space? 
     ";"
+    <Xdrgen::AST::Definitions::UnionDefaultArm>
   end
 
 

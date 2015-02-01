@@ -26,11 +26,16 @@ module Xdrgen::AST
     autoload :Base
     autoload :Const
     autoload :Enum
+    autoload :EnumBody
+    autoload :EnumMember
     autoload :Typedef
     autoload :Struct
     autoload :StructBody
     autoload :StructMember
     autoload :Union
+    autoload :UnionBody
+    autoload :UnionArm
+    autoload :UnionDefaultArm
     autoload :Namespace
 
   end
