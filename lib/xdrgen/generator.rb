@@ -35,22 +35,7 @@ module Xdrgen
     end
 
     def visit_typedef_def(typedef)
-      
-      result =  case typedef.declaration
-                when AST::OpaqueDecl ;
-                  name = typedef.name
-                  size = typedef.declaration.size
-                  "#{name} = XDR::Opaque[#{size}]"
-                when AST::VarOpaqueDecl ;
-                  size = typedef.declaration.max_size
-                  "#{typedef.name} = XDR::VarOpaque[#{size}]"
-                when AST::SimpleDecl ;
-                  ""
-                else
-                  "TODO = XDR::Int32 #TODO"
-                end
-
-      out result
+      out "#{typedef.name.classify} = #{decl_string(typedef.declaration)}"
     end
 
     private
@@ -72,5 +57,40 @@ module Xdrgen
       children ||= []
       children.each{|c| visit(c)}
     end
+
+    def decl_string(decl)
+      case decl
+      when AST::Declarations::Opaque ;
+        type = decl.fixed? ? "XDR::Opaque" : "XDR::VarOpaque"
+        "#{type}[#{decl.size}]"
+      when AST::Declarations::String ;
+        "XDR::String[#{decl.size}]"
+      when AST::Declarations::Array ;
+        type = decl.fixed? ? "XDR::Array" : "XDR::VarArray"
+        args = [decl.child_type, decl.size].
+          compact.
+          map(&:to_s).
+          join(", ")
+        "XDR::Array[#{args}]"
+      when AST::Declarations::Optional ;
+        "XDR::Option[#{decl.child_type}]"
+      when AST::Declarations::Simple ;
+        type_string(decl.type)
+      else
+        "TODO"
+      end
+    end
+
+    def type_string(type)
+      case type
+      when AST::Typespecs::Int ;
+        size_s = type.size.to_s.classify
+        type.unsigned? ? "XDR::Unsigned#{size_s}" : "XDR::#{size_s}"
+      else
+        type.text_value
+      end
+    end
+
+
   end
 end

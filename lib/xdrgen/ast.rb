@@ -16,16 +16,31 @@ module Xdrgen::AST
   autoload :UnionDef
   autoload :NamespaceDef
 
-  autoload :Declaration
-  autoload :VoidDecl
-  autoload :OpaqueDecl
-  autoload :VarOpaqueDecl
-  autoload :StringDecl
-  autoload :ArrayDecl
-  autoload :VarArrayDecl
-  autoload :OptionalDecl
-  autoload :SimpleDecl
-
   autoload :FixedSize
   autoload :VarSize
+
+  module Declarations
+    extend ActiveSupport::Autoload
+
+    autoload :Base
+    autoload :Opaque
+    autoload :Array
+    autoload :String
+    autoload :Optional
+    autoload :Void
+    autoload :Simple
+  end
+
+  module Typespecs
+    extend ActiveSupport::Autoload
+
+    autoload :Base
+    autoload :Int
+    autoload :Opaque
+    autoload :String
+    autoload :Enum
+    autoload :Struct
+    autoload :Union
+    autoload :Simple
+  end
 end

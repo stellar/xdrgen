@@ -1,51 +1,79 @@
 grammar XdrDeclarationGrammar
   rule declaration
-    (
-      ("void" 
-      <Xdrgen::AST::VoidDecl>) /
+    void_decl /
+    opaque_decl /
+    string_decl /
+    array_decl /
+    optional_decl /
+    simple_decl
+  end
 
-      ("opaque" space identifier fixed_size_spec
-      <Xdrgen::AST::OpaqueDecl>) /
-
-      ("opaque" space identifier var_size_spec 
-      <Xdrgen::AST::VarOpaqueDecl>) /
-
-      ("string" space identifier var_size_spec 
-      <Xdrgen::AST::StringDecl>) /
-
-      (type_specifier space identifier fixed_size_spec
-      <Xdrgen::AST::ArrayDecl>) /
-
-      (type_specifier space identifier var_size_spec
-      <Xdrgen::AST::VarArrayDecl>) /
-
-      (type_specifier "*" space? identifier 
-      <Xdrgen::AST::OptionalDecl>) /
-
-      (type_specifier space? "*" identifier
-      <Xdrgen::AST::OptionalDecl>) /
-
-      (type_specifier space identifier
-      <Xdrgen::AST::SimpleDecl>)
-    )
+  rule void_decl
+    "void" 
+    <Xdrgen::AST::Declarations::Void>
   end
   
+  rule opaque_decl
+    type:("opaque" <Xdrgen::AST::Typespecs::Opaque>)
+    space 
+    identifier 
+    size_spec:(fixed_size_spec / var_size_spec)
+    <Xdrgen::AST::Declarations::Opaque>
+  end
+
+  rule string_decl
+    type:("string" <Xdrgen::AST::Typespecs::String>)
+    space 
+    identifier 
+    size_spec:var_size_spec 
+    <Xdrgen::AST::Declarations::String>
+  end
+
+  rule array_decl
+    type:type_specifier
+    space
+    identifier
+    size_spec:(fixed_size_spec / var_size_spec)
+    <Xdrgen::AST::Declarations::Array>
+  end
+
+  rule optional_decl
+    type:type_specifier 
+    ("*" space? / space? "*")
+    identifier 
+    <Xdrgen::AST::Declarations::Optional>
+  end
+
+  rule simple_decl
+    type:type_specifier 
+    space 
+    identifier
+    <Xdrgen::AST::Declarations::Simple>
+  end
+
   rule type_specifier
-    ("unsigned" space "int") /
-    ("unsigned" space "hyper") /
+    integral_type_spec /
     enum_type_spec /
     struct_type_spec /
     union_type_spec /
     identifier
   end
 
+  rule integral_type_spec
+    unsigned:("unsigned" space)?
+    size_t:("int" / "hyper") 
+    &space
+    <Xdrgen::AST::Typespecs::Int>
+  end
+
+
   rule fixed_size_spec
-    "[" size "]"
+    "[" size_t:size "]"
     <Xdrgen::AST::FixedSize>
   end
 
   rule var_size_spec
-    "<" size? ">"
+    "<" size_t:size? ">"
     <Xdrgen::AST::VarSize>
   end
 end
