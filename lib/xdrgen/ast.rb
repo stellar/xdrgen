@@ -8,16 +8,21 @@ module Xdrgen::AST
 
   autoload :Identifier
 
-  autoload :Definition
-  autoload :ConstDef
-  autoload :EnumDef
-  autoload :TypedefDef
-  autoload :StructDef
-  autoload :UnionDef
-  autoload :NamespaceDef
-
   autoload :FixedSize
   autoload :VarSize
+
+  module Definitions
+    extend ActiveSupport::Autoload
+
+    autoload :Base
+    autoload :Const
+    autoload :Enum
+    autoload :Typedef
+    autoload :Struct
+    autoload :Union
+    autoload :Namespace
+
+  end
 
   module Declarations
     extend ActiveSupport::Autoload

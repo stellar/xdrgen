@@ -1,10 +1,12 @@
 grammar XdrNamespaceGrammar
 
   rule namespace_def
-    "namespace" space identifier space? "{"
+    "namespace" space 
+    identifier space? 
+    "{"
       children:definition*
     "}" 
-    <Xdrgen::AST::NamespaceDef>
+    <Xdrgen::AST::Definitions::Namespace>
   end
 
 end

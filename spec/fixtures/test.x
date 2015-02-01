@@ -22,6 +22,11 @@ typedef hyper           int2;
 typedef unsigned int    int3;
 typedef unsigned hyper  int4;
 
-
+struct MyStruct
+{
+    uint512 field1;
+    optHash1 field2;
+    int1 field3;
+};
 
 }

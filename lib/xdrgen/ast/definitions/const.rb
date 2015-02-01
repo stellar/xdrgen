@@ -1,5 +1,5 @@
-module Xdrgen::AST
-  class ConstDef < Definition
+module Xdrgen::AST::Definitions
+  class Const < Base
     
     delegate :name, to: :identifier
     delegate :value, to: :constant

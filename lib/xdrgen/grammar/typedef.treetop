@@ -2,7 +2,7 @@ grammar XdrTypedefGrammar
 
   rule typedef_def
     "typedef" space declaration ";" 
-    <Xdrgen::AST::TypedefDef>
+    <Xdrgen::AST::Definitions::Typedef>
   end
 
 end

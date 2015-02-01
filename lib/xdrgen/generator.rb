@@ -22,11 +22,11 @@ module Xdrgen
       recurse node.elements
     end
 
-    def visit_const_def(const)
+    def visit_const(const)
       out "#{const.name} = #{const.value}"
     end
 
-    def visit_namespace_def(namespace)
+    def visit_namespace(namespace)
       out "module #{namespace.name.classify}"
       indent do 
         recurse namespace.definitions
@@ -34,7 +34,15 @@ module Xdrgen
       out "end"
     end
 
-    def visit_typedef_def(typedef)
+    def visit_struct(struct)
+      out "class #{struct.name.classify}"
+      indent do 
+        # recurse struct.members
+      end
+      out "end"
+    end
+
+    def visit_typedef(typedef)
       out "#{typedef.name.classify} = #{decl_string(typedef.declaration)}"
     end
 
