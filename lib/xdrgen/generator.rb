@@ -2,47 +2,52 @@ module Xdrgen
   class Generator
     attr_reader :result
 
-    def generate(ast)
+    def generate(top)
       @current_indent = 0
       @result = StringIO.new
-      visit(ast)
+      render_top(top)
       @result.string
     end
 
-    def visit(node)
-      @current_node = node
-
-      name       = node.class.name.demodulize.underscore
-      visit_name = "visit_#{name}".to_sym
-
-      public_send(visit_name, node) if respond_to?(visit_name)
+    def render_top(top)
+      render_definitions(top)
     end
 
-    def visit_syntax_node(node)
-      recurse node.elements
+    def render_definitions(node)
+      node.namespaces.each  {|n| render_namespace n}
+      out ""
+      node.typedefs.each    {|t| render_typedef t}
+      out ""
+      node.enums.each       {|e| render_struct e}
+      out ""
+      node.structs.each     {|s| render_struct s}
+      out ""
+      node.unions.each      {|u| render_union u}
     end
 
-    def visit_const(const)
+    def render_const(const)
       out "#{const.name} = #{const.value}"
     end
 
-    def visit_namespace(namespace)
+    def render_namespace(namespace)
       out "module #{namespace.name.classify}"
       indent do 
-        recurse namespace.definitions
+        render_definitions namespace
       end
       out "end"
     end
 
-    def visit_struct(struct)
+    def render_struct(struct)
       out "class #{struct.name.classify}"
-      indent do 
-        # recurse struct.members
+      indent do
+        struct.members.each do |m|
+          out "attribute :#{m.name.underscore}, #{decl_string(m.declaration)}"
+        end
       end
       out "end"
     end
 
-    def visit_typedef(typedef)
+    def render_typedef(typedef)
       out "#{typedef.name.classify} = #{decl_string(typedef.declaration)}"
     end
 
@@ -59,11 +64,6 @@ module Xdrgen
       indented_lines = s.split("\n").map{|l| indent + l}
 
       @result.puts indented_lines.join("\n")
-    end
-
-    def recurse(children)
-      children ||= []
-      children.each{|c| visit(c)}
     end
 
     def decl_string(decl)
@@ -85,7 +85,7 @@ module Xdrgen
       when AST::Declarations::Simple ;
         type_string(decl.type)
       else
-        "TODO"
+        raise "Unknown declaration type: #{decl.class.name}"
       end
     end
 
@@ -95,7 +95,7 @@ module Xdrgen
         size_s = type.size.to_s.classify
         type.unsigned? ? "XDR::Unsigned#{size_s}" : "XDR::#{size_s}"
       else
-        type.text_value
+        type.text_value.classify
       end
     end
 

@@ -1,7 +1,7 @@
 module Xdrgen::AST
   module Definitions
     class StructMember < Base
-      delegate :name, to: :identifier
+      delegate :name, to: :declaration
 
     end
   end

@@ -1,7 +1,7 @@
 module Xdrgen::AST
   module Definitions
     class Typedef < Base
-      include Concerns::Named
+      delegate :name, to: :declaration
     end
   end
 end
