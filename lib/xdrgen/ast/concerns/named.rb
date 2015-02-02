@@ -3,11 +3,12 @@ module Xdrgen::AST
     module Named
       delegate :name, to: :identifier
 
-      def fully_qualified_name
-        return name unless self.is_a?(Contained)
-        
-        namespaces = self.find_ancestors(Definitions::Namespace)
+      def namespaces
+        return [] unless self.is_a?(Contained)
+        self.find_ancestors(Definitions::Namespace)
+      end
 
+      def fully_qualified_name
         namespaces.map(&:name) + [name]
       end
     end

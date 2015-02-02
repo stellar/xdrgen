@@ -37,7 +37,7 @@ module Xdrgen
             render_autoload(out, member)
           end
         end
-        
+
         out.puts
       end
 
@@ -75,12 +75,7 @@ module Xdrgen
     end
 
     def render_struct(struct)
-      path = struct.fully_qualified_name.map(&:underscore).join("/") + ".rb"
-      name = struct.fully_qualified_name.map(&:classify).join("::")
-
-      out = @output.open(path)
-      out.puts "class #{name}"
-      out.indent do
+      render_element "class", struct do |out|
         out.puts "include XDR::Struct"
         out.puts
 
@@ -88,16 +83,10 @@ module Xdrgen
           out.puts "attribute :#{m.name.underscore}, #{decl_string(m.declaration)}"
         end
       end
-      out.puts "end"
     end
 
     def render_enum(enum)
-      path = enum.fully_qualified_name.map(&:underscore).join("/") + ".rb"
-      name = enum.fully_qualified_name.map(&:classify).join("::")
-
-      out = @output.open(path)
-      out.puts "module #{name}"
-      out.indent do
+      render_element "module", enum do |out|
         out.puts "include XDR::Enum"
         out.puts
 
@@ -105,16 +94,10 @@ module Xdrgen
           out.puts "#{em.name} = #{em.value}"
         end
       end
-      out.puts "end"
     end
 
     def render_union(union)
-      path = union.fully_qualified_name.map(&:underscore).join("/") + ".rb"
-      name = union.fully_qualified_name.map(&:classify).join("::")
-
-      out = @output.open(path)
-      out.puts "class #{name}"
-      out.indent do
+      render_element "class", union do |out|
         out.puts <<-EOS.strip_heredoc
           include XDR::Union
         
@@ -133,6 +116,38 @@ module Xdrgen
         union.arms.each do |a|
           out.puts "attribute :#{a.name.underscore}, #{decl_string(a.declaration)}"
         end
+      end
+    end
+
+    # TODO: find a better name
+    # This renders the skeletal structure of enums, structs, and unions
+    def render_element(type, element)
+      path               = element.fully_qualified_name.map(&:underscore).join("/") + ".rb"
+      name               = element.name.classify
+      containing_modules = element.namespaces.map{|ns| ns.name.classify }
+      out                = @output.open(path)
+
+      render_nested_modules out, containing_modules do
+        out.puts "#{type} #{name}"
+        out.indent do 
+          yield out
+        end
+        out.puts "end"
+      end
+    end
+
+
+    def render_nested_modules(out, modules, &block)
+      cur = modules.first
+
+      if cur.blank?
+        block.call
+        return
+      end
+
+      out.puts "module #{cur}"
+      out.indent do 
+        render_nested_modules(out, modules.drop(1), &block)
       end
       out.puts "end"
     end
