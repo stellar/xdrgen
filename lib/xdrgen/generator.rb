@@ -8,15 +8,16 @@ module Xdrgen
     end
 
     def generate
-      render_top
+      render_index
+      render_definitions(@top)
     end
 
-    def render_top
-      root_file_basename = File.basename(@output.source_path, ".x")
-      root_file = "#{root_file_basename}.rb"
-      out = @output.open(root_file)
+    def render_index
+      # root_file_basename = File.basename(@output.source_path, ".x")
+      # root_file = "#{root_file_basename}.rb"
+      # out = @output.open(root_file)
 
-      render_autoloads(out, @top)
+      # render_autoloads(out, @top)
       # render_top_typedefs
     end
 
@@ -29,101 +30,72 @@ module Xdrgen
     end
 
     def render_definitions(node)
-      node.definition_blocks.each{|b| render_definition_block b}
-    end
+      node.structs.each(&method(:render_struct))
+      node.enums.each(&method(:render_enum))
+      node.unions.each(&method(:render_union))
 
-    def render_definition_block(definitions)
-      return if definitions.blank?
-      
-      renderer =  case definitions.first
-                  when AST::Definitions::Namespace ;
-                    method(:render_namespace)
-                  when AST::Definitions::Const ;
-                    method(:render_const)
-                  when AST::Definitions::Typedef ;
-                    method(:render_typedef)
-                  when AST::Definitions::Enum ;
-                    method(:render_enum)
-                  when AST::Definitions::Struct ;
-                    method(:render_struct)
-                  when AST::Definitions::Union ;
-                    method(:render_union)
-                  else
-                    raise "Unknown definition type: #{klass}"
-                  end
-
-      definitions.each(&renderer)
-      out
-    end
-
-    def render_const(const)
-      out "#{const.name} = #{const.value}"
-    end
-
-    def render_namespace(namespace)
-      out "module #{namespace.name.classify}"
-      indent do 
-        render_definitions namespace
-      end
-      out "end"
+      node.namespaces.each{|ns| render_definitions(ns)}
     end
 
     def render_struct(struct)
-      out "class #{struct.name.classify}"
-      indent do
-        out "include XDR::Struct"
-        out
+      path = struct.fully_qualified_name.map(&:underscore).join("/") + ".rb"
+      name = struct.fully_qualified_name.map(&:classify).join("::")
+
+      out = @output.open(path)
+      out.puts "class #{name}"
+      out.indent do
+        out.puts "include XDR::Struct"
+        out.puts
+
         struct.members.each do |m|
-          out "attribute :#{m.name.underscore}, #{decl_string(m.declaration)}"
+          out.puts "attribute :#{m.name.underscore}, #{decl_string(m.declaration)}"
         end
       end
-      out "end"
+      out.puts "end"
     end
 
     def render_enum(enum)
-      out "module #{enum.name.classify}"
-      indent do
-        out "include XDR::Enum"
-        out
-        out "# TODO"
+      path = enum.fully_qualified_name.map(&:underscore).join("/") + ".rb"
+      name = enum.fully_qualified_name.map(&:classify).join("::")
+
+      out = @output.open(path)
+      out.puts "module #{name}"
+      out.indent do
+        out.puts "include XDR::Enum"
+        out.puts
+
+        enum.members.each do |em|
+          out.puts "#{em.name} = nil # TODO"
+        end
       end
-      out "end"
+      out.puts "end"
     end
 
     def render_union(union)
-      out "class #{union.name.classify}"
-      indent do
-        out "include XDR::Union"
-        out
-        out "discriminate #{union.discriminant_type}, :#{union.discriminant_name}"
-        union.arms.each do |a|
-          a.cases.each do |c|
-            value = "#{union.discriminant_type}::#{c}"
-            out "arm :#{a.name.underscore}, #{value}, #{decl_string(a.declaration)}"
-          end
-        end
-      end
-      out "end"
-    end
+      path = union.fully_qualified_name.map(&:underscore).join("/") + ".rb"
+      name = union.fully_qualified_name.map(&:classify).join("::")
 
-    def render_typedef(typedef)
-      out "#{typedef.name.classify} = #{decl_string(typedef.declaration)}"
+      out = @output.open(path)
+      out.puts "class #{name}"
+      out.indent do
+        out.puts <<-EOS.strip_heredoc
+          include XDR::Union
+        
+          discriminate #{union.discriminant_type}, :#{union.discriminant_name}
+        EOS
+
+        out.puts "# TODO"
+        # union.arms.each do |a|
+        #   a.cases.each do |c|
+        #     value = "#{union.discriminant_type}::#{c}"
+        #     out "arm :#{a.name.underscore}, #{value}, #{decl_string(a.declaration)}"
+        #   end
+        # end
+      end
+      out.puts "end"
     end
 
     private
-    def indent
-      @current_indent += 1
-      yield
-    ensure
-      @current_indent -= 1
-    end
-
-    def out(s="")
-      indent         = "  " * @current_indent
-      indented_lines = s.split("\n").map{|l| indent + l}
-
-      @result.puts indented_lines.join("\n")
-    end
 
     def decl_string(decl)
       case decl
