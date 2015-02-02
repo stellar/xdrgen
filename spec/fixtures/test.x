@@ -40,4 +40,6 @@ enum Color {
   GREEN
 };
 
+const FOO = 1244;
+const BAR = FOO;
 }

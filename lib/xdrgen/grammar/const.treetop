@@ -1,7 +1,7 @@
 grammar XdrConstGrammar
 
   rule const_def
-    "const" space identifier space? "=" space? constant ";" 
+    "const" space identifier space? "=" space? value_n:value ";" 
     <Xdrgen::AST::Definitions::Const>
   end
 

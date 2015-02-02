@@ -13,20 +13,57 @@ module Xdrgen
     end
 
     def render_index
-      # root_file_basename = File.basename(@output.source_path, ".x")
-      # root_file = "#{root_file_basename}.rb"
-      # out = @output.open(root_file)
+      root_file_basename = File.basename(@output.source_path, ".x")
+      root_file = "#{root_file_basename}.rb"
+      out = @output.open(root_file)
+
+      render_definitions_index(out, @top)
+    end
+
+    def render_definitions_index(out, node)
+
+      node.definition_blocks.each do |block|
+        block.each do |member|
+          case member
+          when AST::Definitions::Namespace ;
+            render_namespace_index(out, member)
+          when AST::Definitions::Typedef ;
+            render_typedef(out, member)
+          when AST::Definitions::Const ;
+            render_const(out, member)
+          when AST::Definitions::Struct,
+               AST::Definitions::Union,
+               AST::Definitions::Enum ;
+            render_autoload(out, member)
+          end
+        end
+        
+        out.puts
+      end
 
       # render_autoloads(out, @top)
       # render_top_typedefs
     end
 
-    def render_autoloads(out, node)
-      out "module #{node.name.classify}"
+    def render_namespace_index(out, ns)
+      out.puts "module #{ns.name.classify}"
       out.indent do 
-        node.namespaces.each{ |n| render_autoloads(out, n) }
+        render_definitions_index(out, ns)
       end
-      out "end"
+      out.puts "end"
+    end
+
+    def render_autoload(out, named)
+      path = named.fully_qualified_name.map(&:underscore).join("/")
+      out.puts "autoload :#{named.name.classify}, \"#{path}\""
+    end
+
+    def render_typedef(out, typedef)
+      out.puts "#{typedef.name.classify} = #{decl_string(typedef.declaration)}"
+    end
+
+    def render_const(out, const)
+      out.puts "#{const.name.classify} = #{const.value}"
     end
 
     def render_definitions(node)

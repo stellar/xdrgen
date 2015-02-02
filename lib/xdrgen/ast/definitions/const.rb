@@ -3,8 +3,10 @@ module Xdrgen::AST
     class Const < Base
       include Concerns::Named
       include Concerns::Contained
-      
-      delegate :value, to: :constant
+
+      def value
+        value_n.text_value
+      end
     end
   end
 end

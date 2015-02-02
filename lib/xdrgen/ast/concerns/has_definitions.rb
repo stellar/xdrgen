@@ -27,6 +27,10 @@ module Xdrgen::AST
         find_children(Definitions::Namespace)
       end
 
+      def definitions
+        find_children(Definitions::Base)
+      end
+
       ##
       # Collapse the flat list of definitions in this 
       # container into a nested array, grouping the
