@@ -1,10 +1,12 @@
 module Xdrgen::AST
   module Definitions
-    class Const < Base
+    class EnumMember < Base
       include Concerns::Named
       include Concerns::Contained
-      
-      delegate :value, to: :constant
+
+      def value
+        1
+      end
     end
   end
 end

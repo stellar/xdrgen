@@ -27,7 +27,6 @@ module Xdrgen::AST
     autoload :Base
     autoload :Const
     autoload :Enum
-    autoload :EnumBody
     autoload :EnumMember
     autoload :Typedef
     autoload :Struct

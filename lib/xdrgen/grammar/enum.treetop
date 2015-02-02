@@ -12,8 +12,8 @@ grammar XdrEnumGrammar
   rule enum_body
     "{" 
     space? 
-    enum_member
-    (space? "," space? enum_member )*
+    first_member_n:enum_member
+    additional_members_n:(space? "," space? enum_member )*
     space?
     "}"
   end
@@ -23,6 +23,15 @@ grammar XdrEnumGrammar
   end
 
   rule enum_member
-    (identifier space? ("=" space? value)?)
+    identifier 
+    space? 
+    value_n:enum_value?
+    <Xdrgen::AST::Definitions::EnumMember>
+  end
+
+  rule enum_value
+    "=" 
+    space? 
+    constant
   end
 end
