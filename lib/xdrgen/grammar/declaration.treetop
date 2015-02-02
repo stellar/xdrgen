@@ -53,6 +53,7 @@ grammar XdrDeclarationGrammar
 
   rule type_specifier
     integral_type_spec /
+    unsigned_type_spec /
     float_type_spec /
     boolean_type_spec /
     enum_type_spec /
@@ -63,9 +64,16 @@ grammar XdrDeclarationGrammar
 
   rule integral_type_spec
     unsigned:("unsigned" space)?
-    size_t:("int" / "hyper") 
+    size_t:("int" / "hyper")
     &space
     <Xdrgen::AST::Typespecs::Int>
+  end
+
+
+  rule unsigned_type_spec
+    "unsigned"
+    &space
+    <Xdrgen::AST::Typespecs::Unsigned>
   end
 
   rule float_type_spec

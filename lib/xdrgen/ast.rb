@@ -58,6 +58,7 @@ module Xdrgen::AST
 
     autoload :Base
     autoload :Int
+    autoload :Unsigned
     autoload :Float
     autoload :Bool
     autoload :Opaque
