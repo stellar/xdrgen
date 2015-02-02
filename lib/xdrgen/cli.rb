@@ -12,19 +12,9 @@ module Xdrgen
       fail(opts) if args.blank?
       fail(opts) if opts[:output].blank?
 
-      parser    = Parser.new
+      compilations = args.map{|f| Compilation.new(f, opts[:output])}
 
-      args.each do |file|
-        begin
-          output    = Output.new(file, opts[:output])
-          raw       = IO.read(file)
-          parsed    = parser.parse(raw)
-          generator = Generator.new(parsed, output)
-          generator.generate
-        ensure
-          output.close
-        end
-      end
+      compilations.each(&:compile)
     end
 
     def self.fail(slop, code=1)

@@ -6,10 +6,12 @@ require "active_support/core_ext/string/inflections"
 require "active_support/core_ext/string/indent"
 require "active_support/core_ext/string/strip"
 require 'active_support/concern'
+require 'memoist'
 
 module Xdrgen
   extend ActiveSupport::Autoload
 
+  autoload :Compilation
   autoload :AST
   autoload :CLI
   autoload :Generator
