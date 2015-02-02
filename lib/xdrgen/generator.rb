@@ -81,16 +81,21 @@ module Xdrgen
         out.puts <<-EOS.strip_heredoc
           include XDR::Union
         
-          discriminate #{union.discriminant_type}, :#{union.discriminant_name}
+          switches_on #{union.discriminant_type}, :#{union.discriminant_name}
+
         EOS
 
-        out.puts "# TODO"
-        # union.arms.each do |a|
-        #   a.cases.each do |c|
-        #     value = "#{union.discriminant_type}::#{c}"
-        #     out "arm :#{a.name.underscore}, #{value}, #{decl_string(a.declaration)}"
-        #   end
-        # end
+        union.arms.each do |a|
+          a.cases.each do |c|
+            value = "#{union.discriminant_type}::#{c}"
+            out.puts "switch #{value}, :#{a.name.underscore}"
+          end
+        end
+        out.puts
+
+        union.arms.each do |a|
+          out.puts "attribute :#{a.name.underscore}, #{decl_string(a.declaration)}"
+        end
       end
       out.puts "end"
     end
