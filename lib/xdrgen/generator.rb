@@ -2,18 +2,17 @@ module Xdrgen
   class Generator
     attr_reader :result
 
-    def generate(top)
-      @current_indent = 0
-      @result = StringIO.new
-      render_top(top)
-      @result.string
+    def generate(top, output)
+      @top    = top
+      @output = output
+
+      render_top
     end
 
-    def render_top(top)
-      out "# Automatically generated from #{top.path}"
-      out "# DO NOT EDIT or your changes may be overwritten"
-      out ""
-      render_definitions(top)
+    def render_top
+      root_file_basename = File.basename(@output.source_path, ".x")
+      root_file = "#{root_file_basename}.rb"
+      out = @output.open(root_file)
     end
 
     def render_definitions(node)
@@ -85,8 +84,10 @@ module Xdrgen
         out
         out "discriminate #{union.discriminant_type}, :#{union.discriminant_name}"
         union.arms.each do |a|
-          discriminant = "#{union.discriminant_type}::#{}"
-          out "arm :#{a.name.underscore}, TODO, #{decl_string(a.declaration)}"
+          a.cases.each do |c|
+            value = "#{union.discriminant_type}::#{c}"
+            out "arm :#{a.name.underscore}, #{value}, #{decl_string(a.declaration)}"
+          end
         end
       end
       out "end"
