@@ -13,14 +13,14 @@ module Xdrgen
       fail(opts) if opts[:output].blank?
 
       parser    = Parser.new
-      generator = Generator.new
 
       args.each do |file|
         begin
-          output      = Output.new(file, opts[:output])
-          raw         = IO.read(file)
-          parsed      = parser.parse(raw)
-          generator.generate(parsed, output)
+          output    = Output.new(file, opts[:output])
+          raw       = IO.read(file)
+          parsed    = parser.parse(raw)
+          generator = Generator.new(parsed, output)
+          generator.generate
         ensure
           output.close
         end

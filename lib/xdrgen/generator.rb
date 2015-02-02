@@ -2,10 +2,12 @@ module Xdrgen
   class Generator
     attr_reader :result
 
-    def generate(top, output)
+    def initialize(top, output)
       @top    = top
       @output = output
+    end
 
+    def generate
       render_top
     end
 
@@ -13,6 +15,17 @@ module Xdrgen
       root_file_basename = File.basename(@output.source_path, ".x")
       root_file = "#{root_file_basename}.rb"
       out = @output.open(root_file)
+
+      render_autoloads(out, @top)
+      # render_top_typedefs
+    end
+
+    def render_autoloads(out, node)
+      out "module #{node.name.classify}"
+      out.indent do 
+        node.namespaces.each{ |n| render_autoloads(out, n) }
+      end
+      out "end"
     end
 
     def render_definitions(node)
