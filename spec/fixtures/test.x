@@ -34,4 +34,10 @@ struct MyStruct
     bool field8;
 };
 
+enum Color {
+  RED,
+  BLUE,
+  GREEN
+};
+
 }
