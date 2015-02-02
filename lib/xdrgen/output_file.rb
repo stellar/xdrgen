@@ -29,7 +29,7 @@ module Xdrgen
       EOS
     end
 
-    def puts(s)
+    def puts(s="")
       @io.puts indented(s)
     end
 
