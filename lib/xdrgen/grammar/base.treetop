@@ -1,10 +1,33 @@
 grammar XdrBaseGrammar
 
   rule identifier
+    !keyword
     ([a-zA-Z] [0-9a-zA-Z_]*) 
     ("::" [a-zA-Z] [0-9a-zA-Z_]*)* 
     <Xdrgen::AST::Identifier>
   end
+
+  rule keyword
+    ("bool" /
+    "case" /
+    "const" /
+    "default" /
+    "double" /
+    "quadruple" /
+    "enum" /
+    "float" /
+    "hyper" /
+    "opaque" /
+    "string" /
+    "struct" /
+    "switch" /
+    "typedef" /
+    "union" /
+    "unsigned" /
+    "int" /
+    "void")
+    &space
+   end
 
   rule value
     identifier / constant
