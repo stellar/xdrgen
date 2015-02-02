@@ -8,6 +8,7 @@ module Xdrgen::AST
 
   autoload :Top
   autoload :Identifier
+  autoload :Whitespace
 
   autoload :FixedSize
   autoload :VarSize

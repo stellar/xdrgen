@@ -61,6 +61,7 @@ grammar XdrBaseGrammar
 
   rule space
     ([\s] / line_comment / block_comment)+
+    <Xdrgen::AST::Whitespace>
   end
 
   rule asterisk
