@@ -36,7 +36,7 @@ struct MyStruct
 
 enum Color {
   RED,
-  BLUE,
+  BLUE = 5,
   GREEN
 };
 

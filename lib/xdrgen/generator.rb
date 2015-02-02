@@ -65,7 +65,7 @@ module Xdrgen
         out.puts
 
         enum.members.each do |em|
-          out.puts "#{em.name} = nil # TODO"
+          out.puts "#{em.name} = #{em.value}"
         end
       end
       out.puts "end"
