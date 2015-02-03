@@ -26,6 +26,7 @@ module Xdrgen
         # Automatically generated from #{@output.source_path}
         # DO NOT EDIT or your changes may be overwritten
       
+        require 'xdr'
       EOS
     end
 
