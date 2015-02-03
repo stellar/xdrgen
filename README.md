@@ -1,6 +1,7 @@
 # Xdrgen
 
-TODO: Write a gem description
+`xdrgen` is a code generator that take XDR IDL files (`.x` files) and outputs,
+at present, ruby code that is complient with the ruby-xdr helper library
 
 ## Installation
 
@@ -18,9 +19,28 @@ Or install it yourself as:
 
     $ gem install xdrgen
 
-## Usage
+## Usage as a binary
 
-TODO: Write usage instructions here
+The command line is simple:
+
+`xdrgen -o OUTPUT_DIR INPUT_FILE`
+
+## Usage as a library
+
+```ruby
+require 'xdrgen'
+
+# create a compilation object, specifying your input file
+# and output directory
+
+c = Xdrgen::Compilation.new("MyProgram.x", "src/generated")
+
+# then run compile
+
+c.compile
+
+```
+
 
 ## Contributing
 
