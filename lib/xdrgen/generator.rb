@@ -107,6 +107,9 @@ module Xdrgen
     end
 
     def render_union(union)
+      ndefn = union.nested_definitions
+      ndefn.each(&method(:render_definition))
+
       render_element "class", union do |out|
         out.puts <<-EOS.strip_heredoc
           include XDR::Union
@@ -115,6 +118,9 @@ module Xdrgen
 
         EOS
 
+        ndefn.each{|n| render_autoload(out,n)}
+        out.puts
+        
         union.arms.each do |a|
           a.cases.each do |c|
             value = "#{union.discriminant_type}::#{c}"

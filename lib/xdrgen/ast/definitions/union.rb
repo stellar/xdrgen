@@ -12,6 +12,13 @@ module Xdrgen::AST
       def discriminant_type
         discriminant.type.name
       end
+
+      def nested_definitions
+        arms.
+          map(&:declaration).
+          map(&:type).
+          select{|d| d.is_a?(Concerns::NestedDefinition)}
+      end
     end
   end
 end
