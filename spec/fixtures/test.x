@@ -56,7 +56,7 @@ struct Nester
 
   union switch (Color color) {
     case RED:
-      int blah;
+      void;
     default:
       int blah2;
   } nestedUnion;

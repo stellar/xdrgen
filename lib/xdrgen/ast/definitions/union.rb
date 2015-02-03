@@ -16,6 +16,7 @@ module Xdrgen::AST
       def nested_definitions
         arms.
           map(&:declaration).
+          reject{|d| d.is_a?(Declarations::Void)}.
           map(&:type).
           select{|d| d.is_a?(Concerns::NestedDefinition)}
       end
