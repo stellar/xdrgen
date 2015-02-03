@@ -17,10 +17,6 @@ module Xdrgen
       @io.close
     end
 
-    def write(s)
-      @io.write indented(s)
-    end
-
     def write_top_matter
       puts <<-EOS.strip_heredoc
         # Automatically generated from #{@output.source_path}
@@ -31,6 +27,7 @@ module Xdrgen
     end
 
     def puts(s="")
+      write_break_if_needed
       @io.puts indented(s)
     end
 
@@ -41,9 +38,24 @@ module Xdrgen
       @current_indent -= 1
     end
 
+    def break
+      @break_needed = true
+    end
+
+    def unbreak
+      @break_needed = false
+    end
+
     private
     def indented(s)
       s.indent(@current_indent * SPACES_PER_INDENT)
+    end
+
+    def write_break_if_needed
+      return unless @break_needed
+      @io.puts ""
+    ensure
+      @break_needed = false
     end
 
   end

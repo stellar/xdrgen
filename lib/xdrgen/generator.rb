@@ -38,7 +38,7 @@ module Xdrgen
           end
         end
 
-        out.puts
+        out.break
       end
     end
 
@@ -46,6 +46,7 @@ module Xdrgen
       out.puts "module #{ns.name.classify}"
       out.indent do 
         render_definitions_index(out, ns)
+        out.unbreak
       end
       out.puts "end"
     end
@@ -85,9 +86,9 @@ module Xdrgen
 
       render_element "class", struct do |out|
         out.puts "include XDR::Struct"
-        out.puts
+        out.break
         ndefn.each{|n| render_autoload(out,n)}
-        out.puts
+        out.break
 
         struct.members.each do |m|
           out.puts "attribute :#{m.name.underscore}, #{decl_string(m.declaration)}"
@@ -98,7 +99,7 @@ module Xdrgen
     def render_enum(enum)
       render_element "module", enum do |out|
         out.puts "include XDR::Enum"
-        out.puts
+        out.break
 
         enum.members.each do |em|
           out.puts "#{em.name.underscore.upcase} = #{em.value}"
@@ -115,11 +116,11 @@ module Xdrgen
           include XDR::Union
         
           switches_on #{union.discriminant_type}, :#{union.discriminant_name}
-
         EOS
 
+        out.break
         ndefn.each{|n| render_autoload(out,n)}
-        out.puts
+        out.break
 
         union.arms.each do |a|
           case a
@@ -132,7 +133,7 @@ module Xdrgen
             out.puts "switch :default, :#{a.name.underscore}"
           end
         end
-        out.puts
+        out.break
 
         union.arms.each do |a|
           out.puts "attribute :#{a.name.underscore}, #{decl_string(a.declaration)}"
@@ -152,6 +153,7 @@ module Xdrgen
         out.puts "#{type} #{name}"
         out.indent do 
           yield out
+          out.unbreak
         end
         out.puts "end"
       end
