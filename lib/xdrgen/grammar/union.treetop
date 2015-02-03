@@ -25,6 +25,7 @@ grammar XdrUnionGrammar
 
   rule union_type_spec
     "union" space union_body
+    <Xdrgen::AST::Definitions::NestedUnion>
   end
 
   rule case_spec

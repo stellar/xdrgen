@@ -5,7 +5,7 @@ module Xdrgen::AST
 
       def namespaces
         return [] unless self.is_a?(Contained)
-        self.find_ancestors(Definitions::Namespace)
+        self.find_ancestors(Concerns::Namespace)
       end
 
       def fully_qualified_name

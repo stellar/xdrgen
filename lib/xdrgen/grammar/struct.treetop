@@ -26,6 +26,7 @@ grammar XdrStructGrammar
 
   rule struct_type_spec
     "struct" space struct_body
+    <Xdrgen::AST::Definitions::NestedStruct>
   end
 
 end

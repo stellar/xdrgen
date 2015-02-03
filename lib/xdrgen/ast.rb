@@ -17,6 +17,7 @@ module Xdrgen::AST
     extend ActiveSupport::Autoload
     
     autoload :Named
+    autoload :Namespace
     autoload :Contained
     autoload :HasChildren
     autoload :HasDefinitions

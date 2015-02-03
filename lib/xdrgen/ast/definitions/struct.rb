@@ -2,6 +2,7 @@ module Xdrgen::AST
   module Definitions
     class Struct < Base
       include Concerns::Named
+      include Concerns::Namespace
       include Concerns::Contained
 
       delegate :members, to: :struct_body

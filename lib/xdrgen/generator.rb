@@ -80,16 +80,19 @@ module Xdrgen
     end
 
     def render_struct(struct)
+      ndefn = struct.nested_definitions
+      ndefn.each(&method(:render_definition))
+
       render_element "class", struct do |out|
         out.puts "include XDR::Struct"
+        out.puts
+        ndefn.each{|n| render_autoload(out,n)}
         out.puts
 
         struct.members.each do |m|
           out.puts "attribute :#{m.name.underscore}, #{decl_string(m.declaration)}"
         end
       end
-
-      struct.nested_definitions.each(&method(:render_definition))
     end
 
     def render_enum(enum)
@@ -170,13 +173,13 @@ module Xdrgen
         "XDR::String[#{decl.size}]"
       when AST::Declarations::Array ;
         type = decl.fixed? ? "XDR::Array" : "XDR::VarArray"
-        args = [decl.child_type, decl.size].
+        args = [decl.child_type.classify, decl.size].
           compact.
           map(&:to_s).
           join(", ")
         "XDR::Array[#{args}]"
       when AST::Declarations::Optional ;
-        "XDR::Option[#{decl.child_type}]"
+        "XDR::Option[#{decl.child_type.classify}]"
       when AST::Declarations::Simple ;
         type_string(decl.type)
       when AST::Declarations::Void ;
@@ -196,6 +199,8 @@ module Xdrgen
         "XDR::#{size_s}"
       when AST::Typespecs::Bool ;
         "XDR::Bool"
+      when AST::Concerns::NestedDefinition ;
+        type.name.classify
       else
         type.text_value.classify
       end

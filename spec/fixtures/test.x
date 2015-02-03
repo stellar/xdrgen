@@ -48,7 +48,20 @@ struct Nester
   enum {
     BLAH_1,
     BLAH_2
-  } element;
+  } nestedEnum;
+
+  struct {
+    int blah;
+  } nestedStruct;
+
+  union switch (Color color) {
+    case RED:
+      int blah;
+    default:
+      opaque data[10];
+  } nestedUnion;
+
+
 };
 
 }
