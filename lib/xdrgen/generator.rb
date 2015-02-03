@@ -101,7 +101,7 @@ module Xdrgen
         out.puts
 
         enum.members.each do |em|
-          out.puts "#{em.name} = #{em.value}"
+          out.puts "#{em.name.underscore.upcase} = #{em.value}"
         end
       end
     end
