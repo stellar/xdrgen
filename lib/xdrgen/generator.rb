@@ -120,11 +120,16 @@ module Xdrgen
 
         ndefn.each{|n| render_autoload(out,n)}
         out.puts
-        
+
         union.arms.each do |a|
-          a.cases.each do |c|
-            value = "#{union.discriminant_type}::#{c}"
-            out.puts "switch #{value}, :#{a.name.underscore}"
+          case a
+          when AST::Definitions::UnionArm ;
+            a.cases.each do |c|
+              value = "#{union.discriminant_type}::#{c}"
+              out.puts "switch #{value}, :#{a.name.underscore}"
+            end
+          when AST::Definitions::UnionDefaultArm ;
+            out.puts "switch :default, :#{a.name.underscore}"
           end
         end
         out.puts

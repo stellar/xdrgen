@@ -16,8 +16,8 @@ grammar XdrUnionGrammar
     space?
     "{" 
     space? 
-    children_n:(case_spec)+
-    (default_case_spec)?
+    cases_n:(case_spec)+
+    default_case_n:(default_case_spec)?
     space?
     "}"
     <Xdrgen::AST::Definitions::UnionBody>

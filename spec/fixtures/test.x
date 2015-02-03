@@ -57,11 +57,8 @@ struct Nester
   union switch (Color color) {
     case RED:
       int blah;
-    case GREEN:
-      union switch (Color color) {
-        case BLUE:
-          int foobar;
-      } child;
+    default:
+      int blah2;
   } nestedUnion;
 
 
