@@ -42,4 +42,13 @@ enum Color {
 
 const FOO = 1244;
 const BAR = FOO;
+
+struct Nester
+{
+  enum {
+    BLAH_1,
+    BLAH_2
+  } element;
+};
+
 }

@@ -40,9 +40,6 @@ module Xdrgen
 
         out.puts
       end
-
-      # render_autoloads(out, @top)
-      # render_top_typedefs
     end
 
     def render_namespace_index(out, ns)
@@ -67,11 +64,19 @@ module Xdrgen
     end
 
     def render_definitions(node)
-      node.structs.each(&method(:render_struct))
-      node.enums.each(&method(:render_enum))
-      node.unions.each(&method(:render_union))
+      node.definitions.each(&method(:render_definition))
+      node.namespaces.each(&method(:render_definitions))
+    end
 
-      node.namespaces.each{|ns| render_definitions(ns)}
+    def render_definition(defn)
+      case defn
+      when AST::Definitions::Struct ;
+        render_struct defn
+      when AST::Definitions::Enum ;
+        render_enum defn
+      when AST::Definitions::Union ;
+        render_union defn
+      end
     end
 
     def render_struct(struct)
@@ -83,6 +88,8 @@ module Xdrgen
           out.puts "attribute :#{m.name.underscore}, #{decl_string(m.declaration)}"
         end
       end
+
+      struct.nested_definitions.each(&method(:render_definition))
     end
 
     def render_enum(enum)

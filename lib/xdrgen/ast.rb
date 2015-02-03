@@ -20,6 +20,7 @@ module Xdrgen::AST
     autoload :Contained
     autoload :HasChildren
     autoload :HasDefinitions
+    autoload :NestedDefinition
   end
 
   module Definitions
@@ -28,12 +29,15 @@ module Xdrgen::AST
     autoload :Base
     autoload :Const
     autoload :Enum
+    autoload :NestedEnum
     autoload :EnumMember
     autoload :Typedef
     autoload :Struct
+    autoload :NestedStruct
     autoload :StructBody
     autoload :StructMember
     autoload :Union
+    autoload :NestedUnion
     autoload :UnionBody
     autoload :UnionArm
     autoload :UnionDefaultArm
