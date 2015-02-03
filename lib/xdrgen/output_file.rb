@@ -3,27 +3,16 @@ module Xdrgen
   class OutputFile
     SPACES_PER_INDENT = 2
 
-    def initialize(output, path)
-      @output         = output
+    def initialize(path)
       @path           = path
       @current_indent = 0
 
       FileUtils.mkdir_p File.dirname(@path)
       @io = File.open(@path, 'w')
-      write_top_matter
     end
 
     def close
       @io.close
-    end
-
-    def write_top_matter
-      puts <<-EOS.strip_heredoc
-        # Automatically generated from #{@output.source_path}
-        # DO NOT EDIT or your changes may be overwritten
-      
-        require 'xdr'
-      EOS
     end
 
     def puts(s="")
@@ -46,6 +35,17 @@ module Xdrgen
       @break_needed = false
     end
 
+    def balance_after(balance_regex, include_space=false)
+      @old_io = @io
+      @io = StringIO.new
+      yield
+      raw = @io.string
+      @old_io.puts balance_string(raw, balance_regex, include_space)
+    ensure
+      @io = @old_io
+      @old_io = nil
+    end
+
     private
     def indented(s)
       s.indent(@current_indent * SPACES_PER_INDENT)
@@ -56,6 +56,29 @@ module Xdrgen
       @io.puts ""
     ensure
       @break_needed = false
+    end
+
+    def balance_string(raw, balance_regex, include_space)
+      lines            = raw.split("\n")
+      splits           = lines.map{|l| split_line_at(l, balance_regex)}
+
+      max_split_length = splits.map{|s| s.first.try(:length)}.compact.max || -1
+      max_split_length += 1 if include_space
+
+      splits.map do |first, rest|
+        (first || "").ljust(max_split_length) + rest
+      end.join("\n")
+    end
+
+    def split_line_at(line, regex)
+      match = regex.match(line)
+
+      if match.blank?
+        [nil, line]
+      else
+        split_point = match.end(0)
+        [line[0...split_point], line[split_point..-1]]
+      end
     end
 
   end

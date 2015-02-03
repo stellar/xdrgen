@@ -18,7 +18,7 @@ module Xdrgen
       end 
 
       path = File.join @output_dir, child_path
-      result = @files[child_path] = OutputFile.new(self, path)
+      result = @files[child_path] = OutputFile.new(path)
 
       yield result if block_given?
 

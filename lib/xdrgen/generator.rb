@@ -16,6 +16,7 @@ module Xdrgen
       root_file_basename = File.basename(@output.source_path, ".x")
       root_file = "#{root_file_basename}.rb"
       out = @output.open(root_file)
+      render_top_matter out
 
       render_definitions_index(out, @top)
     end
@@ -101,8 +102,10 @@ module Xdrgen
         out.puts "include XDR::Enum"
         out.break
 
-        enum.members.each do |em|
-          out.puts "#{em.name.underscore.upcase} = #{em.value}"
+        out.balance_after /[^=]+/ do
+          enum.members.each do |em|
+            out.puts "#{em.name.underscore.upcase} = #{em.value}"
+          end
         end
       end
     end
@@ -148,6 +151,7 @@ module Xdrgen
       name               = element.name.classify
       containing_modules = element.namespaces.map{|ns| ns.name.classify }
       out                = @output.open(path)
+      render_top_matter out
 
       render_nested_modules out, containing_modules do
         out.puts "#{type} #{name}"
@@ -157,6 +161,16 @@ module Xdrgen
         end
         out.puts "end"
       end
+    end
+
+    def render_top_matter(out)
+      out.puts <<-EOS.strip_heredoc
+        # Automatically generated from #{@output.source_path}
+        # DO NOT EDIT or your changes may be overwritten
+      
+        require 'xdr'
+      EOS
+      out.break
     end
 
 
