@@ -150,11 +150,10 @@ module Xdrgen
     def render_element(type, element, post_name="")
       path               = element.fully_qualified_name.map(&:underscore).join("/") + ".rb"
       name               = element.name.classify
-      containing_modules = element.namespaces.map{|ns| ns.name.classify }
       out                = @output.open(path)
       render_top_matter out
 
-      render_nested_modules out, containing_modules do
+      render_containers out, element.namespaces do
         out.puts "#{type} #{name} #{post_name}"
         out.indent do 
           yield out
@@ -175,17 +174,24 @@ module Xdrgen
     end
 
 
-    def render_nested_modules(out, modules, &block)
-      cur = modules.first
+    def render_containers(out, containers, &block)
+      cur = containers.first
 
       if cur.blank?
         block.call
         return
       end
 
-      out.puts "module #{cur}"
+      type =  case cur
+              when AST::Definitions::Union, AST::Definitions::Struct ;
+                "class"
+              else
+                "module"
+              end
+
+      out.puts "#{type} #{cur.name.classify}"
       out.indent do 
-        render_nested_modules(out, modules.drop(1), &block)
+        render_containers(out, containers.drop(1), &block)
       end
       out.puts "end"
     end
