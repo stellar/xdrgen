@@ -54,7 +54,7 @@ module Xdrgen
 
     def render_autoload(out, named)
       path = named.fully_qualified_name.map(&:underscore).join("/")
-      out.puts "autoload :#{named.name.classify}, \"#{path}\""
+      out.puts "autoload :#{named.name.classify}, \"\#{__dir__}/#{path}\""
     end
 
     def render_typedef(out, typedef)
