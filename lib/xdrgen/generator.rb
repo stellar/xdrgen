@@ -85,8 +85,7 @@ module Xdrgen
       ndefn = struct.nested_definitions
       ndefn.each(&method(:render_definition))
 
-      render_element "class", struct do |out|
-        out.puts "include XDR::Struct"
+      render_element "class", struct, "< XDR::Struct" do |out|
         out.break
         ndefn.each{|n| render_autoload(out,n)}
         out.break
@@ -114,12 +113,8 @@ module Xdrgen
       ndefn = union.nested_definitions
       ndefn.each(&method(:render_definition))
 
-      render_element "class", union do |out|
-        out.puts <<-EOS.strip_heredoc
-          include XDR::Union
-        
-          switches_on #{union.discriminant_type}, :#{union.discriminant_name}
-        EOS
+      render_element "class", union, "< XDR::Union" do |out|
+        out.puts "switch_on #{union.discriminant_type}, :#{union.discriminant_name}"
 
         out.break
         ndefn.each{|n| render_autoload(out,n)}
@@ -146,7 +141,7 @@ module Xdrgen
 
     # TODO: find a better name
     # This renders the skeletal structure of enums, structs, and unions
-    def render_element(type, element)
+    def render_element(type, element, post_name="")
       path               = element.fully_qualified_name.map(&:underscore).join("/") + ".rb"
       name               = element.name.classify
       containing_modules = element.namespaces.map{|ns| ns.name.classify }
@@ -154,7 +149,7 @@ module Xdrgen
       render_top_matter out
 
       render_nested_modules out, containing_modules do
-        out.puts "#{type} #{name}"
+        out.puts "#{type} #{name} #{post_name}"
         out.indent do 
           yield out
           out.unbreak
