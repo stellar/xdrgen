@@ -52,8 +52,14 @@ module Xdrgen
       out.puts "end"
     end
 
-    def render_autoload(out, named)
-      path = named.fully_qualified_name.map(&:underscore).join("/")
+    def render_autoload(out, named, underneath=nil)
+      name_parts =  if underneath
+                      [underneath.name, named.name]
+                    else
+                      named.fully_qualified_name
+                    end
+
+      path = name_parts.map(&:underscore).join("/")
       out.puts "autoload :#{named.name.classify}, \"\#{__dir__}/#{path}\""
     end
 
@@ -87,7 +93,7 @@ module Xdrgen
 
       render_element "class", struct, "< XDR::Struct" do |out|
         out.break
-        ndefn.each{|n| render_autoload(out,n)}
+        ndefn.each{|n| render_autoload(out, n, struct)}
         out.break
 
         struct.members.each do |m|
@@ -117,7 +123,7 @@ module Xdrgen
         out.puts "switch_on #{union.discriminant_type}, :#{union.discriminant_name}"
 
         out.break
-        ndefn.each{|n| render_autoload(out,n)}
+        ndefn.each{|n| render_autoload(out, n, union)}
         out.break
 
         union.arms.each do |a|
