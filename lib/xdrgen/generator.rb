@@ -217,7 +217,7 @@ module Xdrgen
           compact.
           map(&:to_s).
           join(", ")
-        "XDR::Array[#{args}]"
+        "#{type}[#{args}]"
       when AST::Declarations::Optional ;
         "XDR::Option[#{decl.child_type.classify}]"
       when AST::Declarations::Simple ;
