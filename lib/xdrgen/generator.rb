@@ -88,16 +88,14 @@ module Xdrgen
     end
 
     def render_struct(struct)
-      ndefn = struct.nested_definitions
-      ndefn.each(&method(:render_definition))
-
       render_element "class", struct, "< XDR::Struct" do |out|
-        out.break
-        ndefn.each{|n| render_autoload(out, n, struct)}
-        out.break
 
-        struct.members.each do |m|
-          out.puts "attribute :#{m.name.underscore}, #{decl_string(m.declaration)}"
+        render_nested_definitions out, struct
+
+        out.balance_after /,[\s]*/ do
+          struct.members.each do |m|
+            out.puts "attribute :#{m.name.underscore}, #{decl_string(m.declaration)}"
+          end
         end
       end
     end
@@ -116,39 +114,50 @@ module Xdrgen
     end
 
     def render_union(union)
-      ndefn = union.nested_definitions
-      ndefn.each(&method(:render_definition))
 
       render_element "class", union, "< XDR::Union" do |out|
+        render_nested_definitions out, union
+
         out.puts "switch_on #{union.discriminant_type}, :#{union.discriminant_name}"
-
-        out.break
-        ndefn.each{|n| render_autoload(out, n, union)}
         out.break
 
-        union.arms.each do |a|
-          case a
-          when AST::Definitions::UnionArm ;
-            a.cases.each do |c|
-              value = "#{union.discriminant_type}::#{c}"
+        out.balance_after /,[\s]*/ do
+          union.arms.each do |a|
+            case a
+            when AST::Definitions::UnionArm ;
+              a.cases.each do |c|
+                value = "#{union.discriminant_type}::#{c}"
 
-              if a.void?
-                out.puts "switch #{value}"
-              else
-                out.puts "switch #{value}, :#{a.name.underscore}"
+                if a.void?
+                  out.puts "switch #{value}"
+                else
+                  out.puts "switch #{value}, :#{a.name.underscore}"
+                end
               end
+            when AST::Definitions::UnionDefaultArm ;
+              out.puts "switch :default, :#{a.name.underscore}"
             end
-          when AST::Definitions::UnionDefaultArm ;
-            out.puts "switch :default, :#{a.name.underscore}"
           end
         end
         out.break
 
-        union.arms.each do |a|
-          next if a.void?
-          out.puts "attribute :#{a.name.underscore}, #{decl_string(a.declaration)}"
+        out.balance_after /,[\s]*/ do
+          union.arms.each do |a|
+            next if a.void?
+            out.puts "attribute :#{a.name.underscore}, #{decl_string(a.declaration)}"
+          end
         end
       end
+    end
+
+    def render_nested_definitions(out, parent)
+      ndefn = parent.nested_definitions
+      ndefn.each(&method(:render_definition))
+
+      out.balance_after /,[\s]*/ do
+        ndefn.each{|n| render_autoload(out, n, parent)}
+      end
+      out.break
     end
 
     # TODO: find a better name
