@@ -125,7 +125,7 @@ module Xdrgen
             case a
             when AST::Definitions::UnionArm ;
               a.cases.each do |c|
-                value = "#{union.discriminant_type}::#{c}"
+                value = "#{union.discriminant_type}.#{c.underscore}"
 
                 if a.void?
                   out.puts "switch #{value}"
@@ -134,7 +134,11 @@ module Xdrgen
                 end
               end
             when AST::Definitions::UnionDefaultArm ;
-              out.puts "switch :default, :#{a.name.underscore}"
+              if a.void?
+                out.puts "switch :default"
+              else
+                out.puts "switch :default, :#{a.name.underscore}"
+              end
             end
           end
         end
