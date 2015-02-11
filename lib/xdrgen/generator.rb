@@ -101,15 +101,14 @@ module Xdrgen
     end
 
     def render_enum(enum)
-      render_element "module", enum do |out|
-        out.puts "include XDR::Enum"
-        out.break
-
-        out.balance_after /[^=]+/ do
+      render_element "class", enum, "< XDR::Enum" do |out|
+        out.balance_after /,[\s]*/ do
           enum.members.each do |em|
-            out.puts "#{em.name.underscore.upcase} = #{em.value}"
+            out.puts "member :#{em.name.underscore}, #{em.value}"
           end
         end
+        out.break
+        out.puts "seal"
       end
     end
 
