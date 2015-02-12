@@ -187,6 +187,7 @@ module Xdrgen
         # DO NOT EDIT or your changes may be overwritten
       
         require 'xdr'
+        __dir__ = File.dirname(__FILE__)
       EOS
       out.break
     end
