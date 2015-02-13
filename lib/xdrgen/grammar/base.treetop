@@ -34,12 +34,13 @@ grammar XdrBaseGrammar
   end
 
   rule constant
-    ( decimal_constant / hexadecimal_constant / octal_constant )
+    ( hexadecimal_constant / octal_constant / decimal_constant )
   end
 
   rule decimal_constant
-    "-"? [1-9] [0-9]* 
-    <Xdrgen::AST::DecimalConstant>
+    "0" <Xdrgen::AST::DecimalConstant>
+    / 
+    "-"? [1-9] [0-9]* <Xdrgen::AST::DecimalConstant>
   end
 
   rule hexadecimal_constant
@@ -48,7 +49,7 @@ grammar XdrBaseGrammar
   end
 
   rule octal_constant
-    "0"? [0-7]+ 
+    "0" [0-7]+ 
     <Xdrgen::AST::OctalConstant>
   end
 

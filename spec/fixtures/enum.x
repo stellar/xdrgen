@@ -21,3 +21,9 @@ enum MessageType
     FBA_QUORUMSET,    
     FBA_MESSAGE
 };
+
+enum Color {
+    RED=0,  
+    GREEN=1,  
+    BLUE=2  
+};
