@@ -3,7 +3,7 @@ module Xdrgen::AST
 
   autoload :Constant
   autoload :DecimalConstant
-  autoload :HeadecimalConstant
+  autoload :HexadecimalConstant
   autoload :OctalConstant
 
   autoload :Top
