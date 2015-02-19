@@ -60,7 +60,7 @@ module Xdrgen
                     end
 
       path = name_parts.map(&:underscore).join("/")
-      out.puts "autoload :#{named.name.classify}, \"\#{__dir__}/#{path}\""
+      out.puts "autoload :#{named.name.classify}, \"\#{File.dirname(__FILE__)}/#{path}\""
     end
 
     def render_typedef(out, typedef)
@@ -187,7 +187,6 @@ module Xdrgen
         # DO NOT EDIT or your changes may be overwritten
       
         require 'xdr'
-        __dir__ = File.dirname(__FILE__)
       EOS
       out.break
     end
