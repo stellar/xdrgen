@@ -34,6 +34,11 @@ struct MyStruct
     bool field8;
 };
 
+struct LotsOfMyStructs
+{
+    MyStruct members<>;
+};
+
 enum Color {
   RED,
   BLUE = 5,
