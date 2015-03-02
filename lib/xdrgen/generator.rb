@@ -44,7 +44,7 @@ module Xdrgen
     end
 
     def render_namespace_index(out, ns)
-      out.puts "module #{ns.name.classify}"
+      out.puts "module #{name_string ns.name}"
       out.indent do 
         render_definitions_index(out, ns)
         out.unbreak
@@ -60,15 +60,15 @@ module Xdrgen
                     end
 
       path = name_parts.map(&:underscore).join("/")
-      out.puts "autoload :#{named.name.classify}, \"\#{File.dirname(__FILE__)}/#{path}\""
+      out.puts "autoload :#{name_string named.name}, \"\#{File.dirname(__FILE__)}/#{path}\""
     end
 
     def render_typedef(out, typedef)
-      out.puts "#{typedef.name.classify} = #{decl_string(typedef.declaration)}"
+      out.puts "#{name_string typedef.name} = #{decl_string(typedef.declaration)}"
     end
 
     def render_const(out, const)
-      out.puts "#{const.name.classify} = #{const.value}"
+      out.puts "#{const.name.underscore.upcase} = #{const.value}"
     end
 
     def render_definitions(node)
@@ -167,7 +167,7 @@ module Xdrgen
     # This renders the skeletal structure of enums, structs, and unions
     def render_element(type, element, post_name="")
       path               = element.fully_qualified_name.map(&:underscore).join("/") + ".rb"
-      name               = element.name.classify
+      name               = name_string element.name
       out                = @output.open(path)
       render_top_matter out
 
@@ -207,7 +207,7 @@ module Xdrgen
                 "module"
               end
 
-      out.puts "#{type} #{cur.name.classify}"
+      out.puts "#{type} #{name_string cur.name}"
       out.indent do 
         render_containers(out, containers.drop(1), &block)
       end
@@ -231,7 +231,7 @@ module Xdrgen
           join(", ")
         "#{type}[#{args}]"
       when AST::Declarations::Optional ;
-        "XDR::Option[#{decl.child_type.classify}]"
+        "XDR::Option[#{name_string decl.child_type}]"
       when AST::Declarations::Simple ;
         type_string(decl.type)
       when AST::Declarations::Void ;
@@ -252,10 +252,17 @@ module Xdrgen
       when AST::Typespecs::Bool ;
         "XDR::Bool"
       when AST::Concerns::NestedDefinition ;
-        type.name.classify
+        name_string type.name
       else
-        type.text_value.classify
+        name_string type.text_value
       end
+    end
+
+    def name_string(name)
+      # NOTE: classify will strip plurality, so we restore it if necessary
+      plural = name.pluralize == name
+      base   = name.classify
+      plural ? base.pluralize : base
     end
 
   end

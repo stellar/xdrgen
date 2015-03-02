@@ -39,6 +39,11 @@ struct LotsOfMyStructs
     MyStruct members<>;
 };
 
+struct HasStuff 
+{
+  LotsOfMyStructs data;
+};
+
 enum Color {
   RED,
   BLUE = 5,
