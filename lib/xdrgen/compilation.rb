@@ -2,9 +2,10 @@ module Xdrgen
   class Compilation
     extend Memoist
 
-    def initialize(source_path, output_dir)
+    def initialize(source_path, output_dir, language=:ruby)
       @source_path = source_path
       @output_dir  = output_dir
+      @language    = language
     end
 
     memoize def source
@@ -20,7 +21,7 @@ module Xdrgen
       output = Output.new(@source_path, @output_dir)
 
       # TODO: make generator subclassable for different languages
-      generator = Generator.new(ast, output)
+      generator = Generators.for_language(@language).new(ast, output)
       generator.generate
     ensure
       output.close

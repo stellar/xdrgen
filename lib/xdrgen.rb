@@ -14,7 +14,7 @@ module Xdrgen
   autoload :Compilation
   autoload :AST
   autoload :CLI
-  autoload :Generator
+  autoload :Generators
   autoload :Parser
   autoload :Util
 
