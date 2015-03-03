@@ -43,21 +43,16 @@ module Xdrgen
       def render_namespace_index(out, ns)
         out.puts "module #{name_string ns.name}"
         out.indent do 
+          out.puts "include XDR::Namespace"
+          out.break
           render_definitions_index(out, ns)
           out.unbreak
         end
         out.puts "end"
       end
 
-      def render_autoload(out, named, underneath=nil)
-        name_parts =  if underneath
-                        [underneath.name, named.name]
-                      else
-                        named.fully_qualified_name
-                      end
-
-        path = name_parts.map(&:underscore).join("/")
-        out.puts "autoload :#{name_string named.name}, \"\#{File.dirname(__FILE__)}/#{path}\""
+      def render_autoload(out, named)
+        out.puts "autoload :#{name_string named.name}"
       end
 
       def render_typedef(out, typedef)
@@ -152,11 +147,12 @@ module Xdrgen
 
       def render_nested_definitions(out, parent)
         ndefn = parent.nested_definitions
+        return if ndefn.empty?
         ndefn.each(&method(:render_definition))
 
-        out.balance_after /,[\s]*/ do
-          ndefn.each{|n| render_autoload(out, n, parent)}
-        end
+        out.puts "include XDR::Namespace"
+        out.break
+        ndefn.each{|ndefn| render_autoload out, ndefn}
         out.break
       end
 

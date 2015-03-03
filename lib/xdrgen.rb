@@ -1,11 +1,5 @@
 require "xdrgen/version"
-require "active_support/dependencies/autoload"
-require "active_support/core_ext/object/blank"
-require "active_support/core_ext/module/delegation"
-require "active_support/core_ext/string/inflections"
-require "active_support/core_ext/string/indent"
-require "active_support/core_ext/string/strip"
-require 'active_support/concern'
+require "active_support/all"
 require 'memoist'
 
 module Xdrgen
