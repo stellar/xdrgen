@@ -20,7 +20,7 @@ module Xdrgen
     def compile
       output = Output.new(@source_path, @output_dir)
 
-      # TODO: make generator subclassable for different languages
+      
       generator = Generators.for_language(@language).new(ast, output)
       generator.generate
     ensure

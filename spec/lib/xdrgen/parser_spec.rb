@@ -4,25 +4,23 @@ describe Xdrgen::Parser, ".parse" do
   
   it "can parse all of the fixtures" do
     results = fixtures.map do |path, content|
-                [path, parseable?(content)]
+                {path:path}.merge parse(content)
               end
 
-    failed = results.select{|r| !r.last}
+    failed = results.select{|r| !r[:success]}
 
     if failed.any?
-      failed_paths = failed.map(&:first)
-      indented     = failed_paths.map{|p| "\t#{p}"}
-
-      fail "couldn't parse:\n#{indented.join("\n")}"
+      failures = failed.map{|r| "\t#{r[:path]} failed on line #{r[:failure_line]}"}
+      fail "couldn't parse:\n#{failures.join("\n")}"
     end
   end
 
-  def parseable?(content)
+  def parse(content)
     begin
       subject.parse(content)
-      true
+      {success: true}
     rescue Xdrgen::ParseError
-      false
+      {success: false, failure_line: subject.failure_line}
     end
   end
 end
