@@ -62,10 +62,12 @@ module Xdrgen
       lines            = raw.split("\n")
       splits           = lines.map{|l| split_line_at(l, balance_regex)}
 
-      max_split_length = splits.map{|s| s.first.try(:length)}.compact.max || -1
+      max_split_length = splits.map{|s| s.first.length }.compact.max || -1
       max_split_length += 1 if include_space
 
       splits.map do |first, rest|
+        next first if rest.blank?
+
         (first || "").ljust(max_split_length) + rest
       end.join("\n")
     end
@@ -74,7 +76,7 @@ module Xdrgen
       match = regex.match(line)
 
       if match.blank?
-        [nil, line]
+        [line, nil]
       else
         split_point = match.end(0)
         [line[0...split_point], line[split_point..-1]]
