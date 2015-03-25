@@ -76,7 +76,7 @@ module Xdrgen
       match = regex.match(line)
 
       if match.blank?
-        [line, nil]
+        [line.rstrip, nil]
       else
         split_point = match.end(0)
         [line[0...split_point], line[split_point..-1]]
