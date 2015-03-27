@@ -1,4 +1,4 @@
 module Xdrgen::AST::Typespecs
-  class Base < Treetop::Runtime::SyntaxNode
+  module Base
   end
 end

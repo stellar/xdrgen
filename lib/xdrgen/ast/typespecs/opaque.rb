@@ -1,7 +1,5 @@
 module Xdrgen::AST::Typespecs
-  class Opaque < Base
-    def size
-      raise NotImplementedError
-    end
+  class Opaque < Treetop::Runtime::SyntaxNode
+    include Base
   end
 end

@@ -1,7 +1,5 @@
 module Xdrgen::AST::Typespecs
-  class Simple < Base
-    def child_type
-      raise NotImplementedError
-    end
+  module Simple
+    include Base
   end
 end

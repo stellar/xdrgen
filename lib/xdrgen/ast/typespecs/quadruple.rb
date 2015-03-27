@@ -1,5 +1,5 @@
 module Xdrgen::AST::Typespecs
-  class Bool < Treetop::Runtime::SyntaxNode
+  class Quadruple < Treetop::Runtime::SyntaxNode
     include Base
   end
 end

@@ -63,8 +63,12 @@ module Xdrgen::AST
 
     autoload :Base
     autoload :Int
-    autoload :Unsigned
+    autoload :UnsignedInt
+    autoload :Hyper
+    autoload :UnsignedHyper
     autoload :Float
+    autoload :Double
+    autoload :Quadruple
     autoload :Bool
     autoload :Opaque
     autoload :String

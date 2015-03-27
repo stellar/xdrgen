@@ -1,5 +1,5 @@
 module Xdrgen::AST::Typespecs
-  class Bool < Treetop::Runtime::SyntaxNode
+  class UnsignedInt < Treetop::Runtime::SyntaxNode
     include Base
   end
 end

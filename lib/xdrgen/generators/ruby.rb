@@ -229,6 +229,8 @@ module Xdrgen
           type_string(decl.type)
         when AST::Declarations::Void ;
           "XDR::Void"
+        when AST::Concerns::NestedDefinition ;
+          name_string type.name
         else
           raise "Unknown declaration type: #{decl.class.name}"
         end
@@ -237,17 +239,27 @@ module Xdrgen
       def type_string(type)
         case type
         when AST::Typespecs::Int ;
-          size_s = type.size.to_s.classify
-          type.unsigned? ? "XDR::Unsigned#{size_s}" : "XDR::#{size_s}"
+          "XDR::Int"
+        when AST::Typespecs::UnsignedInt ;
+          "XDR::UnsignedInt"
+        when AST::Typespecs::Hyper ;
+          "XDR::Hyper"
+        when AST::Typespecs::UnsignedHyper ;
+          "XDR::UnsignedHyper"
         when AST::Typespecs::Float ;
-          size_s = type.size.to_s.classify
-          "XDR::#{size_s}"
+          "XDR::Float"
+        when AST::Typespecs::Double ;
+          "XDR::Double"
+        when AST::Typespecs::Quadruple ;
+          "XDR::Quadruple"
         when AST::Typespecs::Bool ;
           "XDR::Bool"
+        when AST::Typespecs::Simple ;
+          name_string type.text_value
         when AST::Concerns::NestedDefinition ;
           name_string type.name
         else
-          name_string type.text_value
+          raise "Unknown type: #{type.class.name}"
         end
       end
 

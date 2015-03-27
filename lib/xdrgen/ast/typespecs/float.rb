@@ -1,7 +1,5 @@
 module Xdrgen::AST::Typespecs
-  class Float < Base
-    def size
-      size_t.text_value.to_sym
-    end
+  class Float < Treetop::Runtime::SyntaxNode
+    include Base
   end
 end

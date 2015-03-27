@@ -14,7 +14,7 @@ grammar XdrDeclarationGrammar
   end
   
   rule opaque_decl
-    type:("opaque" <Xdrgen::AST::Typespecs::Opaque>)
+    type_s:("opaque" <Xdrgen::AST::Typespecs::Opaque>)
     space 
     identifier 
     size_spec:(fixed_size_spec / var_size_spec)
@@ -22,7 +22,7 @@ grammar XdrDeclarationGrammar
   end
 
   rule string_decl
-    type:("string" <Xdrgen::AST::Typespecs::String>)
+    type_s:("string" <Xdrgen::AST::Typespecs::String>)
     space 
     identifier 
     size_spec:var_size_spec 
@@ -30,7 +30,7 @@ grammar XdrDeclarationGrammar
   end
 
   rule array_decl
-    type:type_specifier
+    type_s:type_specifier
     space
     identifier
     size_spec:(fixed_size_spec / var_size_spec)
@@ -38,48 +38,42 @@ grammar XdrDeclarationGrammar
   end
 
   rule optional_decl
-    type:type_specifier 
+    type_s:type_specifier 
     ("*" space? / space? "*")
     identifier 
     <Xdrgen::AST::Declarations::Optional>
   end
 
   rule simple_decl
-    type:type_specifier 
+    type_s:type_specifier 
     space 
     identifier
     <Xdrgen::AST::Declarations::Simple>
   end
 
   rule type_specifier
-    integral_type_spec /
-    unsigned_type_spec /
+    (integral_type_spec /
     float_type_spec /
     boolean_type_spec /
     enum_type_spec /
     struct_type_spec /
     union_type_spec /
-    identifier
+    (identifier <Xdrgen::AST::Typespecs::Simple>))
   end
 
   rule integral_type_spec
-    unsigned:("unsigned" space)?
-    size_t:("int" / "hyper")
+    (("int" <Xdrgen::AST::Typespecs::Int>) /
+    ("hyper" <Xdrgen::AST::Typespecs::Hyper>) /
+    ("unsigned int" <Xdrgen::AST::Typespecs::UnsignedInt>)/
+    ("unsigned hyper" <Xdrgen::AST::Typespecs::UnsignedHyper>))
     &space
-    <Xdrgen::AST::Typespecs::Int>
-  end
-
-
-  rule unsigned_type_spec
-    "unsigned"
-    &space
-    <Xdrgen::AST::Typespecs::Unsigned>
   end
 
   rule float_type_spec
-    size_t:("float" / "double" / "quadruple") 
+    (("float" <Xdrgen::AST::Typespecs::Float>) / 
+    ("double" <Xdrgen::AST::Typespecs::Double>) / 
+    ("quadruple" <Xdrgen::AST::Typespecs::Quadruple>) )
     &space
-    <Xdrgen::AST::Typespecs::Float>
   end
 
   rule boolean_type_spec

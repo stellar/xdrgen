@@ -1,7 +1,5 @@
 module Xdrgen::AST::Typespecs
-  class String < Base
-    def max_size
-      raise NotImplementedError
-    end
+  class String < Treetop::Runtime::SyntaxNode
+    include Base
   end
 end
