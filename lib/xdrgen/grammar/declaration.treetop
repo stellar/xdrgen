@@ -66,20 +66,24 @@ grammar XdrDeclarationGrammar
     ("hyper" <Xdrgen::AST::Typespecs::Hyper>) /
     ("unsigned int" <Xdrgen::AST::Typespecs::UnsignedInt>)/
     ("unsigned hyper" <Xdrgen::AST::Typespecs::UnsignedHyper>))
-    &space
+    type_suffix
   end
 
   rule float_type_spec
     (("float" <Xdrgen::AST::Typespecs::Float>) / 
     ("double" <Xdrgen::AST::Typespecs::Double>) / 
     ("quadruple" <Xdrgen::AST::Typespecs::Quadruple>) )
-    &space
+    type_suffix
   end
 
   rule boolean_type_spec
     "bool"
-    &space
+    type_suffix
     <Xdrgen::AST::Typespecs::Bool>
+  end
+
+  rule type_suffix
+    &(space / "*")
   end
 
 
