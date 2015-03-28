@@ -43,7 +43,7 @@ func DecodeOptional<%=xdr%>(decoder *xdr.Decoder, result **<%=go%>) (int, error)
   return bytesRead + presenceBytesRead, err
 }
 
-func Decode<%=xdr%>Array(decoder *xdr.Decoder, result []<%=go%>, size int) (int, error) {
+func Decode<%=xdr%>FixedArray(decoder *xdr.Decoder, result []<%=go%>, size int) (int, error) {
   var (
     totalRead int
     bytesRead int
@@ -69,7 +69,7 @@ func Decode<%=xdr%>Array(decoder *xdr.Decoder, result []<%=go%>, size int) (int,
 }
 
 
-func Decode<%=xdr%>VarArray(decoder *xdr.Decoder, result *[]<%=go%>, maxSize int32) (int, error) {
+func Decode<%=xdr%>Array(decoder *xdr.Decoder, result *[]<%=go%>, maxSize int32) (int, error) {
   var (
     size      int32
     totalRead int
@@ -106,3 +106,37 @@ func Decode<%=xdr%>VarArray(decoder *xdr.Decoder, result *[]<%=go%>, maxSize int
 }
 
 <% end %>
+
+func DecodeFixedOpaque(decoder *xdr.Decoder, result []byte, size int32) (int, error) {
+
+  if len(result) != int(size) {
+    errMsg := fmt.Sprintf("xdr: bad opaque len:%d, expected %d", len(result), size)
+    return 0, errors.New(errMsg)
+  }
+
+  val, bytesRead, err := decoder.DecodeFixedOpaque(size)
+
+  if err == nil {
+    copy(result, val)
+  }
+
+  return bytesRead, err
+}
+
+func DecodeOpaque(decoder *xdr.Decoder, result *[]byte, maxSize int32) (int, error) {
+  val, bytesRead, err := decoder.DecodeOpaque()
+
+  if err != nil {
+    return bytesRead, err
+  }
+
+  // TODO: see 
+  if len(val) > int(maxSize) {
+    errMsg := fmt.Sprintf("xdr: encoded size too large:%d, max:%d", len(val), maxSize)
+    return bytesRead, errors.New(errMsg)   
+  }
+
+  *result = val
+
+  return bytesRead, err
+}
