@@ -4,15 +4,10 @@
 package <%= @namespace || "main" %>
 
 import (
+  "errors"
+  "fmt"
   "github.com/davecgh/go-xdr/xdr2"
 )
-
-// array decode sizes
-const (
-  XdrFixedSize = iota
-  XdrVarSize
-)
-
 
 // Primitive decoders
 <% PRIMITIVES.each do |xdr, go| %>
@@ -46,6 +41,31 @@ func DecodeOptional<%=xdr%>(decoder *xdr.Decoder, result **<%=go%>) (int, error)
   }
 
   return bytesRead + presenceBytesRead, err
+}
+
+func Decode<%=xdr%>Array(decoder *xdr.Decoder, result []<%=go%>, size int) (int, error) {
+  var (
+    totalRead int
+    bytesRead int
+    err       error
+  )
+
+  if len(result) != size {
+    errMsg := fmt.Sprintf("xdr: bad array len:%d, expected %d", len(result), size)
+    return 0, errors.New(errMsg)
+  }
+
+  for i := 0; i < size; i++ {
+    bytesRead, err = Decode<%=xdr%>(decoder, &result[i])
+
+    if err != nil {
+      return totalRead, err
+    }
+
+    totalRead += bytesRead
+  }
+
+  return totalRead, nil
 }
 
 <% end %>
