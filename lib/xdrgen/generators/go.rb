@@ -138,9 +138,10 @@ module Xdrgen
           func Decode#{name enum}(decoder *xdr.Decoder, result *#{name enum}) (int, error) {
             val, bytesRead, err := decoder.DecodeEnum(#{name enum}Map)
 
-            if err == nil {
-              *result = #{name enum}(val)
+            if err != nil {
+              return bytesRead, err
             }
+            *result = #{name enum}(val)
             return bytesRead, err
           }
         EOS
@@ -154,7 +155,7 @@ module Xdrgen
       def render_union(out, union)
         out.puts "type #{name union} struct{"
         out.indent do
-          out.puts "#{name union.discriminant} #{type_string union.discriminant.type}"
+          out.puts "#{private_name union.discriminant} #{type_string union.discriminant.type}"
 
           union.arms.each do |arm|
             next if arm.void?
@@ -163,26 +164,33 @@ module Xdrgen
 
         end
         out.puts "}"
+        
+        # Add discriminant accessor
+        out.puts <<-EOS
+          func (u *#{name union})#{name union.discriminant}() #{type_string union.discriminant.type} {
+            return u.#{private_name union.discriminant}
+          } 
+        EOS
+
         # Add accessors for of form val, ok := union.ArmName()
 
         union.arms.each do |arm|
           next if arm.void?
-          out.puts <<-EOS.strip_heredoc
-            func (u *#{name union})#{name arm}() *#{type_string arm.type} {
-              //assert that the switch is one of the cases for this arm
-
-              return u.#{private_name arm}
-            }
-          EOS
+          out.puts access_arm(arm)
         end
 
         out.puts <<-EOS.strip_heredoc
-          func Decode#{name union}(decoder *xdr.Decoder, result *#{name enum}) (int, error) {
+          func Decode#{name union}(decoder *xdr.Decoder, result *#{name union}) (int, error) {
+            var (
+              discriminant #{name union.discriminant}
+              totalRead int
+              bytesRead int
+            )
+
             val, bytesRead, err := decoder.DecodeEnum(#{name enum}Map)
 
-            if err == nil {
-              *result = #{name enum}(val)
-            }
+            // TODO
+            
             return bytesRead, err
           }
         EOS
@@ -199,6 +207,8 @@ module Xdrgen
           package #{@namespace || "main"}
 
           import (
+            "errors"
+            "fmt"
             "github.com/davecgh/go-xdr/xdr2"
           )
         EOS
@@ -206,36 +216,6 @@ module Xdrgen
       end
 
       private
-
-      def decode(type, optional=false)
-        result = "Decode"
-        result << "Optional" if optional
-
-        result << case type
-          when AST::Typespecs::Int ;
-            "Int"
-          when AST::Typespecs::UnsignedInt ;
-            "Uint"
-          when AST::Typespecs::Hyper ;
-            "Hyper"
-          when AST::Typespecs::UnsignedHyper ;
-            "Uhyper"
-          when AST::Typespecs::Float ;
-            "Float"
-          when AST::Typespecs::Double ;
-            "Double"
-          when AST::Typespecs::Quadruple ;
-            raise "cannot render quadruple in golang"
-          when AST::Typespecs::Bool ;
-            "Bool"
-          when AST::Concerns::NestedDefinition ;
-            name type
-          else
-            name type
-          end
-
-        result
-      end
 
       def decl_string(decl)
         case decl
@@ -295,8 +275,46 @@ module Xdrgen
       def private_name(named)
         # NOTE: classify will strip plurality, so we restore it if necessary
         plural = named.name.pluralize == named.name
-        base   = named.name.underscore.camelize(:lower)
+        base   = escape_name named.name.underscore.camelize(:lower)
         plural ? base.pluralize : base
+      end
+
+      def escape_name(name)
+        case name
+        when "type" ; "aType"
+        when "func" ; "aFunc"
+        else ; name
+        end
+      end
+
+      def decode(type, optional=false)
+        result = "Decode"
+        result << "Optional" if optional
+
+        result << case type
+          when AST::Typespecs::Int ;
+            "Int"
+          when AST::Typespecs::UnsignedInt ;
+            "Uint"
+          when AST::Typespecs::Hyper ;
+            "Hyper"
+          when AST::Typespecs::UnsignedHyper ;
+            "Uhyper"
+          when AST::Typespecs::Float ;
+            "Float"
+          when AST::Typespecs::Double ;
+            "Double"
+          when AST::Typespecs::Quadruple ;
+            raise "cannot render quadruple in golang"
+          when AST::Typespecs::Bool ;
+            "Bool"
+          when AST::Concerns::NestedDefinition ;
+            name type
+          else
+            name type
+          end
+
+        result
       end
 
       def decode_member(m)
@@ -434,6 +452,17 @@ module Xdrgen
 
           EOS
       end
+
+      def access_arm(arm)
+        <<-EOS.strip_heredoc
+          func (u *#{name arm.union})#{name arm}() #{type_string arm.type} {
+            //assert that the switch is one of the cases for this arm
+
+            return *u.#{private_name arm}
+          }
+        EOS
+      end
+
     end
   end
 end
