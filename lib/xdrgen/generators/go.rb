@@ -74,19 +74,7 @@ module Xdrgen
 
         # render decode function
 
-        field_decoders = struct.members.map do |m|
-          <<-EOS.strip_heredoc
-            bytesRead, err = #{decode m.type}(decoder, &result.#{name m})
-            if err != nil {
-              return totalRead, err
-            } else {
-              totalRead += bytesRead
-            }
-
-          EOS
-        end.join("\n")
-
-        initializer = struct.members.map{|m| private_name m}.join(",")
+        field_decoders = struct.members.map{|m| decode_member(m)}.join("\n")
 
         out.puts <<-EOS.strip_heredoc
           func Decode#{name struct}(decoder *xdr.Decoder, result *#{name struct}) (int, error) {
@@ -96,6 +84,31 @@ module Xdrgen
 
             #{field_decoders}
 
+            return totalRead, nil
+          }
+
+
+
+          func DecodeOptional#{name struct}(decoder *xdr.Decoder, optionalResult **#{name struct}) (int, error) {
+            totalRead := 0
+            bytesRead := 0
+            var err error
+            
+            isPresent, bytesRead, err := decoder.DecodeBool()
+            totalRead += bytesRead
+
+            if err != nil {
+              return totalRead, err
+            }
+
+            if !isPresent {
+              return totalRead, err
+            }
+            var result #{name struct}
+
+            #{field_decoders}
+
+            *optionalResult = &result
             return totalRead, nil
           }
         EOS
@@ -167,6 +180,17 @@ module Xdrgen
           EOS
         end
 
+        out.puts <<-EOS.strip_heredoc
+          func Decode#{name union}(decoder *xdr.Decoder, result *#{name enum}) (int, error) {
+            val, bytesRead, err := decoder.DecodeEnum(#{name enum}Map)
+
+            if err == nil {
+              *result = #{name enum}(val)
+            }
+            return bytesRead, err
+          }
+        EOS
+
 
         out.break
       end
@@ -186,105 +210,88 @@ module Xdrgen
       end
 
       def render_bottom_matter(out)
-        out.puts <<-EOS.strip_heredoc
-          func DecodeInt(decoder *xdr.Decoder, result *int32) (int, error) {
-            val, bytesRead, err := decoder.DecodeInt()
 
-            if err == nil {
-              *result = val
+        primitives = {
+          "Int"    => "int32",
+          "Uint"   => "uint32",
+          "Hyper"  => "int64",
+          "Uhyper" => "uint64",
+          "Float"  => "float32",
+          "Double" => "float64",
+          "Bool"   => "bool",
+        }
+
+        primitives.each do |xdr, go|
+          out.puts <<-EOS.strip_heredoc
+
+          
+            func Decode#{xdr}(decoder *xdr.Decoder, result *#{go}) (int, error) {
+              val, bytesRead, err := decoder.Decode#{xdr}()
+
+              if err == nil {
+                *result = val
+              }
+
+              return bytesRead, err
             }
 
-            return bytesRead, err
-          }
+            func DecodeOptional#{xdr}(decoder *xdr.Decoder, result **#{go}) (int, error) {
+              
+              isPresent, presenceBytesRead, err := decoder.DecodeBool()
 
-          func DecodeHyper(decoder *xdr.Decoder, result *int64) (int, error) {
-            val, bytesRead, err := decoder.DecodeHyper()
+              if err != nil {
+                return presenceBytesRead, err
+              }
 
-            if err == nil {
-              *result = val
+              if !isPresent {
+                return presenceBytesRead, err
+              }
+
+              val, bytesRead, err := decoder.Decode#{xdr}()
+
+              if err == nil {
+                *result = &val
+              }
+
+              return bytesRead + presenceBytesRead, err
             }
 
-            return bytesRead, err
-          }
+            EOS
+        end
 
-          func DecodeUint(decoder *xdr.Decoder, result *uint32) (int, error) {
-            val, bytesRead, err := decoder.DecodeUint()
-
-            if err == nil {
-              *result = val
-            }
-
-            return bytesRead, err
-          }
-
-          func DecodeUhyper(decoder *xdr.Decoder, result *uint64) (int, error) {
-            val, bytesRead, err := decoder.DecodeUhyper()
-
-            if err == nil {
-              *result = val
-            }
-
-            return bytesRead, err
-          }
-
-          func DecodeFloat(decoder *xdr.Decoder, result *float32) (int, error) {
-            val, bytesRead, err := decoder.DecodeFloat()
-
-            if err == nil {
-              *result = val
-            }
-
-            return bytesRead, err
-          }
-
-          func DecodeDouble(decoder *xdr.Decoder, result *float64) (int, error) {
-            val, bytesRead, err := decoder.DecodeDouble()
-
-            if err == nil {
-              *result = val
-            }
-
-            return bytesRead, err
-          }
-
-          func DecodeBool(decoder *xdr.Decoder, result *bool) ( int, error) {
-            val, bytesRead, err := decoder.DecodeBool()
-
-            if err == nil {
-              *result = val
-            }
-
-            return bytesRead, err
-          }
-        EOS
         out.break
       end
 
       private
 
-      def decode(type)
-        case type
-        when AST::Typespecs::Int ;
-          "DecodeInt"
-        when AST::Typespecs::UnsignedInt ;
-          "DecodeUint"
-        when AST::Typespecs::Hyper ;
-          "DecodeHyper"
-        when AST::Typespecs::UnsignedHyper ;
-          "DecodeUhyper"
-        when AST::Typespecs::Float ;
-          "DecodeFloat"
-        when AST::Typespecs::Double ;
-          "DecodeDouble"
-        when AST::Typespecs::Quadruple ;
-          raise "cannot render quadruple in golang"
-        when AST::Typespecs::Bool ;
-          "DecodeBool"
-        when AST::Concerns::NestedDefinition ;
-          "Decode#{name type}"
-        else
-          "Decode#{name type}"
-        end
+      def decode(type, optional=false)
+        result = "Decode"
+        result << "Optional" if optional
+
+        result << case type
+          when AST::Typespecs::Int ;
+            "Int"
+          when AST::Typespecs::UnsignedInt ;
+            "Uint"
+          when AST::Typespecs::Hyper ;
+            "Hyper"
+          when AST::Typespecs::UnsignedHyper ;
+            "Uhyper"
+          when AST::Typespecs::Float ;
+            "Float"
+          when AST::Typespecs::Double ;
+            "Double"
+          when AST::Typespecs::Quadruple ;
+            raise "cannot render quadruple in golang"
+          when AST::Typespecs::Bool ;
+            "Bool"
+          when AST::Concerns::NestedDefinition ;
+            name type
+          else
+            name type
+          end
+
+        result
       end
 
       def decl_string(decl)
@@ -347,6 +354,38 @@ module Xdrgen
         plural = named.name.pluralize == named.name
         base   = named.name.underscore.camelize(:lower)
         plural ? base.pluralize : base
+      end
+
+      def decode_member(m)
+        unless m.optional?
+          <<-EOS.strip_heredoc
+
+            bytesRead, err = #{decode m.type}(decoder, &result.#{name m})
+            if err != nil {
+              return totalRead, err
+            }
+
+            totalRead += bytesRead
+
+          EOS
+        else
+          <<-EOS.strip_heredoc
+
+            var #{private_name m} *#{type_string m.type}
+            bytesRead, err = #{decode m.type, m.optional?}(decoder, &#{private_name m})
+            if err != nil {
+              return totalRead, err
+            }
+            
+            totalRead += bytesRead
+            result.#{name m} = #{private_name m}
+
+          EOS
+        end
+      end
+
+      def decoder(decl)
+
       end
 
     end

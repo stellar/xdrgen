@@ -4,6 +4,9 @@ module Xdrgen::AST
       delegate :name, to: :declaration
       delegate :type, to: :declaration
 
+      def optional?
+        declaration.is_a?(Declarations::Optional)
+      end
     end
   end
 end
