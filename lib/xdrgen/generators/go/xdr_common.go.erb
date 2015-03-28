@@ -140,3 +140,22 @@ func DecodeOpaque(decoder *xdr.Decoder, result *[]byte, maxSize int32) (int, err
 
   return bytesRead, err
 }
+
+
+func DecodeString(decoder *xdr.Decoder, result *string, maxSize int32) (int, error) {
+  val, bytesRead, err := decoder.DecodeString()
+
+  if err != nil {
+    return bytesRead, err
+  }
+
+  // TODO: see 
+  if len(val) > int(maxSize) {
+    errMsg := fmt.Sprintf("xdr: encoded string size too large:%d, max:%d", len(val), maxSize)
+    return bytesRead, errors.New(errMsg)   
+  }
+
+  *result = val
+
+  return bytesRead, err
+}
