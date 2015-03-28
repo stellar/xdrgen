@@ -2,20 +2,38 @@ module Xdrgen
   module Generators
 
     class Go < Xdrgen::Generators::Base
+      PRIMITIVES = {
+        "Int"    => "int32",
+        "Uint"   => "uint32",
+        "Hyper"  => "int64",
+        "Uhyper" => "uint64",
+        "Float"  => "float32",
+        "Double" => "float64",
+        "Bool"   => "bool",
+      }
 
       def generate
         basename = File.basename(@output.source_path, ".x")
         path = "#{basename}.go"
         out = @output.open(path)
 
-
-
+        render_common
         render_top_matter out
         render_definitions(out, @top)
-        render_bottom_matter out
       end
 
       private
+
+      def render_common
+        basename = File.dirname(@output.source_path)
+        path = "xdr_common.go"
+        b = binding
+        template = IO.read(__dir__ + "/go/xdr_common.go.erb")
+
+        result = ERB.new(template).result b
+
+        IO.write(path, result)
+      end
 
       def render_typedef(out, typedef)
         out.puts "type #{name typedef} #{decl_string(typedef.declaration)}"
@@ -206,59 +224,6 @@ module Xdrgen
             "github.com/davecgh/go-xdr/xdr2"
           )
         EOS
-        out.break
-      end
-
-      def render_bottom_matter(out)
-
-        primitives = {
-          "Int"    => "int32",
-          "Uint"   => "uint32",
-          "Hyper"  => "int64",
-          "Uhyper" => "uint64",
-          "Float"  => "float32",
-          "Double" => "float64",
-          "Bool"   => "bool",
-        }
-
-        primitives.each do |xdr, go|
-          out.puts <<-EOS.strip_heredoc
-
-          
-            func Decode#{xdr}(decoder *xdr.Decoder, result *#{go}) (int, error) {
-              val, bytesRead, err := decoder.Decode#{xdr}()
-
-              if err == nil {
-                *result = val
-              }
-
-              return bytesRead, err
-            }
-
-            func DecodeOptional#{xdr}(decoder *xdr.Decoder, result **#{go}) (int, error) {
-              
-              isPresent, presenceBytesRead, err := decoder.DecodeBool()
-
-              if err != nil {
-                return presenceBytesRead, err
-              }
-
-              if !isPresent {
-                return presenceBytesRead, err
-              }
-
-              val, bytesRead, err := decoder.Decode#{xdr}()
-
-              if err == nil {
-                *result = &val
-              }
-
-              return bytesRead + presenceBytesRead, err
-            }
-
-            EOS
-        end
-
         out.break
       end
 
