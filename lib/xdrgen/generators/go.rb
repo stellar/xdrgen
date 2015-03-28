@@ -2,15 +2,6 @@ module Xdrgen
   module Generators
 
     class Go < Xdrgen::Generators::Base
-      PRIMITIVES = {
-        "Int"    => "int32",
-        "Uint"   => "uint32",
-        "Hyper"  => "int64",
-        "Uhyper" => "uint64",
-        "Float"  => "float32",
-        "Double" => "float64",
-        "Bool"   => "bool",
-      }
 
       def generate
         basename = File.basename(@output.source_path, ".x")
@@ -353,9 +344,9 @@ module Xdrgen
         end
       end
 
-      def optional_decoder(type)
+      def optional_decoder(named, result_type=name(named))
         <<-EOS
-        func DecodeOptional#{name type}(decoder *xdr.Decoder, result **#{name type}) (int, error) {
+        func DecodeOptional#{name named}(decoder *xdr.Decoder, result **#{result_type}) (int, error) {
             var (
               isPresent bool
               totalRead int
@@ -374,9 +365,9 @@ module Xdrgen
               return totalRead, err
             }
 
-            var val #{name type}
+            var val #{result_type}
 
-            bytesRead, err = #{decode type}(decoder, &val)
+            bytesRead, err = #{decode named}(decoder, &val)
             totalRead += bytesRead
 
             if err != nil {
