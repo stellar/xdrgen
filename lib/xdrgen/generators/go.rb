@@ -16,14 +16,9 @@ module Xdrgen
       private
 
       def render_common
-        basename = File.dirname(@output.source_path)
-        path = "xdr_common.go"
-        b = binding
         template = IO.read(__dir__ + "/go/xdr_common.go.erb")
-
-        result = ERB.new(template).result b
-
-        IO.write(path, result)
+        result = ERB.new(template).result binding
+        IO.write(@output.output_dir +  "/xdr_common.go", result)
       end
 
       def render_typedef(out, typedef)
