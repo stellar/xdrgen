@@ -16,6 +16,10 @@ module Xdrgen::AST
         result
       end
 
+      def root
+        ancestors.first
+      end
+
       def find_ancestors(type)
         ancestors.select{|a| a.is_a?(type)}
       end

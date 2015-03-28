@@ -109,7 +109,7 @@ module Xdrgen
         render_element "class", union, "< XDR::Union" do |out|
           render_nested_definitions out, union
 
-          out.puts "switch_on #{union.discriminant_type}, :#{union.discriminant_name}"
+          out.puts "switch_on #{name_string union.discriminant_type}, :#{union.discriminant_name}"
           out.break
 
           out.balance_after /,[\s]*/ do

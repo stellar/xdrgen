@@ -1,6 +1,7 @@
 module Xdrgen::AST
   module Definitions
     class Union < Base
+      extend Memoist
       include Concerns::Named
       include Concerns::Namespace
       include Concerns::Contained
@@ -9,8 +10,8 @@ module Xdrgen::AST
       delegate :name, to: :discriminant, prefix:true
       delegate :arms, to: :union_body
 
-      def discriminant_type
-        discriminant.type.name
+      memoize def discriminant_type
+        root.find_definition discriminant.type.name
       end
 
       def nested_definitions

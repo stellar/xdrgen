@@ -31,6 +31,18 @@ module Xdrgen::AST
         find_children(Definitions::Base)
       end
 
+      def find_definition(name)
+        found = definitions.find{|d| d.name == name}
+        return found if found
+
+        namespaces.each do |ns|
+          found = ns.find_definition(name)
+          return found if found
+        end
+
+        nil
+      end
+
       ##
       # Collapse the flat list of definitions in this 
       # container into a nested array, grouping the
