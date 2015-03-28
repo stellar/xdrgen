@@ -44,6 +44,8 @@ module Xdrgen
         EOS
 
         out.puts optional_decoder(typedef)
+        out.puts fixed_array_decoder(typedef)
+        out.puts array_decoder(typedef)
         out.break
       end
 
@@ -165,6 +167,8 @@ module Xdrgen
         EOS
 
         out.puts optional_decoder(enum)
+        out.puts fixed_array_decoder(enum)
+        out.puts array_decoder(enum)
         out.break
       end
 
@@ -448,7 +452,7 @@ module Xdrgen
 
             return totalRead, nil
           }
-          
+
           EOS
       end
     end
