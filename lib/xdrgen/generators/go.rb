@@ -50,40 +50,10 @@ module Xdrgen
 
             return bytesRead, nil
           }
-
-          func DecodeOptional#{name typedef}(decoder *xdr.Decoder, result **#{name typedef}) (int, error) {
-            var (
-              isPresent bool
-              totalRead int
-              bytesRead int
-              err       error
-            )
-
-            bytesRead, err = DecodeBool(decoder, &isPresent)
-            totalRead += bytesRead
-
-            if err != nil {
-              return totalRead, err
-            }
-
-            if !isPresent {
-              return totalRead, err
-            }
-
-            var val #{name typedef}
-
-            bytesRead, err = #{decode typedef}(decoder, &val)
-            totalRead += bytesRead
-
-            if err != nil {
-              return totalRead, err
-            }
-
-            *result = &val
-
-            return totalRead, nil
-          }
         EOS
+
+        out.puts optional_decoder(typedef)
+        out.break
       end
 
       def render_const(out, const)
@@ -203,6 +173,7 @@ module Xdrgen
           }
         EOS
 
+        out.puts optional_decoder(enum)
         out.break
       end
 
@@ -382,8 +353,41 @@ module Xdrgen
         end
       end
 
-      def decoder(decl)
+      def optional_decoder(type)
+        <<-EOS
+        func DecodeOptional#{name type}(decoder *xdr.Decoder, result **#{name type}) (int, error) {
+            var (
+              isPresent bool
+              totalRead int
+              bytesRead int
+              err       error
+            )
 
+            bytesRead, err = DecodeBool(decoder, &isPresent)
+            totalRead += bytesRead
+
+            if err != nil {
+              return totalRead, err
+            }
+
+            if !isPresent {
+              return totalRead, err
+            }
+
+            var val #{name type}
+
+            bytesRead, err = #{decode type}(decoder, &val)
+            totalRead += bytesRead
+
+            if err != nil {
+              return totalRead, err
+            }
+
+            *result = &val
+
+            return totalRead, nil
+          }
+        EOS
       end
 
     end
