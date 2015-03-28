@@ -68,4 +68,41 @@ func Decode<%=xdr%>Array(decoder *xdr.Decoder, result []<%=go%>, size int) (int,
   return totalRead, nil
 }
 
+
+func Decode<%=xdr%>VarArray(decoder *xdr.Decoder, result *[]<%=go%>, maxSize int32) (int, error) {
+  var (
+    size      int32
+    totalRead int
+    bytesRead int
+    err       error
+  )
+
+  bytesRead, err = DecodeInt(decoder, &size)
+  totalRead += bytesRead
+
+  if err != nil {
+    return totalRead, err
+  }
+
+  if size > maxSize {
+    errMsg := fmt.Sprintf("xdr: encoded size too large:%d, max:%d", size, maxSize)
+    return totalRead, errors.New(errMsg)
+  }
+
+  var theResult = make([]<%=go%>, size)
+  *result = theResult
+
+  for i := int32(0); i < size; i++ {
+    bytesRead, err = Decode<%=xdr%>(decoder, &theResult[i])
+
+    if err != nil {
+      return totalRead, err
+    }
+
+    totalRead += bytesRead
+  }
+
+  return totalRead, nil
+}
+
 <% end %>
