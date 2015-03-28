@@ -100,32 +100,11 @@ module Xdrgen
 
             return totalRead, nil
           }
-
-
-
-          func DecodeOptional#{name struct}(decoder *xdr.Decoder, optionalResult **#{name struct}) (int, error) {
-            totalRead := 0
-            bytesRead := 0
-            var err error
-            
-            isPresent, bytesRead, err := decoder.DecodeBool()
-            totalRead += bytesRead
-
-            if err != nil {
-              return totalRead, err
-            }
-
-            if !isPresent {
-              return totalRead, err
-            }
-            var result #{name struct}
-
-            #{field_decoders}
-
-            *optionalResult = &result
-            return totalRead, nil
-          }
         EOS
+
+        out.puts optional_decoder(struct)
+        out.puts fixed_array_decoder(struct)
+        out.puts array_decoder(struct)
       end
 
       def render_enum(out, enum)
