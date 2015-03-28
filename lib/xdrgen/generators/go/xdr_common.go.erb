@@ -85,7 +85,7 @@ func Decode<%=xdr%>Array(decoder *xdr.Decoder, result *[]<%=go%>, maxSize int32)
   }
 
   if size > maxSize {
-    errMsg := fmt.Sprintf("xdr: encoded size too large:%d, max:%d", size, maxSize)
+    errMsg := fmt.Sprintf("xdr: encoded array size too large:%d, max:%d", size, maxSize)
     return totalRead, errors.New(errMsg)
   }
 
@@ -130,9 +130,8 @@ func DecodeOpaque(decoder *xdr.Decoder, result *[]byte, maxSize int32) (int, err
     return bytesRead, err
   }
 
-  // TODO: see 
   if len(val) > int(maxSize) {
-    errMsg := fmt.Sprintf("xdr: encoded size too large:%d, max:%d", len(val), maxSize)
+    errMsg := fmt.Sprintf("xdr: encoded opaque size too large:%d, max:%d", len(val), maxSize)
     return bytesRead, errors.New(errMsg)   
   }
 
@@ -149,7 +148,6 @@ func DecodeString(decoder *xdr.Decoder, result *string, maxSize int32) (int, err
     return bytesRead, err
   }
 
-  // TODO: see 
   if len(val) > int(maxSize) {
     errMsg := fmt.Sprintf("xdr: encoded string size too large:%d, max:%d", len(val), maxSize)
     return bytesRead, errors.New(errMsg)   
