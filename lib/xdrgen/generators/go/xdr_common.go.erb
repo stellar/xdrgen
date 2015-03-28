@@ -1,18 +1,5 @@
 // Automatically generated from #{@output.source_path}
 // DO NOT EDIT or your changes may be overwritten
-<%
-primitive = Struct.new(:name, :go_type)
-primitives = [
-  primitive.new("Int",    "int32"),
-  primitive.new("Uint",   "uint32"),
-  primitive.new("Hyper",  "int64"),
-  primitive.new("Uhyper", "uint64"),
-  primitive.new("Float",  "float32"),
-  primitive.new("Double", "float64"),
-  primitive.new("Bool",   "bool"),
-]
-%>
-
 package <%= @namespace || "main" %>
 
 import (
@@ -22,7 +9,7 @@ import (
 )
 
 // Primitive decoders
-<% primitives.each do |prim| %>
+<% PRIMITIVES.each do |prim| %>
 <% xdr = prim.name; go = prim.go_type %>
 
 func Decode<%=xdr%>(decoder *xdr.Decoder, result *<%=go%>) (int, error) {

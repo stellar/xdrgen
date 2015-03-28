@@ -3,6 +3,17 @@ module Xdrgen
 
     class Go < Xdrgen::Generators::Base
 
+      Primitive = Struct.new(:name, :go_type)
+      PRIMITIVES = [
+        Primitive.new("Int",    "int32"),
+        Primitive.new("Uint",   "uint32"),
+        Primitive.new("Hyper",  "int64"),
+        Primitive.new("Uhyper", "uint64"),
+        Primitive.new("Float",  "float32"),
+        Primitive.new("Double", "float64"),
+        Primitive.new("Bool",   "bool"),
+      ]
+
       def generate
         basename = File.basename(@output.source_path, ".x")
         path = "#{basename}.go"
