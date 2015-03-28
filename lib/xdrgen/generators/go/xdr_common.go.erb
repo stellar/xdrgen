@@ -36,68 +36,8 @@ func Decode<%=xdr%>(decoder *xdr.Decoder, result *<%=go%>) (int, error) {
 }
 
 <%= optional_decoder prim, prim.go_type %>
-
-func Decode<%=xdr%>FixedArray(decoder *xdr.Decoder, result []<%=go%>, size int) (int, error) {
-  var (
-    totalRead int
-    bytesRead int
-    err       error
-  )
-
-  if len(result) != size {
-    errMsg := fmt.Sprintf("xdr: bad array len:%d, expected %d", len(result), size)
-    return 0, errors.New(errMsg)
-  }
-
-  for i := 0; i < size; i++ {
-    bytesRead, err = Decode<%=xdr%>(decoder, &result[i])
-
-    if err != nil {
-      return totalRead, err
-    }
-
-    totalRead += bytesRead
-  }
-
-  return totalRead, nil
-}
-
-
-func Decode<%=xdr%>Array(decoder *xdr.Decoder, result *[]<%=go%>, maxSize int32) (int, error) {
-  var (
-    size      int32
-    totalRead int
-    bytesRead int
-    err       error
-  )
-
-  bytesRead, err = DecodeInt(decoder, &size)
-  totalRead += bytesRead
-
-  if err != nil {
-    return totalRead, err
-  }
-
-  if size > maxSize {
-    errMsg := fmt.Sprintf("xdr: encoded array size too large:%d, max:%d", size, maxSize)
-    return totalRead, errors.New(errMsg)
-  }
-
-  var theResult = make([]<%=go%>, size)
-  *result = theResult
-
-  for i := int32(0); i < size; i++ {
-    bytesRead, err = Decode<%=xdr%>(decoder, &theResult[i])
-
-    if err != nil {
-      return totalRead, err
-    }
-
-    totalRead += bytesRead
-  }
-
-  return totalRead, nil
-}
+<%= fixed_array_decoder prim, prim.go_type %>
+<%= array_decoder prim, prim.go_type %>
 
 <% end %>
 

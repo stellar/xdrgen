@@ -381,6 +381,76 @@ module Xdrgen
         EOS
       end
 
+      def fixed_array_decoder(named, result_type=name(named))
+        <<-EOS
+          func Decode#{name named}FixedArray(decoder *xdr.Decoder, result []#{result_type}, size int) (int, error) {
+            var (
+              totalRead int
+              bytesRead int
+              err       error
+            )
+
+            if len(result) != size {
+              errMsg := fmt.Sprintf("xdr: bad array len:%d, expected %d", len(result), size)
+              return 0, errors.New(errMsg)
+            }
+
+            for i := 0; i < size; i++ {
+              bytesRead, err = Decode#{name named}(decoder, &result[i])
+
+              if err != nil {
+                return totalRead, err
+              }
+
+              totalRead += bytesRead
+            }
+
+            return totalRead, nil
+          }
+        EOS
+      end
+
+      def array_decoder(named, result_type=name(named))
+        <<-EOS
+
+          func Decode#{name named}Array(decoder *xdr.Decoder, result *[]#{result_type}, maxSize int32) (int, error) {
+            var (
+              size      int32
+              totalRead int
+              bytesRead int
+              err       error
+            )
+
+            bytesRead, err = DecodeInt(decoder, &size)
+            totalRead += bytesRead
+
+            if err != nil {
+              return totalRead, err
+            }
+
+            if size > maxSize {
+              errMsg := fmt.Sprintf("xdr: encoded array size too large:%d, max:%d", size, maxSize)
+              return totalRead, errors.New(errMsg)
+            }
+
+            var theResult = make([]#{result_type}, size)
+            *result = theResult
+
+            for i := int32(0); i < size; i++ {
+              bytesRead, err = Decode#{name named}(decoder, &theResult[i])
+
+              if err != nil {
+                return totalRead, err
+              }
+
+              totalRead += bytesRead
+            }
+
+            return totalRead, nil
+          }
+          
+          EOS
+      end
     end
   end
 end
