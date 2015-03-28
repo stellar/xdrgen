@@ -50,6 +50,39 @@ module Xdrgen
 
             return bytesRead, nil
           }
+
+          func DecodeOptional#{name typedef}(decoder *xdr.Decoder, result **#{name typedef}) (int, error) {
+            var (
+              isPresent bool
+              totalRead int
+              bytesRead int
+              err       error
+            )
+
+            bytesRead, err = DecodeBool(decoder, &isPresent)
+            totalRead += bytesRead
+
+            if err != nil {
+              return totalRead, err
+            }
+
+            if !isPresent {
+              return totalRead, err
+            }
+
+            var val #{name typedef}
+
+            bytesRead, err = #{decode typedef}(decoder, &val)
+            totalRead += bytesRead
+
+            if err != nil {
+              return totalRead, err
+            }
+
+            *result = &val
+
+            return totalRead, nil
+          }
         EOS
       end
 
