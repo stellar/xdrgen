@@ -72,6 +72,9 @@ module Xdrgen
       end
 
       def render_definition(out, defn)
+
+        render_source_comment(out, defn) unless defn.is_a?(AST::Definitions::Namespace)
+
         case defn
         when AST::Definitions::Struct ;
           render_struct out, defn
@@ -84,6 +87,17 @@ module Xdrgen
         when AST::Definitions::Const ;
           render_const out, defn
         end
+      end
+
+      def render_source_comment(out, defn)
+        out.puts <<-EOS.strip_heredoc
+          // === xdr source ============================================================
+          //
+          #{"//   " + defn.text_value.split("\n").join("\n//   ")}
+          //
+          // ===========================================================================
+          
+        EOS
       end
 
       def render_struct(out, struct)
@@ -332,10 +346,14 @@ module Xdrgen
             name type
           end
 
-          result << case type.sub_type
-            when :simple, :optional ;
+          result << case 
+            when type.is_a?(AST::Typespecs::Opaque) ;
+              "(decoder, #{result_binding}[:], #{type.size})"
+            when type.sub_type == :simple ;
               "(decoder, &#{result_binding})"
-            when :array ;
+            when type.sub_type == :optional ;
+              "(decoder, &#{result_binding})"
+            when type.sub_type == :array ;
               "FixedArray(decoder, &#{result_binding}, #{type.decl.size})"
             when :var_array ;
               "Array(decoder, &#{result_binding}, #{type.decl.size})"
