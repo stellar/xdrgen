@@ -300,7 +300,7 @@ module Xdrgen
         when AST::Typespecs::Opaque ;
           "[#{type.size}]byte"
         when AST::Typespecs::Simple ;
-          name type
+          name type.resolved_type
         when AST::Concerns::NestedDefinition ;
           name type
         else
