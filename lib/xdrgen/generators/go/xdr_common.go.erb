@@ -5,8 +5,12 @@ package <%= @namespace || "main" %>
 import (
   "errors"
   "fmt"
+  "math"
   "github.com/davecgh/go-xdr/xdr2"
 )
+
+const MaxXdrElements = math.MaxInt32
+
 
 // Primitive decoders
 <% PRIMITIVES.each do |prim| %>
