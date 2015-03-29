@@ -96,7 +96,7 @@ module Xdrgen
           #{"//   " + defn.text_value.split("\n").join("\n//   ")}
           //
           // ===========================================================================
-          
+
         EOS
       end
 
@@ -190,8 +190,14 @@ module Xdrgen
 
         end
         out.puts "}"
+        out.break
 
         # TODO: Add constructors
+        # for each member in the discrimant
+        #   find what arm 
+        union.discriminant_type.members.each do |m|
+          out.puts union_constructor(union, m)
+        end
 
         
         # Add discriminant accessor
@@ -480,11 +486,37 @@ module Xdrgen
           EOS
       end
 
+      def union_constructor(union, kase)
+        # lookup the arm
+        arm  = union.arms.find{|a| a.cases.any?{|c| c == kase.name}}
+        return "" if arm.nil?
+
+        dname    = private_name union.discriminant
+        dtype    = union.discriminant_type
+        go_const = "#{name dtype}#{name kase}"
+
+        constructor_name  = "New#{name union}#{name kase}"
+        discriminant_init = "#{dname}: #{go_const},"
+
+        args, arm_init = if arm.void?
+            ["", ""]
+          else
+            ["val #{type_string arm.type}", "#{private_name arm}:&val,"]
+          end
+
+        <<-EOS.strip_heredoc
+          func #{constructor_name}(#{args}) #{name union} {
+            return #{name union}{
+              #{discriminant_init}
+              #{arm_init}
+            }
+          }
+        EOS
+      end
+
       def access_arm(arm)
         <<-EOS.strip_heredoc
           func (u *#{name arm.union})#{name arm}() #{type_string arm.type} {
-            //assert that the switch is one of the cases for this arm
-
             return *u.#{private_name arm}
           }
         EOS
