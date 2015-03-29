@@ -492,7 +492,8 @@ module Xdrgen
 
       def union_constructor(union, kase)
         # lookup the arm
-        arm  = union.arms.find{|a| a.cases.any?{|c| c == kase.name}}
+        arm = union.normal_arms.find{|a| a.cases.any?{|c| c == kase.name}}
+        arm ||= union.default_arm
         return "" if arm.nil?
 
         dname    = private_name union.discriminant

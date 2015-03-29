@@ -9,6 +9,8 @@ module Xdrgen::AST
       delegate :discriminant, to: :union_body
       delegate :name, to: :discriminant, prefix:true
       delegate :arms, to: :union_body
+      delegate :normal_arms, to: :union_body
+      delegate :default_arm, to: :union_body
 
       memoize def discriminant_type
         root.find_definition discriminant.type.name
