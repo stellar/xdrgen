@@ -3,7 +3,11 @@ module Xdrgen
 
     class Go < Xdrgen::Generators::Base
 
-      Primitive = Struct.new(:name, :go_type)
+      Primitive = Struct.new(:name, :go_type) do
+        def sub_type
+          :simple
+        end
+      end
       PRIMITIVES = [
         Primitive.new("Int",    "int32"),
         Primitive.new("Uint",   "uint32"),
@@ -37,15 +41,17 @@ module Xdrgen
 
         out.puts <<-EOS.strip_heredoc
           func Decode#{name typedef}(decoder *xdr.Decoder, result *#{name typedef}) (int, error) {
-            var val #{ type_string typedef.declaration.type }
+            var (
+              val #{ type_string typedef.declaration.type }
+              totalRead int
+              bytesRead int
+              err       error
+            )
 
-            bytesRead, err := #{decode typedef.declaration.type}(decoder, &val)
+            #{decode_into typedef.declaration.type, "val"}
 
-            if err == nil {
-              *result = #{name typedef}(val)
-            }
-
-            return bytesRead, nil
+            *result = #{name typedef}(val)
+            return totalRead, nil
           }
         EOS
 
@@ -194,15 +200,11 @@ module Xdrgen
               discriminant #{name union.discriminant_type}
               totalRead int
               bytesRead int
+              err       error
             )
-
-            bytesRead, err := #{decode union.discriminant_type}(decoder, &val)
-            totalRead += bytesRead
-
-            if err != nil {
-              return totalRead, err
-            }
             
+            #{decode_into union.discriminant_type, "discriminant"}
+            *result = #{name union}{}
             return totalRead, nil
           }
         EOS
@@ -268,6 +270,8 @@ module Xdrgen
           raise "cannot render quadruple in golang"
         when AST::Typespecs::Bool ;
           "bool"
+        when AST::Typespecs::Opaque ;
+          "[#{type.size}]byte"
         when AST::Typespecs::Simple ;
           name type
         when AST::Concerns::NestedDefinition ;
@@ -299,10 +303,10 @@ module Xdrgen
         end
       end
 
-      def decode(type, optional=false)
+      def decode(type, result_binding="result")
         result = "Decode"
-        result << "Optional" if optional
-
+        result << "Optional" if type.sub_type == :optional
+          
         result << case type
           when AST::Typespecs::Int ;
             "Int"
@@ -320,40 +324,50 @@ module Xdrgen
             raise "cannot render quadruple in golang"
           when AST::Typespecs::Bool ;
             "Bool"
+          when AST::Typespecs::Opaque ;
+            "FixedOpaque"
           when AST::Concerns::NestedDefinition ;
             name type
           else
             name type
           end
 
+          result << case type.sub_type
+            when :simple, :optional ;
+              "(decoder, &#{result_binding})"
+            when :array ;
+              "FixedArray(decoder, &#{result_binding}, #{type.decl.size})"
+            when :var_array ;
+              "Array(decoder, &#{result_binding}, #{type.decl.size})"
+            else ;
+              raise "unexpected subtype: #{type.sub_type}"
+            end
+
         result
       end
 
+      def decode_into(type, result_binding)
+        <<-EOS
+          bytesRead, err = #{decode type, result_binding}
+          totalRead += bytesRead
+          if err != nil {
+            return totalRead, err
+          }
+        EOS
+      end
+
       def decode_member(m)
-        unless m.optional?
+        case m.type.sub_type
+        when :simple, :array, :var_array
+          decode_into(m.type, "result.#{name m}")
+        when :optional
           <<-EOS.strip_heredoc
-
-            bytesRead, err = #{decode m.type}(decoder, &result.#{name m})
-            if err != nil {
-              return totalRead, err
-            }
-
-            totalRead += bytesRead
-
+            var #{private_name m} *#{type_string m.type}
+            #{decode_into m.type, private_name(m)}
+            result.#{name m} = #{private_name m}
           EOS
         else
-          <<-EOS.strip_heredoc
-
-            var #{private_name m} *#{type_string m.type}
-            bytesRead, err = #{decode m.type, m.optional?}(decoder, &#{private_name m})
-            if err != nil {
-              return totalRead, err
-            }
-            
-            totalRead += bytesRead
-            result.#{name m} = #{private_name m}
-
-          EOS
+          raise "unknown sub_type: #{m.type.sub_type}"
         end
       end
 
@@ -380,12 +394,7 @@ module Xdrgen
 
             var val #{result_type}
 
-            bytesRead, err = #{decode named}(decoder, &val)
-            totalRead += bytesRead
-
-            if err != nil {
-              return totalRead, err
-            }
+            #{decode_into named, "val"}
 
             *result = &val
 
@@ -409,13 +418,7 @@ module Xdrgen
             }
 
             for i := 0; i < size; i++ {
-              bytesRead, err = Decode#{name named}(decoder, &result[i])
-
-              if err != nil {
-                return totalRead, err
-              }
-
-              totalRead += bytesRead
+              #{decode_into named, "result[i]"}
             }
 
             return totalRead, nil
@@ -450,13 +453,7 @@ module Xdrgen
             *result = theResult
 
             for i := int32(0); i < size; i++ {
-              bytesRead, err = Decode#{name named}(decoder, &theResult[i])
-
-              if err != nil {
-                return totalRead, err
-              }
-
-              totalRead += bytesRead
+              #{decode_into named, "theResult[i]"}
             }
 
             return totalRead, nil
