@@ -370,7 +370,7 @@ module Xdrgen
             when type.is_a?(AST::Typespecs::Opaque) ;
               "(decoder, #{result_binding}[:], #{size type.size})"
             when type.is_a?(AST::Typespecs::String) ;
-              "(decoder, #{result_binding}[:], #{size type.size})"
+              "(decoder, &#{result_binding}, #{size type.size})"
             when type.sub_type == :simple ;
               "(decoder, &#{result_binding})"
             when type.sub_type == :optional ;
