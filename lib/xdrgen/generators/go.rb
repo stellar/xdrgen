@@ -238,6 +238,9 @@ module Xdrgen
           }
         EOS
 
+        out.puts optional_decoder(union)
+        out.puts fixed_array_decoder(union)
+        out.puts array_decoder(union)
 
         out.break
       end
