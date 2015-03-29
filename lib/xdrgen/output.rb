@@ -3,11 +3,11 @@ require 'fileutils'
 module Xdrgen
   class Output
 
-    attr_reader :source_path
+    attr_reader :source_paths
     attr_reader :output_dir
 
-    def initialize(source_path, output_dir)
-      @source_path = source_path
+    def initialize(source_paths, output_dir)
+      @source_paths = source_paths
       @output_dir = output_dir
       @files      = {}
     end

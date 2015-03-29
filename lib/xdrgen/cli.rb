@@ -14,13 +14,13 @@ module Xdrgen
       fail(opts) if args.blank?
       fail(opts) if opts[:output].blank?
 
-      compilations = args.map{|f| Compilation.new(f, 
+      compilation = Compilation.new(
+        args,
         output_dir: opts[:output], 
         language:   opts[:language].to_sym,
         namespace:  opts[:namespace]
-      )}
-
-      compilations.each(&:compile)
+      )
+      compilation.compile
     end
 
     def self.fail(slop, code=1)

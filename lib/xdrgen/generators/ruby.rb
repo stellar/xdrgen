@@ -10,8 +10,7 @@ module Xdrgen
 
       private
       def render_index
-        root_file_basename = File.basename(@output.source_path, ".x")
-        root_file = "#{root_file_basename}.rb"
+        root_file = "#{@namespace}.rb"
         out = @output.open(root_file)
         render_top_matter out
 
@@ -176,7 +175,7 @@ module Xdrgen
 
       def render_top_matter(out)
         out.puts <<-EOS.strip_heredoc
-          # Automatically generated from #{@output.source_path}
+          # Automatically generated from #{@output.source_paths.join(",")}
           # DO NOT EDIT or your changes may be overwritten
         
           require 'xdr'

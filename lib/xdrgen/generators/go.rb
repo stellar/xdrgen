@@ -19,8 +19,7 @@ module Xdrgen
       ]
 
       def generate
-        basename = File.basename(@output.source_path, ".x")
-        path = "#{basename}.go"
+        path = "#{@namespace}_generated.go"
         out = @output.open(path)
 
         render_common
@@ -245,7 +244,7 @@ module Xdrgen
 
       def render_top_matter(out)
         out.puts <<-EOS.strip_heredoc
-          // Automatically generated from #{@output.source_path}
+          // Automatically generated from #{@output.source_paths.join(",")}
           // DO NOT EDIT or your changes may be overwritten
         
           package #{@namespace || "main"}
