@@ -346,6 +346,8 @@ module Xdrgen
             "Bool"
           when AST::Typespecs::Opaque ;
             "FixedOpaque"
+          when AST::Typespecs::String ;
+            "String"
           when AST::Concerns::NestedDefinition ;
             name type
           else
@@ -354,15 +356,17 @@ module Xdrgen
 
           result << case 
             when type.is_a?(AST::Typespecs::Opaque) ;
-              "(decoder, #{result_binding}[:], #{type.size})"
+              "(decoder, #{result_binding}[:], #{size type.size})"
+            when type.is_a?(AST::Typespecs::String) ;
+              "(decoder, #{result_binding}[:], #{size type.size})"
             when type.sub_type == :simple ;
               "(decoder, &#{result_binding})"
             when type.sub_type == :optional ;
               "(decoder, &#{result_binding})"
             when type.sub_type == :array ;
-              "FixedArray(decoder, &#{result_binding}, #{type.decl.size})"
+              "FixedArray(decoder, &#{result_binding}, #{size type.decl.size})"
             when :var_array ;
-              "Array(decoder, &#{result_binding}, #{type.decl.size})"
+              "Array(decoder, &#{result_binding}, #{size type.decl.size})"
             else ;
               raise "unexpected subtype: #{type.sub_type}"
             end
@@ -522,6 +526,11 @@ module Xdrgen
         EOS
       end
 
+      def size(size_s)
+        result = size_s
+        result = "MaxXdrElements" if result.blank?
+        result
+      end
     end
   end
 end
