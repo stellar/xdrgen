@@ -199,6 +199,10 @@ module Xdrgen
         out.puts "}"
         out.break
 
+        if union.discriminant_type.blank?
+          raise "Cannot find definition for #{union.discriminant.type.name}"
+        end
+
         # for each member in the discrimant
         #   find what arm 
         union.discriminant_type.members.each do |m|
