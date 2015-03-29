@@ -71,9 +71,14 @@ module Xdrgen
         node.namespaces.each{|n| render_definitions out, n }
       end
 
-      def render_definition(out, defn)
+      def render_nested_definitions(out, defn)
+        return unless defn.respond_to? :nested_definitions
+        defn.nested_definitions.each{|ndefn| render_definition out, ndefn}
+      end
 
-        render_source_comment(out, defn) unless defn.is_a?(AST::Definitions::Namespace)
+      def render_definition(out, defn)
+        render_nested_definitions(out, defn)
+        render_source_comment(out, defn)
 
         case defn
         when AST::Definitions::Struct ;
@@ -90,6 +95,8 @@ module Xdrgen
       end
 
       def render_source_comment(out, defn)
+        return if defn.is_a?(AST::Definitions::Namespace)
+
         out.puts <<-EOS.strip_heredoc
           // === xdr source ============================================================
           //
@@ -192,7 +199,6 @@ module Xdrgen
         out.puts "}"
         out.break
 
-        # TODO: Add constructors
         # for each member in the discrimant
         #   find what arm 
         union.discriminant_type.members.each do |m|
@@ -265,8 +271,6 @@ module Xdrgen
           "*#{type_string(decl.type)}"
         when AST::Declarations::Simple ;
           type_string(decl.type)
-        when AST::Declarations::Void ;
-          "interface{} //TODO void"
         else
           raise "Unknown declaration type: #{decl.class.name}"
         end
@@ -295,17 +299,22 @@ module Xdrgen
         when AST::Typespecs::Simple ;
           name type
         when AST::Concerns::NestedDefinition ;
-          "interface{} //TODO nested def"
+          name type
         else
           raise "Unknown typespec: #{type.class.name}"
         end
       end
 
       def name(named)
+
+        parent = name named.parent_defn if named.is_a?(AST::Concerns::NestedDefinition)
+
         # NOTE: classify will strip plurality, so we restore it if necessary
         plural = named.name.pluralize == named.name
         base   = named.name.underscore.classify
-        plural ? base.pluralize : base
+        result = plural ? base.pluralize : base
+
+        "#{parent}#{result}"
       end
 
       def private_name(named)
