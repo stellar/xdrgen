@@ -266,7 +266,7 @@ module Xdrgen
           "string"
         when AST::Declarations::Array ;
           size = decl.fixed? ? decl.size : ""
-          "[#{size}]#{decl.child_type}"
+          "[#{size}]#{type_string decl.type}"
         when AST::Declarations::Optional ;
           "*#{type_string(decl.type)}"
         when AST::Declarations::Simple ;
