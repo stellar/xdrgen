@@ -170,6 +170,9 @@ module Xdrgen
 
         end
         out.puts "}"
+
+        # TODO: Add constructors
+
         
         # Add discriminant accessor
         out.puts <<-EOS
@@ -188,16 +191,19 @@ module Xdrgen
         out.puts <<-EOS.strip_heredoc
           func Decode#{name union}(decoder *xdr.Decoder, result *#{name union}) (int, error) {
             var (
-              discriminant #{name union.discriminant}
+              discriminant #{name union.discriminant_type}
               totalRead int
               bytesRead int
             )
 
-            val, bytesRead, err := decoder.DecodeEnum(#{name enum}Map)
+            bytesRead, err := #{decode union.discriminant_type}(decoder, &val)
+            totalRead += bytesRead
 
-            // TODO
+            if err != nil {
+              return totalRead, err
+            }
             
-            return bytesRead, err
+            return totalRead, nil
           }
         EOS
 
