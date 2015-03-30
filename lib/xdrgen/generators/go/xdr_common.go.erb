@@ -111,12 +111,12 @@ func EncodeOpaque(encoder *xdr.Encoder, val []byte, maxSize int32) (int, error) 
   return encoder.EncodeOpaque(val)
 }
 
-func EncodeString(encoder *xdr.Encoder, val string, maxSize int32) (int, error) {
+func EncodeString(encoder *xdr.Encoder, val *string, maxSize int32) (int, error) {
   
-  if len(val) > int(maxSize) {
-    errMsg := fmt.Sprintf("xdr: value to large:%d, max:%d", len(val), maxSize)
+  if len(*val) > int(maxSize) {
+    errMsg := fmt.Sprintf("xdr: value to large:%d, max:%d", len(*val), maxSize)
     return 0, errors.New(errMsg)   
   }
 
-  return encoder.EncodeString(val)
+  return encoder.EncodeString(*val)
 }

@@ -157,6 +157,27 @@ module Xdrgen
         out.puts optional_decoder(struct)
         out.puts fixed_array_decoder(struct)
         out.puts array_decoder(struct)
+
+        # render encode function
+        
+        field_encoders = struct.members.map{|m| encode_member(m)}.join("\n")
+
+        out.puts <<-EOS.strip_heredoc
+          func Encode#{name struct}(encoder *xdr.Encoder, value *#{name struct}) (int, error) {
+            totalWritten := 0
+            bytesWritten := 0
+            var err error
+
+            #{field_encoders}
+
+            return totalWritten, nil
+          }
+        EOS
+
+        out.puts optional_encoder(struct)
+        out.puts fixed_array_encoder(struct)
+        out.puts array_encoder(struct)
+        out.break
       end
 
       def render_enum(out, enum)
@@ -503,6 +524,19 @@ module Xdrgen
             #{decode_into m.type, private_name(m)}
             result.#{name m} = #{private_name m}
           EOS
+        else
+          raise "unknown sub_type: #{m.type.sub_type}"
+        end
+      end
+
+      def encode_member(m)
+        case m.type.sub_type
+        when :simple
+          encode_from(m.type, "&value.#{name m}")
+        when :array, :var_array
+          encode_from(m.type, "value.#{name m}[:]")
+        when :optional
+          encode_from(m.type, "value.#{name m}")
         else
           raise "unknown sub_type: #{m.type.sub_type}"
         end
