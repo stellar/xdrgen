@@ -108,7 +108,7 @@ module Xdrgen
         render_element "class", union, "< XDR::Union" do |out|
           render_nested_definitions out, union
 
-          out.puts "switch_on #{name_string union.discriminant_type}, :#{union.discriminant_name}"
+          out.puts "switch_on #{name_string union.discriminant_type.name}, :#{union.discriminant_name}"
           out.break
 
           out.balance_after /,[\s]*/ do
@@ -175,7 +175,7 @@ module Xdrgen
 
       def render_top_matter(out)
         out.puts <<-EOS.strip_heredoc
-          # Automatically generated from #{@output.source_paths.join(",")}
+          # Automatically generated on #{Time.now.iso8601}
           # DO NOT EDIT or your changes may be overwritten
         
           require 'xdr'
@@ -223,7 +223,7 @@ module Xdrgen
             join(", ")
           "#{type}[#{args}]"
         when AST::Declarations::Optional ;
-          "XDR::Option[#{name_string decl.child_type}]"
+          "XDR::Option[#{name_string decl.type.text_value}]"
         when AST::Declarations::Simple ;
           type_string(decl.type)
         when AST::Declarations::Void ;
