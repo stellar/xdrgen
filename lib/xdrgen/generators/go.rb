@@ -389,12 +389,73 @@ module Xdrgen
         result
       end
 
+      def encode(type, value_binding="value")
+        result = "Encode"
+        result << "Optional" if type.sub_type == :optional
+          
+        result << case type
+          when AST::Typespecs::Int ;
+            "Int"
+          when AST::Typespecs::UnsignedInt ;
+            "Uint"
+          when AST::Typespecs::Hyper ;
+            "Hyper"
+          when AST::Typespecs::UnsignedHyper ;
+            "Uhyper"
+          when AST::Typespecs::Float ;
+            "Float"
+          when AST::Typespecs::Double ;
+            "Double"
+          when AST::Typespecs::Quadruple ;
+            raise "cannot render quadruple in golang"
+          when AST::Typespecs::Bool ;
+            "Bool"
+          when AST::Typespecs::Opaque ;
+            "FixedOpaque"
+          when AST::Typespecs::String ;
+            "String"
+          when AST::Concerns::NestedDefinition ;
+            name type
+          else
+            name type
+          end
+
+          result << case 
+            when type.is_a?(AST::Typespecs::Opaque) ;
+              "(encoder, #{value_binding}, #{size type.size})"
+            when type.is_a?(AST::Typespecs::String) ;
+              "(encoder, #{value_binding}, #{size type.size})"
+            when type.sub_type == :simple ;
+              "(encoder, #{value_binding})"
+            when type.sub_type == :optional ;
+              "(encoder, #{value_binding})"
+            when type.sub_type == :array ;
+              "FixedArray(encoder, #{value_binding}, #{size type.decl.size})"
+            when :var_array ;
+              "Array(encoder, #{value_binding}, #{size type.decl.size})"
+            else ;
+              raise "unexpected subtype: #{type.sub_type}"
+            end
+
+        result
+      end
+
       def decode_into(type, result_binding)
         <<-EOS
           bytesRead, err = #{decode type, result_binding}
           totalRead += bytesRead
           if err != nil {
             return totalRead, err
+          }
+        EOS
+      end
+
+      def encode_from(type, value_binding)
+        <<-EOS
+          bytesWritten, err = #{encode type, value_binding}
+          totalWritten += bytesWritten
+          if err != nil {
+            return totalWritten, err
           }
         EOS
       end
@@ -446,6 +507,34 @@ module Xdrgen
         EOS
       end
 
+      def optional_encoder(named, result_type=name(named))
+        <<-EOS
+        func EncodeOptional#{name named}(encoder *xdr.Encoder, value *#{result_type}) (int, error) {
+            var (
+              isPresent bool
+              totalWritten int
+              bytesWritten int
+              err       error
+            )
+            isPresent = value != nil
+            bytesWritten, err = EncodeBool(encoder, &isPresent)
+            totalWritten += bytesWritten
+
+            if err != nil {
+              return totalWritten, err
+            }
+
+            if !isPresent {
+              return totalWritten, nil
+            }
+
+            #{encode_from named, "value"}
+
+            return totalWritten, nil
+          }
+        EOS
+      end
+
       def fixed_array_decoder(named, result_type=name(named))
         <<-EOS
           func Decode#{name named}FixedArray(decoder *xdr.Decoder, result []#{result_type}, size int) (int, error) {
@@ -465,6 +554,29 @@ module Xdrgen
             }
 
             return totalRead, nil
+          }
+        EOS
+      end
+
+      def fixed_array_encoder(named, result_type=name(named))
+        <<-EOS
+          func Encode#{name named}FixedArray(encoder *xdr.Encoder, value []#{result_type}, size int) (int, error) {
+            var (
+              totalWritten int
+              bytesWritten int
+              err          error
+            )
+
+            if len(value) != int(size) {
+              errMsg := fmt.Sprintf("xdr: value wrong size:%d, expected:%d", len(value), size)
+              return 0, errors.New(errMsg)   
+            }
+
+            for _, element := range value {
+              #{encode_from named, "&element"}
+            }
+
+            return totalWritten, nil
           }
         EOS
       end
@@ -503,6 +615,41 @@ module Xdrgen
           }
 
           EOS
+      end
+
+      def array_encoder(named, result_type=name(named))
+        <<-EOS
+
+          func Encode#{name named}Array(encoder *xdr.Encoder, value []#{result_type}, maxSize int32) (int, error) {
+            var (
+              size         int32
+              totalWritten int
+              bytesWritten int
+              err          error
+            )
+            
+            size = int32(len(value))
+
+            if size > maxSize {
+              errMsg := fmt.Sprintf("xdr: value too large:%d, max:%d", size, maxSize)
+              return totalWritten, errors.New(errMsg)
+            }
+
+            bytesWritten, err = EncodeInt(encoder, &size)
+            totalWritten += bytesWritten
+
+            if err != nil {
+              return totalWritten, err
+            }
+
+            for _, element := range value {
+              #{encode_from named, "&element"}
+            }
+
+            return totalWritten, nil
+          }
+
+        EOS
       end
 
       def union_constructor(union, kase)

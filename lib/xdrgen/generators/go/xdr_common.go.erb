@@ -30,6 +30,14 @@ func Decode<%=xdr%>(decoder *xdr.Decoder, result *<%=go%>) (int, error) {
 <%= fixed_array_decoder prim, prim.go_type %>
 <%= array_decoder prim, prim.go_type %>
 
+func Encode<%=xdr%>(encoder *xdr.Encoder, value *<%=go%>) (int, error) {
+  return encoder.Encode<%=xdr%>(*value)
+}
+
+<%= optional_encoder prim, prim.go_type %>
+<%= fixed_array_encoder prim, prim.go_type %>
+<%= array_encoder prim, prim.go_type %>
+
 <% end %>
 
 func DecodeFixedOpaque(decoder *xdr.Decoder, result []byte, size int32) (int, error) {
@@ -81,4 +89,34 @@ func DecodeString(decoder *xdr.Decoder, result *string, maxSize int32) (int, err
   *result = val
 
   return bytesRead, err
+}
+
+func EncodeFixedOpaque(encoder *xdr.Encoder, val []byte, size int32) (int, error) {
+  
+  if len(val) != int(size) {
+    errMsg := fmt.Sprintf("xdr: value wrong size:%d, expected:%d", len(val), size)
+    return 0, errors.New(errMsg)   
+  }
+
+  return encoder.EncodeFixedOpaque(val)
+}
+
+func EncodeOpaque(encoder *xdr.Encoder, val []byte, maxSize int32) (int, error) {
+  
+  if len(val) > int(maxSize) {
+    errMsg := fmt.Sprintf("xdr: value to large:%d, max:%d", len(val), maxSize)
+    return 0, errors.New(errMsg)   
+  }
+
+  return encoder.EncodeOpaque(val)
+}
+
+func EncodeString(encoder *xdr.Encoder, val string, maxSize int32) (int, error) {
+  
+  if len(val) > int(maxSize) {
+    errMsg := fmt.Sprintf("xdr: value to large:%d, max:%d", len(val), maxSize)
+    return 0, errors.New(errMsg)   
+  }
+
+  return encoder.EncodeString(val)
 }
