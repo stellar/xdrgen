@@ -1,9 +1,34 @@
 # Xdrgen
 
-`xdrgen` is a code generator that take XDR IDL files (`.x` files) and outputs,
-at present, ruby code that is complient with the ruby-xdr helper library
+`xdrgen` is a code generator that takes XDR IDL files (`.x` files) as specfified 
+in [RFC 4506](http://tools.ietf.org/html/rfc4506.html) and spits code out in 
+various languages.
 
-## Installation
+## Status
+
+Xdrgen is a very early project.  Aside from the test fixtures in 
+[spec/fixtures](spec/fixtures), the only .x files that have been thrown at it
+are the .x files used for the 
+[stellar-core project](https://github.com/stellar/stellar-core).
+
+Xdrgen presently supports two output languages:  ruby, and golang:
+
+- ruby: complete support
+- golong: mostly complete, but union support and nested definition support is still buggy
+
+Testing is _very_ sparse, but will improve over time.
+
+## Usage as a binary
+
+Xdrgen is a rubygem, compatible with ruby 2.1 or higher
+
+    $ gem install xdrgen
+
+The command line:
+
+`xdrgen [-o OUTPUT_DIR] [-l LANGUAGE] [-n NAMESPACE] [INPUT_FILES ...]`
+
+## Usage as a library
 
 Add this line to your application's Gemfile:
 
@@ -15,32 +40,25 @@ And then execute:
 
     $ bundle
 
-Or install it yourself as:
-
-    $ gem install xdrgen
-
-## Usage as a binary
-
-The command line is simple:
-
-`xdrgen -o OUTPUT_DIR INPUT_FILE`
-
-## Usage as a library
+Example usage:
 
 ```ruby
 require 'xdrgen'
 
-# create a compilation object, specifying your input file
-# and output directory
+# create a compilation object, specifying your options
 
-c = Xdrgen::Compilation.new("MyProgram.x", "src/generated")
+c = Xdrgen::Compilation.new(
+  ["MyProgram.x"], 
+  output_dir:"src/generated",
+  language: :ruby
+  namespace: "MyProgram::XDR"
+)
 
 # then run compile
 
 c.compile
 
 ```
-
 
 ## Contributing
 
