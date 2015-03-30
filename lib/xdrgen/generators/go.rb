@@ -297,6 +297,32 @@ module Xdrgen
         out.puts array_decoder(union)
 
         out.break
+
+        case_encoders = union.discriminant_type.members.map do |m|
+          encode_case(union, m)
+        end
+
+        out.puts <<-EOS.strip_heredoc
+          func Encode#{name union}(encoder *xdr.Encoder, value *#{name union}) (int, error) {
+            var (
+              totalWritten int
+              bytesWritten int
+              err       error
+            )
+            
+            #{encode_from union.discriminant_type, "&value.#{private_name union.discriminant}"}
+
+            #{case_encoders.join("\n\n")}
+            
+            return totalWritten, nil
+          }
+        EOS
+
+        out.puts optional_encoder(union)
+        out.puts fixed_array_encoder(union)
+        out.puts array_encoder(union)
+
+        out.break
       end
 
       def render_top_matter(out)
@@ -540,6 +566,28 @@ module Xdrgen
         else
           raise "unknown sub_type: #{m.type.sub_type}"
         end
+      end
+
+      def encode_case(union, kase)
+        <<-EOS
+        
+        EOS
+
+        # lookup the arm
+        arm = union.normal_arms.find{|a| a.cases.any?{|c| c == kase.name}}
+        arm ||= union.default_arm
+        return "" if arm.nil?
+        return "" if arm.void?
+
+        dname    = private_name union.discriminant
+        dtype    = union.discriminant_type
+        go_const = "#{name dtype}#{name kase}"
+
+        <<-EOS.strip_heredoc
+          if value.#{dname} == #{go_const} {
+            #{encode_from(arm.type, "value.#{private_name arm}")}
+          }
+        EOS
       end
 
       def optional_decoder(named, result_type=name(named))
