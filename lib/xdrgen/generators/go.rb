@@ -509,7 +509,7 @@ module Xdrgen
 
           result << case 
             when type.is_a?(AST::Typespecs::Opaque) ;
-              "(encoder, #{value_binding}, #{size type.size})"
+              "(encoder, #{value_binding}[:], #{size type.size})"
             when type.is_a?(AST::Typespecs::String) ;
               "(encoder, #{value_binding}, #{size type.size})"
             when type.sub_type == :simple ;
@@ -563,12 +563,16 @@ module Xdrgen
       end
 
       def encode_member(m)
-        case m.type.sub_type
-        when :simple
-          encode_from(m.type, "&value.#{name m}")
-        when :array, :var_array
+        case
+        when m.type.is_a?(AST::Typespecs::Opaque)
           encode_from(m.type, "value.#{name m}[:]")
-        when :optional
+        when m.type.sub_type == :simple
+          encode_from(m.type, "&value.#{name m}")
+        when m.type.sub_type ==:array
+          encode_from(m.type, "value.#{name m}[:]")
+        when m.type.sub_type == :var_array
+          encode_from(m.type, "value.#{name m}[:]")
+        when m.type.sub_type == :optional
           encode_from(m.type, "value.#{name m}")
         else
           raise "unknown sub_type: #{m.type.sub_type}"
