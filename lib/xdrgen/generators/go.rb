@@ -277,6 +277,11 @@ module Xdrgen
           out.puts access_arm(arm)
         end
 
+        # render decoder
+        case_decoders = union.discriminant_type.members.map do |m|
+          decode_case(union, m)
+        end
+
         out.puts <<-EOS.strip_heredoc
           func Decode#{name union}(decoder *xdr.Decoder, result *#{name union}) (int, error) {
             var (
@@ -287,7 +292,9 @@ module Xdrgen
             )
             
             #{decode_into union.discriminant_type, "discriminant"}
-            *result = #{name union}{}
+            
+            #{case_decoders.join("\n\n")}
+            
             return totalRead, nil
           }
         EOS
@@ -568,11 +575,28 @@ module Xdrgen
         end
       end
 
-      def encode_case(union, kase)
-        <<-EOS
-        
-        EOS
+      def decode_case(union, kase)
+        # lookup the arm
+        arm = union.normal_arms.find{|a| a.cases.any?{|c| c == kase.name}}
+        arm ||= union.default_arm
+        return "" if arm.nil?
+        return "" if arm.void?
 
+        dname    = private_name union.discriminant
+        dtype    = union.discriminant_type
+        go_const = "#{name dtype}#{name kase}"
+
+        <<-EOS.strip_heredoc
+
+          if discriminant == #{go_const} {
+            var #{private_name arm} #{type_string arm.type}
+            #{decode_into(arm.type, private_name(arm))}
+            *result = New#{name union}#{name kase}(#{private_name arm})
+          }
+        EOS
+      end
+
+      def encode_case(union, kase)
         # lookup the arm
         arm = union.normal_arms.find{|a| a.cases.any?{|c| c == kase.name}}
         arm ||= union.default_arm
