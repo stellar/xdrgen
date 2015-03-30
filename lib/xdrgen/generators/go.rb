@@ -58,6 +58,26 @@ module Xdrgen
         out.puts fixed_array_decoder(typedef)
         out.puts array_decoder(typedef)
         out.break
+
+        # render encode function
+        out.puts <<-EOS.strip_heredoc
+          func Encode#{name typedef}(encoder *xdr.Encoder, value *#{name typedef}) (int, error) {
+            var (
+              totalWritten int
+              bytesWritten int
+              err       error
+            )
+
+            #{encode_from typedef.declaration.type, "(*#{type_string typedef.declaration.type})(value)"}
+
+            return totalWritten, err
+          }
+        EOS
+
+        out.puts optional_encoder(typedef)
+        out.puts fixed_array_encoder(typedef)
+        out.puts array_encoder(typedef)
+        out.break
       end
 
       def render_const(out, const)
@@ -181,6 +201,19 @@ module Xdrgen
         out.puts optional_decoder(enum)
         out.puts fixed_array_decoder(enum)
         out.puts array_decoder(enum)
+        out.break
+
+        # render encode function
+        out.puts <<-EOS.strip_heredoc
+          func Encode#{name enum}(encoder *xdr.Encoder, value *#{name enum}) (int, error) {
+            bytesWritten, err := encoder.EncodeEnum(int32(*value),#{name enum}Map)
+            return bytesWritten, err
+          }
+        EOS
+
+        out.puts optional_encoder(enum)
+        out.puts fixed_array_encoder(enum)
+        out.puts array_encoder(enum)
         out.break
       end
 
