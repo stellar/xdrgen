@@ -593,9 +593,9 @@ module Xdrgen
         <<-EOS.strip_heredoc
 
           if discriminant == #{go_const} {
-            var #{private_name arm} #{type_string arm.type}
-            #{decode_into(arm.type, private_name(arm))}
-            *result = New#{name union}#{name kase}(#{private_name arm})
+            var #{private_name kase} #{type_string arm.type}
+            #{decode_into(arm.type, private_name(kase))}
+            *result = New#{name union}#{name kase}(#{private_name kase})
           }
         EOS
       end
