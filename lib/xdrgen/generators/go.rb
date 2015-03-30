@@ -245,8 +245,24 @@ module Xdrgen
 
           union.arms.each do |arm|
             next if arm.void?
-            out.puts "#{private_name arm} *#{type_string arm.type}"
+
+            storage_class = case arm.type.sub_type
+              when :simple ;
+                "*#{type_string arm.type}"
+              when :var_array ;
+                "*[]#{type_string arm.type}"
+              when :array ;
+                "*[#{arm.type.size}]#{type_string arm.type}"
+              when :optional
+                "*#{type_string arm.type}"
+              else
+                raise "unknown sub_type: #{arm.type.sub_type}"
+              end
+
+            out.puts "#{private_name arm} #{storage_class}"
           end
+
+
 
         end
         out.puts "}"
@@ -590,10 +606,24 @@ module Xdrgen
         dtype    = union.discriminant_type
         go_const = "#{name dtype}#{name kase}"
 
+        case_storage = case arm.type.sub_type
+          when :simple ;
+            type_string arm.type
+          when :var_array ;
+            "[]#{type_string arm.type}"
+          when :array ;
+            "[#{arm.type.size}]#{type_string arm.type}"
+          when :optional
+            "*#{type_string arm.type}"
+          else
+            raise "unknown sub_type: #{arm.type.sub_type}"
+          end
+
+        # require 'pry' ; binding.pry if arm.type.sub_type == :var_array
         <<-EOS.strip_heredoc
 
           if discriminant == #{go_const} {
-            var #{private_name kase} #{type_string arm.type}
+            var #{private_name kase} #{case_storage}
             #{decode_into(arm.type, private_name(kase))}
             *result = New#{name union}#{name kase}(#{private_name kase})
           }
@@ -808,10 +838,19 @@ module Xdrgen
         constructor_name  = "New#{name union}#{name kase}"
         discriminant_init = "#{dname}: #{go_const},"
 
-        args, arm_init = if arm.void?
-            ["", ""]
-          else
+        args, arm_init = case
+          when arm.void? ;
+            ["",""]
+          when arm.type.sub_type == :simple ;
             ["val #{type_string arm.type}", "#{private_name arm}:&val,"]
+          when arm.type.sub_type == :var_array ;
+            ["val []#{type_string arm.type}", "#{private_name arm}:&val,"]
+          when arm.type.sub_type == :array ;
+            ["val [#{arm.type.size}]#{type_string arm.type}", "#{private_name arm}:&val,"]
+          when arm.type.sub_type == :optional
+            ["val *#{type_string arm.type}", "#{private_name arm}:val,"]
+          else
+            raise "unknown sub_type: #{arm.type.sub_type}"
           end
 
         <<-EOS.strip_heredoc
@@ -825,8 +864,21 @@ module Xdrgen
       end
 
       def access_arm(arm)
+        result_type = case
+        when arm.type.sub_type == :simple ;
+          type_string arm.type
+        when arm.type.sub_type == :var_array ;
+          "[]#{type_string arm.type}"
+        when arm.type.sub_type == :array ;
+          "[#{arm.type.size}]#{type_string arm.type}"
+        when arm.type.sub_type == :optional
+          "*#{type_string arm.type}"
+        else
+          raise "unknown sub_type: #{arm.type.sub_type}"
+        end
+
         <<-EOS.strip_heredoc
-          func (u *#{name arm.union})#{name arm}() #{type_string arm.type} {
+          func (u *#{name arm.union})#{name arm}() #{result_type} {
             return *u.#{private_name arm}
           }
         EOS
