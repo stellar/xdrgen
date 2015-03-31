@@ -16,6 +16,12 @@ module Xdrgen::AST::Typespecs
         :simple
       end
     end
+
+    def array_size
+      raise "Called array_size on a non-array!" unless decl.is_a?(Xdrgen::AST::Declarations::Array)
+
+      decl.size
+    end
     
   end
 end

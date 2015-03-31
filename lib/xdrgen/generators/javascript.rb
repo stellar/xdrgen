@@ -2,7 +2,7 @@ module Xdrgen
   module Generators
 
     class Javascript < Xdrgen::Generators::Base
-
+      MAX_INT = (2**31) - 1
       def generate
         path = "#{@namespace}_generated.js"
         out = @output.open(path)
@@ -156,8 +156,24 @@ module Xdrgen
 
       def reference(type)
         baseReference = case type
+        when AST::Typespecs::Bool
+          "xdr.bool()"
+        when AST::Typespecs::Double
+          "xdr.double()"
+        when AST::Typespecs::Float
+          "xdr.float()"
+        when AST::Typespecs::Hyper
+          "xdr.hyper()"
+        when AST::Typespecs::Int
+          "xdr.int()"
         when AST::Typespecs::Opaque
           "xdr.opaque(#{type.size})"
+        when AST::Typespecs::Quadruple
+          raise "no quadruple support for javascript"
+        when AST::Typespecs::String
+          "xdr.string(#{type.size})"
+        when AST::Typespecs::UnsignedHyper
+          "xdr.uhyper()"
         when AST::Typespecs::UnsignedInt
           "xdr.uint()"
         when AST::Typespecs::Simple
@@ -165,6 +181,20 @@ module Xdrgen
         else
           raise "Unknown reference type: #{type.class.name}, #{type.class.ancestors}"
         end
+
+        case type.sub_type
+        when :simple
+          baseReference
+        when :optional
+          "xdr.option(#{baseReference})"
+        when :array
+          "xdr.array(#{baseReference}, #{type.array_size})"
+        when :var_array
+          "xdr.varArray(#{baseReference}, #{type.array_size || MAX_INT})"
+        else
+          raise "Unknown sub_type: #{type.sub_type}"
+        end
+
       end
 
     end
