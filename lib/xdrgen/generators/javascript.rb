@@ -178,6 +178,8 @@ module Xdrgen
           "xdr.uint()"
         when AST::Typespecs::Simple
           "xdr.lookup(\"#{name type}\")"
+        when AST::Concerns::NestedDefinition
+          "xdr.lookup(\"#{name type}\")"
         else
           raise "Unknown reference type: #{type.class.name}, #{type.class.ancestors}"
         end
