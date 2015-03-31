@@ -162,6 +162,7 @@ module Xdrgen
         name               = name_string element.name
         out                = @output.open(path)
         render_top_matter out
+        render_source_comment out, element
 
         render_containers out, element.namespaces do
           out.puts "#{type} #{name} #{post_name}"
@@ -171,6 +172,22 @@ module Xdrgen
           end
           out.puts "end"
         end
+      end
+
+      def render_source_comment(out, defn)
+        return if defn.is_a?(AST::Definitions::Namespace)
+
+        out.puts <<-EOS.strip_heredoc
+          # === xdr source ============================================================
+          #
+        EOS
+
+        out.puts "#   " + defn.text_value.split("\n").join("\n#   ")
+
+        out.puts <<-EOS.strip_heredoc
+          #
+          # ===========================================================================
+        EOS
       end
 
       def render_top_matter(out)
