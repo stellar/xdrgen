@@ -40,6 +40,8 @@ module Xdrgen
         when AST::Definitions::Const ;
           render_const out, defn
         end
+
+        out.break
       end
 
       def render_source_comment(out, defn)
@@ -81,16 +83,20 @@ module Xdrgen
 
       def render_typedef(out, typedef)
         out.puts "xdr.typedef(\"#{name typedef}\", #{reference typedef.declaration.type});"
-        out.break
       end
 
       def render_const(out, const)
         out.puts "xdr.const(\"#{const_name const}\", #{const.value});"
-        out.break
       end
 
       def render_struct(out, struct)
-        out.puts "//TODO"
+        out.puts "xdr.struct(\"#{name struct}\", {"
+        out.indent do
+          struct.members.each do |m|
+            out.puts "#{member_name m}: #{reference m.type},"
+          end
+        end
+        out.puts "});"
       end
 
       def render_enum(out, enum)
@@ -98,16 +104,23 @@ module Xdrgen
 
         out.indent do
           enum.members.each do |m|
-            out.puts "#{enum_member_name m}: #{m.value},"
+            out.puts "#{member_name m}: #{m.value},"
           end
         end
 
         out.puts "});"
-        out.break
       end
 
       def render_union(out, union)
-        out.puts "//TODO"
+        out.puts "xdr.union({"
+
+        # render switchOn
+        # render switches
+        # render arms
+        # render defaultArm
+
+
+        out.puts "});"
       end
 
       private
@@ -137,7 +150,7 @@ module Xdrgen
         plural ? base.pluralize : base
       end
 
-      def enum_member_name(member)
+      def member_name(member)
         name(member).camelize(:lower)
       end
 
@@ -145,8 +158,12 @@ module Xdrgen
         baseReference = case type
         when AST::Typespecs::Opaque
           "xdr.opaque(#{type.size})"
+        when AST::Typespecs::UnsignedInt
+          "xdr.uint()"
+        when AST::Typespecs::Simple
+          "xdr.lookup(\"#{name type}\")"
         else
-          raise "Unknown reference type: #{type.class.name}"
+          raise "Unknown reference type: #{type.class.name}, #{type.class.ancestors}"
         end
       end
 
