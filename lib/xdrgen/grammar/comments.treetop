@@ -5,15 +5,11 @@ grammar XdrCommentsGrammar
   end
 
   rule block_comment
-    "/*" !("*/"+)  "*/"
+    "/*" content:(!"*/" .)*  "*/"
   end
 
   rule line_comment
     "//" content:(!"\n" .)* "\n"?
-  end
-
-  rule soc
-    (space / line_comment / block_comment)
   end
 
 end
