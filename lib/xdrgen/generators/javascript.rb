@@ -67,6 +67,9 @@ module Xdrgen
           // DO NOT EDIT or your changes may be overwritten
         
           import * as XDR from 'xdr';
+
+          /* jshint maxstatements:2147483647 */
+
         EOS
         out.break
       end
