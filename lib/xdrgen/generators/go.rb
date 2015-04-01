@@ -645,9 +645,22 @@ module Xdrgen
         dtype    = union.discriminant_type
         go_const = "#{name dtype}#{name kase}"
 
+        value_binding = case arm.type.sub_type
+          when :simple ;
+            "value.#{private_name arm}"
+          when :var_array ;
+            "(*value.#{private_name arm})[:]"
+          when :array ;
+            "(*value.#{private_name arm})[:]"
+          when :optional
+            "value.#{private_name arm}"
+          else
+            raise "unknown sub_type: #{arm.type.sub_type}"
+          end
+
         <<-EOS.strip_heredoc
           if value.#{dname} == #{go_const} {
-            #{encode_from(arm.type, "value.#{private_name arm}")}
+            #{encode_from(arm.type, value_binding)}
           }
         EOS
       end
