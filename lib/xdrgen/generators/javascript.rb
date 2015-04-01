@@ -113,13 +113,34 @@ module Xdrgen
 
       def render_union(out, union)
         out.puts "xdr.union({"
+        out.indent do
+          out.puts "switchOn: #{reference union.discriminant_type},"
+          out.puts "switchName: \"#{member_name union.discriminant}\","
+          out.puts "switches: {"
 
-        # render switchOn
-        # render switches
-        # render arms
-        # render defaultArm
+          out.indent do
+            union.normal_arms.each do |arm|
+              arm = arm.void? ? "xdr.void()" : member_name(arm)
+              
+              out.puts "#{member_name arm}: #{reference arm.type},"
+            end
+          end
 
+          out.puts "},"
+          out.puts "arms: {"
 
+          out.indent do
+            union.arms.each do |arm|
+              next if arm.void?
+              out.puts "#{member_name arm}: #{reference arm.type},"
+            end
+          end
+
+          out.puts "},"
+
+          out.puts "defaultArm: \"TODO\","
+
+        end
         out.puts "});"
       end
 
@@ -177,6 +198,8 @@ module Xdrgen
         when AST::Typespecs::UnsignedInt
           "xdr.uint()"
         when AST::Typespecs::Simple
+          "xdr.lookup(\"#{name type}\")"
+        when AST::Definitions::Base
           "xdr.lookup(\"#{name type}\")"
         when AST::Concerns::NestedDefinition
           "xdr.lookup(\"#{name type}\")"
