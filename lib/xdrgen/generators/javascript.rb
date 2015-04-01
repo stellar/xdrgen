@@ -115,7 +115,7 @@ module Xdrgen
       end
 
       def render_union(out, union)
-        out.puts "xdr.union({"
+        out.puts "xdr.union(\"#{name union}\", {"
         out.indent do
           out.puts "switchOn: #{reference union.discriminant_type},"
           out.puts "switchName: \"#{member_name union.discriminant}\","
@@ -123,9 +123,11 @@ module Xdrgen
 
           out.indent do
             union.normal_arms.each do |arm|
-              arm = arm.void? ? "xdr.void()" : member_name(arm)
+              arm_name = arm.void? ? "xdr.void()" : "\"#{member_name(arm)}\""
               
-              out.puts "#{member_name arm}: #{reference arm.type},"
+              arm.resolved_cases.each do |acase|
+                out.puts "#{member_name acase}: #{arm_name},"
+              end
             end
           end
 
@@ -141,7 +143,11 @@ module Xdrgen
 
           out.puts "},"
 
-          out.puts "defaultArm: \"TODO\","
+          if union.default_arm.present?
+            arm = union.default_arm
+            arm_name = arm.void? ? "xdr.void()" : member_name(arm)
+            out.puts "defaultArm: \"#{member_name arm}\","
+          end
 
         end
         out.puts "});"
