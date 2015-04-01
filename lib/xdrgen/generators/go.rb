@@ -59,6 +59,23 @@ module Xdrgen
         out.puts array_decoder(typedef)
         out.break
 
+        cast = case
+          when typedef.type.is_a?(AST::Typespecs::Opaque) && typedef.type.decl.fixed?
+            "(*#{type_string typedef.type})(value)"
+          when typedef.type.is_a?(AST::Typespecs::Opaque)
+            "(#{type_string typedef.type})(*value)"
+          when typedef.sub_type == :simple
+            "(*#{type_string typedef.type})(value)"
+          when typedef.sub_type == :optional
+            "(*#{type_string typedef.type})(value)"
+          when typedef.sub_type == :array
+            "((#{type_string typedef.type})*value)"
+          when typedef.sub_type == :var_array
+            "((#{type_string typedef.type})*value)"
+          else
+            "typedef error: cannot figure out how to cast value" 
+          end
+
         # render encode function
         out.puts <<-EOS.strip_heredoc
           func Encode#{name typedef}(encoder *xdr.Encoder, value *#{name typedef}) (int, error) {
@@ -68,7 +85,7 @@ module Xdrgen
               err       error
             )
 
-            #{encode_from typedef.declaration.type, "(*#{type_string typedef.declaration.type})(value)"}
+            #{encode_from typedef.declaration.type, cast}
 
             return totalWritten, err
           }
@@ -518,7 +535,7 @@ module Xdrgen
           when AST::Typespecs::Bool ;
             "Bool"
           when AST::Typespecs::Opaque ;
-            "FixedOpaque"
+            type.decl.fixed? ? "FixedOpaque" : "Opaque"
           when AST::Typespecs::String ;
             "String"
           when AST::Concerns::NestedDefinition ;

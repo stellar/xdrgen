@@ -3,6 +3,9 @@ module Xdrgen::AST
     class Typedef < Base
       include Concerns::Contained
       delegate :name, to: :declaration
+      delegate :type, to: :declaration
+      delegate :sub_type, to: :type
+
 
     end
   end
