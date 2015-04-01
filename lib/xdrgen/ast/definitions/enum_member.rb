@@ -7,7 +7,11 @@ module Xdrgen::AST
       include Concerns::Contained
 
       def value
-        defined_value || auto_value
+        unsigned_value = defined_value || auto_value
+
+        # enums are signed in xdr, so...
+        # convert to twos complement value
+        [unsigned_value].pack("l>").unpack("l>").first
       end
 
       memoize def enum
