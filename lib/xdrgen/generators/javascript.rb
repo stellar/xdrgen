@@ -90,13 +90,13 @@ module Xdrgen
       end
 
       def render_struct(out, struct)
-        out.puts "xdr.struct(\"#{name struct}\", {"
+        out.puts "xdr.struct(\"#{name struct}\", ["
         out.indent do
           struct.members.each do |m|
-            out.puts "#{member_name m}: #{reference m.type},"
+            out.puts "[\"#{member_name m}\", #{reference m.type}],"
           end
         end
-        out.puts "});"
+        out.puts "]);"
       end
 
       def render_enum(out, enum)
