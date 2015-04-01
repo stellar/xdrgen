@@ -66,9 +66,10 @@ module Xdrgen
           // Automatically generated on #{Time.now.iso8601}
           // DO NOT EDIT or your changes may be overwritten
         
+          /* jshint maxstatements:2147483647  */
+          /* jshint esnext:true  */
+          
           import * as XDR from 'xdr';
-
-          /* jshint maxstatements:2147483647 */
 
         EOS
         out.break
