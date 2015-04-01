@@ -119,7 +119,11 @@ module Xdrgen
         out.puts <<-EOS.strip_heredoc
           // === xdr source ============================================================
           //
-          #{"//   " + defn.text_value.split("\n").join("\n//   ")}
+        EOS
+
+        out.puts "//   " + defn.text_value.split("\n").join("\n//   ")
+        
+        out.puts <<-EOS.strip_heredoc
           //
           // ===========================================================================
 
