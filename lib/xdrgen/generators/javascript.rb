@@ -69,14 +69,14 @@ module Xdrgen
           /* jshint maxstatements:2147483647  */
           /* jshint esnext:true  */
           
-          import * as XDR from 'xdr';
+          import * as XDR from 'js-xdr';
 
         EOS
         out.break
       end
 
       def render_define_block(out)
-        out.puts "var types = XDR.define(xdr => {"
+        out.puts "var types = XDR.config(xdr => {"
         yield
       ensure
         out.puts "});"
