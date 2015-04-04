@@ -198,7 +198,11 @@ module Xdrgen
         when AST::Typespecs::Int
           "xdr.int()"
         when AST::Typespecs::Opaque
-          "xdr.opaque(#{type.size})"
+          if type.fixed?
+            "xdr.opaque(#{type.size})"
+          else
+            "xdr.varOpaque(#{type.size})"
+          end
         when AST::Typespecs::Quadruple
           raise "no quadruple support for javascript"
         when AST::Typespecs::String
