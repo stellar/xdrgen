@@ -14,7 +14,7 @@ are the .x files used for the
 Xdrgen presently supports three output languages:  ruby, javacript, and golang:
 
 - ruby: complete support
-- javascript: buggy and experimental
+- javascript: complete but only lightly exercised
 - golang: buggy and experimental
 
 Testing is _very_ sparse, but will improve over time.
