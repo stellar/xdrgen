@@ -25,6 +25,10 @@ module Xdrgen
       result
     end
 
+    def write(child_path, content)
+      open(child_path){|c| c.puts content}
+    end
+
     def close
       @files.values.each(&:close)
     end
