@@ -20,11 +20,11 @@ module Xdrgen
       @io.puts indented(s)
     end
 
-    def indent
-      @current_indent += 1
+    def indent(step=1)
+      @current_indent += step
       yield
     ensure
-      @current_indent -= 1
+      @current_indent -= step
     end
 
     def break
