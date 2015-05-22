@@ -82,7 +82,7 @@ module Xdrgen
         return if defn.is_a?(AST::Definitions::Namespace)
 
         out.puts <<-EOS.strip_heredoc
-          // #{name defn} is an XDR #{defn.class.name.downcase} defines as:
+          // #{name defn} is an XDR #{defn.class.name.demodulize} defines as:
           //
         EOS
 
@@ -225,12 +225,13 @@ module Xdrgen
 
         out.break
 
-        # union.discriminant_type.members.each do |m|
-        #   out.puts union_constructor(union, m)
-        # end
+        # Add constructors of the form u := NewUnionArmName(val)
+        union.discriminant_type.members.each do |m|
+          out.puts union_constructor(union, m)
+        end
 
-        # Add accessors for of form val, ok := union.ArmName()
-
+        # Add accessors for of form val, ok := union.GetArmName()
+        # and val := union.MustArmName()
         union.arms.each do |arm|
           next if arm.void?
           out.puts access_arm(arm)
@@ -354,7 +355,7 @@ module Xdrgen
         arm ||= union.default_arm
         return "" if arm.nil?
 
-        dname    = private_name union.discriminant
+        dname    = name union.discriminant
         dtype    = union.discriminant_type
         go_const = "#{name dtype}#{name kase}"
 
@@ -365,18 +366,20 @@ module Xdrgen
           when arm.void? ;
             ["",""]
           when arm.type.sub_type == :simple ;
-            ["val #{type_string arm.type}", "#{private_name arm}:&val,"]
+            ["val #{type_string arm.type}", "#{name arm}:&val,"]
           when arm.type.sub_type == :var_array ;
-            ["val []#{type_string arm.type}", "#{private_name arm}:&val,"]
+            ["val []#{type_string arm.type}", "#{name arm}:&val,"]
           when arm.type.sub_type == :array ;
-            ["val [#{arm.type.size}]#{type_string arm.type}", "#{private_name arm}:&val,"]
+            ["val [#{arm.type.size}]#{type_string arm.type}", "#{name arm}:&val,"]
           when arm.type.sub_type == :optional
-            ["val *#{type_string arm.type}", "#{private_name arm}:val,"]
+            ["val *#{type_string arm.type}", "#{name arm}:val,"]
           else
             raise "unknown sub_type: #{arm.type.sub_type}"
           end
 
         <<-EOS.strip_heredoc
+          // #{constructor_name} creates a new  #{name union}, initialized with
+          // #{go_const} as the disciminant and the provided val
           func #{constructor_name}(#{args}) #{name union} {
             return #{name union}{
               #{discriminant_init}
