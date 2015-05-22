@@ -3,22 +3,22 @@
 [![Build Status](https://travis-ci.org/stellar/xdrgen.svg)](https://travis-ci.org/stellar/xdrgen)
 [![Code Climate](https://codeclimate.com/github/stellar/xdrgen/badges/gpa.svg)](https://codeclimate.com/github/stellar/xdrgen)
 
-`xdrgen` is a code generator that takes XDR IDL files (`.x` files) as specfified 
-in [RFC 4506](http://tools.ietf.org/html/rfc4506.html) and spits code out in 
+`xdrgen` is a code generator that takes XDR IDL files (`.x` files) as specfified
+in [RFC 4506](http://tools.ietf.org/html/rfc4506.html) and spits code out in
 various languages.
 
 ## Status
 
-Xdrgen is a very early project.  Aside from the test fixtures in 
+Xdrgen is a very early project.  Aside from the test fixtures in
 [spec/fixtures](spec/fixtures), the only .x files that have been thrown at it
-are the .x files used for the 
+are the .x files used for the
 [stellar-core project](https://github.com/stellar/stellar-core).
 
 Xdrgen presently supports three output languages:  ruby, javacript, and golang:
 
 - ruby: complete support
-- javascript: complete but only lightly exercised
-- golang: buggy and experimental
+- javascript: complete support
+- golang: currently using a fork of go-xdr, but has complete support
 
 Testing is _very_ sparse, but will improve over time.
 
@@ -52,7 +52,7 @@ require 'xdrgen'
 # create a compilation object, specifying your options
 
 c = Xdrgen::Compilation.new(
-  ["MyProgram.x"], 
+  ["MyProgram.x"],
   output_dir:"src/generated",
   language: :ruby
   namespace: "MyProgram::XDR"
