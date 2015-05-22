@@ -19,81 +19,18 @@ module Xdrgen
       ]
 
       def generate
+        @already_rendered = []
         path = "#{@namespace}_generated.go"
         out = @output.open(path)
 
-        render_common
         render_top_matter out
         render_definitions(out, @top)
       end
 
       private
 
-      def render_common
-        template = IO.read(__dir__ + "/go/xdr_common.go.erb")
-        result = ERB.new(template).result binding
-        IO.write(@output.output_dir +  "/xdr_common.go", result)
-      end
-
       def render_typedef(out, typedef)
         out.puts "type #{name typedef} #{decl_string(typedef.declaration)}"
-
-        out.puts <<-EOS.strip_heredoc
-          func Decode#{name typedef}(decoder *xdr.Decoder, result *#{name typedef}) (int, error) {
-            var (
-              val #{ type_string typedef.declaration.type }
-              totalRead int
-              bytesRead int
-              err       error
-            )
-
-            #{decode_into typedef.declaration.type, "val"}
-
-            *result = #{name typedef}(val)
-            return totalRead, nil
-          }
-        EOS
-
-        out.puts optional_decoder(typedef)
-        out.puts fixed_array_decoder(typedef)
-        out.puts array_decoder(typedef)
-        out.break
-
-        cast = case
-          when typedef.type.is_a?(AST::Typespecs::Opaque) && typedef.type.decl.fixed?
-            "(*#{type_string typedef.type})(value)"
-          when typedef.type.is_a?(AST::Typespecs::Opaque)
-            "(#{type_string typedef.type})(*value)"
-          when typedef.sub_type == :simple
-            "(*#{type_string typedef.type})(value)"
-          when typedef.sub_type == :optional
-            "(*#{type_string typedef.type})(value)"
-          when typedef.sub_type == :array
-            "((#{type_string typedef.type})*value)"
-          when typedef.sub_type == :var_array
-            "((#{type_string typedef.type})*value)"
-          else
-            "typedef error: cannot figure out how to cast value" 
-          end
-
-        # render encode function
-        out.puts <<-EOS.strip_heredoc
-          func Encode#{name typedef}(encoder *xdr.Encoder, value *#{name typedef}) (int, error) {
-            var (
-              totalWritten int
-              bytesWritten int
-              err       error
-            )
-
-            #{encode_from typedef.declaration.type, cast}
-
-            return totalWritten, err
-          }
-        EOS
-
-        out.puts optional_encoder(typedef)
-        out.puts fixed_array_encoder(typedef)
-        out.puts array_encoder(typedef)
         out.break
       end
 
@@ -113,8 +50,19 @@ module Xdrgen
       end
 
       def render_definition(out, defn)
+        if @already_rendered.include? name(defn)
+
+          unless defn.is_a?(AST::Definitions::Namespace)
+            $stderr.puts "warn: #{name(defn)} is defined twice.  skipping"
+          end
+
+          return
+        end
+
         render_nested_definitions(out, defn)
         render_source_comment(out, defn)
+
+        @already_rendered << name(defn)
 
         case defn
         when AST::Definitions::Struct ;
@@ -134,16 +82,14 @@ module Xdrgen
         return if defn.is_a?(AST::Definitions::Namespace)
 
         out.puts <<-EOS.strip_heredoc
-          // === xdr source ============================================================
+          // #{name defn} is an XDR #{defn.class.name.demodulize} defines as:
           //
         EOS
 
-        out.puts "//   " + defn.text_value.split("\n").join("\n//   ")
-        
+        out.puts "//   " + defn.text_value.split("\n").join("\n//    ")
+
         out.puts <<-EOS.strip_heredoc
           //
-          // ===========================================================================
-
         EOS
       end
 
@@ -157,47 +103,6 @@ module Xdrgen
 
         end
         out.puts "}"
-        out.break
-
-        # render decode function
-
-        field_decoders = struct.members.map{|m| decode_member(m)}.join("\n")
-
-        out.puts <<-EOS.strip_heredoc
-          func Decode#{name struct}(decoder *xdr.Decoder, result *#{name struct}) (int, error) {
-            totalRead := 0
-            bytesRead := 0
-            var err error
-
-            #{field_decoders}
-
-            return totalRead, nil
-          }
-        EOS
-
-        out.puts optional_decoder(struct)
-        out.puts fixed_array_decoder(struct)
-        out.puts array_decoder(struct)
-
-        # render encode function
-        
-        field_encoders = struct.members.map{|m| encode_member(m)}.join("\n")
-
-        out.puts <<-EOS.strip_heredoc
-          func Encode#{name struct}(encoder *xdr.Encoder, value *#{name struct}) (int, error) {
-            totalWritten := 0
-            bytesWritten := 0
-            var err error
-
-            #{field_encoders}
-
-            return totalWritten, nil
-          }
-        EOS
-
-        out.puts optional_encoder(struct)
-        out.puts fixed_array_encoder(struct)
-        out.puts array_encoder(struct)
         out.break
       end
 
@@ -217,7 +122,7 @@ module Xdrgen
         out.puts ")"
 
         # render the map used by xdr to decide valid values
-        out.puts "var #{name enum}Map = map[int32]bool{"
+        out.puts "var #{private_name enum}Map = map[int32]bool{"
         out.indent do
 
           enum.members.each do |m|
@@ -227,42 +132,29 @@ module Xdrgen
         end
         out.puts "}"
 
-        # render decode function
-        out.puts <<-EOS.strip_heredoc
-          func Decode#{name enum}(decoder *xdr.Decoder, result *#{name enum}) (int, error) {
-            val, bytesRead, err := decoder.DecodeEnum(#{name enum}Map)
-
-            if err != nil {
-              return bytesRead, err
-            }
-            *result = #{name enum}(val)
-            return bytesRead, err
-          }
-        EOS
-
-        out.puts optional_decoder(enum)
-        out.puts fixed_array_decoder(enum)
-        out.puts array_decoder(enum)
         out.break
 
-        # render encode function
         out.puts <<-EOS.strip_heredoc
-          func Encode#{name enum}(encoder *xdr.Encoder, value *#{name enum}) (int, error) {
-            bytesWritten, err := encoder.EncodeEnum(int32(*value),#{name enum}Map)
-            return bytesWritten, err
+          // ValidEnum validates a proposed value for this enum.  Implements
+          // the Enum interface for #{name enum}
+          func (e #{name enum}) ValidEnum(v int32) bool {
+            _, ok := #{private_name enum}Map[v]
+            return ok
           }
         EOS
 
-        out.puts optional_encoder(enum)
-        out.puts fixed_array_encoder(enum)
-        out.puts array_encoder(enum)
         out.break
       end
 
       def render_union(out, union)
+
+        if union.discriminant_type.blank?
+          raise "Cannot find definition for #{union.discriminant.type.name}"
+        end
+
         out.puts "type #{name union} struct{"
         out.indent do
-          out.puts "#{private_name union.discriminant} #{type_string union.discriminant.type}"
+          out.puts "#{name union.discriminant} #{type_string union.discriminant.type}"
 
           union.arms.each do |arm|
             next if arm.void?
@@ -280,7 +172,7 @@ module Xdrgen
                 raise "unknown sub_type: #{arm.type.sub_type}"
               end
 
-            out.puts "#{private_name arm} #{storage_class}"
+            out.puts "#{name arm} #{storage_class}"
           end
 
 
@@ -289,98 +181,91 @@ module Xdrgen
         out.puts "}"
         out.break
 
-        if union.discriminant_type.blank?
-          raise "Cannot find definition for #{union.discriminant.type.name}"
+        out.puts <<-EOS.strip_heredoc
+          // SwitchFieldName returns the field name in which this union's
+          // discriminant is stored
+          func (u #{name union}) SwitchFieldName() string {
+            return "#{name union.discriminant}"
+          }
+        EOS
+
+        out.break
+
+        out.puts <<-EOS.strip_heredoc
+          // ArmForSwitch returns which field name should be used for storing
+          // the value for an instance of #{name union}
+          func (u #{name union}) ArmForSwitch(sw int32) (string, bool) {
+            switch #{name union.discriminant_type}(sw) {
+        EOS
+
+        union.normal_arms.each do |arm|
+          arm.resolved_cases.each do |c|
+            out.puts "    case #{name union.discriminant_type}#{name c}:"
+            out.puts "      return \"#{name arm unless arm.void?}\", true"
+          end
         end
 
-        # for each member in the discrimant
-        #   find what arm 
+        if union.default_arm.present?
+          arm = union.default_arm
+          out.puts "    default:"
+          out.puts "      return \"#{name arm unless arm.void?}\", true"
+          out.puts <<-EOS.strip_heredoc
+              }
+            }
+          EOS
+        else
+          out.puts <<-EOS.strip_heredoc
+              }
+
+              return "-", false
+            }
+          EOS
+        end
+
+
+        out.break
+
+        # Add constructors of the form u := NewUnionArmName(val)
         union.discriminant_type.members.each do |m|
           out.puts union_constructor(union, m)
         end
 
-        
-        # Add discriminant accessor
-        out.puts <<-EOS
-          func (u *#{name union})#{name union.discriminant}() #{type_string union.discriminant.type} {
-            return u.#{private_name union.discriminant}
-          } 
-        EOS
-
-        # Add accessors for of form val, ok := union.ArmName()
-
+        # Add accessors for of form val, ok := union.GetArmName()
+        # and val := union.MustArmName()
         union.arms.each do |arm|
           next if arm.void?
           out.puts access_arm(arm)
         end
-
-        # render decoder
-        case_decoders = union.discriminant_type.members.map do |m|
-          decode_case(union, m)
-        end
-
-        out.puts <<-EOS.strip_heredoc
-          func Decode#{name union}(decoder *xdr.Decoder, result *#{name union}) (int, error) {
-            var (
-              discriminant #{name union.discriminant_type}
-              totalRead int
-              bytesRead int
-              err       error
-            )
-            
-            #{decode_into union.discriminant_type, "discriminant"}
-            
-            #{case_decoders.join("\n\n")}
-            
-            return totalRead, nil
-          }
-        EOS
-
-        out.puts optional_decoder(union)
-        out.puts fixed_array_decoder(union)
-        out.puts array_decoder(union)
-
-        out.break
-
-        case_encoders = union.discriminant_type.members.map do |m|
-          encode_case(union, m)
-        end
-
-        out.puts <<-EOS.strip_heredoc
-          func Encode#{name union}(encoder *xdr.Encoder, value *#{name union}) (int, error) {
-            var (
-              totalWritten int
-              bytesWritten int
-              err       error
-            )
-            
-            #{encode_from union.discriminant_type, "&value.#{private_name union.discriminant}"}
-
-            #{case_encoders.join("\n\n")}
-            
-            return totalWritten, nil
-          }
-        EOS
-
-        out.puts optional_encoder(union)
-        out.puts fixed_array_encoder(union)
-        out.puts array_encoder(union)
 
         out.break
       end
 
       def render_top_matter(out)
         out.puts <<-EOS.strip_heredoc
-          // Automatically generated from #{@output.source_paths.join(",")}
+          // Package #{@namespace || "main"} is generated from:
+          //
+          //  #{@output.source_paths.join("\n//  ")}
+          //
           // DO NOT EDIT or your changes may be overwritten
-        
           package #{@namespace || "main"}
 
           import (
-            "errors"
-            "fmt"
-            "github.com/davecgh/go-xdr/xdr2"
+            "io"
+
+            "github.com/nullstyle/go-xdr/xdr3"
           )
+
+          // Unmarshal reads an xdr element from `r` into `v`.
+          func Unmarshal(r io.Reader, v interface{}) (int, error) {
+            // delegate to xdr package's Unmarshal
+          	return xdr.Unmarshal(r, v)
+          }
+
+          // Marshal writes an xdr element `v` into `w`.
+          func Marshal(w io.Writer, v interface{}) (int, error) {
+            // delegate to xdr package's Marshal
+            return xdr.Marshal(w, v)
+          }
         EOS
         out.break
       end
@@ -426,6 +311,8 @@ module Xdrgen
           "bool"
         when AST::Typespecs::Opaque ;
           "[#{type.size}]byte"
+        when AST::Typespecs::String ;
+          "string"
         when AST::Typespecs::Simple ;
           name type.resolved_type
         when AST::Concerns::NestedDefinition ;
@@ -462,410 +349,13 @@ module Xdrgen
         end
       end
 
-      def decode(type, result_binding="result")
-        result = "Decode"
-        result << "Optional" if type.sub_type == :optional
-          
-        result << case type
-          when AST::Typespecs::Int ;
-            "Int"
-          when AST::Typespecs::UnsignedInt ;
-            "Uint"
-          when AST::Typespecs::Hyper ;
-            "Hyper"
-          when AST::Typespecs::UnsignedHyper ;
-            "Uhyper"
-          when AST::Typespecs::Float ;
-            "Float"
-          when AST::Typespecs::Double ;
-            "Double"
-          when AST::Typespecs::Quadruple ;
-            raise "cannot render quadruple in golang"
-          when AST::Typespecs::Bool ;
-            "Bool"
-          when AST::Typespecs::Opaque ;
-            "FixedOpaque"
-          when AST::Typespecs::String ;
-            "String"
-          when AST::Concerns::NestedDefinition ;
-            name type
-          else
-            name type
-          end
-
-          result << case 
-            when type.is_a?(AST::Typespecs::Opaque) ;
-              "(decoder, #{result_binding}[:], #{size type.size})"
-            when type.is_a?(AST::Typespecs::String) ;
-              "(decoder, &#{result_binding}, #{size type.size})"
-            when type.sub_type == :simple ;
-              "(decoder, &#{result_binding})"
-            when type.sub_type == :optional ;
-              "(decoder, &#{result_binding})"
-            when type.sub_type == :array ;
-              "FixedArray(decoder, &#{result_binding}, #{size type.decl.size})"
-            when :var_array ;
-              "Array(decoder, &#{result_binding}, #{size type.decl.size})"
-            else ;
-              raise "unexpected subtype: #{type.sub_type}"
-            end
-
-        result
-      end
-
-      def encode(type, value_binding="value")
-        result = "Encode"
-        result << "Optional" if type.sub_type == :optional
-          
-        result << case type
-          when AST::Typespecs::Int ;
-            "Int"
-          when AST::Typespecs::UnsignedInt ;
-            "Uint"
-          when AST::Typespecs::Hyper ;
-            "Hyper"
-          when AST::Typespecs::UnsignedHyper ;
-            "Uhyper"
-          when AST::Typespecs::Float ;
-            "Float"
-          when AST::Typespecs::Double ;
-            "Double"
-          when AST::Typespecs::Quadruple ;
-            raise "cannot render quadruple in golang"
-          when AST::Typespecs::Bool ;
-            "Bool"
-          when AST::Typespecs::Opaque ;
-            type.decl.fixed? ? "FixedOpaque" : "Opaque"
-          when AST::Typespecs::String ;
-            "String"
-          when AST::Concerns::NestedDefinition ;
-            name type
-          else
-            name type
-          end
-
-          result << case 
-            when type.is_a?(AST::Typespecs::Opaque) ;
-              "(encoder, #{value_binding}[:], #{size type.size})"
-            when type.is_a?(AST::Typespecs::String) ;
-              "(encoder, #{value_binding}, #{size type.size})"
-            when type.sub_type == :simple ;
-              "(encoder, #{value_binding})"
-            when type.sub_type == :optional ;
-              "(encoder, #{value_binding})"
-            when type.sub_type == :array ;
-              "FixedArray(encoder, #{value_binding}, #{size type.decl.size})"
-            when :var_array ;
-              "Array(encoder, #{value_binding}, #{size type.decl.size})"
-            else ;
-              raise "unexpected subtype: #{type.sub_type}"
-            end
-
-        result
-      end
-
-      def decode_into(type, result_binding)
-        <<-EOS
-          bytesRead, err = #{decode type, result_binding}
-          totalRead += bytesRead
-          if err != nil {
-            return totalRead, err
-          }
-        EOS
-      end
-
-      def encode_from(type, value_binding)
-        <<-EOS
-          bytesWritten, err = #{encode type, value_binding}
-          totalWritten += bytesWritten
-          if err != nil {
-            return totalWritten, err
-          }
-        EOS
-      end
-
-      def decode_member(m)
-        case m.type.sub_type
-        when :simple, :array, :var_array
-          decode_into(m.type, "result.#{name m}")
-        when :optional
-          <<-EOS.strip_heredoc
-            var #{private_name m} *#{type_string m.type}
-            #{decode_into m.type, private_name(m)}
-            result.#{name m} = #{private_name m}
-          EOS
-        else
-          raise "unknown sub_type: #{m.type.sub_type}"
-        end
-      end
-
-      def encode_member(m)
-        case
-        when m.type.is_a?(AST::Typespecs::Opaque)
-          encode_from(m.type, "value.#{name m}[:]")
-        when m.type.sub_type == :simple
-          encode_from(m.type, "&value.#{name m}")
-        when m.type.sub_type ==:array
-          encode_from(m.type, "value.#{name m}[:]")
-        when m.type.sub_type == :var_array
-          encode_from(m.type, "value.#{name m}[:]")
-        when m.type.sub_type == :optional
-          encode_from(m.type, "value.#{name m}")
-        else
-          raise "unknown sub_type: #{m.type.sub_type}"
-        end
-      end
-
-      def decode_case(union, kase)
-        # lookup the arm
-        arm = union.normal_arms.find{|a| a.cases.any?{|c| c == kase.name}}
-        arm ||= union.default_arm
-        return "" if arm.nil?
-        return "" if arm.void?
-
-        dname    = private_name union.discriminant
-        dtype    = union.discriminant_type
-        go_const = "#{name dtype}#{name kase}"
-
-        case_storage = case arm.type.sub_type
-          when :simple ;
-            type_string arm.type
-          when :var_array ;
-            "[]#{type_string arm.type}"
-          when :array ;
-            "[#{arm.type.size}]#{type_string arm.type}"
-          when :optional
-            "*#{type_string arm.type}"
-          else
-            raise "unknown sub_type: #{arm.type.sub_type}"
-          end
-
-        # require 'pry' ; binding.pry if arm.type.sub_type == :var_array
-        <<-EOS.strip_heredoc
-
-          if discriminant == #{go_const} {
-            var #{private_name kase} #{case_storage}
-            #{decode_into(arm.type, private_name(kase))}
-            *result = New#{name union}#{name kase}(#{private_name kase})
-          }
-        EOS
-      end
-
-      def encode_case(union, kase)
-        # lookup the arm
-        arm = union.normal_arms.find{|a| a.cases.any?{|c| c == kase.name}}
-        arm ||= union.default_arm
-        return "" if arm.nil?
-        return "" if arm.void?
-
-        dname    = private_name union.discriminant
-        dtype    = union.discriminant_type
-        go_const = "#{name dtype}#{name kase}"
-
-        value_binding = case arm.type.sub_type
-          when :simple ;
-            "value.#{private_name arm}"
-          when :var_array ;
-            "(*value.#{private_name arm})[:]"
-          when :array ;
-            "(*value.#{private_name arm})[:]"
-          when :optional
-            "value.#{private_name arm}"
-          else
-            raise "unknown sub_type: #{arm.type.sub_type}"
-          end
-
-        <<-EOS.strip_heredoc
-          if value.#{dname} == #{go_const} {
-            #{encode_from(arm.type, value_binding)}
-          }
-        EOS
-      end
-
-      def optional_decoder(named, result_type=name(named))
-        <<-EOS
-        func DecodeOptional#{name named}(decoder *xdr.Decoder, result **#{result_type}) (int, error) {
-            var (
-              isPresent bool
-              totalRead int
-              bytesRead int
-              err       error
-            )
-
-            bytesRead, err = DecodeBool(decoder, &isPresent)
-            totalRead += bytesRead
-
-            if err != nil {
-              return totalRead, err
-            }
-
-            if !isPresent {
-              return totalRead, err
-            }
-
-            var val #{result_type}
-
-            #{decode_into named, "val"}
-
-            *result = &val
-
-            return totalRead, nil
-          }
-        EOS
-      end
-
-      def optional_encoder(named, result_type=name(named))
-        <<-EOS
-        func EncodeOptional#{name named}(encoder *xdr.Encoder, value *#{result_type}) (int, error) {
-            var (
-              isPresent bool
-              totalWritten int
-              bytesWritten int
-              err       error
-            )
-            isPresent = value != nil
-            bytesWritten, err = EncodeBool(encoder, &isPresent)
-            totalWritten += bytesWritten
-
-            if err != nil {
-              return totalWritten, err
-            }
-
-            if !isPresent {
-              return totalWritten, nil
-            }
-
-            #{encode_from named, "value"}
-
-            return totalWritten, nil
-          }
-        EOS
-      end
-
-      def fixed_array_decoder(named, result_type=name(named))
-        <<-EOS
-          func Decode#{name named}FixedArray(decoder *xdr.Decoder, result []#{result_type}, size int) (int, error) {
-            var (
-              totalRead int
-              bytesRead int
-              err       error
-            )
-
-            if len(result) != size {
-              errMsg := fmt.Sprintf("xdr: bad array len:%d, expected %d", len(result), size)
-              return 0, errors.New(errMsg)
-            }
-
-            for i := 0; i < size; i++ {
-              #{decode_into named, "result[i]"}
-            }
-
-            return totalRead, nil
-          }
-        EOS
-      end
-
-      def fixed_array_encoder(named, result_type=name(named))
-        <<-EOS
-          func Encode#{name named}FixedArray(encoder *xdr.Encoder, value []#{result_type}, size int) (int, error) {
-            var (
-              totalWritten int
-              bytesWritten int
-              err          error
-            )
-
-            if len(value) != int(size) {
-              errMsg := fmt.Sprintf("xdr: value wrong size:%d, expected:%d", len(value), size)
-              return 0, errors.New(errMsg)   
-            }
-
-            for _, element := range value {
-              #{encode_from named, "&element"}
-            }
-
-            return totalWritten, nil
-          }
-        EOS
-      end
-
-      def array_decoder(named, result_type=name(named))
-        <<-EOS
-
-          func Decode#{name named}Array(decoder *xdr.Decoder, result *[]#{result_type}, maxSize int32) (int, error) {
-            var (
-              size      int32
-              totalRead int
-              bytesRead int
-              err       error
-            )
-
-            bytesRead, err = DecodeInt(decoder, &size)
-            totalRead += bytesRead
-
-            if err != nil {
-              return totalRead, err
-            }
-
-            if size > maxSize {
-              errMsg := fmt.Sprintf("xdr: encoded array size too large:%d, max:%d", size, maxSize)
-              return totalRead, errors.New(errMsg)
-            }
-
-            var theResult = make([]#{result_type}, size)
-            *result = theResult
-
-            for i := int32(0); i < size; i++ {
-              #{decode_into named, "theResult[i]"}
-            }
-
-            return totalRead, nil
-          }
-
-          EOS
-      end
-
-      def array_encoder(named, result_type=name(named))
-        <<-EOS
-
-          func Encode#{name named}Array(encoder *xdr.Encoder, value []#{result_type}, maxSize int32) (int, error) {
-            var (
-              size         int32
-              totalWritten int
-              bytesWritten int
-              err          error
-            )
-            
-            size = int32(len(value))
-
-            if size > maxSize {
-              errMsg := fmt.Sprintf("xdr: value too large:%d, max:%d", size, maxSize)
-              return totalWritten, errors.New(errMsg)
-            }
-
-            bytesWritten, err = EncodeInt(encoder, &size)
-            totalWritten += bytesWritten
-
-            if err != nil {
-              return totalWritten, err
-            }
-
-            for _, element := range value {
-              #{encode_from named, "&element"}
-            }
-
-            return totalWritten, nil
-          }
-
-        EOS
-      end
-
       def union_constructor(union, kase)
         # lookup the arm
         arm = union.normal_arms.find{|a| a.cases.any?{|c| c == kase.name}}
         arm ||= union.default_arm
         return "" if arm.nil?
 
-        dname    = private_name union.discriminant
+        dname    = name union.discriminant
         dtype    = union.discriminant_type
         go_const = "#{name dtype}#{name kase}"
 
@@ -876,18 +366,20 @@ module Xdrgen
           when arm.void? ;
             ["",""]
           when arm.type.sub_type == :simple ;
-            ["val #{type_string arm.type}", "#{private_name arm}:&val,"]
+            ["val #{type_string arm.type}", "#{name arm}:&val,"]
           when arm.type.sub_type == :var_array ;
-            ["val []#{type_string arm.type}", "#{private_name arm}:&val,"]
+            ["val []#{type_string arm.type}", "#{name arm}:&val,"]
           when arm.type.sub_type == :array ;
-            ["val [#{arm.type.size}]#{type_string arm.type}", "#{private_name arm}:&val,"]
+            ["val [#{arm.type.size}]#{type_string arm.type}", "#{name arm}:&val,"]
           when arm.type.sub_type == :optional
-            ["val *#{type_string arm.type}", "#{private_name arm}:val,"]
+            ["val *#{type_string arm.type}", "#{name arm}:val,"]
           else
             raise "unknown sub_type: #{arm.type.sub_type}"
           end
 
         <<-EOS.strip_heredoc
+          // #{constructor_name} creates a new  #{name union}, initialized with
+          // #{go_const} as the disciminant and the provided val
           func #{constructor_name}(#{args}) #{name union} {
             return #{name union}{
               #{discriminant_init}
@@ -899,21 +391,42 @@ module Xdrgen
 
       def access_arm(arm)
         result_type = case
-        when arm.type.sub_type == :simple ;
-          type_string arm.type
-        when arm.type.sub_type == :var_array ;
-          "[]#{type_string arm.type}"
-        when arm.type.sub_type == :array ;
-          "[#{arm.type.size}]#{type_string arm.type}"
-        when arm.type.sub_type == :optional
-          "*#{type_string arm.type}"
-        else
-          raise "unknown sub_type: #{arm.type.sub_type}"
-        end
+          when arm.type.sub_type == :simple ;
+            type_string arm.type
+          when arm.type.sub_type == :var_array ;
+            "[]#{type_string arm.type}"
+          when arm.type.sub_type == :array ;
+            "[#{arm.type.size}]#{type_string arm.type}"
+          when arm.type.sub_type == :optional
+            "*#{type_string arm.type}"
+          else
+            raise "unknown sub_type: #{arm.type.sub_type}"
+          end
 
         <<-EOS.strip_heredoc
-          func (u *#{name arm.union})#{name arm}() #{result_type} {
-            return *u.#{private_name arm}
+          // Must#{name arm} retrieves the #{name arm} value from the union,
+          // panicing if the value is not set.
+          func (u #{name arm.union}) Must#{name arm}() #{result_type} {
+            val, ok := u.Get#{name arm}()
+
+            if !ok {
+              panic("arm #{name arm} is not set")
+            }
+
+            return val
+          }
+
+          // Get#{name arm} retrieves the #{name arm} value from the union,
+          // returning ok if the union's switch indicated the value is valid.
+          func (u #{name arm.union}) Get#{name arm}() (result #{result_type}, ok bool) {
+            armName, _ := u.ArmForSwitch(int32(u.#{name arm.union.discriminant}))
+
+            if armName == "#{name arm}" {
+              result = *u.#{name arm}
+              ok = true
+            }
+
+            return
           }
         EOS
       end
