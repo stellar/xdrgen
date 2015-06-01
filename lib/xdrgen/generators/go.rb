@@ -122,11 +122,11 @@ module Xdrgen
         out.puts ")"
 
         # render the map used by xdr to decide valid values
-        out.puts "var #{private_name enum}Map = map[int32]bool{"
+        out.puts "var #{private_name enum}Map = map[int32]string{"
         out.indent do
 
           enum.members.each do |m|
-            out.puts "#{m.value}: true,"
+            out.puts "#{m.value}: \"#{name enum}#{name m}\","
           end
 
         end
@@ -140,6 +140,14 @@ module Xdrgen
           func (e #{name enum}) ValidEnum(v int32) bool {
             _, ok := #{private_name enum}Map[v]
             return ok
+          }
+        EOS
+
+        out.puts <<-EOS.strip_heredoc
+          // String returns the name of `e`
+          func (e #{name enum}) String() string {
+            name, _ := #{private_name enum}Map[int32(e)]
+            return name
           }
         EOS
 
