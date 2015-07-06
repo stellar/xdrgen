@@ -15,3 +15,12 @@ union MyUnion switch (UnionKey type)
 
 
 };
+
+union IntUnion switch (int type)
+{
+    case 0:
+        Error error;
+    case 1:
+        Multi things<>;
+
+};

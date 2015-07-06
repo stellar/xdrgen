@@ -2,8 +2,8 @@ grammar XdrBaseGrammar
 
   rule identifier
     !keyword
-    ([a-zA-Z] [0-9a-zA-Z_]*) 
-    ("::" [a-zA-Z] [0-9a-zA-Z_]*)* 
+    ([a-zA-Z] [0-9a-zA-Z_]*)
+    ("::" [a-zA-Z] [0-9a-zA-Z_]*)*
     <Xdrgen::AST::Identifier>
   end
 
@@ -39,17 +39,17 @@ grammar XdrBaseGrammar
 
   rule decimal_constant
     "0" <Xdrgen::AST::DecimalConstant>
-    / 
+    /
     "-"? [1-9] [0-9]* <Xdrgen::AST::DecimalConstant>
   end
 
   rule hexadecimal_constant
-    "0x" [a-fA-F0-9]+ 
+    "0x" [a-fA-F0-9]+
     <Xdrgen::AST::HexadecimalConstant>
   end
 
   rule octal_constant
-    "0" [0-7]+ 
+    "0" [0-7]+
     <Xdrgen::AST::OctalConstant>
   end
 
@@ -57,7 +57,7 @@ grammar XdrBaseGrammar
   # Misc.
 
   rule size
-    ([1-9] [0-9]*)
+    identifier / decimal_constant
   end
 
   rule space

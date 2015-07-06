@@ -14,3 +14,13 @@ union MyUnion switch (UnionKey type)
     case OFFER:
         void;
 };
+
+struct MyStruct
+{
+    union switch (int v)
+    {
+    case 0:
+        void;
+    }
+    ext;
+};

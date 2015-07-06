@@ -12,7 +12,7 @@ module Xdrgen::AST
       end
 
       def cases
-        cases_n.elements.map{|c| c.value.text_value}
+        cases_n.elements
       end
 
       def resolved_cases

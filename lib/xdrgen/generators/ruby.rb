@@ -41,7 +41,7 @@ module Xdrgen
 
       def render_namespace_index(out, ns)
         out.puts "module #{name_string ns.name}"
-        out.indent do 
+        out.indent do
           out.puts "include XDR::Namespace"
           out.break
           render_definitions_index(out, ns)
@@ -108,29 +108,20 @@ module Xdrgen
         render_element "class", union, "< XDR::Union" do |out|
           render_nested_definitions out, union
 
-          out.puts "switch_on #{name_string union.discriminant_type.name}, :#{union.discriminant_name}"
+          out.puts "switch_on #{type_string union.discriminant.type}, :#{union.discriminant_name}"
           out.break
 
           out.balance_after /,[\s]*/ do
-            union.arms.each do |a|
-              case a
-              when AST::Definitions::UnionArm ;
-                a.cases.each do |c|
-                  value = ":#{c.underscore}"
-
-                  if a.void?
-                    out.puts "switch #{value}"
-                  else
-                    out.puts "switch #{value}, :#{a.name.underscore}"
-                  end
-                end
-              when AST::Definitions::UnionDefaultArm ;
-                if a.void?
-                  out.puts "switch :default"
-                else
-                  out.puts "switch :default, :#{a.name.underscore}"
-                end
+            union.normal_arms.each do |arm|
+              arm.cases.each do |c|
+                value = c.value.text_value
+                value = ":#{value.underscore}" if c.value.is_a?(AST::Identifier)
+                render_union_switch(out, value, arm)
               end
+            end
+
+            if union.default_arm.present?
+              render_union_switch(out, ":default", union.default_arm)
             end
           end
           out.break
@@ -141,6 +132,14 @@ module Xdrgen
               out.puts "attribute :#{a.name.underscore}, #{decl_string(a.declaration)}"
             end
           end
+        end
+      end
+
+      def render_union_switch(out, switch, arm)
+        if arm.void?
+          out.puts "switch #{switch}"
+        else
+          out.puts "switch #{switch}, :#{arm.name.underscore}"
         end
       end
 
@@ -166,7 +165,7 @@ module Xdrgen
 
         render_containers out, element.namespaces do
           out.puts "#{type} #{name} #{post_name}"
-          out.indent do 
+          out.indent do
             yield out
             out.unbreak
           end
@@ -194,7 +193,7 @@ module Xdrgen
         out.puts <<-EOS.strip_heredoc
           # Automatically generated on #{Time.now.iso8601}
           # DO NOT EDIT or your changes may be overwritten
-        
+
           require 'xdr'
         EOS
         out.break
@@ -217,7 +216,7 @@ module Xdrgen
                 end
 
         out.puts "#{type} #{name_string cur.name}"
-        out.indent do 
+        out.indent do
           render_containers(out, containers.drop(1), &block)
         end
         out.puts "end"
