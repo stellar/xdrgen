@@ -4,6 +4,8 @@ enum UnionKey {
   OFFER = 3
 };
 
+typedef int Foo;
+
 union MyUnion switch (UnionKey type)
 {
     case ONE:

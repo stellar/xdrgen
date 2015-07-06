@@ -1,3 +1,6 @@
+typedef int Error;
+typedef int Multi;
+
 enum UnionKey {
   ERROR,
   MULTI

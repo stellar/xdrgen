@@ -9,6 +9,7 @@ typedef opaque uint514<>;
 typedef string str<64>;
 typedef string str2<>;
 
+typedef opaque Hash[32];
 typedef Hash Hashes1[12];
 typedef Hash Hashes2<12>;
 typedef Hash Hashes3<>;

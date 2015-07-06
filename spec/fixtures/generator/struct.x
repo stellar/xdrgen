@@ -1,3 +1,5 @@
+typedef hyper int64;
+
 struct MyStruct
 {
     int    someInt;
