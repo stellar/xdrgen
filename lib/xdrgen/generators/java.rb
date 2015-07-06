@@ -146,7 +146,6 @@ module Xdrgen
 
       def render_struct(struct, out)
         out.puts "public #{name struct} () {}"
-        puts "#{struct}"
         struct.members.each do |m|
           out.puts <<-EOS.strip_heredoc
             private #{decl_string(m.declaration)} #{m.name};
