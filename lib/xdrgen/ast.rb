@@ -15,7 +15,7 @@ module Xdrgen::AST
 
   module Concerns
     extend ActiveSupport::Autoload
-    
+
     autoload :Named
     autoload :Namespace
     autoload :Contained
@@ -41,6 +41,7 @@ module Xdrgen::AST
     autoload :NestedUnion
     autoload :UnionBody
     autoload :UnionArm
+    autoload :UnionArmCase
     autoload :UnionDefaultArm
     autoload :Namespace
 

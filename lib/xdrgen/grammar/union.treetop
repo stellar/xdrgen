@@ -1,22 +1,22 @@
 grammar XdrUnionGrammar
 
   rule union_def
-    "union" space 
-    identifier space 
-    union_body space? 
-    ";" 
+    "union" space
+    identifier space
+    union_body space?
+    ";"
     <Xdrgen::AST::Definitions::Union>
   end
 
 
   rule union_body
-    "switch" 
-    space? 
+    "switch"
+    space?
     "(" discriminant:declaration ")"
     space?
-    "{" 
-    space? 
-    cases_n:(case_spec)+
+    "{"
+    space?
+    arms_n:(arm_spec)+
     default_case_n:(default_case_spec)?
     space?
     "}"
@@ -28,21 +28,33 @@ grammar XdrUnionGrammar
     <Xdrgen::AST::Definitions::NestedUnion>
   end
 
-  rule case_spec
-    cases_n:("case" space? value space? ":" space?)+
+  rule arm_spec
+    cases_n:case_spec+
     space?
-    declaration 
-    space? 
-    ";" 
+    declaration
+    space?
+    ";"
     space?
     <Xdrgen::AST::Definitions::UnionArm>
   end
 
+
+  rule case_spec
+    "case"
+    space?
+    value
+    space?
+    ":"
+    space?
+    <Xdrgen::AST::Definitions::UnionArmCase>
+  end
+
+
   rule default_case_spec
     "default" space? ":"
     space?
-    declaration 
-    space? 
+    declaration
+    space?
     ";"
     <Xdrgen::AST::Definitions::UnionDefaultArm>
   end

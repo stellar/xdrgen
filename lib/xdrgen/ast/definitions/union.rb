@@ -5,7 +5,7 @@ module Xdrgen::AST
       include Concerns::Named
       include Concerns::Namespace
       include Concerns::Contained
-      
+
       delegate :discriminant, to: :union_body
       delegate :name, to: :discriminant, prefix:true
       delegate :arms, to: :union_body

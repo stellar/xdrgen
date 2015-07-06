@@ -11,7 +11,7 @@ module Xdrgen::AST
       end
 
       def normal_arms
-        cases_n.elements.select{|c| c.is_a?(UnionArm)}
+        arms_n.elements.select{|c| c.is_a?(UnionArm)}
       end
 
       def default_arm
