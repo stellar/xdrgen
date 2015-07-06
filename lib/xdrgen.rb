@@ -19,4 +19,6 @@ module Xdrgen
 
   class GenerateError < StandardError ; end
   class DuplicateFileError < GenerateError ; end
+
+  class TypeResolutionError < StandardError ; end
 end

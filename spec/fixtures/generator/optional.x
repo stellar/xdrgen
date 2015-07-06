@@ -1,4 +1,4 @@
-typedef Arr int[2];
+typedef int Arr[2];
 
 struct HasOptions
 {
