@@ -1,9 +1,10 @@
 require 'spec_helper'
 
 describe Xdrgen::Parser, ".parse" do
-  
+
   it "can parse all of the fixtures" do
-    results = fixtures.map do |path, content|
+    results = parser_fixture_paths.map do |path|
+                content = IO.read(path)
                 {path:path}.merge parse(content)
               end
 
