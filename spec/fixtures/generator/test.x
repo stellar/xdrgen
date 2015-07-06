@@ -30,8 +30,7 @@ struct MyStruct
     unsigned int field4;
     float field5;
     double field6;
-    quadruple field7;
-    bool field8;
+    bool field7;
 };
 
 struct LotsOfMyStructs
@@ -39,7 +38,7 @@ struct LotsOfMyStructs
     MyStruct members<>;
 };
 
-struct HasStuff 
+struct HasStuff
 {
   LotsOfMyStructs data;
 };
