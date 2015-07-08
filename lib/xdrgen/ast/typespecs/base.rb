@@ -20,8 +20,8 @@ module Xdrgen::AST::Typespecs
     def array_size
       raise "Called array_size on a non-array!" unless decl.is_a?(Xdrgen::AST::Declarations::Array)
 
-      decl.size
+      [decl.size_spec.named?, decl.size]
     end
-    
+
   end
 end

@@ -65,10 +65,10 @@ module Xdrgen
         out.puts <<-EOS.strip_heredoc
           // Automatically generated on #{Time.now.iso8601}
           // DO NOT EDIT or your changes may be overwritten
-        
+
           /* jshint maxstatements:2147483647  */
           /* jshint esnext:true  */
-          
+
           import * as XDR from 'js-xdr';
 
         EOS
@@ -118,21 +118,27 @@ module Xdrgen
       def render_union(out, union)
         out.puts "xdr.union(\"#{name union}\", {"
         out.indent do
-          out.puts "switchOn: #{reference union.discriminant_type},"
+          out.puts "switchOn: #{reference union.discriminant.type},"
           out.puts "switchName: \"#{member_name union.discriminant}\","
-          out.puts "switches: {"
+          out.puts "switches: ["
 
           out.indent do
             union.normal_arms.each do |arm|
               arm_name = arm.void? ? "xdr.void()" : "\"#{member_name(arm)}\""
-              
-              arm.resolved_cases.each do |acase|
-                out.puts "#{member_name acase}: #{arm_name},"
+
+              arm.cases.each do |acase|
+                switch = if acase.value.is_a?(AST::Identifier)
+                  '"' + member_name(acase.value) + '"'
+                else
+                  acase.value.text_value
+                end
+
+                out.puts "[#{switch}, #{arm_name}],"
               end
             end
           end
 
-          out.puts "},"
+          out.puts "],"
           out.puts "arms: {"
 
           out.indent do
@@ -155,14 +161,6 @@ module Xdrgen
       end
 
       private
-      def decl(decl)
-        # TODO
-      end
-
-      def type(type)
-        # TODO
-      end
-
       def name(named)
         parent = name named.parent_defn if named.is_a?(AST::Concerns::NestedDefinition)
 
@@ -227,9 +225,13 @@ module Xdrgen
         when :optional
           "xdr.option(#{baseReference})"
         when :array
-          "xdr.array(#{baseReference}, #{type.array_size})"
+          is_named, size = type.array_size
+          size = is_named ? "xdr.lookup(\"#{size}\")" : size
+          "xdr.array(#{baseReference}, #{size})"
         when :var_array
-          "xdr.varArray(#{baseReference}, #{type.array_size || MAX_INT})"
+          is_named, size = type.array_size
+          size = is_named ? "xdr.lookup(\"#{size}\")" : (size || MAX_INT)
+          "xdr.varArray(#{baseReference}, #{size})"
         else
           raise "Unknown sub_type: #{type.sub_type}"
         end
