@@ -19,23 +19,19 @@ module Xdrgen
 
       def render_definitions_index(out, node)
 
-        node.definition_blocks.each do |block|
-          block.each do |member|
-            case member
-            when AST::Definitions::Namespace ;
-              render_namespace_index(out, member)
-            when AST::Definitions::Typedef ;
-              render_typedef(out, member)
-            when AST::Definitions::Const ;
-              render_const(out, member)
-            when AST::Definitions::Struct,
-                 AST::Definitions::Union,
-                 AST::Definitions::Enum ;
-              render_autoload(out, member)
-            end
+        node.definitions.each do |member|
+          case member
+          when AST::Definitions::Namespace ;
+            render_namespace_index(out, member)
+          when AST::Definitions::Typedef ;
+            render_typedef(out, member)
+          when AST::Definitions::Const ;
+            render_const(out, member)
+          when AST::Definitions::Struct,
+               AST::Definitions::Union,
+               AST::Definitions::Enum ;
+            render_autoload(out, member)
           end
-
-          out.break
         end
       end
 
@@ -191,7 +187,7 @@ module Xdrgen
 
       def render_top_matter(out)
         out.puts <<-EOS.strip_heredoc
-          # Automatically generated on #{Time.now.iso8601}
+          # This code was automatically generated using xdrgen
           # DO NOT EDIT or your changes may be overwritten
 
           require 'xdr'
@@ -279,10 +275,7 @@ module Xdrgen
       end
 
       def name_string(name)
-        # NOTE: classify will strip plurality, so we restore it if necessary
-        plural = name.pluralize == name
-        base   = name.classify
-        plural ? base.pluralize : base
+        name.camelize
       end
 
     end
