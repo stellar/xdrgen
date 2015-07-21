@@ -229,7 +229,7 @@ module Xdrgen
           "XDR::String[#{decl.size}]"
         when AST::Declarations::Array ;
           type = decl.fixed? ? "XDR::Array" : "XDR::VarArray"
-          args = [decl.child_type.classify, decl.size].
+          args = [decl.child_type.to_s, decl.size].
             compact.
             map(&:to_s).
             join(", ")
