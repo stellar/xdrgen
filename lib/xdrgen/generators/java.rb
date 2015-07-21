@@ -232,17 +232,24 @@ module Xdrgen
           EOS
         end
 
-        out.puts <<-EOS.strip_heredoc
-          public static void encode(XdrDataOutputStream stream, #{name union} encoded#{name union}) throws IOException {
-            switch (encoded#{name union}.getDiscriminant()) {
-        EOS
+        out.puts "public static void encode(XdrDataOutputStream stream, #{name union} encoded#{name union}) throws IOException {"
+        if union.discriminant.type.is_a?(AST::Typespecs::Int)
+          out.puts "stream.writeInt(encoded#{name union}.getDiscriminant().intValue());"
+        else
+          out.puts "stream.writeInt(encoded#{name union}.getDiscriminant().getValue());"
+        end
+        out.puts "switch (encoded#{name union}.getDiscriminant()) {"
         union.arms.each do |arm|
           case arm
             when AST::Definitions::UnionDefaultArm ;
               out.puts "default:"
             else
               arm.cases.each do |kase|
-                out.puts "case #{kase}:"
+                if kase.value.is_a?(AST::Identifier)
+                  out.puts "case #{kase.value.name}:"
+                else
+                  out.puts "case #{kase.value.value}:"
+                end
               end
           end
           encode_member "encoded#{name union}", arm, out
@@ -261,7 +268,11 @@ module Xdrgen
               out.puts "default:"
             else
               arm.cases.each do |kase|
-                out.puts "case #{kase}:"
+                if kase.value.is_a?(AST::Identifier)
+                  out.puts "case #{kase.value.name}:"
+                else
+                  out.puts "case #{kase.value.value}:"
+                end
               end
           end
           decode_member "decoded#{name union}", arm, out
@@ -313,6 +324,7 @@ module Xdrgen
 
         if member.type.sub_type == :optional
           out.puts "if (#{value}.#{member.name} != null) {"
+          out.puts "stream.writeInt(1);"
         end
         case member.declaration
         when AST::Declarations::Opaque ;
@@ -337,6 +349,8 @@ module Xdrgen
           out.puts "#{encode_type member.declaration.type, "#{value}.#{member.name}"};"
         end
         if member.type.sub_type == :optional
+          out.puts "} else {"
+          out.puts "stream.writeInt(0);"
           out.puts "}"
         end
       end
