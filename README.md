@@ -7,6 +7,8 @@
 in [RFC 4506](http://tools.ietf.org/html/rfc4506.html) and spits code out in
 various languages.
 
+`xdrgen` requires ruby 2.1 or later to run.
+
 ## Status
 
 Xdrgen is a very early project.  Aside from the test fixtures in
