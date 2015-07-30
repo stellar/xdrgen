@@ -19,7 +19,7 @@ module Xdrgen::AST
         enum = union.discriminant_type
 
         cases.map do |c|
-          found = enum.members.find{|m| m.name == c}
+          found = enum.members.find{|m| m.name == c.value_s}
 
           raise "Case error:  #{c} is not a member of #{enum.name}" if found.nil?
 
