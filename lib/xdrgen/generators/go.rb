@@ -3,21 +3,6 @@ module Xdrgen
 
     class Go < Xdrgen::Generators::Base
 
-      Primitive = Struct.new(:name, :go_type) do
-        def sub_type
-          :simple
-        end
-      end
-      PRIMITIVES = [
-        Primitive.new("Int",    "int32"),
-        Primitive.new("Uint",   "uint32"),
-        Primitive.new("Hyper",  "int64"),
-        Primitive.new("Uhyper", "uint64"),
-        Primitive.new("Float",  "float32"),
-        Primitive.new("Double", "float64"),
-        Primitive.new("Bool",   "bool"),
-      ]
-
       def generate
         @already_rendered = []
         path = "#{@namespace}_generated.go"
