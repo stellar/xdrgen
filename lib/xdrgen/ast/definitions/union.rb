@@ -13,6 +13,8 @@ module Xdrgen::AST
       delegate :default_arm, to: :union_body
 
       memoize def discriminant_type
+        return nil unless discriminant.type.is_a?(Identifier)
+
         root.find_definition discriminant.type.name
       end
 
