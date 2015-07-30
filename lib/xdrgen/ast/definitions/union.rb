@@ -18,6 +18,12 @@ module Xdrgen::AST
         root.find_definition discriminant.type.name
       end
 
+      def resolved_case(kase)
+        found = discriminant_type.members.find{|m| m.name == kase.value_s}
+        raise "Case error:  #{kase} is not a member of #{discriminant_type.name}" if found.nil?
+        found
+      end
+
       def nested_definitions
         arms.
           map(&:declaration).

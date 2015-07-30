@@ -15,16 +15,14 @@ module Xdrgen::AST
         cases_n.elements
       end
 
+      def resolved_case(kase)
+        union.resolved_case kase
+      end
+
       def resolved_cases
         enum = union.discriminant_type
 
-        cases.map do |c|
-          found = enum.members.find{|m| m.name == c.value_s}
-
-          raise "Case error:  #{c} is not a member of #{enum.name}" if found.nil?
-
-          found
-        end
+        cases.map{|kase| resolved_case kase}
       end
 
       def void?
