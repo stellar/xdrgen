@@ -10,12 +10,13 @@ module Xdrgen
 
         render_top_matter out
         render_definitions(out, @top)
+        render_bottom_matter out
       end
 
       private
 
       def render_typedef(out, typedef)
-        out.puts "type #{name typedef} #{decl_string(typedef.declaration)}"
+        out.puts "type #{name typedef} #{reference typedef.declaration.type}"
         out.break
       end
 
@@ -83,7 +84,7 @@ module Xdrgen
         out.indent do
 
           struct.members.each do |m|
-            out.puts "#{name m} #{decl_string(m.declaration)}"
+            out.puts "#{name m} #{reference(m.declaration.type)}"
           end
 
         end
@@ -141,35 +142,14 @@ module Xdrgen
 
       def render_union(out, union)
 
-        if union.discriminant_type.blank?
-          raise "Cannot find definition for #{union.discriminant.type.name}"
-        end
-
         out.puts "type #{name union} struct{"
         out.indent do
-          out.puts "#{name union.discriminant} #{type_string union.discriminant.type}"
+          out.puts "#{name union.discriminant} #{reference union.discriminant.type}"
 
           union.arms.each do |arm|
             next if arm.void?
-
-            storage_class = case arm.type.sub_type
-              when :simple ;
-                "*#{type_string arm.type}"
-              when :var_array ;
-                "*[]#{type_string arm.type}"
-              when :array ;
-                "*[#{arm.type.size}]#{type_string arm.type}"
-              when :optional
-                "*#{type_string arm.type}"
-              else
-                raise "unknown sub_type: #{arm.type.sub_type}"
-              end
-
-            out.puts "#{name arm} #{storage_class}"
+            out.puts "#{name arm} *#{reference arm.type}"
           end
-
-
-
         end
         out.puts "}"
         out.break
@@ -188,40 +168,22 @@ module Xdrgen
           // ArmForSwitch returns which field name should be used for storing
           // the value for an instance of #{name union}
           func (u #{name union}) ArmForSwitch(sw int32) (string, bool) {
-            switch #{name union.discriminant_type}(sw) {
         EOS
 
-        union.normal_arms.each do |arm|
-          arm.resolved_cases.each do |c|
-            out.puts "    case #{name union.discriminant_type}#{name c}:"
-            out.puts "      return \"#{name arm unless arm.void?}\", true"
-          end
+        switch_for(out, union, "sw") do |arm, kase|
+          "return \"#{name arm unless arm.void?}\", true"
         end
 
-        if union.default_arm.present?
-          arm = union.default_arm
-          out.puts "    default:"
-          out.puts "      return \"#{name arm unless arm.void?}\", true"
-          out.puts <<-EOS.strip_heredoc
-              }
-            }
-          EOS
-        else
-          out.puts <<-EOS.strip_heredoc
-              }
-
-              return "-", false
-            }
-          EOS
+        # when the default arm is not present, we must render the failure case
+        unless union.default_arm.present?
+          out.puts 'return "-", false'
         end
 
-
+        out.puts "}"
         out.break
 
-        # Add constructors of the form u := NewUnionArmName(val)
-        union.discriminant_type.members.each do |m|
-          out.puts union_constructor(union, m)
-        end
+        # Add constructor of the form u := NewUnion(switch,val)
+        render_union_constructor(out, union)
 
         # Add accessors for of form val, ok := union.GetArmName()
         # and val := union.MustArmName()
@@ -244,6 +206,7 @@ module Xdrgen
 
           import (
             "io"
+            "fmt"
 
             "github.com/nullstyle/go-xdr/xdr3"
           )
@@ -263,75 +226,87 @@ module Xdrgen
         out.break
       end
 
-      private
+      def render_bottom_matter(out)
+        out.puts <<-EOS
+        var fmtTest = fmt.Sprint("this is a dummy usage of fmt")
 
-      def decl_string(decl)
-        case decl
-        when AST::Declarations::Opaque ;
-          size = decl.fixed? ? decl.size : ""
-          "[#{size}]byte"
-        when AST::Declarations::String ;
-          "string"
-        when AST::Declarations::Array ;
-          size = decl.fixed? ? decl.size : ""
-          "[#{size}]#{type_string decl.type}"
-        when AST::Declarations::Optional ;
-          "*#{type_string(decl.type)}"
-        when AST::Declarations::Simple ;
-          type_string(decl.type)
-        else
-          raise "Unknown declaration type: #{decl.class.name}"
-        end
+        EOS
       end
 
-      def type_string(type)
-        case type
-        when AST::Typespecs::Int ;
-          "int32"
-        when AST::Typespecs::UnsignedInt ;
-          "uint32"
-        when AST::Typespecs::Hyper ;
-          "int64"
-        when AST::Typespecs::UnsignedHyper ;
-          "uint64"
-        when AST::Typespecs::Float ;
-          "float32"
-        when AST::Typespecs::Double ;
-          "float64"
-        when AST::Typespecs::Quadruple ;
-          raise "cannot render quadruple in golang"
-        when AST::Typespecs::Bool ;
+      private
+
+      def reference(type)
+        baseReference = case type
+        when AST::Typespecs::Bool
           "bool"
-        when AST::Typespecs::Opaque ;
-          "[#{type.size}]byte"
-        when AST::Typespecs::String ;
+        when AST::Typespecs::Double
+          "float64"
+        when AST::Typespecs::Float
+          "float32"
+        when AST::Typespecs::Hyper
+          "int64"
+        when AST::Typespecs::Int
+          "int32"
+        when AST::Typespecs::Opaque
+          if type.fixed?
+            "[#{type.size}]byte"
+          else
+            "[]byte"
+          end
+        when AST::Typespecs::Quadruple
+          raise "no quadruple support for go"
+        when AST::Typespecs::String
           "string"
-        when AST::Typespecs::Simple ;
-          name type.resolved_type
-        when AST::Concerns::NestedDefinition ;
+        when AST::Typespecs::UnsignedHyper
+          "uint64"
+        when AST::Typespecs::UnsignedInt
+          "uint32"
+        when AST::Typespecs::Simple
+          name type
+        when AST::Definitions::Base
+          name type
+        when AST::Concerns::NestedDefinition
           name type
         else
-          raise "Unknown typespec: #{type.class.name}"
+          raise "Unknown reference type: #{type.class.name}, #{type.class.ancestors}"
         end
+
+        case type.sub_type
+        when :simple
+          baseReference
+        when :optional
+          "*#{baseReference}"
+        when :array
+          is_named, size = type.array_size
+
+          # if named, lookup the const definition
+          if is_named
+            size = name @top.find_definition(size)
+          end
+
+          "[#{size}]#{baseReference}"
+        when :var_array
+          "[#{size}]#{baseReference}"
+        else
+          raise "Unknown sub_type: #{type.sub_type}"
+        end
+
       end
 
       def name(named)
-
         parent = name named.parent_defn if named.is_a?(AST::Concerns::NestedDefinition)
 
-        # NOTE: classify will strip plurality, so we restore it if necessary
-        plural = named.name.pluralize == named.name
-        base   = named.name.underscore.classify
-        result = plural ? base.pluralize : base
+        base = if named.respond_to?(:name)
+          named.name
+        else
+          named.text_value
+        end
 
-        "#{parent}#{result}"
+        "#{parent}#{base.underscore.camelize}"
       end
 
       def private_name(named)
-        # NOTE: classify will strip plurality, so we restore it if necessary
-        plural = named.name.pluralize == named.name
-        base   = escape_name named.name.underscore.camelize(:lower)
-        plural ? base.pluralize : base
+        escape_name named.name.underscore.camelize(:lower)
       end
 
       def escape_name(name)
@@ -342,64 +317,46 @@ module Xdrgen
         end
       end
 
-      def union_constructor(union, kase)
-        # lookup the arm
-        arm = union.normal_arms.find{|a| a.cases.any?{|c| c == kase.name}}
-        arm ||= union.default_arm
-        return "" if arm.nil?
+      def render_union_constructor(out, union)
+        constructor_name  = "New#{name union}"
 
-        dname    = name union.discriminant
-        dtype    = union.discriminant_type
-        go_const = "#{name dtype}#{name kase}"
 
-        constructor_name  = "New#{name union}#{name kase}"
-        discriminant_init = "#{dname}: #{go_const},"
+        discriminant_arg = private_name union.discriminant
+        discriminant_type = reference union.discriminant.type
 
-        args, arm_init = case
-          when arm.void? ;
-            ["",""]
-          when arm.type.sub_type == :simple ;
-            ["val #{type_string arm.type}", "#{name arm}:&val,"]
-          when arm.type.sub_type == :var_array ;
-            ["val []#{type_string arm.type}", "#{name arm}:&val,"]
-          when arm.type.sub_type == :array ;
-            ["val [#{arm.type.size}]#{type_string arm.type}", "#{name arm}:&val,"]
-          when arm.type.sub_type == :optional
-            ["val *#{type_string arm.type}", "#{name arm}:val,"]
+        out.puts <<-EOS.strip_heredoc
+          // #{constructor_name} creates a new  #{name union}.
+          func #{constructor_name}(#{discriminant_arg} #{discriminant_type}, value interface{}) (result #{reference union}, err error) {
+            result.#{name union.discriminant} = #{discriminant_arg}
+        EOS
+
+        switch_for(out, union, discriminant_arg) do |arm, kase|
+          if arm.void?
+            "// void"
           else
-            raise "unknown sub_type: #{arm.type.sub_type}"
-          end
-
-        <<-EOS.strip_heredoc
-          // #{constructor_name} creates a new  #{name union}, initialized with
-          // #{go_const} as the disciminant and the provided val
-          func #{constructor_name}(#{args}) #{name union} {
-            return #{name union}{
-              #{discriminant_init}
-              #{arm_init}
+            <<-EOS
+            tv, ok := value.(#{reference arm.type})
+            if !ok {
+              err = fmt.Errorf("invalid value, must be #{reference arm.type}")
+              return
             }
+            result.#{name arm} = &tv
+            EOS
+          end
+        end
+
+        out.puts <<-EOS.strip_heredoc
+            return
           }
         EOS
       end
 
       def access_arm(arm)
-        result_type = case
-          when arm.type.sub_type == :simple ;
-            type_string arm.type
-          when arm.type.sub_type == :var_array ;
-            "[]#{type_string arm.type}"
-          when arm.type.sub_type == :array ;
-            "[#{arm.type.size}]#{type_string arm.type}"
-          when arm.type.sub_type == :optional
-            "*#{type_string arm.type}"
-          else
-            raise "unknown sub_type: #{arm.type.sub_type}"
-          end
 
         <<-EOS.strip_heredoc
           // Must#{name arm} retrieves the #{name arm} value from the union,
           // panicing if the value is not set.
-          func (u #{name arm.union}) Must#{name arm}() #{result_type} {
+          func (u #{name arm.union}) Must#{name arm}() #{reference arm.type} {
             val, ok := u.Get#{name arm}()
 
             if !ok {
@@ -411,7 +368,7 @@ module Xdrgen
 
           // Get#{name arm} retrieves the #{name arm} value from the union,
           // returning ok if the union's switch indicated the value is valid.
-          func (u #{name arm.union}) Get#{name arm}() (result #{result_type}, ok bool) {
+          func (u #{name arm.union}) Get#{name arm}() (result #{reference arm.type}, ok bool) {
             armName, _ := u.ArmForSwitch(int32(u.#{name arm.union.discriminant}))
 
             if armName == "#{name arm}" {
@@ -428,6 +385,33 @@ module Xdrgen
         result = size_s
         result = "MaxXdrElements" if result.blank?
         result
+      end
+
+      def switch_for(out, union, ident)
+        out.puts "switch #{reference union.discriminant.type}(#{ident}) {"
+
+        union.normal_arms.each do |arm|
+          arm.cases.each do |c|
+
+            value = if c.value.is_a?(AST::Identifier)
+                      member = union.resolved_case(c)
+                      "#{name union.discriminant_type}#{name member}"
+                    else
+                      c.value.text_value
+                    end
+
+            out.puts "    case #{value}:"
+            out.puts "      #{yield arm, c}"
+          end
+        end
+
+        if union.default_arm.present?
+          arm = union.default_arm
+          out.puts "    default:"
+          out.puts "      #{yield arm, :default}"
+        end
+
+        out.puts "}"
       end
     end
   end
