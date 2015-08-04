@@ -17,7 +17,58 @@ module Xdrgen
 
       def render_typedef(out, typedef)
         out.puts "type #{name typedef} #{reference typedef.declaration.type}"
+
+        return unless typedef.sub_type == :simple
+
+        resolved = typedef.resolved_type
+
+        case resolved
+        when AST::Definitions::Enum
+          render_enum_typedef out, typedef, resolved
+        when AST::Definitions::Union
+          render_union_typedef out, typedef, resolved
+        end
+
         out.break
+      end
+
+      def render_enum_typedef(out, typedef, enum)
+        out.puts <<-EOS.strip_heredoc
+          // ValidEnum validates a proposed value for this enum.  Implements
+          // the Enum interface for #{name typedef}
+          func (e #{name typedef}) ValidEnum(v int32) bool {
+            return #{name enum}(e).ValidEnum(v)
+          }
+        EOS
+
+        out.puts <<-EOS.strip_heredoc
+          // String returns the name of `e`
+          func (e #{name typedef}) String() string {
+            return #{name enum}(e).String()
+          }
+        EOS
+
+        out.break
+      end
+
+      def render_union_typedef(out, typedef, union)
+        out.puts <<-EOS.strip_heredoc
+          // SwitchFieldName returns the field name in which this union's
+          // discriminant is stored
+          func (u #{name typedef}) SwitchFieldName() string {
+            return #{name union}(u).SwitchFieldName()
+          }
+        EOS
+
+        out.break
+
+        out.puts <<-EOS.strip_heredoc
+          // ArmForSwitch returns which field name should be used for storing
+          // the value for an instance of #{name union}
+          func (u #{name typedef}) ArmForSwitch(sw int32) (string, bool) {
+            return #{name union}(u).ArmForSwitch(sw)
+          }
+        EOS
       end
 
       def render_const(out, const)

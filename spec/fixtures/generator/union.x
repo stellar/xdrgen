@@ -24,3 +24,5 @@ union IntUnion switch (int type)
         Multi things<>;
 
 };
+
+typedef IntUnion IntUnion2;

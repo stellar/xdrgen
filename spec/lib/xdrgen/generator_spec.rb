@@ -11,7 +11,7 @@ describe Xdrgen::Generators do
       next if focus_language.present? && lang != focus_language
 
       it "can generate #{File.basename path} in #{lang}" do
-        generate lang, path
+        c = generate lang, path
       end
 
     end
@@ -25,5 +25,6 @@ describe Xdrgen::Generators do
         namespace:  "MyXDR"
       )
     compilation.compile
+    compilation
   end
 end
