@@ -69,6 +69,43 @@ module Xdrgen
             return #{name union}(u).ArmForSwitch(sw)
           }
         EOS
+
+        out.break
+
+        constructor_name  = "New#{name typedef}"
+        discriminant_arg = private_name union.discriminant
+        discriminant_type = reference union.discriminant.type
+
+        out.puts <<-EOS.strip_heredoc
+          // #{constructor_name} creates a new  #{name typedef}.
+          func #{constructor_name}(#{discriminant_arg} #{discriminant_type}, value interface{}) (result #{reference typedef}, err error) {
+            u, err := New#{name union}(#{discriminant_arg}, value)
+            result = #{name typedef}(u)
+            return
+          }
+        EOS
+
+        out.break
+
+        # Add accessors for of form val, ok := union.GetArmName()
+        # and val := union.MustArmName()
+        union.arms.each do |arm|
+          next if arm.void?
+          out.puts   <<-EOS.strip_heredoc
+            // Must#{name arm} retrieves the #{name arm} value from the union,
+            // panicing if the value is not set.
+            func (u #{name typedef}) Must#{name arm}() #{reference arm.type} {
+              return #{name union}(u).Must#{name arm}()
+            }
+
+            // Get#{name arm} retrieves the #{name arm} value from the union,
+            // returning ok if the union's switch indicated the value is valid.
+            func (u #{name typedef}) Get#{name arm}() (result #{reference arm.type}, ok bool) {
+              return #{name union}(u).Get#{name arm}()
+            }
+          EOS
+        end
+
       end
 
       def render_const(out, const)
