@@ -85,12 +85,7 @@ module Xdrgen
       end
 
       def render_element(type, element, post_name="")
-        # NOTE: classify will strip plurality, so we restore it if necessary
-        plural = element.name.pluralize == element.name
-        base   = element.name.classify
-        plural ? base.pluralize : base
-        result = plural ? base.pluralize : base
-        path = result + ".java"
+        path = element.name.camelize + ".java"
         name = name_string element.name
         out  = @output.open(path)
         render_top_matter out
@@ -502,22 +497,14 @@ module Xdrgen
       end
 
       def name(named)
-
         parent = name named.parent_defn if named.is_a?(AST::Concerns::NestedDefinition)
-
-        # NOTE: classify will strip plurality, so we restore it if necessary
-        plural = named.name.pluralize == named.name
-        base   = named.name.classify
-        result = plural ? base.pluralize : base
+        result = named.name.camelize
 
         "#{parent}#{result}"
       end
 
       def name_string(name)
-        # NOTE: classify will strip plurality, so we restore it if necessary
-        plural = name.pluralize == name
-        base   = name.classify
-        plural ? base.pluralize : base
+        name.camelize
       end
     end
   end
