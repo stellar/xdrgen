@@ -109,7 +109,7 @@ module Xdrgen
         out.puts <<-EOS.strip_heredoc
         private int mValue;
 
-        #{enum.name}(int value) {
+        #{name_string enum.name}(int value) {
             mValue = value;
         }
 
