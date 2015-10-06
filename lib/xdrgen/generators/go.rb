@@ -190,7 +190,7 @@ module Xdrgen
 
           rest_members = enum.members.drop(1)
           rest_members.each do |m|
-            out.puts "#{name enum}#{name m} = #{m.value}"
+            out.puts "#{name enum}#{name m} #{name enum} = #{m.value}"
           end
         end
         out.puts ")"
