@@ -16,6 +16,7 @@ public class XdrDataOutputStream extends DataOutputStream {
 
     public void writeString(String s) throws IOException {
         byte[] chars = s.getBytes();
+        writeInt(chars.length);
         write(chars);
         pad();
     }
