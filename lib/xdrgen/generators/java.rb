@@ -144,10 +144,10 @@ module Xdrgen
         struct.members.each do |m|
           out.puts <<-EOS.strip_heredoc
             private #{decl_string(m.declaration)} #{m.name};
-            public #{decl_string(m.declaration)} get#{m.name}() {
+            public #{decl_string(m.declaration)} get#{m.name.slice(0,1).capitalize+m.name.slice(1..-1)}() {
               return this.#{m.name};
             }
-            public void set#{m.name}(#{decl_string m.declaration} value) {
+            public void set#{m.name.slice(0,1).capitalize+m.name.slice(1..-1)}(#{decl_string m.declaration} value) {
               this.#{m.name} = value;
             }
           EOS
@@ -181,10 +181,10 @@ module Xdrgen
       def render_typedef(typedef, out)
         out.puts <<-EOS.strip_heredoc
           private #{decl_string typedef.declaration} #{typedef.name};
-          public #{decl_string typedef.declaration} get#{typedef.name}() {
+          public #{decl_string typedef.declaration} get#{typedef.name.slice(0,1).capitalize+typedef.name.slice(1..-1)}() {
             return this.#{typedef.name};
           }
-          public void set#{typedef.name}(#{decl_string typedef.declaration} value) {
+          public void set#{typedef.name.slice(0,1).capitalize+typedef.name.slice(1..-1)}(#{decl_string typedef.declaration} value) {
             this.#{typedef.name} = value;
           }
         EOS
@@ -218,10 +218,10 @@ module Xdrgen
           next if arm.void?
           out.puts <<-EOS.strip_heredoc
             private #{decl_string(arm.declaration)} #{arm.name};
-            public #{decl_string(arm.declaration)} get#{arm.name}() {
+            public #{decl_string(arm.declaration)} get#{arm.name.slice(0,1).capitalize+arm.name.slice(1..-1)}() {
               return this.#{arm.name};
             }
-            public void set#{arm.name}(#{decl_string arm.declaration} value) {
+            public void set#{arm.name.slice(0,1).capitalize+arm.name.slice(1..-1)}(#{decl_string arm.declaration} value) {
               this.#{arm.name} = value;
             }
           EOS
@@ -328,10 +328,10 @@ module Xdrgen
             out.puts "stream.writeInt(#{member.name}size);"
           end
           out.puts <<-EOS.strip_heredoc
-            stream.write(#{value}.get#{member.name}(), 0, #{member.name}size);
+            stream.write(#{value}.get#{member.name.slice(0,1).capitalize+member.name.slice(1..-1)}(), 0, #{member.name}size);
           EOS
         when AST::Declarations::Array ;
-          out.puts "int #{member.name}size = #{value}.get#{member.name}().length;"
+          out.puts "int #{member.name}size = #{value}.get#{member.name.slice(0,1).capitalize+member.name.slice(1..-1)}().length;"
           unless member.declaration.fixed?
             out.puts "stream.writeInt(#{member.name}size);"
           end
