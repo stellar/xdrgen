@@ -123,8 +123,12 @@ public class XdrDataInputStream extends DataInputStream {
         }
 
         public void pad() throws IOException {
-            int r = 4 - mCount % 4;
-            skip(r);
+            int pad = 0;
+            int mod = mCount % 4;
+            if (mod > 0) {
+                pad = 4-mod;
+            }
+            skip(pad);
         }
     }
 }

@@ -87,7 +87,12 @@ public class XdrDataOutputStream extends DataOutputStream {
         }
 
         public void pad() throws IOException {
-            for (int i = 0; i < (4 - mCount % 4); i++) {
+            int pad = 0;
+            int mod = mCount % 4;
+            if (mod > 0) {
+                pad = 4-mod;
+            }
+            while (pad-- > 0) {
                 write(0);
             }
         }
