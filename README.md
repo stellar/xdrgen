@@ -56,7 +56,7 @@ require 'xdrgen'
 c = Xdrgen::Compilation.new(
   ["MyProgram.x"],
   output_dir:"src/generated",
-  language: :ruby
+  language: :ruby,
   namespace: "MyProgram::XDR"
 )
 
