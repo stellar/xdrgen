@@ -293,6 +293,7 @@ module Xdrgen
           package #{@namespace || "main"}
 
           import (
+            "bytes"
             "io"
             "fmt"
 
@@ -344,7 +345,11 @@ module Xdrgen
         when AST::Typespecs::Quadruple
           raise "no quadruple support for go"
         when AST::Typespecs::String
-          "string"
+          if type.fixed?
+            "[#{type.size}]rune"
+          else
+            "string"
+          end
         when AST::Typespecs::UnsignedHyper
           "uint64"
         when AST::Typespecs::UnsignedInt
@@ -422,14 +427,29 @@ module Xdrgen
           if arm.void?
             "// void"
           else
-            <<-EOS
-            tv, ok := value.(#{reference arm.type})
-            if !ok {
-              err = fmt.Errorf("invalid value, must be #{reference arm.type}")
-              return
-            }
-            result.#{name arm} = &tv
-            EOS
+            type = "#{reference arm.type}"
+            if type.end_with? "]rune"
+              <<-EOS
+              tv, ok := value.(string)
+              if !ok {
+                err = fmt.Errorf("invalid value, must be string")
+                return
+              }
+
+              var runeArray #{reference arm.type}
+              copy(runeArray[:], []rune(tv))
+              result.#{name arm} = &runeArray
+              EOS
+            else
+              <<-EOS
+              tv, ok := value.(#{reference arm.type})
+              if !ok {
+                err = fmt.Errorf("invalid value, must be #{reference arm.type}")
+                return
+              }
+              result.#{name arm} = &tv
+              EOS
+            end
           end
         end
 
@@ -440,33 +460,72 @@ module Xdrgen
       end
 
       def access_arm(arm)
+        #if arm.type
+        type = "#{reference arm.type}"
 
-        <<-EOS.strip_heredoc
-          // Must#{name arm} retrieves the #{name arm} value from the union,
-          // panicing if the value is not set.
-          func (u #{name arm.union}) Must#{name arm}() #{reference arm.type} {
-            val, ok := u.Get#{name arm}()
+        if type.end_with? "]rune"
+          <<-EOS.strip_heredoc
+            // Must#{name arm} retrieves the #{name arm} value from the union,
+            // panicing if the value is not set.
+            func (u #{name arm.union}) Must#{name arm}() string {
+              val, ok := u.Get#{name arm}()
 
-            if !ok {
-              panic("arm #{name arm} is not set")
+              if !ok {
+                panic("arm #{name arm} is not set")
+              }
+
+              return val
             }
 
-            return val
-          }
+            // Get#{name arm} retrieves the #{name arm} value from the union,
+            // returning ok if the union's switch indicated the value is valid.
+            func (u #{name arm.union}) Get#{name arm}() (result string, ok bool) {
+              armName, _ := u.ArmForSwitch(int32(u.#{name arm.union.discriminant}))
 
-          // Get#{name arm} retrieves the #{name arm} value from the union,
-          // returning ok if the union's switch indicated the value is valid.
-          func (u #{name arm.union}) Get#{name arm}() (result #{reference arm.type}, ok bool) {
-            armName, _ := u.ArmForSwitch(int32(u.#{name arm.union.discriminant}))
+              if armName == "#{name arm}" {
+                rawResult := *u.#{name arm}
+                b := []byte(string(rawResult[:]))
+                length := bytes.IndexByte(b, 0)
+                if length == -1 {
+                  // nil byte not found
+                  length = len(rawResult)
+                }
+                result = string(b[:length])
 
-            if armName == "#{name arm}" {
-              result = *u.#{name arm}
-              ok = true
+                ok = true
+              }
+
+              return
+            }
+          EOS
+        else
+          <<-EOS.strip_heredoc
+            // Must#{name arm} retrieves the #{name arm} value from the union,
+            // panicing if the value is not set.
+            func (u #{name arm.union}) Must#{name arm}() #{reference arm.type} {
+              val, ok := u.Get#{name arm}()
+
+              if !ok {
+                panic("arm #{name arm} is not set")
+              }
+
+              return val
             }
 
-            return
-          }
-        EOS
+            // Get#{name arm} retrieves the #{name arm} value from the union,
+            // returning ok if the union's switch indicated the value is valid.
+            func (u #{name arm.union}) Get#{name arm}() (result #{reference arm.type}, ok bool) {
+              armName, _ := u.ArmForSwitch(int32(u.#{name arm.union.discriminant}))
+
+              if armName == "#{name arm}" {
+                result = *u.#{name arm}
+                ok = true
+              }
+
+              return
+            }
+          EOS
+        end
       end
 
       def size(size_s)
