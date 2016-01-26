@@ -3,9 +3,11 @@ module Xdrgen::AST::Declarations
     delegate :name, to: :identifier
 
     def size
-      size_str = size_spec.size_t.text_value
+      size_spec.size
+    end
 
-      size_str.to_i if size_str.present?
+    def fixed?
+      size_spec.is_a?(Xdrgen::AST::VarSize)
     end
   end
 end
