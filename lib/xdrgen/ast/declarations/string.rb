@@ -1,11 +1,7 @@
 module Xdrgen::AST::Declarations
   class String < Base
     delegate :name, to: :identifier
-
-    def size
-      size_str = size_spec.size_t.text_value
-
-      size_str.to_i if size_str.present?
-    end
+    delegate :size, to: :size_spec
+    delegate :resolved_size, to: :size_spec
   end
 end

@@ -1,8 +1,22 @@
 module Xdrgen::AST
   class VarSize < Treetop::Runtime::SyntaxNode
+    include Concerns::Contained
+
     def size
       return nil if size_t.text_value.blank?
       size_t.text_value
+    end
+
+    def resolved_size
+      return size unless named?
+
+      resolved = root.find_definition(size)
+
+      if resolved.blank?
+        raise "Could not resolve constant: #{size}"
+      end
+
+      resolved.value
     end
 
     def named?
