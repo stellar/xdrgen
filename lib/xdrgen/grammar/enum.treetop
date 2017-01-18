@@ -33,6 +33,14 @@ grammar XdrEnumGrammar
   rule enum_value
     "=" 
     space? 
+    val:(enum_value_constant / enum_value_alias)
+  end
+
+  rule enum_value_constant
     constant
+  end
+
+  rule enum_value_alias
+    identifier
   end
 end

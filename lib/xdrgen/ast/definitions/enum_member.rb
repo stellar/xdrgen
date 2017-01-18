@@ -18,6 +18,7 @@ module Xdrgen::AST
         find_ancestors(Enum).last
       end
 
+
       def auto_value
         index = enum.members.index(self)
         if index == 0
@@ -30,7 +31,13 @@ module Xdrgen::AST
 
       def defined_value
         return if value_n.terminal?
-        value_n.constant.value
+
+        case value_n.val
+        when Constant
+          value_n.val.value
+        when Identifier
+          namespace.find_enum_value(value_n.val.name).defined_value
+        end
       end
     end
   end

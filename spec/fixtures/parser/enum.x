@@ -27,3 +27,9 @@ enum Color {
     GREEN=1,  
     BLUE=2  
 };
+
+enum Color2 {
+    RED2=RED,  
+    GREEN2=1,  
+    BLUE2=2  
+};
