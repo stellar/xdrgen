@@ -20,6 +20,10 @@ module Xdrgen::AST
         ancestors.first
       end
 
+      def namespace
+        find_ancestors(HasDefinitions).last
+      end
+
       def find_ancestors(type)
         ancestors.select{|a| a.is_a?(type)}
       end

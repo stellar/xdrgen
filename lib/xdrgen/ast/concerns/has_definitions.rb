@@ -43,6 +43,14 @@ module Xdrgen::AST
         nil
       end
 
+      def find_enum_value(name)
+        enums.each do |e|
+          found = e.members.find{|d| d.name == name}
+          return found if found
+        end
+        raise "Could not find enum value #{name}"
+      end
+
       ##
       # Collapse the flat list of definitions in this 
       # container into a nested array, grouping the
