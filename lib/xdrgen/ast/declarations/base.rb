@@ -3,7 +3,8 @@ module Xdrgen::AST
     class Base < Treetop::Runtime::SyntaxNode
       TYPE_NODES = [
         Typespecs::Base,
-        Concerns::NestedDefinition
+        Concerns::NestedDefinition,
+        Concerns::Contained,
       ]
 
       def type

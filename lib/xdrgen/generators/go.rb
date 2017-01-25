@@ -18,6 +18,17 @@ module Xdrgen
       def render_typedef(out, typedef)
         out.puts "type #{name typedef} #{reference typedef.declaration.type}"
 
+
+        # write sizing restrictions
+        case typedef.declaration
+        when Xdrgen::AST::Declarations::String
+          render_maxsize_method out, typedef, typedef.declaration.resolved_size
+        when Xdrgen::AST::Declarations::Array
+          unless typedef.declaration.fixed?
+            render_maxsize_method out, typedef, typedef.declaration.resolved_size
+          end
+        end
+
         return unless typedef.sub_type == :simple
 
         resolved = typedef.resolved_type
@@ -30,6 +41,17 @@ module Xdrgen
         end
 
         out.break
+      end
+
+      def render_maxsize_method(out, typedef, size)
+        return if size.blank?
+
+        out.puts <<-EOS.strip_heredoc
+          // XDRMaxSize implements the Sized interface for #{name typedef}
+          func (e #{name typedef}) XDRMaxSize() int {
+            return #{size}
+          }
+        EOS
       end
 
       def render_enum_typedef(out, typedef, enum)
@@ -172,7 +194,7 @@ module Xdrgen
         out.indent do
 
           struct.members.each do |m|
-            out.puts "#{name m} #{reference(m.declaration.type)}"
+            out.puts "#{name m} #{reference(m.declaration.type)} #{field_tag struct, m}"
           end
 
         end
@@ -501,6 +523,21 @@ module Xdrgen
 
         out.puts "}"
       end
+
+      def field_tag(struct, field)
+        size = nil
+
+        case field.declaration
+        when Xdrgen::AST::Declarations::String
+          size = field.declaration.resolved_size
+        when Xdrgen::AST::Declarations::Array
+          size = field.declaration.resolved_size unless field.declaration.fixed?
+        end
+
+        return "`xdrmaxsize:\"#{size}\"`" if size.present?
+      end
+
     end
+
   end
 end
