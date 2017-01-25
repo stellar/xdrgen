@@ -534,10 +534,6 @@ module Xdrgen
           size = field.declaration.resolved_size unless field.declaration.fixed?
         end
 
-        if size == "MAX_TX_PER_LEDGER"
-          binding.pry
-        end
-
         return "`xdrmaxsize:\"#{size}\"`" if size.present?
       end
 
