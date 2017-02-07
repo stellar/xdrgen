@@ -230,6 +230,8 @@ module Xdrgen
         out.puts "public static void encode(XdrDataOutputStream stream, #{name union} encoded#{name union}) throws IOException {"
         if union.discriminant.type.is_a?(AST::Typespecs::Int)
           out.puts "stream.writeInt(encoded#{name union}.getDiscriminant().intValue());"
+        # elsif [discriminant is AST::Definitions::Typedef]
+        #   out.puts "stream.writeInt(encoded#{name union}.getDiscriminant().get#{name union.discriminant.type}());"
         else
           out.puts "stream.writeInt(encoded#{name union}.getDiscriminant().getValue());"
         end
@@ -252,11 +254,16 @@ module Xdrgen
         end
         out.puts "}\n}"
 
-        out.puts <<-EOS.strip_heredoc
-          public static #{name union} decode(XdrDataInputStream stream) throws IOException {
-            #{name union} decoded#{name union} = new #{name union}();
-            switch (decoded#{name union}.getDiscriminant()) {
-        EOS
+        out.puts "public static #{name union} decode(XdrDataInputStream stream) throws IOException {"
+        out.puts "#{name union} decoded#{name union} = new #{name union}();"
+        if union.discriminant.type.is_a?(AST::Typespecs::Int)
+          out.puts "Integer discriminant = stream.readInt();"
+        else
+          out.puts "#{name union.discriminant.type} discriminant = #{name union.discriminant.type}.decode(stream);"
+        end
+        out.puts "decoded#{name union}.setDiscriminant(discriminant);"
+        out.puts "switch (decoded#{name union}.getDiscriminant()) {"
+
         union.arms.each do |arm|
           case arm
             when AST::Definitions::UnionDefaultArm ;
