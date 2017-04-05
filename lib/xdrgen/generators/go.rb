@@ -260,7 +260,7 @@ module Xdrgen
 
           union.arms.each do |arm|
             next if arm.void?
-            out.puts "#{name arm} *#{reference arm.type}"
+            out.puts "#{name arm} *#{reference arm.type} #{field_tag union, arm}"
           end
         end
         out.puts "}"
@@ -530,6 +530,8 @@ module Xdrgen
         size = nil
 
         case field.declaration
+        when Xdrgen::AST::Declarations::Opaque
+          size = field.declaration.resolved_size
         when Xdrgen::AST::Declarations::String
           size = field.declaration.resolved_size
         when Xdrgen::AST::Declarations::Array
