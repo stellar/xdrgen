@@ -23,6 +23,8 @@ module Xdrgen
         case typedef.declaration
         when Xdrgen::AST::Declarations::String
           render_maxsize_method out, typedef, typedef.declaration.resolved_size
+        when Xdrgen::AST::Declarations::Opaque
+          render_maxsize_method out, typedef, typedef.declaration.resolved_size
         when Xdrgen::AST::Declarations::Array
           unless typedef.declaration.fixed?
             render_maxsize_method out, typedef, typedef.declaration.resolved_size
