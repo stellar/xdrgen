@@ -6,6 +6,7 @@ module Xdrgen::Generators
   autoload :Go
   autoload :Javascript
   autoload :Java
+  autoload :Csharp
 
   def self.for_language(language)
     const_get language.to_s.classify
