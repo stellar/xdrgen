@@ -5,6 +5,28 @@ module Xdrgen
         render_definitions(@top)
       end
 
+      def render_lib
+        template = IO.read(__dir__ + "/csharp/ByteReader.erb")
+        result = ERB.new(template).result binding
+        @output.write  "ByteReader.cs", result
+
+        template = IO.read(__dir__ + "/csharp/ByteWriter.erb")
+        result = ERB.new(template).result binding
+        @output.write  "ByteWriter.cs", result
+
+        template = IO.read(__dir__ + "/csharp/IByteWriter.erb")
+        result = ERB.new(template).result binding
+        @output.write  "IByteWriter.cs", result
+
+        template = IO.read(__dir__ + "/csharp/IByteReader.erb")
+        result = ERB.new(template).result binding
+        @output.write  "IByteReader.cs", result
+
+        template = IO.read(__dir__ + "/csharp/XdrEncoding.erb")
+        result = ERB.new(template).result binding
+        @output.write  "XdrEncoding.cs", result
+      end
+
       def render_definitions(node)
         node.namespaces.each { |n| render_definitions n }
         node.definitions.each(&method(:render_definition))
@@ -18,7 +40,7 @@ module Xdrgen
             render_nested_definitions defn, out
           end
         when AST::Definitions::Enum
-          render_element 'public enum', defn do |out|
+          render_element 'public class', defn do |out|
             render_enum defn, out
           end
         when AST::Definitions::Union
@@ -47,7 +69,7 @@ module Xdrgen
             out.puts '}'
           when AST::Definitions::Enum
             name = name ndefn
-            out.puts "public enum #{name} {"
+            out.puts "public class #{name} {"
             out.indent do
               render_enum ndefn, out
             end
@@ -84,57 +106,60 @@ module Xdrgen
           out.unbreak
         end
         out.puts '}'
+        out.puts '}'
       end
 
       def render_enum(enum, out)
+        enumname = enum.name + 'Enum'
+
+        out.puts "public enum #{enumname} + 'Enum' {"
         out.balance_after /,[\s]*/ do
           enum.members.each do |em|
-            out.puts "#{em.name}(#{em.value}),"
+            out.puts "#{em.name} = #{em.value},"
           end
         end
-        out.puts ";\n"
+        out.puts "}\n"
         out.puts <<-EOS.strip_heredoc
-            private int mValue;
+            public #{enumname} InnerValue {get; set;} = default(#{enumname})
 
-            #{name_string enum.name}(int value) {
-                mValue = value;
+            public static #{enum.name} Create(#{enumname} v)
+            {
+              return new #{enum.name} {
+                InnerValue = v
+              }
             }
 
-            public int getValue() {
-                return mValue;
-            }
-
-            static #{name_string enum.name} decode(XdrDataInputStream stream) throws IOException {
-              int value = stream.readInt();
+            static #{name_string enum.name} Decode(IByteReader stream) {
+              int value = XdrEncoding.DecodeInt32(stream);
               switch (value) {
             EOS
         out.indent 2 do
           enum.members.each do |em|
-            out.puts "case #{em.value}: return #{em.name};"
+            out.puts "case #{em.value}: return Create(#{enumname}.#{em.name});"
           end
         end
         out.puts <<-EOS.strip_heredoc
                 default:
-                  throw new RuntimeException("Unknown enum value: " + value);
+                  throw new Exception("Unknown enum value: " + value);
               }
             }
 
-            static void encode(XdrDataOutputStream stream, #{name_string enum.name} value) throws IOException {
-              stream.writeInt(value.getValue());
+            static void Encode(IByteWriter stream, #{name_string enum.name} value) {
+              XdrEncoding.EncodeInt32((int)value.InnerValue, stream);
             }
             EOS
         out.break
       end
 
       def render_struct(struct, out)
-        out.puts "public #{name struct} () {}"
+        #out.puts "public #{name struct} () {}"
         struct.members.each do |m|
           out.puts <<-EOS.strip_heredoc
                 public #{decl_string(m.declaration)} #{m.name.capitalize} {get; set;}
               EOS
         end
 
-        out.puts "public static void encode(XdrDataOutputStream stream, #{name struct} encoded#{name struct}) throws IOException{"
+        out.puts "public static void encode(XdrDataOutputStream stream, #{name struct} encoded#{name struct}) {"
         struct.members.each do |m|
           out.indent do
             encode_member "encoded#{name struct}", m, out
@@ -143,7 +168,7 @@ module Xdrgen
         out.puts '}'
 
         out.puts <<-EOS.strip_heredoc
-              public static #{name struct} decode(XdrDataInputStream stream) throws IOException {
+              public static #{name struct} decode(XdrDataInputStream stream) {
                 #{name struct} decoded#{name struct} = new #{name struct}();
             EOS
         struct.members.each do |m|
@@ -163,12 +188,12 @@ module Xdrgen
         out.puts <<-EOS.strip_heredoc
               public #{decl_string typedef.declaration} #{typedef.name.capitalize} {get; set;}
             EOS
-        out.puts "public static void encode(XdrDataOutputStream stream, #{name typedef}  encoded#{name typedef}) throws IOException {"
+        out.puts "public static void encode(XdrDataOutputStream stream, #{name typedef}  encoded#{name typedef}) {"
         encode_member "encoded#{name typedef}", typedef, out
         out.puts '}'
 
         out.puts <<-EOS.strip_heredoc
-              public static #{name typedef} decode(XdrDataInputStream stream) throws IOException {
+              public static #{name typedef} decode(XdrDataInputStream stream) {
                 #{name typedef} decoded#{name typedef} = new #{name typedef}();
             EOS
         decode_member "decoded#{name typedef}", typedef, out
@@ -181,6 +206,7 @@ module Xdrgen
       def render_union(union, out)
         out.puts "public #{name union} () {}"
         out.puts <<-EOS.strip_heredoc
+
               #{type_string union.discriminant.type} #{union.discriminant.name};
               public #{type_string union.discriminant.type} getDiscriminant() {
                 return this.#{union.discriminant.name};
@@ -196,7 +222,7 @@ module Xdrgen
               EOS
         end
 
-        out.puts "public static void encode(XdrDataOutputStream stream, #{name union} encoded#{name union}) throws IOException {"
+        out.puts "public static void encode(XdrDataOutputStream stream, #{name union} encoded#{name union}) {"
         if union.discriminant.type.is_a?(AST::Typespecs::Int)
           out.puts "stream.writeInt(encoded#{name union}.getDiscriminant().intValue());"
         # elsif [discriminant is AST::Definitions::Typedef]
@@ -223,7 +249,7 @@ module Xdrgen
         end
         out.puts "}\n}"
 
-        out.puts "public static #{name union} decode(XdrDataInputStream stream) throws IOException {"
+        out.puts "public static #{name union} decode(XdrDataInputStream stream) {"
         out.puts "#{name union} decoded#{name union} = new #{name union}();"
         if union.discriminant.type.is_a?(AST::Typespecs::Int)
           out.puts 'Integer discriminant = stream.readInt();'
@@ -262,7 +288,7 @@ module Xdrgen
         out.puts <<-EOS.strip_heredoc
               // Automatically generated by xdrgen
               // DO NOT EDIT or your changes may be overwritten
-              import System;
+              using System;
 
               namespace #{@namespace} {
             EOS
