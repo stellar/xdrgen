@@ -25,7 +25,8 @@ golang, and elixir:
 - golang: currently using a fork of go-xdr, but has complete support
 - elixir: support is experimental as the SDK is in early development. Generated
   code requires [:exdr](https://github.com/revelrylabs/exdr) in your deps
-
+- C#: seems complete, testing might prove otherwise.
+- 
 Testing is _very_ sparse, but will improve over time.
 
 ## Usage as a binary
