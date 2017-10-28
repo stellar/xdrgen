@@ -218,7 +218,7 @@ module Xdrgen
         out.puts "public #{name union} () {}"
         out.puts <<-EOS.strip_heredoc
 
-              #{type_string union.discriminant.type} Discriminant { get; set; } = new #{type_string union.discriminant.type}();
+              public #{type_string union.discriminant.type} Discriminant { get; set; } = new #{type_string union.discriminant.type}();
 
             EOS
         union.arms.each do |arm|
