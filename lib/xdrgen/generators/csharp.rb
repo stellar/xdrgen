@@ -6,7 +6,27 @@ module Xdrgen
         render_definitions(@top)
       end
 
-      def render_lib; end
+      def render_lib
+        template = IO.read(__dir__ + '/csharp/ByteReader.erb')
+        result = ERB.new(template).result binding
+        @output.write 'ByteReader.cs', result
+
+        template = IO.read(__dir__ + '/csharp/ByteWriter.erb')
+        result = ERB.new(template).result binding
+        @output.write 'ByteWriter.cs', result
+
+        template = IO.read(__dir__ + '/csharp/IByteWriter.erb')
+        result = ERB.new(template).result binding
+        @output.write 'IByteWriter.cs', result
+
+        template = IO.read(__dir__ + '/csharp/IByteReader.erb')
+        result = ERB.new(template).result binding
+        @output.write 'IByteReader.cs', result
+
+        template = IO.read(__dir__ + '/csharp/XdrEncoding.erb')
+        result = ERB.new(template).result binding
+        @output.write 'XdrEncoding.cs', result
+      end
 
       def render_definitions(node)
         node.namespaces.each { |n| render_definitions n }
@@ -111,7 +131,7 @@ module Xdrgen
             }
 
             public static #{name_string enum.name} Decode(IByteReader stream) {
-              int value = stream.ReadInt();
+              int value = XdrEncoding.DecodeInt32(stream);
               switch (value) {
             EOS
         out.indent 2 do
@@ -126,7 +146,7 @@ module Xdrgen
             }
 
             public static void Encode(IByteWriter stream, #{name_string enum.name} value) {
-              stream.WriteInt((int)value.InnerValue;
+              XdrEncoding.EncodeInt32((int)value.InnerValue, stream);
             }
             EOS
         out.break
@@ -210,13 +230,13 @@ module Xdrgen
 
         out.puts "public static void Encode(IByteWriter stream, #{name union} encoded#{name union}) {"
         if union.discriminant.type.is_a?(AST::Typespecs::Int)
-          out.puts "stream.WriteInt((int)encoded#{name union}.Discriminant);"
+          out.puts "XdrEncoding.EncodeInt32((int)encoded#{name union}.Discriminant, stream);"
           out.puts "switch (encoded#{name union}.Discriminant) {"
         # elsif [discriminant is AST::Definitions::Typedef]
         #   out.puts "stream.writeInt(encoded#{name union}.getDiscriminant().get#{name union.discriminant.type}());"
         else
           has_inner_value = true
-          out.puts "stream.WriteInt((int)encoded#{name union}.Discriminant.InnerValue);"
+          out.puts "XdrEncoding.EncodeInt32((int)encoded#{name union}.Discriminant.InnerValue, stream);"
           out.puts "switch (encoded#{name union}.Discriminant.InnerValue) {"
         end
 
@@ -241,7 +261,7 @@ module Xdrgen
         out.puts "public static #{name union} Decode(IByteReader stream) {"
         out.puts "#{name union} decoded#{name union} = new #{name union}();"
         if union.discriminant.type.is_a?(AST::Typespecs::Int)
-          out.puts 'int discriminant =  stream.ReadInt();'
+          out.puts 'int discriminant =  XdrEncoding.DecodeInt32(stream);'
           out.puts "decoded#{name union}.Discriminant = discriminant;"
           out.puts "switch (decoded#{name union}.Discriminant) {"
         else
@@ -310,22 +330,22 @@ module Xdrgen
 
         if member.type.sub_type == :optional
           out.puts "if (#{value}.InnerValue != null) {"
-          out.puts 'stream.WriteInt(1);'
+          out.puts 'XdrEncoding.EncodeInt32(1, stream);'
         end
 
         case member.declaration
         when AST::Declarations::Opaque
           out.puts "int #{member.name}size = #{value}.InnerValue.Length;"
           unless member.declaration.fixed?
-            out.puts "stream.WriteInt(#{member.name.camelize}size);"
+            out.puts "XdrEncoding.EncodeInt32(#{member.name.camelize}size, stream);"
           end
           out.puts <<-EOS.strip_heredoc
-                stream.Write(#{value}.InnerValue, 0, #{member.name}size);
+                XdrEncoding.WriteFixOpaque(stream, (uint)#{member.name}size, #{value}.InnerValue);
               EOS
         when AST::Declarations::Array
           out.puts "int #{member.name}size = #{value}.InnerValue.Length;"
           unless member.declaration.fixed?
-            out.puts "stream.WriteInt(#{member.name}size);"
+            out.puts "XdrEncoding.EncodeInt32(#{member.name}size, stream);"
           end
           out.puts <<-EOS.strip_heredoc
                 for (int i = 0; i < #{member.name}size; i++) {
@@ -337,7 +357,7 @@ module Xdrgen
         end
         if member.type.sub_type == :optional
           out.puts '} else {'
-          out.puts 'stream.WriteInt(0);'
+          out.puts 'XdrEncoding.EncodeInt32(0, stream);'
           out.puts '}'
         end
       end
@@ -350,21 +370,21 @@ module Xdrgen
 
         if member.type.sub_type == :optional
           out.puts "if (#{value}.#{member.name.camelize} != null) {"
-          out.puts 'stream.WriteInt(1);'
+          out.puts 'XdrEncoding.EncodeInt32(1, stream);'
         end
         case member.declaration
         when AST::Declarations::Opaque
           out.puts "int #{member.name}size = #{value}.#{member.name.camelize}.Length;"
           unless member.declaration.fixed?
-            out.puts "stream.WriteInt(#{member.name.camelize}size);"
+            out.puts "XdrEncoding.EncodeInt32(#{member.name.camelize}size, stream);"
           end
           out.puts <<-EOS.strip_heredoc
-                stream.Write(#{value}.#{member.name.camelize}, 0, #{member.name}size);
+                XdrEncoding.WriteFixOpaque(stream, (uint)#{member.name}size, #{value}.#{member.name.camelize});
               EOS
         when AST::Declarations::Array
           out.puts "int #{member.name}size = #{value}.#{member.name.camelize}.Length;"
           unless member.declaration.fixed?
-            out.puts "stream.WriteInt(#{member.name}size);"
+            out.puts "XdrEncoding.EncodeInt32(#{member.name}size, stream);"
           end
           out.puts <<-EOS.strip_heredoc
                 for (int i = 0; i < #{member.name}size; i++) {
@@ -376,7 +396,7 @@ module Xdrgen
         end
         if member.type.sub_type == :optional
           out.puts '} else {'
-          out.puts 'stream.WriteInt(0);'
+          out.puts 'XdrEncoding.EncodeInt32(0, stream);'
           out.puts '}'
         end
       end
@@ -384,23 +404,23 @@ module Xdrgen
       def encode_type(type, value)
         case type
         when AST::Typespecs::Int
-          "stream.WriteInt(#{value})"
+          "XdrEncoding.EncodeInt32(#{value}, stream)"
         when AST::Typespecs::UnsignedInt
-          "stream.WriteInt(#{value})"
+          "XdrEncoding.EncodeUInt32(#{value}, stream)"
         when AST::Typespecs::Hyper
-          "stream.WriteLong(#{value})"
+          "XdrEncoding.EncodeInt64(#{value}, stream)"
         when AST::Typespecs::UnsignedHyper
-          "stream.WriteLong(#{value})"
+          "XdrEncoding.EncodeUInt64(#{value}, stream)"
         when AST::Typespecs::Float
-          "stream.WriteFloat(#{value})"
+          "XdrEncoding.EncodeSingle(#{value}, stream)"
         when AST::Typespecs::Double
-          "stream.WriteDouble(#{value})"
+          "XdrEncoding.EncodeDouble(#{value}, stream)"
         when AST::Typespecs::Quadruple
-          raise 'cannot render quadruple in c#'
+          raise 'cannot render quadruple in golang'
         when AST::Typespecs::Bool
-          "stream.WriteInt(#{value} ? 1 : 0)"
+          "XdrEncoding.WriteBool(stream, #{value})"
         when AST::Typespecs::String
-          "stream.WriteString(#{value})"
+          "XdrEncoding.WriteString(stream, #{value})"
         when AST::Typespecs::Simple
           "#{name type.resolved_type}.Encode(stream, #{value})"
         when AST::Concerns::NestedDefinition
@@ -417,7 +437,7 @@ module Xdrgen
         end
         if member.type.sub_type == :optional
           out.puts <<-EOS.strip_heredoc
-                int #{member.name.camelize}Present = stream.ReadInt();
+                int #{member.name.camelize}Present = XdrEncoding.DecodeInt32(stream);
                 if (#{member.name.camelize}Present != 0) {
               EOS
         end
@@ -426,17 +446,17 @@ module Xdrgen
           if member.declaration.fixed?
             out.puts "int #{member.name}size = #{member.declaration.size};"
           else
-            out.puts "int #{member.name}size = stream.ReadInt();"
+            out.puts "int #{member.name}size = XdrEncoding.DecodeInt32(stream);"
           end
           out.puts <<-EOS.strip_heredoc
                 #{value}.InnerValue = new byte[#{member.name}size];
-                stream.Read(#{value}.InnerValue, 0, #{member.name}size);
+                XdrEncoding.ReadFixOpaque(stream, (uint)#{member.name}size);
               EOS
         when AST::Declarations::Array
           if member.declaration.fixed?
             out.puts "int #{member.name}size = #{member.declaration.size};"
           else
-            out.puts "int #{member.name}size = stream.ReadInt();"
+            out.puts "int #{member.name}size = XdrEncoding.DecodeInt32(stream);"
           end
           out.puts <<-EOS.strip_heredoc
                 #{value}.InnerValue = new #{type_string member.type}[#{member.name}size];
@@ -457,7 +477,7 @@ module Xdrgen
         end
         if member.type.sub_type == :optional
           out.puts <<-EOS.strip_heredoc
-                int #{member.name.camelize}Present = stream.ReadInt();
+                int #{member.name.camelize}Present = XdrEncoding.DecodeInt32(stream);
                 if (#{member.name.camelize}Present != 0) {
               EOS
         end
@@ -466,17 +486,17 @@ module Xdrgen
           if member.declaration.fixed?
             out.puts "int #{member.name}size = #{member.declaration.size};"
           else
-            out.puts "int #{member.name}size = stream.ReadInt();"
+            out.puts "int #{member.name}size = XdrEncoding.DecodeInt32(stream);"
           end
           out.puts <<-EOS.strip_heredoc
                 #{value}.#{member.name.camelize} = new byte[#{member.name}size];
-                stream.Read(#{value}.#{member.name.camelize},0,#{member.name}size);
+                  XdrEncoding.ReadFixOpaque(stream, (uint)#{member.name}size);
               EOS
         when AST::Declarations::Array
           if member.declaration.fixed?
             out.puts "int #{member.name}size = #{member.declaration.size};"
           else
-            out.puts "int #{member.name}size = stream.ReadInt();"
+            out.puts "int #{member.name}size = XdrEncoding.DecodeInt32(stream);"
           end
           out.puts <<-EOS.strip_heredoc
                 #{value}.#{member.name.camelize} = new #{type_string member.type}[#{member.name}size];
@@ -493,23 +513,23 @@ module Xdrgen
       def decode_type(type)
         case type
         when AST::Typespecs::Int
-          'stream.ReadInt()'
+          'XdrEncoding.DecodeInt32(stream)'
         when AST::Typespecs::UnsignedInt
-          'stream.ReadInt()'
+          'XdrEncoding.DecodeUInt32(stream)'
         when AST::Typespecs::Hyper
-          'stream.ReadLong()'
+          'XdrEncoding.DecodeInt64(stream)'
         when AST::Typespecs::UnsignedHyper
-          'stream.ReadLong()'
+          'XdrEncoding.DecodeUInt64(stream)'
         when AST::Typespecs::Float
-          'stream.ReadFloat()'
+          'XdrEncoding.DecodeSingle(stream)'
         when AST::Typespecs::Double
-          'stream.ReadDouble()'
+          'XdrEncoding.DecodeDouble(stream)'
         when AST::Typespecs::Quadruple
-          raise 'cannot render quadruple in c#'
+          raise 'cannot render quadruple in golang'
         when AST::Typespecs::Bool
-          'stream.ReadInt() == 1 ? true : false'
+          'XdrEncoding.ReadBool(stream)'
         when AST::Typespecs::String
-          'stream.ReadString()'
+          'XdrEncoding.ReadString(stream)'
         when AST::Typespecs::Simple
           "#{name type.resolved_type}.Decode(stream)"
         when AST::Concerns::NestedDefinition
