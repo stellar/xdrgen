@@ -110,7 +110,7 @@ module Xdrgen
               };
             }
 
-            public static #{name_string enum.name} Decode(IByteReader stream) {
+            public static #{name_string enum.name} Decode(XdrDataInputStream stream) {
               int value = stream.ReadInt();
               switch (value) {
             EOS
@@ -125,8 +125,8 @@ module Xdrgen
               }
             }
 
-            public static void Encode(IByteWriter stream, #{name_string enum.name} value) {
-              stream.WriteInt((int)value.InnerValue;
+            public static void Encode(XdrDataOutputStream stream, #{name_string enum.name} value) {
+              stream.WriteInt((int)value.InnerValue);
             }
             EOS
         out.break
@@ -140,7 +140,7 @@ module Xdrgen
               EOS
         end
         out.puts "\n"
-        out.puts "public static void Encode(IByteWriter stream, #{name struct} encoded#{name struct}) {"
+        out.puts "public static void Encode(XdrDataOutputStream stream, #{name struct} encoded#{name struct}) {"
         struct.members.each do |m|
           out.indent do
             encode_member "encoded#{name struct}", m, out
@@ -149,7 +149,7 @@ module Xdrgen
         out.puts '}'
 
         out.puts <<-EOS.strip_heredoc
-              public static #{name struct} Decode(IByteReader stream) {
+              public static #{name struct} Decode(XdrDataInputStream stream) {
                 #{name struct} decoded#{name struct} = new #{name struct}();
             EOS
         struct.members.each do |m|
@@ -177,12 +177,12 @@ module Xdrgen
               }
 
             EOS
-        out.puts "public static void Encode(IByteWriter stream, #{name typedef}  encoded#{name typedef}) {"
+        out.puts "public static void Encode(XdrDataOutputStream stream, #{name typedef}  encoded#{name typedef}) {"
         encode_innervalue_member "encoded#{name typedef}", typedef, out
         out.puts '}'
 
         out.puts <<-EOS.strip_heredoc
-              public static #{name typedef} Decode(IByteReader stream) {
+              public static #{name typedef} Decode(XdrDataInputStream stream) {
                 #{name typedef} decoded#{name typedef} = new #{name typedef}();
             EOS
         decode_innervalue_member "decoded#{name typedef}", typedef, out
@@ -208,7 +208,7 @@ module Xdrgen
               EOS
         end
 
-        out.puts "public static void Encode(IByteWriter stream, #{name union} encoded#{name union}) {"
+        out.puts "public static void Encode(XdrDataOutputStream stream, #{name union} encoded#{name union}) {"
         if union.discriminant.type.is_a?(AST::Typespecs::Int)
           out.puts "stream.WriteInt((int)encoded#{name union}.Discriminant);"
           out.puts "switch (encoded#{name union}.Discriminant) {"
@@ -238,7 +238,7 @@ module Xdrgen
         end
         out.puts "}\n}"
 
-        out.puts "public static #{name union} Decode(IByteReader stream) {"
+        out.puts "public static #{name union} Decode(XdrDataInputStream stream) {"
         out.puts "#{name union} decoded#{name union} = new #{name union}();"
         if union.discriminant.type.is_a?(AST::Typespecs::Int)
           out.puts 'int discriminant =  stream.ReadInt();'
@@ -541,11 +541,11 @@ module Xdrgen
         when AST::Typespecs::Int
           'int'
         when AST::Typespecs::UnsignedInt
-          'uint'
+          'int'
         when AST::Typespecs::Hyper
           'long'
         when AST::Typespecs::UnsignedHyper
-          'ulong'
+          'long'
         when AST::Typespecs::Float
           'float'
         when AST::Typespecs::Double
