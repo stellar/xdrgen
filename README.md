@@ -16,12 +16,13 @@ Xdrgen is a very early project.  Aside from the test fixtures in
 are the .x files used for the
 [stellar-core project](https://github.com/stellar/stellar-core).
 
-Xdrgen presently supports three output languages:  ruby, javacript, java, and golang:
+Xdrgen presently supports the following output languages:
 
 - ruby: complete support
 - javascript: complete support
 - java: complete support
 - golang: currently using a fork of go-xdr, but has complete support
+- scala: complete support
 
 Testing is _very_ sparse, but will improve over time.
 
