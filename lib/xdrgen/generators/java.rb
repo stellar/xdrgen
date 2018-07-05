@@ -188,16 +188,18 @@ module Xdrgen
             this.#{typedef.name} = value;
           }
         EOS
-        out.puts "public static void encode(XdrDataOutputStream stream, #{name typedef}  encoded#{name typedef}) throws IOException {"
-        encode_member "encoded#{name typedef}", typedef, out
+        out.puts "public static void encode(XdrDataOutputStream stream, #{name typedef} encoded#{name typedef}) throws IOException {"
+        out.indent do
+          encode_member "encoded#{name typedef}", typedef, out
+        end
         out.puts "}"
 
         out.puts <<-EOS.strip_heredoc
           public static #{name typedef} decode(XdrDataInputStream stream) throws IOException {
             #{name typedef} decoded#{name typedef} = new #{name typedef}();
         EOS
-        decode_member "decoded#{name typedef}", typedef, out
         out.indent do
+          decode_member "decoded#{name typedef}", typedef, out
           out.puts "return decoded#{name typedef};"
         end
         out.puts "}"
