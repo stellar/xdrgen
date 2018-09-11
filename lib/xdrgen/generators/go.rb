@@ -174,6 +174,8 @@ module Xdrgen
         when AST::Definitions::Const ;
           render_const out, defn
         end
+
+        render_binary_interface out, name(defn)
       end
 
       def render_source_comment(out, defn)
@@ -307,6 +309,22 @@ module Xdrgen
         out.break
       end
 
+      def render_binary_interface(out, name)
+        out.puts "// MarshalBinary implements encoding.BinaryMarshaler."
+        out.puts "func (s #{name}) MarshalBinary() ([]byte, error) {"
+        out.puts "  b := new(bytes.Buffer)"
+        out.puts "  _, err := Marshal(&b, s)"
+        out.puts "  return b.Bytes(), err"
+        out.puts "}"
+        out.break
+        out.puts "// UnmarshalBinary implements encoding.BinaryUnmarshaler."
+        out.puts "func (s *#{name}) UnmarshalBinary(inp []byte) error {"
+        out.puts "  _, err := Unmarshal(bytes.NewReader(inp), s)"
+        out.puts "  return err"
+        out.puts "}"
+        out.break
+      end
+
       def render_top_matter(out)
         out.puts <<-EOS.strip_heredoc
           // Package #{@namespace || "main"} is generated from:
@@ -317,6 +335,7 @@ module Xdrgen
           package #{@namespace || "main"}
 
           import (
+            "bytes"
             "io"
             "fmt"
 
