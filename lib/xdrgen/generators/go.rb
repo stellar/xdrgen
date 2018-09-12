@@ -165,17 +165,20 @@ module Xdrgen
         case defn
         when AST::Definitions::Struct ;
           render_struct out, defn
+          render_binary_interface out, name(defn)
         when AST::Definitions::Enum ;
           render_enum out, defn
+          render_binary_interface out, name(defn)
         when AST::Definitions::Union ;
           render_union out, defn
+          render_binary_interface out, name(defn)
         when AST::Definitions::Typedef ;
           render_typedef out, defn
+          render_binary_interface out, name(defn)
         when AST::Definitions::Const ;
           render_const out, defn
+          render_binary_interface out, name(defn)
         end
-
-        render_binary_interface out, name(defn)
       end
 
       def render_source_comment(out, defn)
