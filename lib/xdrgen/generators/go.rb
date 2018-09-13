@@ -315,7 +315,7 @@ module Xdrgen
         out.puts "// MarshalBinary implements encoding.BinaryMarshaler."
         out.puts "func (s #{name}) MarshalBinary() ([]byte, error) {"
         out.puts "  b := new(bytes.Buffer)"
-        out.puts "  _, err := Marshal(&b, s)"
+        out.puts "  _, err := Marshal(b, s)"
         out.puts "  return b.Bytes(), err"
         out.puts "}"
         out.break
@@ -324,6 +324,11 @@ module Xdrgen
         out.puts "  _, err := Unmarshal(bytes.NewReader(inp), s)"
         out.puts "  return err"
         out.puts "}"
+        out.break
+        out.puts "var ("
+        out.puts "  _ encoding.BinaryMarshaler   = (*#{name})(nil)"
+        out.puts "  _ encoding.BinaryUnmarshaler = (*#{name})(nil)"
+        out.puts ")"
         out.break
       end
 
@@ -338,6 +343,7 @@ module Xdrgen
 
           import (
             "bytes"
+            "encoding"
             "io"
             "fmt"
 
