@@ -177,7 +177,6 @@ module Xdrgen
           render_binary_interface out, name(defn)
         when AST::Definitions::Const ;
           render_const out, defn
-          render_binary_interface out, name(defn)
         end
       end
 
