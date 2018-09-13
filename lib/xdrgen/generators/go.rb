@@ -165,12 +165,16 @@ module Xdrgen
         case defn
         when AST::Definitions::Struct ;
           render_struct out, defn
+          render_binary_interface out, name(defn)
         when AST::Definitions::Enum ;
           render_enum out, defn
+          render_binary_interface out, name(defn)
         when AST::Definitions::Union ;
           render_union out, defn
+          render_binary_interface out, name(defn)
         when AST::Definitions::Typedef ;
           render_typedef out, defn
+          render_binary_interface out, name(defn)
         when AST::Definitions::Const ;
           render_const out, defn
         end
@@ -307,6 +311,27 @@ module Xdrgen
         out.break
       end
 
+      def render_binary_interface(out, name)
+        out.puts "// MarshalBinary implements encoding.BinaryMarshaler."
+        out.puts "func (s #{name}) MarshalBinary() ([]byte, error) {"
+        out.puts "  b := new(bytes.Buffer)"
+        out.puts "  _, err := Marshal(b, s)"
+        out.puts "  return b.Bytes(), err"
+        out.puts "}"
+        out.break
+        out.puts "// UnmarshalBinary implements encoding.BinaryUnmarshaler."
+        out.puts "func (s *#{name}) UnmarshalBinary(inp []byte) error {"
+        out.puts "  _, err := Unmarshal(bytes.NewReader(inp), s)"
+        out.puts "  return err"
+        out.puts "}"
+        out.break
+        out.puts "var ("
+        out.puts "  _ encoding.BinaryMarshaler   = (*#{name})(nil)"
+        out.puts "  _ encoding.BinaryUnmarshaler = (*#{name})(nil)"
+        out.puts ")"
+        out.break
+      end
+
       def render_top_matter(out)
         out.puts <<-EOS.strip_heredoc
           // Package #{@namespace || "main"} is generated from:
@@ -317,6 +342,8 @@ module Xdrgen
           package #{@namespace || "main"}
 
           import (
+            "bytes"
+            "encoding"
             "io"
             "fmt"
 
