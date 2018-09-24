@@ -166,15 +166,19 @@ module Xdrgen
         when AST::Definitions::Struct ;
           render_struct out, defn
           render_binary_interface out, name(defn)
+          render_text_interface out, name(defn)
         when AST::Definitions::Enum ;
           render_enum out, defn
           render_binary_interface out, name(defn)
+          render_text_interface out, name(defn)
         when AST::Definitions::Union ;
           render_union out, defn
           render_binary_interface out, name(defn)
+          render_text_interface out, name(defn)
         when AST::Definitions::Typedef ;
           render_typedef out, defn
           render_binary_interface out, name(defn)
+          render_text_interface out, name(defn)
         when AST::Definitions::Const ;
           render_const out, defn
         end
@@ -332,6 +336,31 @@ module Xdrgen
         out.break
       end
 
+      def render_text_interface(out, name)
+        out.puts "// MarshalText implements encoding.TextMarshaler."
+        out.puts "func (s #{name}) MarshalText() ([]byte, error) {"
+        out.puts "  b := new(bytes.Buffer)"
+        out.puts "  e := base64.NewEncoder(base64.StdEncoding, b)"
+        out.puts "  _, err := Marshal(e, s)"
+        out.puts "  if err != nil { return nil, err }"
+        out.puts "  err = e.Close()"
+        out.puts "  return b.Bytes(), err"
+        out.puts "}"
+        out.break
+        out.puts "// UnmarshalText implements encoding.TextUnmarshaler."
+        out.puts "func (s *#{name}) UnmarshalText(inp []byte) error {"
+        out.puts "  d := base64.NewDecoder(base64.StdEncoding, bytes.NewReader(inp))"
+        out.puts "  _, err := Unmarshal(d, s)"
+        out.puts "  return err"
+        out.puts "}"
+        out.break
+        out.puts "var ("
+        out.puts "  _ encoding.TextMarshaler   = (*#{name})(nil)"
+        out.puts "  _ encoding.TextUnmarshaler = (*#{name})(nil)"
+        out.puts ")"
+        out.break
+      end
+
       def render_top_matter(out)
         out.puts <<-EOS.strip_heredoc
           // Package #{@namespace || "main"} is generated from:
@@ -344,6 +373,7 @@ module Xdrgen
           import (
             "bytes"
             "encoding"
+            "encoding/base64"
             "io"
             "fmt"
 
