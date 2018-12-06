@@ -228,14 +228,22 @@ module Xdrgen
         end
 
         out.puts "public static void encode(XdrDataOutputStream stream, #{name union} encoded#{name union}) throws IOException {"
+        out.puts('//' + union.discriminant.type.class.to_s)
+        out.puts("//" + type_string(union.discriminant.type))
         if union.discriminant.type.is_a?(AST::Typespecs::Int)
           out.puts "stream.writeInt(encoded#{name union}.getDiscriminant().intValue());"
-        # elsif [discriminant is AST::Definitions::Typedef]
-        #   out.puts "stream.writeInt(encoded#{name union}.getDiscriminant().get#{name union.discriminant.type}());"
+        elsif type_string(union.discriminant.type) == "Uint32"
+          # ugly workaround for compile error after generating source for AuthenticatedMessage in stellar-core
+          out.puts "stream.writeInt(encoded#{name union}.getDiscriminant().getUint32());"
         else
           out.puts "stream.writeInt(encoded#{name union}.getDiscriminant().getValue());"
         end
-        out.puts "switch (encoded#{name union}.getDiscriminant()) {"
+        if type_string(union.discriminant.type) == "Uint32"
+          # ugly workaround for compile error after generating source for AuthenticatedMessage in stellar-core
+          out.puts "switch (encoded#{name union}.getDiscriminant().getUint32()) {"
+        else
+          out.puts "switch (encoded#{name union}.getDiscriminant()) {"
+        end
         union.arms.each do |arm|
           case arm
             when AST::Definitions::UnionDefaultArm ;
@@ -262,7 +270,13 @@ module Xdrgen
           out.puts "#{name union.discriminant.type} discriminant = #{name union.discriminant.type}.decode(stream);"
         end
         out.puts "decoded#{name union}.setDiscriminant(discriminant);"
-        out.puts "switch (decoded#{name union}.getDiscriminant()) {"
+
+        if type_string(union.discriminant.type) == "Uint32"
+          # ugly workaround for compile error after generating source for AuthenticatedMessage in stellar-core
+          out.puts "switch (decoded#{name union}.getDiscriminant().getUint32()) {"
+        else
+          out.puts "switch (decoded#{name union}.getDiscriminant()) {"
+        end
 
         union.arms.each do |arm|
           case arm
