@@ -136,7 +136,7 @@ module Xdrgen
         out.puts "}"
       end
 
-      def render_struct(element, out)
+      def render_struct(element, out, superclass=nil)
         name = name_string element.name
         out.puts "case class #{name} ("
         out.indent do
@@ -146,10 +146,11 @@ module Xdrgen
               len -= 1
             end
         end
-        out.puts ") {"
+        out.puts ") #{superclass ? "extends #{superclass} " : ""}{"
         out.indent do
           out.puts "def encode(stream: XdrDataOutputStream): Unit = {"
           out.indent do
+            out.puts "#{superclass}.encode(this, stream)" if superclass
             element.members.each do |m|
               encode_member m, out
             end
@@ -172,12 +173,13 @@ module Xdrgen
           render_nested_definitions element, out
         end
         out.puts "}"
+        out.puts ""
       end
 
-      def render_typedef(typedef, out)
+      def render_typedef(typedef, out, superclass=nil)
         name = name_string typedef.name
         out.puts <<-EOS.strip_heredoc
-          case class #{name} (self: #{decl_string typedef.declaration}) {
+          case class #{name} (self: #{decl_string typedef.declaration}) #{superclass ? "extends #{superclass} " : ""} {
             def encode(stream: XdrDataOutputStream): Unit = {
         EOS
         out.indent(2) do
@@ -198,6 +200,7 @@ module Xdrgen
 
       def render_union(union, out)
         name = name_string union.name
+
         def render_arms(union)
           union.arms.each do |arm|
             if arm.is_a? AST::Definitions::UnionDefaultArm
@@ -213,7 +216,7 @@ module Xdrgen
                   else
                     "#{kase.value.value}"
                   end
-                rtype = kase.value.is_a?(AST::Identifier) ? "#{name_string kase.value.name}" : "R_#{kase.value.value}"
+                rtype = kase.value.is_a?(AST::Identifier) ? "#{kase.value.name.downcase.camelize}" : "R_#{kase.value.value}"
                 yield arm.declaration, ktype, rtype, false
               end
             end
@@ -228,6 +231,8 @@ module Xdrgen
           object #{name} {
             def decode(stream: XdrDataInputStream): #{name} = #{decode_type union.discriminant.type} match {
         EOS
+
+        # decode
         out.indent do
           out.indent do
             the_default = "case d => throw new IllegalArgumentException(s\"#{type_string union.discriminant.type} value $d is invalid\")"
@@ -236,40 +241,82 @@ module Xdrgen
               if is_default
                 the_default = "case #{ktype} => #{rtype}(d" + (is_void?(decl) ? "" : ", #{decode}") + ")"
               else
-                out.puts "case #{ktype} => #{rtype}#{is_void?(decl) ? "" : "(" + decode + ")" }"
+                out.puts "case #{ktype} => #{is_void?(decl) ? rtype : decode}" # #{rtype}#{is_void?(decl) ? "" : "(" + decode + ")" }"
               end
             end
             out.puts the_default
           end
-          out.puts "}"
-          out.puts ""
-          render_arms(union) do |decl, ktype, rtype, is_default|
-            type = "class"
-            args = is_default ? "(d: #{type_string union.discriminant.type}" : ""
-            unless is_void? decl
-              args += (args.empty? ? "(" : ", ") + "x: #{decl_string decl})"
-            else
-              args += args.empty? ? "" : ")"
-            end
-            if !is_default && is_void?(decl)
-              type = "object"
-              args = ""
-            end
-            out.puts "case #{type} #{rtype}#{args} extends #{name} {"
+
+          out.puts <<-EOS.strip_heredoc
+          }
+          
+          def encode(x: #{name}, stream: XdrDataOutputStream): Unit = x match {
+          EOS
+
+          #encode
             out.indent do
-              out.puts "def encode(stream: XdrDataOutputStream): Unit = {"
-              out.indent do
-                encode_decl union.discriminant, ktype, false, out
-                unless is_void? decl
-                  encode_decl decl, "x", false, out
+              render_arms(union) do |decl, ktype, rtype, is_default|
+                if is_void?(decl)
+                  out.puts "case #{rtype} => #{ktype}.encode(stream)"
+                else
+                  out.puts "case _: #{rtype} => #{ktype}.encode(stream)"
                 end
               end
-              out.puts "}"
             end
-            out.puts "}"
+
+          out.puts "}"
+          out.puts ""
+
+
+          # render_arms(union) do |decl, ktype, rtype, is_default|
+            # type = "class"
+            # args = is_default ? "(d: #{type_string union.discriminant.type}" : ""
+            # if is_void? decl
+            #   args += args.empty? ? "" : ")"
+            # else
+            #   args += (args.empty? ? "(" : ", ") + "x: #{decl_string decl})"
+            # end
+            # if !is_default && is_void?(decl)
+            #   type = "object"
+            #   args = ""
+            # end
+            #
+            # out.puts "case #{type} #{rtype}#{args} extends #{name} {"
+            # out.indent do
+            #   out.puts "def encode(stream: XdrDataOutputStream): Unit = {"
+            #   out.indent do
+            #     encode_decl union.discriminant, ktype, false, out
+            #     unless is_void? decl
+            #       encode_decl decl, "x", false, out
+            #     end
+            #   end
+            #   out.puts "}"
+            # end
+
+
+          union.nested_definitions.each { |ndefn|
+            case ndefn
+            when AST::Definitions::Struct ;
+              render_struct ndefn, out, name
+            when AST::Definitions::Enum ;
+              render_enum ndefn, out
+            when AST::Definitions::Union ;
+              render_union ndefn, out
+            when AST::Definitions::Typedef ;
+              render_typedef ndefn, out, name
+            end
+          }
+
+          render_arms(union) do |decl, ktype, rtype, is_default|
+            if is_void? decl
+              out.puts <<-EOS.strip_heredoc
+              object #{rtype} extends #{name} {
+                def encode(stream: XdrDataOutputStream): Unit = #{ktype}.encode(stream)
+              }
+              EOS
+            end
           end
 
-          render_nested_definitions union, out
         end
         out.puts "}"
       end
