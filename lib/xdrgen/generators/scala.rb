@@ -3,13 +3,62 @@ module Xdrgen
 
     class Scala < Xdrgen::Generators::Base
 
-      def generate
-        render_lib
-        render_package_file do |out|
-          render_constants(@top, out)
+      class Enum
+        attr_accessor :name, :members, :element
+
+        def initialize(name, members, element)
+          @name = name
+          @members = members
+          @element = element
         end
-        render_definitions(@top)
+
+        def to_s
+          "#{@name}: #{@members.inspect}"
+        end
       end
+
+      def generate
+        enums = parse_enums @top
+        render_lib
+        enums.each{|e| write_enum_file e }
+      end
+
+      def parse_enums(ns)
+        ns.definitions.select{|d| d.is_a? AST::Definitions::Enum }.map do |e|
+          hash = e.members.reduce({}) do |hash, member|
+            hash.store(member.name.downcase.camelize, member.value)
+            hash
+          end
+          Enum.new(name(e), hash, e)
+        end
+      end
+
+      def write_enum_file(e)
+        path = "#{@namespace}/#{e.name}.scala"
+        out  = @output.open(path)
+        render_top_matter out
+        render_enum out, e
+      end
+
+      def render_enum(out, e)
+        render_source_comment out, e.element
+        out.puts <<-EOS.strip_heredoc
+        sealed class #{e.name}(val i: Int) {
+          def encode(stream: XdrDataOutputStream) = stream.writeInt(i)
+        }
+
+        object #{e.name} {
+          def decode(stream: XdrDataInputStream): #{e.name} = stream.readInt() match {
+            #{e.members.map{|k,v| "case #{v} => #{k}" }.join("\n    ")}
+            case i => throw new IllegalArgumentException(s"#{e.name} value $i is invalid")
+          }
+
+          #{e.members.map{|k,v| "case object #{k} extends #{e.name}(#{v})"}.join("\n    ")}
+        }
+        EOS
+      end
+
+      # ----
 
       private
       def render_lib
@@ -106,7 +155,7 @@ module Xdrgen
         }
       end
 
-      def render_enum(enum, out)
+      def render_enum_old(enum, out)
         name = name_string enum.name
         out.puts <<-EOS.strip_heredoc
           sealed class #{name} (val i: Int) {
@@ -119,7 +168,7 @@ module Xdrgen
         out.indent do
           out.indent do
             enum.members.each do |em|
-               out.puts("case #{em.value} => #{name_string em.name}")
+               out.puts("case #{em.value} => #{em.name.downcase.camelize}")
             end
             out.puts("case i => throw new IllegalArgumentException(s\"#{name} value $i is invalid\")")
           end
@@ -127,7 +176,7 @@ module Xdrgen
           out.puts ""
           enum.members.each do |em|
             out.puts <<-EOS.strip_heredoc
-            case object #{name_string em.name} extends #{name}(#{em.value})
+            case object #{em.name.downcase.camelize} extends #{name}(#{em.value})
             EOS
           end
 
@@ -179,7 +228,7 @@ module Xdrgen
       def render_typedef(typedef, out, superclass=nil)
         name = name_string typedef.name
         out.puts <<-EOS.strip_heredoc
-          case class #{name} (self: #{decl_string typedef.declaration}) #{superclass ? "extends #{superclass} " : ""} {
+          case class #{name}(self: #{decl_string typedef.declaration}) #{superclass ? "extends #{superclass} " : ""} {
             def encode(stream: XdrDataOutputStream): Unit = {
         EOS
         out.indent(2) do
@@ -188,6 +237,7 @@ module Xdrgen
         out.puts <<-EOS.strip_heredoc
             }
           }
+
         EOS
         decode_str = decode_decl typedef.declaration
         decode_statement = typedef.type.sub_type == :optional ? "Option(#{decode_str})" : decode_str
@@ -229,7 +279,7 @@ module Xdrgen
           }
 
           object #{name} {
-            def decode(stream: XdrDataInputStream): #{name} = #{decode_type union.discriminant.type} match {
+            def decode(stream: XdrDataInputStream): Any = #{decode_type union.discriminant.type} match {
         EOS
 
         # decode
@@ -333,19 +383,9 @@ module Xdrgen
 
       def render_source_comment(out, defn)
         return if defn.is_a?(AST::Definitions::Namespace)
-
-        out.puts <<-EOS.strip_heredoc
-        // === xdr source ============================================================
-
-        EOS
-
-        out.puts "//  " + defn.text_value.split("\n").join("\n//  ")
-
-        out.puts <<-EOS.strip_heredoc
-
-        //  ===========================================================================
-
-        EOS
+        out.puts "/*"
+        out.puts "    #{defn.text_value.split("\n").join("\n    ")}"
+        out.puts "*/"
       end
 
       def encode_member(member, out)
