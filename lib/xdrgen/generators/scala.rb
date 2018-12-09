@@ -11,38 +11,128 @@ module Xdrgen
           @members = members
           @element = element
         end
+      end
 
-        def to_s
-          "#{@name}: #{@members.inspect}"
+      class Constant
+        attr_accessor :name, :value
+
+        def initialize(name, value)
+          @name = name
+          @value = value
         end
       end
 
+      class TypeDef
+        attr_accessor :name, :declaration, :is_optional, :element
+
+        def initialize(name, declaration, element, is_optional = false)
+          @name = name
+          @declaration = declaration
+          @is_optional = is_optional
+          @element = element
+        end
+      end
+
+      # class Union
+      #   attr_accessor :name
+      #
+      #   def initialize(name)
+      #     @name = name
+      #   end
+      # end
+
       def generate
         enums = parse_enums @top
+        constants = parse_constants @top
+        typedefs = parse_typedefs @top
+        unions = parse_unions @top
+        structs = parse_structs @top
+
         render_lib
-        enums.each{|e| write_enum_file e }
+        write_package_class constants
+        enums.each(&method(:write_enum_file))
+        typedefs.each(&method(:write_typedef_file))
+        unions.each(&method(:write_union_file))
+        structs.each(&method(:write_struct_file))
       end
 
       def parse_enums(ns)
         ns.definitions.select{|d| d.is_a? AST::Definitions::Enum }.map do |e|
           hash = e.members.reduce({}) do |hash, member|
-            hash.store(member.name.downcase.camelize, member.value)
+            hash.store(member.name, member.value)
             hash
           end
           Enum.new(name(e), hash, e)
         end
       end
 
+      def parse_constants(ns)
+        ns.definitions.select{|d| d.is_a? AST::Definitions::Const }.map do |c|
+          Constant.new(c.name, c.value)
+        end
+      end
+
+      def parse_typedefs(ns)
+        ns.definitions.select{|d| d.is_a? AST::Definitions::Typedef }.map do |td|
+          TypeDef.new(td.name.camelize, td.declaration, td, td.type.sub_type == :optional)
+        end
+      end
+
+      def parse_unions(ns)
+        ns.definitions.select{|d| d.is_a? AST::Definitions::Union }
+      end
+
+      def parse_structs(ns)
+        ns.definitions.select{|d| d.is_a? AST::Definitions::Struct }
+      end
+
       def write_enum_file(e)
-        path = "#{@namespace}/#{e.name}.scala"
+        write_class_file e.name do |out|
+          render_enum out, e
+        end
+      end
+
+      def write_typedef_file(td)
+        write_class_file td.name do |out|
+          render_typedef out, td
+        end
+      end
+
+      def write_union_file(u)
+        write_class_file u.name do |out|
+          render_union out, u
+        end
+      end
+
+      def write_struct_file(s)
+        write_class_file s.name do |out|
+          render_struct out, s
+        end
+      end
+
+      def write_class_file(name)
+        path = "#{@namespace.downcase}/#{name.camelize}.scala"
         out  = @output.open(path)
         render_top_matter out
-        render_enum out, e
+        render_package out
+        yield out
+      end
+
+      def write_package_class(constants)
+        return if constants.empty?
+        path = "#{@namespace.downcase}/#{@namespace.downcase}.scala"
+        out = @output.open(path)
+        render_top_matter out
+        out.puts <<-EOS.strip_heredoc
+        package object #{@namespace.downcase} {
+          #{constants.map{|c| "val #{c.name} = #{c.value}"}.join("\n  ")}
+        }
+        EOS
       end
 
       def render_enum(out, e)
         render_source_comment out, e.element
-        out.puts <<-EOS.strip_heredoc
+        out.puts <<~EOS.strip_heredoc
         sealed class #{e.name}(val i: Int) {
           def encode(stream: XdrDataOutputStream) = stream.writeInt(i)
         }
@@ -53,205 +143,39 @@ module Xdrgen
             case i => throw new IllegalArgumentException(s"#{e.name} value $i is invalid")
           }
 
-          #{e.members.map{|k,v| "case object #{k} extends #{e.name}(#{v})"}.join("\n    ")}
+          #{e.members.map{|k,v| "case object #{k} extends #{e.name}(#{v})"}.join("\n  ")}
         }
         EOS
       end
 
-      # ----
+      def render_typedef(out, td)
+        render_source_comment out, td.element
 
-      private
-      def render_lib
-        template = IO.read(__dir__ + "/scala/XdrDataInputStream.erb")
-        result = ERB.new(template).result binding
-        @output.write "#{@namespace.downcase}/XdrDataInputStream.scala", result
-
-        template = IO.read(__dir__ + "/scala/XdrDataOutputStream.erb")
-        result = ERB.new(template).result binding
-        @output.write "#{@namespace.downcase}/XdrDataOutputStream.scala", result
-      end
-
-      def render_constants(node, out)
-        node.namespaces.each{|n| render_constants(n, out) }
-        node.definitions.select{|c| c.is_a? AST::Definitions::Const}.each { |c| render_const out, c }
-      end
-
-      def render_const(out, const)
-        out.indent do
-          out.puts "val #{const.name.downcase.camelize} = #{const.value.downcase.camelize}"
-        end
-      end
-
-      def render_definitions(node)
-        node.namespaces.each{|n| render_definitions n }
-        node.definitions.each(&method(:render_definition))
-      end
-
-      def render_definition(defn)
-        case defn
-        when AST::Definitions::Struct ;
-          render_file defn do |out|
-            render_struct defn, out
-          end
-        when AST::Definitions::Enum ;
-          render_file defn do |out|
-            render_enum defn, out
-          end
-        when AST::Definitions::Union ;
-          render_file defn do |out|
-            render_union defn, out
-          end
-        when AST::Definitions::Typedef ;
-          render_file defn do |out|
-            render_typedef defn, out
-          end
-        end
-      end
-
-      def render_package_file
-        path = "#{@namespace.downcase}/#{@namespace.downcase}.scala"
-        out  = @output.open(path)
         out.puts <<-EOS.strip_heredoc
-          // Automatically generated by xdrgen
-          // DO NOT EDIT or your changes may be overwritten
-
-          package object #{@namespace.downcase} {
-        EOS
-
-        yield out
-
-        out.puts("}")
-      end
-
-      def render_file(element)
-        path = "#{@namespace.downcase}/#{element.name.camelize}.scala"
-        out  = @output.open(path)
-        render_top_matter out
-        render_source_comment out, element
-
-        yield out
-      end
-
-      def render_nested_definitions(defn, out)
-        return unless defn.respond_to? :nested_definitions
-        unless defn.nested_definitions.empty?
-          out.puts ""
-        end
-        defn.nested_definitions.each{|ndefn|
-          case ndefn
-          when AST::Definitions::Struct ;
-            name = name ndefn
-            render_struct ndefn, out
-          when AST::Definitions::Enum ;
-            name = name ndefn
-            render_enum ndefn, out
-          when AST::Definitions::Union ;
-            name = name ndefn
-            render_union ndefn, out
-          when AST::Definitions::Typedef ;
-            name = name ndefn
-            render_typedef ndefn, out
-          end
-        }
-      end
-
-      def render_enum_old(enum, out)
-        name = name_string enum.name
-        out.puts <<-EOS.strip_heredoc
-          sealed class #{name} (val i: Int) {
-            def encode(stream: XdrDataOutputStream) = stream.writeInt(i)
-          }
-
-          object #{name} {
-            def decode(stream: XdrDataInputStream): #{name} = stream.readInt() match {
-        EOS
-        out.indent do
-          out.indent do
-            enum.members.each do |em|
-               out.puts("case #{em.value} => #{em.name.downcase.camelize}")
-            end
-            out.puts("case i => throw new IllegalArgumentException(s\"#{name} value $i is invalid\")")
-          end
-          out.puts "}"
-          out.puts ""
-          enum.members.each do |em|
-            out.puts <<-EOS.strip_heredoc
-            case object #{em.name.downcase.camelize} extends #{name}(#{em.value})
-            EOS
-          end
-
-          render_nested_definitions enum, out
-        end
-        out.puts "}"
-      end
-
-      def render_struct(element, out, superclass=nil)
-        name = name_string element.name
-        out.puts "case class #{name} ("
-        out.indent do
-            len = element.members.length
-            element.members.each do |m|
-                out.puts "#{sanitize m.name}: " + (is_nested?(m.type) ? "#{name}." : "") + "#{decl_string m.declaration}" + (len > 1 ? ", " : "")
-              len -= 1
-            end
-        end
-        out.puts ") #{superclass ? "extends #{superclass} " : ""}{"
-        out.indent do
-          out.puts "def encode(stream: XdrDataOutputStream): Unit = {"
-          out.indent do
-            out.puts "#{superclass}.encode(this, stream)" if superclass
-            element.members.each do |m|
-              encode_member m, out
-            end
-          end
-        end
-        out.puts "  }"
-        out.puts "}"
-        out.puts ""
-        out.puts "object #{name} {"
-        out.puts "  def decode(stream: XdrDataInputStream): #{name} = #{name element}("
-        out.indent do
-          out.indent do
-            len = element.members.length
-            element.members.each do |m|
-              decode_member m, out, len == 1
-              len -= 1
-            end
-          end
-          out.puts ")"
-          render_nested_definitions element, out
-        end
-        out.puts "}"
-        out.puts ""
-      end
-
-      def render_typedef(typedef, out, superclass=nil)
-        name = name_string typedef.name
-        out.puts <<-EOS.strip_heredoc
-          case class #{name}(self: #{decl_string typedef.declaration}) #{superclass ? "extends #{superclass} " : ""} {
-            def encode(stream: XdrDataOutputStream): Unit = {
+        case class #{td.name}(self: #{decl_string td.declaration}) {
+          def encode(stream: XdrDataOutputStream): Unit = {
         EOS
         out.indent(2) do
-              encode_decl typedef.declaration, "self", typedef.type.sub_type == :optional, out
+          encode_decl td.declaration, "self", td.is_optional, out
         end
         out.puts <<-EOS.strip_heredoc
-            }
           }
+        }
 
         EOS
-        decode_str = decode_decl typedef.declaration
-        decode_statement = typedef.type.sub_type == :optional ? "Option(#{decode_str})" : decode_str
+        decode_str = decode_decl td.declaration
+        decode_statement = td.is_optional ? "Option(#{decode_str})" : decode_str
         out.puts <<-EOS.strip_heredoc
-          object #{name} {
-            def decode(stream: XdrDataInputStream): #{name} = #{name}(#{decode_statement})
+          object #{td.name} {
+            def decode(stream: XdrDataInputStream): #{td.name} = #{td.name}(#{decode_statement})
           }
         EOS
       end
 
-      def render_union(union, out)
+      def render_union(out, union)
         name = name_string union.name
 
-        def render_arms(union)
+        def render_arms(union, name)
           union.arms.each do |arm|
             if arm.is_a? AST::Definitions::UnionDefaultArm
               yield arm.declaration, "d", "Default", true
@@ -259,15 +183,28 @@ module Xdrgen
               arm.cases.each do |kase|
                 dtype = type_string union.discriminant.type
                 ktype =
-                  if kase.value.is_a?(AST::Identifier)
-                    "#{dtype}.#{name_string kase.value.name}"
-                  elsif union.discriminant.type.is_a?(AST::Typespecs::Simple)
-                    "#{dtype}(#{kase.value.value})"
-                  else
-                    "#{kase.value.value}"
-                  end
-                rtype = kase.value.is_a?(AST::Identifier) ? "#{kase.value.name.downcase.camelize}" : "R_#{kase.value.value}"
-                yield arm.declaration, ktype, rtype, false
+                    if kase.value.is_a?(AST::Identifier)
+                      "#{dtype}.#{name_string kase.value.name}"
+                    elsif union.discriminant.type.is_a?(AST::Typespecs::Simple)
+                      "#{dtype}(#{kase.value.value})"
+                    else
+                      "#{kase.value.value}"
+                    end
+                rtype =
+                    if kase.value.is_a?(AST::Identifier)
+                      if is_void?(arm.declaration)
+                        "#{name}#{name_string kase.value.name.downcase}"
+                      elsif arm.declaration.type.sub_type == :simple
+                        "#{name}#{arm.declaration.type.name.camelize}"
+                      elsif arm.declaration.type.sub_type == :optional
+                        "#{name}#{arm.declaration.type.name.camelize}Opt"
+                      else
+                        "#{name}#{arm.declaration.type.name.camelize}Array"
+                      end
+                    else
+                      "#{name}#{kase.value.value}"
+                    end
+                yield arm.declaration, ktype, rtype
               end
             end
           end
@@ -277,11 +214,30 @@ module Xdrgen
           sealed trait #{name} {
             def encode(stream: XdrDataOutputStream): Unit
           }
-
-          object #{name} {
-            def decode(stream: XdrDataInputStream): Any = #{decode_type union.discriminant.type} match {
         EOS
 
+        render_arms(union, name) do |decl, ktype, rtype|
+          out.puts decl_wrapper(rtype, name, decl)
+        end
+
+        out.puts <<-EOS.strip_heredoc
+        
+        object #{name} {
+          def decode(stream: XdrDataInputStream): #{name} = #{decode_type union.discriminant.type} match {
+        EOS
+        out.indent(2) do
+          render_arms(union, name) do |decl, ktype, rtype|
+            decode = "#{decode_decl decl}"
+            out.puts "case #{ktype} => #{rtype}#{is_void?(decl) ? "" : "(#{decode})"}"
+          end
+          out.puts "case d => throw new IllegalArgumentException(s\"#{type_string union.discriminant.type} value $d is invalid\")"
+        end
+        out.puts <<-EOS.strip_heredoc
+          }
+        }
+        EOS
+
+=begin
         # decode
         out.indent do
           out.indent do
@@ -299,8 +255,8 @@ module Xdrgen
 
           out.puts <<-EOS.strip_heredoc
           }
-          
-          def encode(x: #{name}, stream: XdrDataOutputStream): Unit = x match {
+
+          def encode(x: Result, stream: XdrDataOutputStream): Unit = x match {
           EOS
 
           #encode
@@ -369,6 +325,7 @@ module Xdrgen
 
         end
         out.puts "}"
+=end
       end
 
       def render_top_matter(out)
@@ -376,7 +333,12 @@ module Xdrgen
           // Automatically generated by xdrgen
           // DO NOT EDIT or your changes may be overwritten
 
-          package #{@namespace.downcase || "main"}
+        EOS
+      end
+
+      def render_package(out)
+        out.puts <<-EOS.strip_heredoc
+        package #{@namespace.downcase || "main"}
 
         EOS
       end
@@ -388,17 +350,241 @@ module Xdrgen
         out.puts "*/"
       end
 
+      def render_lib
+        template = IO.read(__dir__ + "/scala/XdrDataInputStream.erb")
+        result = ERB.new(template).result binding
+        @output.write "#{@namespace.downcase}/XdrDataInputStream.scala", result
+
+        template = IO.read(__dir__ + "/scala/XdrDataOutputStream.erb")
+        result = ERB.new(template).result binding
+        @output.write "#{@namespace.downcase}/XdrDataOutputStream.scala", result
+      end
+
+      def decl_wrapper(name, super_name, decl)
+        case decl
+        when AST::Declarations::Opaque ;
+          <<-EOS.strip_heredoc
+          case class #{name}(bs: Array[Byte]) extends #{super_name} {
+            def encode(stream: XdrDataOutputStream) = {
+              stream.writeInt(bs.length)
+              stream.write(bs, 0, bs.length)
+            }
+          }
+          EOS
+        when AST::Declarations::String ;
+          <<-EOS.strip_heredoc
+          case class #{name}(s: String) extends #{super_name} {
+            def encode(stream: XdrDataOutputStream) = stream.writeString(s)
+          }
+          EOS
+        when AST::Declarations::Array ;
+          <<-EOS.strip_heredoc
+          case class #{name}(xs: Array[#{type_string decl.type}]) extends #{super_name} {
+            def encode(stream: XdrDataOutputStream) = {
+              stream.writeInt(xs.length)
+              xs.foreach(_.encode(stream))
+            }
+          }
+          EOS
+        when AST::Declarations::Optional ;
+          <<-EOS.strip_heredoc
+          case class #{name}(m: Option[#{type_string(decl.type)}]) extends #{super_name} {
+            def encode(stream: XdrDataOutputStream) = m match {
+              case None => stream.writeInt(0)
+              case Some(x) => 
+                stream.writeInt(1)
+                x.encode(stream)
+            }
+          }
+          EOS
+        when AST::Declarations::Simple ;
+
+          # todo - how to get name of enum here?
+
+          <<-EOS.strip_heredoc
+          case class #{name}(x: #{type_string(decl.type)}) extends #{super_name} {
+            def encode(stream: XdrDataOutputStream) = x.encode(stream)
+          }
+          EOS
+        when AST::Declarations::Void ;
+          <<-EOS.strip_heredoc
+          case object #{name} extends #{super_name} {
+            def encode(stream: XdrDataOutputStream) = Unit
+          }
+          EOS
+        else
+          raise "Unknown declaration type: #{decl.class.name}"
+        end
+      end
+
+      # ----
+
+
+      # def render_constants(node, out)
+      #   node.namespaces.each{|n| render_constants(n, out) }
+      #   node.definitions.select{|c| c.is_a? AST::Definitions::Const}.each { |c| render_const out, c }
+      # end
+      #
+      # def render_const(out, const)
+      #   out.indent do
+      #     out.puts "val #{const.name.downcase.camelize} = #{const.value.downcase.camelize}"
+      #   end
+      # end
+
+      def render_definitions(node)
+        node.namespaces.each{|n| render_definitions n }
+        node.definitions.each(&method(:render_definition))
+      end
+
+      def render_definition(defn)
+        case defn
+        when AST::Definitions::Struct ;
+          render_file defn do |out|
+            render_struct defn, out
+          end
+        when AST::Definitions::Enum ;
+          render_file defn do |out|
+            render_enum defn, out
+          end
+        when AST::Definitions::Union ;
+          render_file defn do |out|
+            render_union defn, out
+          end
+        when AST::Definitions::Typedef ;
+          render_file defn do |out|
+            render_typedef defn, out
+          end
+        end
+      end
+
+      # def render_package_file
+      #   path = "#{@namespace.downcase}/#{@namespace.downcase}.scala"
+      #   out  = @output.open(path)
+      #   out.puts <<-EOS.strip_heredoc
+      #     // Automatically generated by xdrgen
+      #     // DO NOT EDIT or your changes may be overwritten
+      #
+      #     package object #{@namespace.downcase} {
+      #   EOS
+      #
+      #   yield out
+      #
+      #   out.puts("}")
+      # end
+
+      def render_file(element)
+        path = "#{@namespace.downcase}/#{element.name.camelize}.scala"
+        out  = @output.open(path)
+        render_top_matter out
+        render_source_comment out, element
+
+        yield out
+      end
+
+      def render_nested_definitions(defn, out)
+        return unless defn.respond_to? :nested_definitions
+        unless defn.nested_definitions.empty?
+          out.puts ""
+        end
+        defn.nested_definitions.each{|ndefn|
+          case ndefn
+          when AST::Definitions::Struct ;
+            name = name ndefn
+            render_struct ndefn, out
+          when AST::Definitions::Enum ;
+            name = name ndefn
+            render_enum ndefn, out
+          when AST::Definitions::Union ;
+            name = name ndefn
+            render_union ndefn, out
+          when AST::Definitions::Typedef ;
+            name = name ndefn
+            render_typedef ndefn, out
+          end
+        }
+      end
+
+      def render_enum_old(enum, out)
+        name = name_string enum.name
+        out.puts <<-EOS.strip_heredoc
+          sealed class #{name} (val i: Int) {
+            def encode(stream: XdrDataOutputStream) = stream.writeInt(i)
+          }
+
+          object #{name} {
+            def decode(stream: XdrDataInputStream): #{name} = stream.readInt() match {
+        EOS
+        out.indent do
+          out.indent do
+            enum.members.each do |em|
+               out.puts("case #{em.value} => #{em.name.downcase.camelize}")
+            end
+            out.puts("case i => throw new IllegalArgumentException(s\"#{name} value $i is invalid\")")
+          end
+          out.puts "}"
+          out.puts ""
+          enum.members.each do |em|
+            out.puts <<-EOS.strip_heredoc
+            case object #{em.name.downcase.camelize} extends #{name}(#{em.value})
+            EOS
+          end
+
+          render_nested_definitions enum, out
+        end
+        out.puts "}"
+      end
+
+      def render_struct(out, element, superclass=nil)
+        name = name_string element.name.camelize
+        out.puts "case class #{name} ("
+        out.indent do
+            len = element.members.length
+            element.members.each do |m|
+                out.puts "#{sanitize m.name}: " + (is_nested?(m.type) ? "#{name}." : "") + "#{decl_string m.declaration}" + (len > 1 ? ", " : "")
+              len -= 1
+            end
+        end
+        out.puts ") #{superclass ? "extends #{superclass} " : ""}{"
+        out.indent do
+          out.puts "def encode(stream: XdrDataOutputStream): Unit = {"
+          out.indent do
+            out.puts "#{superclass}.encode(this, stream)" if superclass
+            element.members.each do |m|
+              encode_member m, out
+            end
+          end
+        end
+        out.puts "  }"
+        out.puts "}"
+        out.puts ""
+        out.puts "object #{name} {"
+        out.puts "  def decode(stream: XdrDataInputStream): #{name} = #{name element}("
+        out.indent do
+          out.indent do
+            len = element.members.length
+            element.members.each do |m|
+              decode_member m, out, len == 1
+              len -= 1
+            end
+          end
+          out.puts ")"
+          render_nested_definitions element, out
+        end
+        out.puts "}"
+        out.puts ""
+      end
+
       def encode_member(member, out)
         encode_decl member.declaration, member.name, member.type.sub_type == :optional, out
       end
 
-      def encode_decl(decl, name, isOption, out)
+      def encode_decl(decl, name, is_option, out)
         case decl
           when AST::Declarations::Void
             return
         end
 
-        if isOption
+        if is_option
           out.puts "#{sanitize name} match {"
           out.indent do
             out.puts "case Some(x) => "
@@ -481,7 +667,7 @@ module Xdrgen
           size = decl.fixed? ? decl.size : "stream.readInt"
           return "stream.readBytes(#{size})"
         when AST::Declarations::Array ;
-          size = decl.fixed? ? decl.size.downcase.camelize : "stream.readInt"
+          size = decl.fixed? ? decl.size : "stream.readInt"
           return "(0 until #{size}).map(_ => #{decode_type decl.type}).toArray"
         else
           return decode_type decl.type
@@ -559,6 +745,8 @@ module Xdrgen
         when AST::Typespecs::Simple ;
           name type.resolved_type
         when AST::Concerns::NestedDefinition ;
+          # todo - in some circumstances a nested defn should reference the enum type also
+          # "#{type.parent_defn.name}#{name type}"
           name type
         else
           raise "Unknown typespec: #{type.class.name}"
