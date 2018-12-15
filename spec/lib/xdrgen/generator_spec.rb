@@ -2,7 +2,7 @@ require 'spec_helper'
 
 describe Xdrgen::Generators do
   languages = %w(ruby javascript go java scala)
-  focus_language = "scala" #"go"
+  focus_language = "" #"go"
   focus_basename = "" #"optional.x"
 
   generator_fixture_paths.each do |path|
