@@ -545,6 +545,7 @@ module Xdrgen
       end
 
       def render_struct(out, struct, superclass = nil)
+        render_source_comment out, struct
         name = name_string struct.name.camelize
         out.puts "case class #{name} ("
         out.indent do
@@ -619,7 +620,8 @@ module Xdrgen
               case Some(x) =>
                 stream.writeInt(1)
                 #{inner(decl, "x")}
-              case None => stream.writeInt(0)
+              case None => 
+                stream.writeInt(0)
             }
             EOS
           else
@@ -642,7 +644,10 @@ module Xdrgen
               out.puts "stream.writeInt(1)"
               encode_decl_inner(decl, "x", out)
             end
-            out.puts "case None => stream.writeInt(0)"
+            out.puts "case None =>"
+            out.indent do
+              out.puts "stream.writeInt(0)"
+            end
           end
           out.puts "}"
         else
