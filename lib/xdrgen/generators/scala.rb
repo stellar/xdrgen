@@ -133,7 +133,7 @@ module Xdrgen
       def render_enum(out, e)
         render_source_comment out, e.element
         out.puts <<~EOS.strip_heredoc
-        sealed class #{e.name}(val i: Int) {
+        sealed abstract class #{e.name}(val i: Int) {
           def encode(stream: XdrDataOutputStream) = stream.writeInt(i)
         }
 
@@ -228,10 +228,9 @@ module Xdrgen
                     }.join(" ")
                     "(#{decoded_args})"
                   else
-                    arm.declaration.name
+                    "(#{decode_decl arm.declaration})"
                   end
                 end
-
 
             "case #{case_match} => #{union_name}#{kase.value.name.downcase.camelize}#{constructor_params}"
           else
@@ -261,7 +260,7 @@ module Xdrgen
                     }.join(" ")
                     "(#{decoded_args})"
                   else
-                    "()"
+                    "(#{arm.declaration.name}: #{decl_string arm.declaration})"
                   end
                 end
 
@@ -273,7 +272,7 @@ module Xdrgen
                   when Xdrgen::AST::Definitions::NestedStruct;
                     "\n    " + arm.declaration.type_s.members.map(&method(:encode_member_string)).join("\n    ")
                   else
-                    ""
+                    "\n    #{encode_decl_string(arm.declaration, arm.declaration.name, arm.declaration.type.sub_type == :optional)}"
                   end
                 end
 
@@ -287,7 +286,7 @@ module Xdrgen
           else
             <<~EOS.strip_heredoc
             case object #{union_name}#{kase.value.value} extends #{union_name} {
-              // todo
+              todo
             }
             EOS
           end
@@ -559,36 +558,6 @@ module Xdrgen
         }
       end
 
-      def render_enum_old(enum, out)
-        name = name_string enum.name
-        out.puts <<-EOS.strip_heredoc
-          sealed class #{name} (val i: Int) {
-            def encode(stream: XdrDataOutputStream) = stream.writeInt(i)
-          }
-
-          object #{name} {
-            def decode(stream: XdrDataInputStream): #{name} = stream.readInt() match {
-        EOS
-        out.indent do
-          out.indent do
-            enum.members.each do |em|
-              out.puts("case #{em.value} => #{em.name.downcase.camelize}")
-            end
-            out.puts("case i => throw new IllegalArgumentException(s\"#{name} value $i is invalid\")")
-          end
-          out.puts "}"
-          out.puts ""
-          enum.members.each do |em|
-            out.puts <<-EOS.strip_heredoc
-            case object #{em.name.downcase.camelize} extends #{name}(#{em.value})
-            EOS
-          end
-
-          render_nested_definitions enum, out
-        end
-        out.puts "}"
-      end
-
       def render_struct(out, struct, superclass = nil)
         name = name_string struct.name.camelize
         out.puts "case class #{name} ("
@@ -646,7 +615,7 @@ module Xdrgen
           when AST::Declarations::Array;
             <<~EOS.strip_heredoc
             #{"stream.writeInt(#{name}.length)" unless decl.fixed?}
-            #{name}.foreach { #{encode_type decl.type, "_"} }
+            #{name}.foreach(#{encode_type decl.type, "_"})
             EOS
 
           else
@@ -706,7 +675,7 @@ module Xdrgen
           unless decl.fixed?
             out.puts "stream.writeInt(#{name}.length)"
           end
-          out.puts "#{name}.foreach { #{encode_type decl.type, "_"} }"
+          out.puts "#{name}.foreach(#{encode_type decl.type, "_"})"
         else
           out.puts "#{encode_type decl.type, "#{name}"}"
         end
