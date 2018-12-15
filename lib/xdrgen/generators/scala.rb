@@ -212,29 +212,28 @@ module Xdrgen
         def match_case(kase, arm, union)
           union_name = "#{name_string union.name}"
 
+          constructor_params =
+              if is_void?(arm.declaration)
+                ""
+              else # simple
+                case arm.declaration.type_s
+                when Xdrgen::AST::Definitions::NestedStruct;
+                  member_count = arm.declaration.type_s.members.size
+                  decoded_args = arm.declaration.type_s.members.map.with_index(1) {|m,i|
+                    decode_member_string(m, i == member_count)
+                  }.join(" ")
+                  "(#{decoded_args})"
+                else
+                  "(#{decode_decl arm.declaration})"
+                end
+              end
+
           case kase.value
           when Xdrgen::AST::Identifier;
             case_match = "#{union.discriminant.type.name}.#{kase.value.name}"
-
-            constructor_params =
-                if is_void?(arm.declaration)
-                  ""
-                else # simple
-                  case arm.declaration.type_s
-                  when Xdrgen::AST::Definitions::NestedStruct;
-                    member_count = arm.declaration.type_s.members.size
-                    decoded_args = arm.declaration.type_s.members.map.with_index(1) {|m,i|
-                      decode_member_string(m, i == member_count)
-                    }.join(" ")
-                    "(#{decoded_args})"
-                  else
-                    "(#{decode_decl arm.declaration})"
-                  end
-                end
-
             "case #{case_match} => #{union_name}#{kase.value.name.downcase.camelize}#{constructor_params}"
           else
-            "case #{kase.value.value} => #{union_name}#{kase.value.value}"
+            "case #{kase.value.value} => #{union_name}#{kase.value.value}#{constructor_params}"
           end
         end
 
@@ -244,38 +243,37 @@ module Xdrgen
       def class_arm(arm, union)
         def match_case(kase, arm, union)
           union_name = "#{name_string union.name}"
+          class_or_object = is_void?(arm.declaration) ? "object" : "class"
+          constructor_params =
+              if is_void?(arm.declaration)
+                ""
+              else # simple
+                case arm.declaration.type_s
+                when Xdrgen::AST::Definitions::NestedStruct;
+                  member_count = arm.declaration.type_s.members.size
+                  decoded_args = arm.declaration.type_s.members.map.with_index(1) {|m,i|
+                    "#{m.name}: #{decl_string m.declaration}#{(i==member_count) ? "" : ","}"
+                  }.join(" ")
+                  "(#{decoded_args})"
+                else
+                  "(#{arm.declaration.name}: #{decl_string arm.declaration})"
+                end
+              end
+
+          member_encode_statements =
+              if is_void?(arm.declaration)
+                ""
+              else # simple
+                case arm.declaration.type_s
+                when Xdrgen::AST::Definitions::NestedStruct;
+                  "\n    " + arm.declaration.type_s.members.map(&method(:encode_member_string)).join("\n    ")
+                else
+                  "\n    #{encode_decl_string(arm.declaration, arm.declaration.name, arm.declaration.type.sub_type == :optional)}"
+                end
+              end
 
           case kase.value
           when Xdrgen::AST::Identifier;
-            class_or_object = is_void?(arm.declaration) ? "object" : "class"
-            constructor_params =
-                if is_void?(arm.declaration)
-                  ""
-                else # simple
-                  case arm.declaration.type_s
-                  when Xdrgen::AST::Definitions::NestedStruct;
-                    member_count = arm.declaration.type_s.members.size
-                    decoded_args = arm.declaration.type_s.members.map.with_index(1) {|m,i|
-                      "#{m.name}: #{decl_string m.declaration}#{(i==member_count) ? "" : ","}"
-                    }.join(" ")
-                    "(#{decoded_args})"
-                  else
-                    "(#{arm.declaration.name}: #{decl_string arm.declaration})"
-                  end
-                end
-
-            member_encode_statements =
-                if is_void?(arm.declaration)
-                  ""
-                else # simple
-                  case arm.declaration.type_s
-                  when Xdrgen::AST::Definitions::NestedStruct;
-                    "\n    " + arm.declaration.type_s.members.map(&method(:encode_member_string)).join("\n    ")
-                  else
-                    "\n    #{encode_decl_string(arm.declaration, arm.declaration.name, arm.declaration.type.sub_type == :optional)}"
-                  end
-                end
-
             <<~EOS.strip_heredoc
             case #{class_or_object} #{union_name}#{kase.value.name.downcase.camelize}#{constructor_params} extends #{union_name} {
               def encode(stream: XdrDataOutputStream): Unit = {
@@ -285,8 +283,10 @@ module Xdrgen
             EOS
           else
             <<~EOS.strip_heredoc
-            case object #{union_name}#{kase.value.value} extends #{union_name} {
-              todo
+            case #{class_or_object} #{union_name}#{kase.value.value}#{constructor_params} extends #{union_name} {
+              def encode(stream: XdrDataOutputStream): Unit = {
+                stream.writeInt(#{kase.value.value})#{member_encode_statements}
+              }
             }
             EOS
           end
