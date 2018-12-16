@@ -246,7 +246,9 @@ module Xdrgen
 
       def match_arm(arm, union)
         def constructor_params_construct(arm, default)
-          if is_void?(arm.declaration)
+          if is_void?(arm.declaration) && default
+            "(discriminant)"
+          elsif is_void?(arm.declaration)
             ""
           else # simple
             case arm.declaration.type_s
@@ -285,7 +287,10 @@ module Xdrgen
       def class_arm(arm, union)
 
         def constructor_params_call(arm, union, default)
-          if is_void?(arm.declaration)
+          if is_void?(arm.declaration) && default
+            discriminant_type = union.discriminant.type_s.is_a?(AST::Identifier) ? union.discriminant.type.name : "Int"
+            "(discriminant: #{discriminant_type})"
+          elsif is_void?(arm.declaration)
             ""
           else # simple
             discriminant_type = union.discriminant.type_s.is_a?(AST::Identifier) ? union.discriminant.type.name : "Int"
@@ -347,7 +352,7 @@ module Xdrgen
         when Xdrgen::AST::Definitions::UnionDefaultArm;
           union_name = "#{name_string union.name}"
           <<~EOS.strip_heredoc
-            case #{class_or_object(arm)} #{union_name}Default#{constructor_params_call(arm, union, true)} extends #{union_name} {
+            case class #{union_name}Default#{constructor_params_call(arm, union, true)} extends #{union_name} {
               def encode(stream: XdrDataOutputStream): Unit = {
                 #{encode_decl_string union.discriminant, "discriminant", false}#{member_encode_statements(arm)}
               }
