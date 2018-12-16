@@ -245,7 +245,7 @@ module Xdrgen
 
 
       def match_arm(arm, union)
-        def constructor_params(arm)
+        def constructor_params_construct(arm, default)
           if is_void?(arm.declaration)
             ""
           else # simple
@@ -255,9 +255,9 @@ module Xdrgen
               decoded_args = arm.declaration.type_s.members.map.with_index(1) {|m,i|
                 decode_member_string(m, i == member_count)
               }.join(" ")
-              "(#{decoded_args})"
+              "(#{default ? "discriminant, " : ""}#{decoded_args})"
             else
-              "(#{decode_decl arm.declaration})"
+              "(#{default ? "discriminant, " : ""}#{decode_decl arm.declaration})"
             end
           end
         end
@@ -268,41 +268,47 @@ module Xdrgen
           case kase.value
           when Xdrgen::AST::Identifier;
             case_match = "#{union.discriminant.type.name}.#{kase.value.name}"
-            "case #{case_match} => #{union_name}#{kase.value.name.downcase.camelize}#{constructor_params(arm)}"
+            "case #{case_match} => #{union_name}#{kase.value.name.downcase.camelize}#{constructor_params_construct(arm, false)}"
           else
-            "case #{kase.value.value} => #{union_name}#{kase.value.value}#{constructor_params(arm)}"
+            "case #{kase.value.value} => #{union_name}#{kase.value.value}#{constructor_params_construct(arm, false)}"
           end
         end
 
         case arm
         when Xdrgen::AST::Definitions::UnionDefaultArm;
-          # todo - here how to get the constructor params? Perhaps make a fake case?
-          # todo also - need to define the class
-          "case _ => #{name_string union.name}Default#{constructor_params(arm)}"
+          "case discriminant => #{name_string union.name}Default#{constructor_params_construct(arm, true)}"
         else
           arm.cases.map {|c| match_case(c, arm, union)}.join("\n")
         end
       end
 
       def class_arm(arm, union)
+
+        def constructor_params_call(arm, union, default)
+          if is_void?(arm.declaration)
+            ""
+          else # simple
+            discriminant_type = union.discriminant.type_s.is_a?(AST::Identifier) ? union.discriminant.type.name : "Int"
+            discriminant_param = default ? "discriminant: #{discriminant_type}, " : ""
+            case arm.declaration.type_s
+            when Xdrgen::AST::Definitions::NestedStruct;
+              member_count = arm.declaration.type_s.members.size
+              decoded_args = arm.declaration.type_s.members.map.with_index(1) {|m,i|
+                "#{m.name}: #{decl_string m.declaration}#{(i==member_count) ? "" : ","}"
+              }.join(" ")
+              "(#{discriminant_param}#{decoded_args})"
+            else
+              "(#{discriminant_param}#{arm.declaration.name}: #{decl_string arm.declaration})"
+            end
+          end
+        end
+
+        def class_or_object(arm)
+          is_void?(arm.declaration) ? "object" : "class"
+        end
+
         def match_case(kase, arm, union)
           union_name = "#{name_string union.name}"
-          class_or_object = is_void?(arm.declaration) ? "object" : "class"
-          constructor_params =
-              if is_void?(arm.declaration)
-                ""
-              else # simple
-                case arm.declaration.type_s
-                when Xdrgen::AST::Definitions::NestedStruct;
-                  member_count = arm.declaration.type_s.members.size
-                  decoded_args = arm.declaration.type_s.members.map.with_index(1) {|m,i|
-                    "#{m.name}: #{decl_string m.declaration}#{(i==member_count) ? "" : ","}"
-                  }.join(" ")
-                  "(#{decoded_args})"
-                else
-                  "(#{arm.declaration.name}: #{decl_string arm.declaration})"
-                end
-              end
 
           member_encode_statements =
               if is_void?(arm.declaration)
@@ -319,7 +325,7 @@ module Xdrgen
           case kase.value
           when Xdrgen::AST::Identifier;
             <<~EOS.strip_heredoc
-            case #{class_or_object} #{union_name}#{kase.value.name.downcase.camelize}#{constructor_params} extends #{union_name} {
+            case #{class_or_object(arm)} #{union_name}#{kase.value.name.downcase.camelize}#{constructor_params_call(arm, union, false)} extends #{union_name} {
               def encode(stream: XdrDataOutputStream): Unit = {
                 #{union.discriminant.type.name}.#{kase.value.name}.encode(stream)#{member_encode_statements}                
               }
@@ -327,7 +333,7 @@ module Xdrgen
             EOS
           else
             <<~EOS.strip_heredoc
-            case #{class_or_object} #{union_name}#{kase.value.value}#{constructor_params} extends #{union_name} {
+            case #{class_or_object(arm)} #{union_name}#{kase.value.value}#{constructor_params_call(arm, union, false)} extends #{union_name} {
               def encode(stream: XdrDataOutputStream): Unit = {
                 stream.writeInt(#{kase.value.value})#{member_encode_statements}
               }
@@ -338,7 +344,14 @@ module Xdrgen
 
         case arm
         when Xdrgen::AST::Definitions::UnionDefaultArm;
-          "sdf"
+          union_name = "#{name_string union.name}"
+          <<~EOS.strip_heredoc
+            case #{class_or_object(arm)} #{union_name}Default#{constructor_params_call(arm, union, true)} extends #{union_name} {
+              def encode(stream: XdrDataOutputStream): Unit = {
+                stream.({kase.value.value}){member_encode_statements}
+              }
+            }
+          EOS
         else
           arm.cases.map {|c| match_case(c, arm, union)}.join("\n")
         end
