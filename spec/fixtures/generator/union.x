@@ -26,3 +26,19 @@ union IntUnion switch (int type)
 };
 
 typedef IntUnion IntUnion2;
+
+union VoidDefaultUnion switch (int type)
+{
+    case 0:
+        int anInt;
+    default:
+        void;
+};
+
+union SomeDefaultUnion switch (int type)
+{
+    case 0:
+        int anInt;
+    default:
+        string str<64>;
+};
