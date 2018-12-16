@@ -191,15 +191,6 @@ module Xdrgen
         end
       end
 
-      # def as_arguments(decl)
-      #   if is_void?(decl)
-      #     ""
-      #   else
-      #     decl_string(decl)
-      #   end
-      # end
-      #
-
       def decode_member_string(member, final)
         case member.declaration
         when AST::Declarations::Void;
@@ -216,7 +207,6 @@ module Xdrgen
       def encode_member_string(member)
         encode_decl_string(member.declaration, member.declaration.name, member.type.sub_type == :optional)
       end
-
 
       def match_arm(arm, union)
         def constructor_params_construct(arm, default)
@@ -403,69 +393,6 @@ module Xdrgen
         template = IO.read(__dir__ + "/scala/XdrDataOutputStream.erb")
         result = ERB.new(template).result binding
         @output.write "#{@namespace.downcase}/XdrDataOutputStream.scala", result
-      end
-
-      def decl_wrapper(name, discriminator_name, super_name, decl)
-        case decl
-        when AST::Declarations::Opaque;
-          <<-EOS.strip_heredoc
-          case class #{name}(bs: Array[Byte]) extends #{super_name} {
-            def encode(stream: XdrDataOutputStream) = {
-              stream.writeInt(bs.length)
-              stream.write(bs, 0, bs.length)
-            }
-          }
-          EOS
-        when AST::Declarations::String;
-          <<-EOS.strip_heredoc
-          case class #{name}(s: String) extends #{super_name} {
-            def encode(stream: XdrDataOutputStream) = stream.writeString(s)
-          }
-          EOS
-        when AST::Declarations::Array;
-          <<-EOS.strip_heredoc
-          case class #{name}(xs: Array[#{type_string decl.type}]) extends #{super_name} {
-            def encode(stream: XdrDataOutputStream) = {
-              stream.writeInt(xs.length)
-              xs.foreach(_.encode(stream))
-            }
-          }
-          EOS
-        when AST::Declarations::Optional;
-          <<-EOS.strip_heredoc
-          case class #{name}(m: Option[#{discriminator_name}]) extends #{super_name} {
-            def encode(stream: XdrDataOutputStream) = m match {
-              case None => stream.writeInt(0)
-              case Some(x) => 
-                stream.writeInt(1)
-                x.encode(stream)
-            }
-          }
-          EOS
-        when AST::Declarations::Simple;
-          <<-EOS.strip_heredoc
-          case class #{name}(x: #{discriminator_name}) extends #{super_name} {
-            def encode(stream: XdrDataOutputStream) = x.encode(stream)
-          }
-          EOS
-        when AST::Declarations::Void;
-          <<-EOS.strip_heredoc
-          case object #{name} extends #{super_name} {
-            def encode(stream: XdrDataOutputStream) = Unit
-          }
-          EOS
-        else
-          raise "Unknown declaration type: #{decl.class.name}"
-        end
-      end
-
-      def render_file(element)
-        path = "#{@namespace.downcase}/#{element.name.camelize}.scala"
-        out = @output.open(path)
-        render_top_matter out
-        render_source_comment out, element
-
-        yield out
       end
 
       def render_nested_definitions(defn, out)
