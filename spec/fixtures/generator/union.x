@@ -64,3 +64,19 @@ union OuterUnion switch (int type)
     default:
         void;
 };
+
+enum Dog {
+    AKITA=0,
+    CORGI=1,
+    DACHSHUND=2,
+    DALMATION=3
+};
+
+union IncompleteUnion switch (Dog dog)
+{
+    case AKITA:
+        int anInt;
+    case DACHSHUND:
+        int anInt;
+    /* everything else is invalid */
+};

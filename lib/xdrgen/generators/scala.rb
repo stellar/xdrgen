@@ -347,10 +347,16 @@ module Xdrgen
 
         render_source_comment out, union
 
+        fallback_default =
+            if union.arms.any?{|a| a.is_a?(Xdrgen::AST::Definitions::UnionDefaultArm) }
+              ""
+            else
+              "\n              case x => throw new IllegalArgumentException(s\"#{name union.discriminant} value $x cannot be decoded\")"
+            end
         out.puts <<-EOS.strip_heredoc
           object #{union_name} {
             def decode(stream: XdrDataInputStream): #{union_name} = #{decode_discriminant union.discriminant} match {
-              #{union.arms.map {|a| match_arm(a, union)}.join("\n              ")}
+              #{union.arms.map {|a| match_arm(a, union)}.join("\n              ")}#{fallback_default}
             }
           }
 
