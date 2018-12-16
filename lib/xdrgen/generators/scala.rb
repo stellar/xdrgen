@@ -307,27 +307,28 @@ module Xdrgen
           is_void?(arm.declaration) ? "object" : "class"
         end
 
+        def member_encode_statements(arm)
+          if is_void?(arm.declaration)
+            ""
+          else # simple
+            case arm.declaration.type_s
+            when Xdrgen::AST::Definitions::NestedStruct;
+              "\n    " + arm.declaration.type_s.members.map(&method(:encode_member_string)).join("\n    ")
+            else
+              "\n    #{encode_decl_string(arm.declaration, arm.declaration.name, arm.declaration.type.sub_type == :optional)}"
+            end
+          end
+        end
+
         def match_case(kase, arm, union)
           union_name = "#{name_string union.name}"
-
-          member_encode_statements =
-              if is_void?(arm.declaration)
-                ""
-              else # simple
-                case arm.declaration.type_s
-                when Xdrgen::AST::Definitions::NestedStruct;
-                  "\n    " + arm.declaration.type_s.members.map(&method(:encode_member_string)).join("\n    ")
-                else
-                  "\n    #{encode_decl_string(arm.declaration, arm.declaration.name, arm.declaration.type.sub_type == :optional)}"
-                end
-              end
 
           case kase.value
           when Xdrgen::AST::Identifier;
             <<~EOS.strip_heredoc
             case #{class_or_object(arm)} #{union_name}#{kase.value.name.downcase.camelize}#{constructor_params_call(arm, union, false)} extends #{union_name} {
               def encode(stream: XdrDataOutputStream): Unit = {
-                #{union.discriminant.type.name}.#{kase.value.name}.encode(stream)#{member_encode_statements}                
+                #{union.discriminant.type.name}.#{kase.value.name}.encode(stream)#{member_encode_statements(arm)}                
               }
             }
             EOS
@@ -335,7 +336,7 @@ module Xdrgen
             <<~EOS.strip_heredoc
             case #{class_or_object(arm)} #{union_name}#{kase.value.value}#{constructor_params_call(arm, union, false)} extends #{union_name} {
               def encode(stream: XdrDataOutputStream): Unit = {
-                stream.writeInt(#{kase.value.value})#{member_encode_statements}
+                stream.writeInt(#{kase.value.value})#{member_encode_statements(arm)}
               }
             }
             EOS
@@ -348,7 +349,7 @@ module Xdrgen
           <<~EOS.strip_heredoc
             case #{class_or_object(arm)} #{union_name}Default#{constructor_params_call(arm, union, true)} extends #{union_name} {
               def encode(stream: XdrDataOutputStream): Unit = {
-                stream.({kase.value.value}){member_encode_statements}
+                #{encode_decl_string union.discriminant, "discriminant", false}#{member_encode_statements(arm)}
               }
             }
           EOS
