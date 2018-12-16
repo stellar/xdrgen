@@ -35,27 +35,62 @@ module Xdrgen
       end
 
       def generate
-        enums = parse_enums @top
-        constants = parse_constants @top
-        typedefs = parse_typedefs @top
-        unions = parse_unions @top
-        structs = parse_structs @top
-
         render_lib
+        generate_for @top
+      end
+
+      def generate_for(node)
+        enums = parse_enums node
+        constants = parse_constants node
+        typedefs = parse_typedefs node
+        unions = parse_unions node
+        structs = parse_structs node
+
         write_package_class constants
         enums.each(&method(:write_enum_file))
         typedefs.each(&method(:write_typedef_file))
         unions.each(&method(:write_union_file))
         structs.each(&method(:write_struct_file))
+
+        node.namespaces.each(&method(:generate_for))
+      end
+
+      # def render_definitions(node)
+      #   node.namespaces.each {|n| render_definitions n}
+      #   node.definitions.each(&method(:render_definition))
+      # end
+
+      # def render_definition(defn)
+      #   case defn
+      #   when AST::Definitions::Struct;
+      #     render_file defn do |out|
+      #       render_struct defn, out
+      #     end
+      #   when AST::Definitions::Enum;
+      #     render_file defn do |out|
+      #       render_enum defn, out
+      #     end
+      #   when AST::Definitions::Union;
+      #     render_file defn do |out|
+      #       render_union defn, out
+      #     end
+      #   when AST::Definitions::Typedef;
+      #     render_file defn do |out|
+      #       render_typedef defn, out
+      #     end
+      #   end
+      # end
+
+      def enum_members(e)
+        hash = e.members.reduce({}) do |hash, member|
+          hash.store(member.name, member.value)
+          hash
+        end
       end
 
       def parse_enums(ns)
         ns.definitions.select {|d| d.is_a? AST::Definitions::Enum}.map do |e|
-          hash = e.members.reduce({}) do |hash, member|
-            hash.store(member.name, member.value)
-            hash
-          end
-          Enum.new(name(e), hash, e)
+          Enum.new(name(e), enum_members(e), e)
         end
       end
 
@@ -81,7 +116,7 @@ module Xdrgen
 
       def write_enum_file(e)
         write_class_file e.name do |out|
-          render_enum out, e
+          render_enum out, e.element, e.name, e.members
         end
       end
 
@@ -131,20 +166,20 @@ module Xdrgen
         out.puts "}"
       end
 
-      def render_enum(out, e)
-        render_source_comment out, e.element
+      def render_enum(out, enum, name, members)
+        render_source_comment out, enum
         out.puts <<~EOS.strip_heredoc
-        sealed abstract class #{e.name}(val i: Int) {
+        sealed abstract class #{name}(val i: Int) {
           def encode(stream: XdrDataOutputStream) = stream.writeInt(i)
         }
 
-        object #{e.name} {
-          def decode(stream: XdrDataInputStream): #{e.name} = stream.readInt() match {
-            #{e.members.map {|k, v| "case #{v} => #{k}"}.join("\n    ")}
-            case i => throw new IllegalArgumentException(s"#{e.name} value $i is invalid")
+        object #{name} {
+          def decode(stream: XdrDataInputStream): #{name} = stream.readInt() match {
+            #{members.map {|k, v| "case #{v} => #{k}"}.join("\n    ")}
+            case i => throw new IllegalArgumentException(s"#{name} value $i is invalid")
           }
 
-          #{e.members.map {|k, v| "case object #{k} extends #{e.name}(#{v})"}.join("\n  ")}
+          #{members.map {|k, v| "case object #{k} extends #{name}(#{v})"}.join("\n  ")}
         }
         EOS
       end
@@ -210,35 +245,43 @@ module Xdrgen
 
 
       def match_arm(arm, union)
+        def constructor_params(arm)
+          if is_void?(arm.declaration)
+            ""
+          else # simple
+            case arm.declaration.type_s
+            when Xdrgen::AST::Definitions::NestedStruct;
+              member_count = arm.declaration.type_s.members.size
+              decoded_args = arm.declaration.type_s.members.map.with_index(1) {|m,i|
+                decode_member_string(m, i == member_count)
+              }.join(" ")
+              "(#{decoded_args})"
+            else
+              "(#{decode_decl arm.declaration})"
+            end
+          end
+        end
+
         def match_case(kase, arm, union)
           union_name = "#{name_string union.name}"
-
-          constructor_params =
-              if is_void?(arm.declaration)
-                ""
-              else # simple
-                case arm.declaration.type_s
-                when Xdrgen::AST::Definitions::NestedStruct;
-                  member_count = arm.declaration.type_s.members.size
-                  decoded_args = arm.declaration.type_s.members.map.with_index(1) {|m,i|
-                    decode_member_string(m, i == member_count)
-                  }.join(" ")
-                  "(#{decoded_args})"
-                else
-                  "(#{decode_decl arm.declaration})"
-                end
-              end
 
           case kase.value
           when Xdrgen::AST::Identifier;
             case_match = "#{union.discriminant.type.name}.#{kase.value.name}"
-            "case #{case_match} => #{union_name}#{kase.value.name.downcase.camelize}#{constructor_params}"
+            "case #{case_match} => #{union_name}#{kase.value.name.downcase.camelize}#{constructor_params(arm)}"
           else
-            "case #{kase.value.value} => #{union_name}#{kase.value.value}#{constructor_params}"
+            "case #{kase.value.value} => #{union_name}#{kase.value.value}#{constructor_params(arm)}"
           end
         end
 
-        arm.cases.map {|c| match_case(c, arm, union)}.join("\n")
+        case arm
+        when Xdrgen::AST::Definitions::UnionDefaultArm;
+          # todo - here how to get the constructor params? Perhaps make a fake case?
+          # todo also - need to define the class
+          "case _ => #{name_string union.name}Default#{constructor_params(arm)}"
+        else
+          arm.cases.map {|c| match_case(c, arm, union)}.join("\n")
+        end
       end
 
       def class_arm(arm, union)
@@ -293,7 +336,12 @@ module Xdrgen
           end
         end
 
-        arm.cases.map {|c| match_case(c, arm, union)}.join("\n")
+        case arm
+        when Xdrgen::AST::Definitions::UnionDefaultArm;
+          "sdf"
+        else
+          arm.cases.map {|c| match_case(c, arm, union)}.join("\n")
+        end
       end
 
       def render_union(out, union)
@@ -486,32 +534,6 @@ module Xdrgen
       #   end
       # end
 
-      def render_definitions(node)
-        node.namespaces.each {|n| render_definitions n}
-        node.definitions.each(&method(:render_definition))
-      end
-
-      def render_definition(defn)
-        case defn
-        when AST::Definitions::Struct;
-          render_file defn do |out|
-            render_struct defn, out
-          end
-        when AST::Definitions::Enum;
-          render_file defn do |out|
-            render_enum defn, out
-          end
-        when AST::Definitions::Union;
-          render_file defn do |out|
-            render_union defn, out
-          end
-        when AST::Definitions::Typedef;
-          render_file defn do |out|
-            render_typedef defn, out
-          end
-        end
-      end
-
       def render_file(element)
         path = "#{@namespace.downcase}/#{element.name.camelize}.scala"
         out = @output.open(path)
@@ -530,16 +552,16 @@ module Xdrgen
           case ndefn
           when AST::Definitions::Struct;
             name = name ndefn
-            render_struct ndefn, out
+            render_struct out, ndefn
           when AST::Definitions::Enum;
             name = name ndefn
-            render_enum ndefn, out
+            render_enum out, ndefn, name, enum_members(ndefn)
           when AST::Definitions::Union;
             name = name ndefn
-            render_union ndefn, out
+            render_union out, ndefn
           when AST::Definitions::Typedef;
             name = name ndefn
-            render_typedef ndefn, out
+            render_typedef out, ndefn
           end
         }
       end
