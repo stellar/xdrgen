@@ -55,32 +55,6 @@ module Xdrgen
         node.namespaces.each(&method(:generate_for))
       end
 
-      # def render_definitions(node)
-      #   node.namespaces.each {|n| render_definitions n}
-      #   node.definitions.each(&method(:render_definition))
-      # end
-
-      # def render_definition(defn)
-      #   case defn
-      #   when AST::Definitions::Struct;
-      #     render_file defn do |out|
-      #       render_struct defn, out
-      #     end
-      #   when AST::Definitions::Enum;
-      #     render_file defn do |out|
-      #       render_enum defn, out
-      #     end
-      #   when AST::Definitions::Union;
-      #     render_file defn do |out|
-      #       render_union defn, out
-      #     end
-      #   when AST::Definitions::Typedef;
-      #     render_file defn do |out|
-      #       render_typedef defn, out
-      #     end
-      #   end
-      # end
-
       def enum_members(e)
         hash = e.members.reduce({}) do |hash, member|
           hash.store(member.name, member.value)
@@ -211,7 +185,7 @@ module Xdrgen
       def decode_discriminant(disc)
         case disc.type_s
         when Xdrgen::AST::Identifier;
-          "#{disc.type.name}.decode(stream)"
+          "#{name disc.type}.decode(stream)"
         else
           "stream.readInt()"
         end
@@ -272,7 +246,12 @@ module Xdrgen
             case_match = "#{union.discriminant.type.name}.#{kase.value.name}"
             "case #{case_match} => #{union_name}#{kase.value.name.downcase.camelize}#{constructor_params_construct(arm, false)}"
           else
-            "case #{kase.value.value} => #{union_name}#{kase.value.value}#{constructor_params_construct(arm, false)}"
+            case union.discriminant.type
+            when Xdrgen::AST::Identifier;
+              "case #{name union.discriminant.type}(#{kase.value.value}) => #{union_name}#{kase.value.value}#{constructor_params_construct(arm, false)}"
+            else
+              "case #{kase.value.value} => #{union_name}#{kase.value.value}#{constructor_params_construct(arm, false)}"
+            end
           end
         end
 
@@ -384,73 +363,6 @@ module Xdrgen
         EOS
 
         union.arms.map{|arm| class_arm(arm, union)}.each {|s| out.puts(s) }
-      end
-
-      def render_union_start_again(out, union)
-        render_source_comment out, union
-        name = name_string union.name
-
-        def render_arms(union, name)
-          union.arms.each do |arm|
-            if arm.is_a? AST::Definitions::UnionDefaultArm
-              yield arm.declaration, "d", "Default", true
-            else
-              arm.cases.each do |kase|
-                dtype = type_string union.discriminant.type
-                ktype =
-                    if kase.value.is_a?(AST::Identifier)
-                      "#{dtype}.#{name_string kase.value.name}"
-                    elsif union.discriminant.type.is_a?(AST::Typespecs::Simple)
-                      "#{dtype}(#{kase.value.value})"
-                    else
-                      "#{kase.value.value}"
-                    end
-                rtype =
-                    if kase.value.is_a?(AST::Identifier)
-                      if is_void?(arm.declaration)
-                        "#{name}#{name_string kase.value.name.downcase}"
-                      elsif arm.declaration.type.sub_type == :simple
-                        "#{name}#{arm.declaration.type.name.camelize}"
-                      elsif arm.declaration.type.sub_type == :optional
-                        "#{name}#{arm.declaration.type.name.camelize}Opt"
-                      else
-                        "#{name}#{arm.declaration.type.name.camelize}Array"
-                      end
-                    else
-                      "#{name}#{kase.value.value}"
-                    end
-                yield arm.declaration, dtype, ktype, rtype
-              end
-            end
-          end
-        end
-
-        out.puts <<-EOS.strip_heredoc
-          sealed trait #{name} {
-            def encode(stream: XdrDataOutputStream): Unit
-          }
-        EOS
-
-        render_arms(union, name) do |decl, dtype, ktype, rtype|
-          out.puts decl_wrapper(rtype, dtype, name, decl)
-        end
-
-        out.puts <<-EOS.strip_heredoc
-        
-        object #{name} {
-          def decode(stream: XdrDataInputStream): #{name} = #{decode_type union.discriminant.type} match {
-        EOS
-        out.indent(2) do
-          render_arms(union, name) do |decl, dtype, ktype, rtype|
-            decode = "#{decode_decl decl}"
-            out.puts "case #{ktype} => #{rtype}#{is_void?(decl) ? "" : "(#{decode})"}"
-          end
-          out.puts "case d => throw new IllegalArgumentException(s\"#{type_string union.discriminant.type} value $d is invalid\")"
-        end
-        out.puts <<-EOS.strip_heredoc
-          }
-        }
-        EOS
       end
 
       def render_top_matter(out)

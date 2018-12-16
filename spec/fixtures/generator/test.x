@@ -70,8 +70,6 @@ struct Nester
     default:
       int blah2;
   } nestedUnion;
-
-
 };
 
 }

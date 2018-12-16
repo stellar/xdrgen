@@ -42,3 +42,11 @@ union SomeDefaultUnion switch (int type)
     default:
         string str<64>;
 };
+
+union TypedIntDiscriminatedUnion switch (Error type) {
+    case 0:
+        void;
+    default:
+        string str<64>;
+};
+
