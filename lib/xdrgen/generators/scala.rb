@@ -363,6 +363,8 @@ module Xdrgen
         EOS
 
         union.arms.map{|arm| class_arm(arm, union)}.each {|s| out.puts(s) }
+
+        render_nested_definitions union, out
       end
 
       def render_top_matter(out)
@@ -450,20 +452,6 @@ module Xdrgen
           raise "Unknown declaration type: #{decl.class.name}"
         end
       end
-
-      # ----
-
-
-      # def render_constants(node, out)
-      #   node.namespaces.each{|n| render_constants(n, out) }
-      #   node.definitions.select{|c| c.is_a? AST::Definitions::Const}.each { |c| render_const out, c }
-      # end
-      #
-      # def render_const(out, const)
-      #   out.indent do
-      #     out.puts "val #{const.name.downcase.camelize} = #{const.value.downcase.camelize}"
-      #   end
-      # end
 
       def render_file(element)
         path = "#{@namespace.downcase}/#{element.name.camelize}.scala"
