@@ -700,11 +700,7 @@ module Xdrgen
       end
 
       def sanitize(name)
-        if name == "type"
-          "`type`"
-        else
-          name
-        end
+        name == "type" ? "`type`" : name
       end
     end
   end
