@@ -128,7 +128,12 @@ module Xdrgen
 
               arm.cases.each do |acase|
                 switch = if acase.value.is_a?(AST::Identifier)
-                  '"' + member_name(acase.value) + '"'
+                  if union.discriminant.type.is_a?(AST::Typespecs::Int)
+                    member = union.resolved_case(acase)
+                    "#{member.value}"
+                  else
+                    '"' + member_name(acase.value) + '"'
+                  end
                 else
                   acase.value.text_value
                 end
