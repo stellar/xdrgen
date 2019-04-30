@@ -35,6 +35,14 @@ The command line:
 
 `xdrgen [-o OUTPUT_DIR] [-l LANGUAGE] [-n NAMESPACE] [INPUT_FILES ...]`
 
+A typical execution would look like this:
+
+```shell
+xdrgen -o src/generated -l javascript -n stellar-xdr xdr/*.x
+```
+
+`INPUT_FILES` can be a list of existing files or patterns accepted by [`Dir#glob`](https://docs.ruby-lang.org/en/trunk/Dir.html#method-c-glob).
+
 ## Usage as a library
 
 Add this line to your application's Gemfile:

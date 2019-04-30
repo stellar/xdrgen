@@ -14,9 +14,13 @@ module Xdrgen
       fail(opts) if args.blank?
       fail(opts) if opts[:output].blank?
 
+      source_paths = args.map {|path| Dir[path] }
+                         .compact
+                         .flatten
+
       compilation = Compilation.new(
-        args,
-        output_dir: opts[:output], 
+        source_paths,
+        output_dir: opts[:output],
         language:   opts[:language].to_sym,
         namespace:  opts[:namespace]
       )
