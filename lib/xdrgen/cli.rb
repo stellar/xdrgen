@@ -15,7 +15,6 @@ module Xdrgen
       fail(opts) if opts[:output].blank?
 
       source_paths = args.map {|path| Dir[path] }
-                         .compact
                          .flatten
 
       compilation = Compilation.new(
