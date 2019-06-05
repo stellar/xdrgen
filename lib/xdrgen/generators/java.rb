@@ -250,31 +250,44 @@ module Xdrgen
           EOS
         end
         out.puts "public static void encode(XdrDataOutputStream stream, #{name union} encoded#{name union}) throws IOException {"
+        out.puts('//' + union.discriminant.type.class.to_s)
+        out.puts("//" + type_string(union.discriminant.type))
         if union.discriminant.type.is_a?(AST::Typespecs::Int)
           out.puts "stream.writeInt(encoded#{name union}.getDiscriminant().intValue());"
-          # elsif [discriminant is AST::Definitions::Typedef]
-          #   out.puts "stream.writeInt(encoded#{name union}.getDiscriminant().get#{name union.discriminant.type}());"
+        elsif type_string(union.discriminant.type) == "Uint32"
+          # ugly workaround for compile error after generating source for AuthenticatedMessage in stellar-core
+          out.puts "stream.writeInt(encoded#{name union}.getDiscriminant().getUint32());"
         else
           out.puts "stream.writeInt(encoded#{name union}.getDiscriminant().getValue());"
         end
-        out.puts "switch (encoded#{name union}.getDiscriminant()) {"
+        if type_string(union.discriminant.type) == "Uint32"
+          # ugly workaround for compile error after generating source for AuthenticatedMessage in stellar-core
+          out.puts "switch (encoded#{name union}.getDiscriminant().getUint32()) {"
+        else
+          out.puts "switch (encoded#{name union}.getDiscriminant()) {"
+        end
         union.arms.each do |arm|
           case arm
-          when AST::Definitions::UnionDefaultArm ;
-          out.puts "default:"
-        else
-          arm.cases.each do |kase|
-            if kase.value.is_a?(AST::Identifier)
-              out.puts "case #{kase.value.name}:"
+            when AST::Definitions::UnionDefaultArm ;
+              out.puts "default:"
             else
-              out.puts "case #{kase.value.value}:"
-            end
+              arm.cases.each do |kase|
+                if kase.value.is_a?(AST::Identifier)
+                  if type_string(union.discriminant.type) == "Integer"
+                    member = union.resolved_case(kase)
+                    out.puts "case #{member.value}:"
+                  else
+                    out.puts "case #{kase.value.name}:"
+                  end
+                else
+                  out.puts "case #{kase.value.value}:"
+                end
+              end
           end
+          encode_member "encoded#{name union}", arm, out
+          out.puts "break;"
         end
-        encode_member "encoded#{name union}", arm, out
-        out.puts "break;"
-      end
-      out.puts "}\n}"
+        out.puts "}\n}"
         out.puts <<-EOS.strip_heredoc
           public void encode(XdrDataOutputStream stream) throws IOException {
             encode(stream, this);
@@ -289,7 +302,13 @@ module Xdrgen
           out.puts "#{name union.discriminant.type} discriminant = #{name union.discriminant.type}.decode(stream);"
         end
         out.puts "decoded#{name union}.setDiscriminant(discriminant);"
-        out.puts "switch (decoded#{name union}.getDiscriminant()) {"
+
+        if type_string(union.discriminant.type) == "Uint32"
+          # ugly workaround for compile error after generating source for AuthenticatedMessage in stellar-core
+          out.puts "switch (decoded#{name union}.getDiscriminant().getUint32()) {"
+        else
+          out.puts "switch (decoded#{name union}.getDiscriminant()) {"
+        end
 
         union.arms.each do |arm|
           case arm
@@ -298,7 +317,12 @@ module Xdrgen
             else
               arm.cases.each do |kase|
                 if kase.value.is_a?(AST::Identifier)
-                  out.puts "case #{kase.value.name}:"
+                  if type_string(union.discriminant.type) == "Integer"
+                    member = union.resolved_case(kase)
+                    out.puts "case #{member.value}:"
+                  else
+                    out.puts "case #{kase.value.name}:"
+                  end
                 else
                   out.puts "case #{kase.value.value}:"
                 end
