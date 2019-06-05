@@ -251,7 +251,12 @@ module Xdrgen
             else
               arm.cases.each do |kase|
                 if kase.value.is_a?(AST::Identifier)
-                  out.puts "case #{kase.value.name}:"
+                  if type_string(union.discriminant.type) == "Integer"
+                    member = union.resolved_case(kase)
+                    out.puts "case #{member.value}:"
+                  else
+                    out.puts "case #{kase.value.name}:"
+                  end
                 else
                   out.puts "case #{kase.value.value}:"
                 end
@@ -285,7 +290,12 @@ module Xdrgen
             else
               arm.cases.each do |kase|
                 if kase.value.is_a?(AST::Identifier)
-                  out.puts "case #{kase.value.name}:"
+                  if type_string(union.discriminant.type) == "Integer"
+                    member = union.resolved_case(kase)
+                    out.puts "case #{member.value}:"
+                  else
+                    out.puts "case #{kase.value.name}:"
+                  end
                 else
                   out.puts "case #{kase.value.value}:"
                 end

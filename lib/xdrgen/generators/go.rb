@@ -534,7 +534,11 @@ module Xdrgen
 
             value = if c.value.is_a?(AST::Identifier)
                       member = union.resolved_case(c)
-                      "#{name union.discriminant_type}#{name member}"
+                      if union.discriminant_type.nil? then
+                        "int32(#{name member.enum}#{name member})"
+                      else
+                        "#{name union.discriminant_type}#{name member}"
+                      end
                     else
                       c.value.text_value
                     end
