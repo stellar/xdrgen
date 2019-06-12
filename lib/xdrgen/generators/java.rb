@@ -1,3 +1,5 @@
+require 'set'
+
 module Xdrgen
   module Generators
 
@@ -27,24 +29,86 @@ module Xdrgen
         node.definitions.each(&method(:render_definition))
       end
 
-      def render_definition(defn)
+      def add_imports_for_definiton(defn, imports)
         case defn
         when AST::Definitions::Struct ;
-          render_element "public class", defn do |out|
+          defn.members.each do |m|
+            if is_decl_array(m.declaration)
+              imports.add('java.util.Arrays')
+            else
+              imports.add('java.util.Objects')
+            end
+          end
+          # if we have more than one member field then the
+          # hash code will be computed by
+          # Objects.hash(field1, field2, ..., fieldN)
+          # therefore, we should always import java.util.Objects
+          if defn.members.length > 1
+            imports.add("java.util.Objects")
+          end
+        when AST::Definitions::Enum ;
+          # no imports required for enums
+        when AST::Definitions::Union ;
+          nonVoidArms = defn.arms.select { |arm| !arm.void? }
+          # add 1 because of the discriminant
+          totalFields = nonVoidArms.length + 1
+
+          if is_type_array(defn.discriminant.type)
+            imports.add('java.util.Arrays')
+          else
+            imports.add('java.util.Objects')
+          end
+
+          nonVoidArms.each do |a|
+            if is_decl_array(a.declaration)
+              imports.add('java.util.Arrays')
+            else
+              imports.add('java.util.Objects')
+            end
+          end
+
+          # if we have more than one field then the
+          # hash code will be computed by
+          # Objects.hash(field1, field2, ..., fieldN)
+          # therefore, we should always import java.util.Objects
+          # if we have more than one field
+          if totalFields > 1
+            imports.add("java.util.Objects")
+          end
+        when AST::Definitions::Typedef ;
+          if is_decl_array(defn.declaration)
+            imports.add('java.util.Arrays')
+          else
+            imports.add('java.util.Objects')
+          end
+        end
+
+        if defn.respond_to? :nested_definitions
+          defn.nested_definitions.each{ |child_defn| add_imports_for_definiton(child_defn, imports) }
+        end
+      end
+
+      def render_definition(defn)
+        imports = Set[]
+        add_imports_for_definiton(defn, imports)
+
+        case defn
+        when AST::Definitions::Struct ;
+          render_element "public class", imports, defn do |out|
             render_struct defn, out
             render_nested_definitions defn, out
           end
         when AST::Definitions::Enum ;
-          render_element "public enum", defn do |out|
+          render_element "public enum", imports, defn do |out|
             render_enum defn, out
           end
         when AST::Definitions::Union ;
-          render_element "public class", defn do |out|
+          render_element "public class", imports, defn do |out|
             render_union defn, out
             render_nested_definitions defn, out
           end
         when AST::Definitions::Typedef ;
-          render_element "public class", defn do |out|
+          render_element "public class", imports, defn do |out|
             render_typedef defn, out
           end
         end
@@ -88,13 +152,16 @@ module Xdrgen
         }
       end
 
-      def render_element(type, element, post_name="implements XdrElement")
+      def render_element(type, imports, element, post_name="implements XdrElement")
         path = element.name.camelize + ".java"
         name = name_string element.name
         out  = @output.open(path)
         render_top_matter out
+        imports.each do |import|
+          out.puts "import #{import};"
+        end
+        out.puts "\n"
         render_source_comment out, element
-
         out.puts "#{type} #{name} #{post_name} {"
         out.indent do
           yield out
@@ -161,7 +228,7 @@ module Xdrgen
           EOS
         end
 
-        
+
         out.puts "public static void encode(XdrDataOutputStream stream, #{name struct} encoded#{name struct}) throws IOException{"
         struct.members.each do |m|
           out.indent do
@@ -190,6 +257,59 @@ module Xdrgen
         end
         out.puts "}"
 
+        hashCodeExpression = case struct.members.length
+          when 0
+            "0"
+          when 1
+            if is_decl_array(struct.members[0].declaration)
+              "Arrays.hashCode(this.#{struct.members[0].name})"
+            else
+              "Objects.hash(this.#{struct.members[0].name})"
+            end
+          else
+            "Objects.hash(#{
+              (struct.members.map { |m|
+                if is_decl_array(m.declaration)
+                  "Arrays.hashCode(this.#{m.name})"
+                else
+                  "this.#{m.name}"
+                end
+              }).join(", ")
+            })"
+        end
+        out.puts <<-EOS.strip_heredoc
+          @Override
+          public int hashCode() {
+            return #{hashCodeExpression};
+          }
+        EOS
+
+        equalParts = struct.members.map { |m|
+          if is_decl_array(m.declaration)
+            "Arrays.equals(this.#{m.name}, other.#{m.name})"
+          else
+            "Objects.equals(this.#{m.name}, other.#{m.name})"
+          end
+        }
+        equalExpression = case equalParts.length
+          when 0
+            "true"
+          else
+            equalParts.join(" && ")
+        end
+        type = name struct
+        out.puts <<-EOS.strip_heredoc
+          @Override
+          public boolean equals(Object object) {
+            if (object == null || !(object instanceof #{type})) {
+              return false;
+            }
+
+            #{type} other = (#{type}) object;
+            return #{equalExpression};
+          }
+        EOS
+
         out.break
       end
 
@@ -204,11 +324,11 @@ module Xdrgen
           }
         EOS
 
-        
+
         out.puts "public static void encode(XdrDataOutputStream stream, #{name typedef}  encoded#{name typedef}) throws IOException {"
         encode_member "encoded#{name typedef}", typedef, out
         out.puts "}"
-        
+
         out.puts <<-EOS.strip_heredoc
           public void encode(XdrDataOutputStream stream) throws IOException {
             encode(stream, this);
@@ -224,6 +344,38 @@ module Xdrgen
           out.puts "return decoded#{name typedef};"
         end
         out.puts "}"
+
+        hash_coder_for_decl =
+          if is_decl_array(typedef.declaration)
+            "Arrays.hashCode"
+          else
+            "Objects.hash"
+          end
+        out.puts <<-EOS.strip_heredoc
+          @Override
+          public int hashCode() {
+            return #{hash_coder_for_decl}(this.#{typedef.name});
+          }
+        EOS
+
+        equals_for_decl =
+          if is_decl_array(typedef.declaration)
+            "Arrays.equals"
+          else
+            "Objects.equals"
+          end
+        type = name_string typedef.name
+        out.puts <<-EOS.strip_heredoc
+          @Override
+          public boolean equals(Object object) {
+            if (object == null || !(object instanceof #{type})) {
+              return false;
+            }
+
+            #{type} other = (#{type}) object;
+            return #{equals_for_decl}(this.#{typedef.name}, other.#{typedef.name});
+          }
+        EOS
       end
 
       def render_union(union, out)
@@ -337,12 +489,95 @@ module Xdrgen
         end
         out.puts "}"
 
+        nonVoidArms = union.arms.select { |arm| !arm.void? }
+
+        hashCodeExpression = case nonVoidArms.length
+        when 0
+          if is_type_array(union.discriminant.type)
+            "Arrays.hashCode(this.#{union.discriminant.name})"
+          else
+            "Objects.hash(this.#{union.discriminant.name})"
+          end
+        when 1
+          discriminantPart = if is_type_array(union.discriminant.type)
+            "Arrays.hashCode(this.#{union.discriminant.name})"
+          else
+            "this.#{union.discriminant.name}"
+          end
+
+          armPart = if is_decl_array(nonVoidArms[0].declaration)
+            "Arrays.hashCode(this.#{nonVoidArms[0].name})"
+          else
+            "this.#{nonVoidArms[0].name}"
+          end
+
+          "Objects.hash(#{discriminantPart}, #{armPart})"
+        else
+          discriminantPart = if is_type_array(union.discriminant.type)
+            "Arrays.hashCode(this.#{union.discriminant.name})"
+          else
+            "this.#{union.discriminant.name}"
+          end
+
+          parts = nonVoidArms.map { |a|
+            if is_decl_array(a.declaration)
+              "Arrays.hashCode(this.#{a.name})"
+            else
+              "this.#{a.name}"
+            end
+          }
+
+          parts.append(discriminantPart)
+
+          "Objects.hash(#{parts.join(", ")})"
+      end
+      out.puts <<-EOS.strip_heredoc
+        @Override
+        public int hashCode() {
+          return #{hashCodeExpression};
+        }
+      EOS
+
+      equalParts = nonVoidArms.map { |a|
+        if is_decl_array(a.declaration)
+          "Arrays.equals(this.#{a.name}, other.#{a.name})"
+        else
+          "Objects.equals(this.#{a.name}, other.#{a.name})"
+        end
+      }
+      equalParts.append(
+        if is_type_array(union.discriminant.type)
+          "Arrays.equals(this.#{union.discriminant.name}, other.#{union.discriminant.name})"
+        else
+          "Objects.equals(this.#{union.discriminant.name}, other.#{union.discriminant.name})"
+        end
+      )
+
+      equalExpression = case equalParts.length
+        when 0
+          "true"
+        else
+          equalParts.join(" && ")
+      end
+      type = name union
+      out.puts <<-EOS.strip_heredoc
+        @Override
+        public boolean equals(Object object) {
+          if (object == null || !(object instanceof #{type})) {
+            return false;
+          }
+
+          #{type} other = (#{type}) object;
+          return #{equalExpression};
+        }
+      EOS
+
         out.break
       end
 
       def render_top_matter(out)
         out.puts <<-EOS.strip_heredoc
-          // Automatically generated by xdrgen 
+          // Automatically generated by xdrgen
           // DO NOT EDIT or your changes may be overwritten
 
           package #{@namespace};
@@ -522,6 +757,30 @@ module Xdrgen
           type_string(decl.type)
         else
           raise "Unknown declaration type: #{decl.class.name}"
+        end
+      end
+
+      def is_decl_array(decl)
+        case decl
+        when AST::Declarations::Opaque ;
+          true
+        when AST::Declarations::Array ;
+          true
+        when AST::Declarations::Optional ;
+          is_type_array(decl.type)
+        when AST::Declarations::Simple ;
+        is_type_array(decl.type)
+        else
+          false
+        end
+      end
+
+      def is_type_array(type)
+        case type
+        when AST::Typespecs::Opaque ;
+          true
+        else
+          false
         end
       end
 
