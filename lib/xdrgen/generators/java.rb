@@ -349,7 +349,7 @@ module Xdrgen
           if is_decl_array(typedef.declaration)
             "Arrays.hashCode"
           else
-            "Objects.hash"
+            "Objects.hashCode"
           end
         out.puts <<-EOS.strip_heredoc
           @Override
