@@ -29,7 +29,7 @@ module Xdrgen
         node.definitions.each(&method(:render_definition))
       end
 
-      def add_imports_for_definiton(defn, imports)
+      def add_imports_for_definition(defn, imports)
         case defn
         when AST::Definitions::Struct ;
           defn.members.each do |m|
@@ -84,13 +84,13 @@ module Xdrgen
         end
 
         if defn.respond_to? :nested_definitions
-          defn.nested_definitions.each{ |child_defn| add_imports_for_definiton(child_defn, imports) }
+          defn.nested_definitions.each{ |child_defn| add_imports_for_definition(child_defn, imports) }
         end
       end
 
       def render_definition(defn)
         imports = Set[]
-        add_imports_for_definiton(defn, imports)
+        add_imports_for_definition(defn, imports)
 
         case defn
         when AST::Definitions::Struct ;
