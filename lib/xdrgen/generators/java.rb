@@ -264,7 +264,7 @@ module Xdrgen
             if is_decl_array(struct.members[0].declaration)
               "Arrays.hashCode(this.#{struct.members[0].name})"
             else
-              "Objects.hash(this.#{struct.members[0].name})"
+              "Objects.hashCode(this.#{struct.members[0].name})"
             end
           else
             "Objects.hash(#{
@@ -496,22 +496,8 @@ module Xdrgen
           if is_type_array(union.discriminant.type)
             "Arrays.hashCode(this.#{union.discriminant.name})"
           else
-            "Objects.hash(this.#{union.discriminant.name})"
+            "Objects.hashCode(this.#{union.discriminant.name})"
           end
-        when 1
-          discriminantPart = if is_type_array(union.discriminant.type)
-            "Arrays.hashCode(this.#{union.discriminant.name})"
-          else
-            "this.#{union.discriminant.name}"
-          end
-
-          armPart = if is_decl_array(nonVoidArms[0].declaration)
-            "Arrays.hashCode(this.#{nonVoidArms[0].name})"
-          else
-            "this.#{nonVoidArms[0].name}"
-          end
-
-          "Objects.hash(#{discriminantPart}, #{armPart})"
         else
           discriminantPart = if is_type_array(union.discriminant.type)
             "Arrays.hashCode(this.#{union.discriminant.name})"
