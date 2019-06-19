@@ -36,15 +36,15 @@ module Xdrgen
             if is_decl_array(m.declaration)
               imports.add('java.util.Arrays')
             else
-              imports.add('java.util.Objects')
+              imports.add('com.google.common.base.Objects')
             end
           end
           # if we have more than one member field then the
           # hash code will be computed by
-          # Objects.hash(field1, field2, ..., fieldN)
-          # therefore, we should always import java.util.Objects
+          # Objects.hashCode(field1, field2, ..., fieldN)
+          # therefore, we should always import com.google.common.base.Objects
           if defn.members.length > 1
-            imports.add("java.util.Objects")
+            imports.add("com.google.common.base.Objects")
           end
         when AST::Definitions::Enum ;
           # no imports required for enums
@@ -56,30 +56,30 @@ module Xdrgen
           if is_type_array(defn.discriminant.type)
             imports.add('java.util.Arrays')
           else
-            imports.add('java.util.Objects')
+            imports.add('com.google.common.base.Objects')
           end
 
           nonVoidArms.each do |a|
             if is_decl_array(a.declaration)
               imports.add('java.util.Arrays')
             else
-              imports.add('java.util.Objects')
+              imports.add('com.google.common.base.Objects')
             end
           end
 
           # if we have more than one field then the
           # hash code will be computed by
-          # Objects.hash(field1, field2, ..., fieldN)
-          # therefore, we should always import java.util.Objects
+          # Objects.hashCode(field1, field2, ..., fieldN)
+          # therefore, we should always import com.google.common.base.Objects
           # if we have more than one field
           if totalFields > 1
-            imports.add("java.util.Objects")
+            imports.add("com.google.common.base.Objects")
           end
         when AST::Definitions::Typedef ;
           if is_decl_array(defn.declaration)
             imports.add('java.util.Arrays')
           else
-            imports.add('java.util.Objects')
+            imports.add('com.google.common.base.Objects')
           end
         end
 
@@ -267,7 +267,7 @@ module Xdrgen
               "Objects.hashCode(this.#{struct.members[0].name})"
             end
           else
-            "Objects.hash(#{
+            "Objects.hashCode(#{
               (struct.members.map { |m|
                 if is_decl_array(m.declaration)
                   "Arrays.hashCode(this.#{m.name})"
@@ -288,7 +288,7 @@ module Xdrgen
           if is_decl_array(m.declaration)
             "Arrays.equals(this.#{m.name}, other.#{m.name})"
           else
-            "Objects.equals(this.#{m.name}, other.#{m.name})"
+            "Objects.equal(this.#{m.name}, other.#{m.name})"
           end
         }
         equalExpression = case equalParts.length
@@ -362,7 +362,7 @@ module Xdrgen
           if is_decl_array(typedef.declaration)
             "Arrays.equals"
           else
-            "Objects.equals"
+            "Objects.equal"
           end
         type = name_string typedef.name
         out.puts <<-EOS.strip_heredoc
@@ -491,72 +491,62 @@ module Xdrgen
 
         nonVoidArms = union.arms.select { |arm| !arm.void? }
 
-        hashCodeExpression = case nonVoidArms.length
-        when 0
+        discriminantPart = if is_type_array(union.discriminant.type)
+          "Arrays.hashCode(this.#{union.discriminant.name})"
+        else
+          "this.#{union.discriminant.name}"
+        end
+
+        parts = nonVoidArms.map { |a|
+          if is_decl_array(a.declaration)
+            "Arrays.hashCode(this.#{a.name})"
+          else
+            "this.#{a.name}"
+          end
+        }
+        parts.append(discriminantPart)
+
+        hashCodeExpression = "Objects.hashCode(#{parts.join(", ")})"
+        out.puts <<-EOS.strip_heredoc
+          @Override
+          public int hashCode() {
+            return #{hashCodeExpression};
+          }
+        EOS
+
+        equalParts = nonVoidArms.map { |a|
+          if is_decl_array(a.declaration)
+            "Arrays.equals(this.#{a.name}, other.#{a.name})"
+          else
+            "Objects.equal(this.#{a.name}, other.#{a.name})"
+          end
+        }
+        equalParts.append(
           if is_type_array(union.discriminant.type)
-            "Arrays.hashCode(this.#{union.discriminant.name})"
+            "Arrays.equals(this.#{union.discriminant.name}, other.#{union.discriminant.name})"
           else
-            "Objects.hashCode(this.#{union.discriminant.name})"
+            "Objects.equal(this.#{union.discriminant.name}, other.#{union.discriminant.name})"
           end
-        else
-          discriminantPart = if is_type_array(union.discriminant.type)
-            "Arrays.hashCode(this.#{union.discriminant.name})"
+        )
+
+        equalExpression = case equalParts.length
+          when 0
+            "true"
           else
-            "this.#{union.discriminant.name}"
-          end
-
-          parts = nonVoidArms.map { |a|
-            if is_decl_array(a.declaration)
-              "Arrays.hashCode(this.#{a.name})"
-            else
-              "this.#{a.name}"
-            end
-          }
-
-          parts.append(discriminantPart)
-
-          "Objects.hash(#{parts.join(", ")})"
-      end
-      out.puts <<-EOS.strip_heredoc
-        @Override
-        public int hashCode() {
-          return #{hashCodeExpression};
-        }
-      EOS
-
-      equalParts = nonVoidArms.map { |a|
-        if is_decl_array(a.declaration)
-          "Arrays.equals(this.#{a.name}, other.#{a.name})"
-        else
-          "Objects.equals(this.#{a.name}, other.#{a.name})"
+            equalParts.join(" && ")
         end
-      }
-      equalParts.append(
-        if is_type_array(union.discriminant.type)
-          "Arrays.equals(this.#{union.discriminant.name}, other.#{union.discriminant.name})"
-        else
-          "Objects.equals(this.#{union.discriminant.name}, other.#{union.discriminant.name})"
-        end
-      )
+        type = name union
+        out.puts <<-EOS.strip_heredoc
+          @Override
+          public boolean equals(Object object) {
+            if (object == null || !(object instanceof #{type})) {
+              return false;
+            }
 
-      equalExpression = case equalParts.length
-        when 0
-          "true"
-        else
-          equalParts.join(" && ")
-      end
-      type = name union
-      out.puts <<-EOS.strip_heredoc
-        @Override
-        public boolean equals(Object object) {
-          if (object == null || !(object instanceof #{type})) {
-            return false;
+            #{type} other = (#{type}) object;
+            return #{equalExpression};
           }
-
-          #{type} other = (#{type}) object;
-          return #{equalExpression};
-        }
-      EOS
+        EOS
 
         out.break
       end
