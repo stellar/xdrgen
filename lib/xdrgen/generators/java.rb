@@ -16,6 +16,10 @@ module Xdrgen
         template = IO.read(__dir__ + "/java/XdrDataOutputStream.erb")
         result = ERB.new(template).result binding
         @output.write  "XdrDataOutputStream.java", result
+
+        template = IO.read(__dir__ + "/java/XdrElement.erb")
+        result = ERB.new(template).result binding
+        @output.write  "XdrElement.java", result
       end
 
       def render_definitions(node)
@@ -84,7 +88,7 @@ module Xdrgen
         }
       end
 
-      def render_element(type, element, post_name="")
+      def render_element(type, element, post_name="implements XdrElement")
         path = element.name.camelize + ".java"
         name = name_string element.name
         out  = @output.open(path)
@@ -117,7 +121,7 @@ module Xdrgen
             return mValue;
         }
 
-        static #{name_string enum.name} decode(XdrDataInputStream stream) throws IOException {
+        public static #{name_string enum.name} decode(XdrDataInputStream stream) throws IOException {
           int value = stream.readInt();
           switch (value) {
         EOS
@@ -132,8 +136,12 @@ module Xdrgen
           }
         }
 
-        static void encode(XdrDataOutputStream stream, #{name_string enum.name} value) throws IOException {
+        public static void encode(XdrDataOutputStream stream, #{name_string enum.name} value) throws IOException {
           stream.writeInt(value.getValue());
+        }
+
+        public void encode(XdrDataOutputStream stream) throws IOException {
+          encode(stream, this);
         }
         EOS
         out.break
@@ -153,6 +161,7 @@ module Xdrgen
           EOS
         end
 
+        
         out.puts "public static void encode(XdrDataOutputStream stream, #{name struct} encoded#{name struct}) throws IOException{"
         struct.members.each do |m|
           out.indent do
@@ -160,6 +169,12 @@ module Xdrgen
           end
         end
         out.puts "}"
+
+        out.puts <<-EOS.strip_heredoc
+          public void encode(XdrDataOutputStream stream) throws IOException {
+            encode(stream, this);
+          }
+        EOS
 
         out.puts <<-EOS.strip_heredoc
           public static #{name struct} decode(XdrDataInputStream stream) throws IOException {
@@ -188,9 +203,17 @@ module Xdrgen
             this.#{typedef.name} = value;
           }
         EOS
+
+        
         out.puts "public static void encode(XdrDataOutputStream stream, #{name typedef}  encoded#{name typedef}) throws IOException {"
         encode_member "encoded#{name typedef}", typedef, out
         out.puts "}"
+        
+        out.puts <<-EOS.strip_heredoc
+          public void encode(XdrDataOutputStream stream) throws IOException {
+            encode(stream, this);
+          }
+        EOS
 
         out.puts <<-EOS.strip_heredoc
           public static #{name typedef} decode(XdrDataInputStream stream) throws IOException {
@@ -226,7 +249,6 @@ module Xdrgen
             }
           EOS
         end
-
         out.puts "public static void encode(XdrDataOutputStream stream, #{name union} encoded#{name union}) throws IOException {"
         out.puts('//' + union.discriminant.type.class.to_s)
         out.puts("//" + type_string(union.discriminant.type))
@@ -266,6 +288,11 @@ module Xdrgen
           out.puts "break;"
         end
         out.puts "}\n}"
+        out.puts <<-EOS.strip_heredoc
+          public void encode(XdrDataOutputStream stream) throws IOException {
+            encode(stream, this);
+          }
+        EOS
 
         out.puts "public static #{name union} decode(XdrDataInputStream stream) throws IOException {"
         out.puts "#{name union} decoded#{name union} = new #{name union}();"
