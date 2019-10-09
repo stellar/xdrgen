@@ -68,7 +68,7 @@ module Xdrgen
           Automatically generated on #{Time.now.iso8601}
           DO NOT EDIT or your changes may be overwritten
 
-          Target implementation: elixir-xdr at https://hex.pm/packages/elixir-xdr
+          Target implementation: exdr at https://hex.pm/packages/exdr
           """
         EOS
         out.break
