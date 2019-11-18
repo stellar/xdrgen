@@ -23,7 +23,8 @@ golang, and elixir:
 - javascript: complete support
 - java: complete support
 - golang: currently using a fork of go-xdr, but has complete support
-- elixir: support is experimental as the SDK is in early development
+- elixir: support is experimental as the SDK is in early development. Generated
+  code requires [:exdr](https://github.com/revelrylabs/exdr) in your deps
 
 Testing is _very_ sparse, but will improve over time.
 
