@@ -599,6 +599,12 @@ module Xdrgen
           out.puts <<-EOS.strip_heredoc
             stream.write(#{value}.get#{member.name.slice(0,1).capitalize+member.name.slice(1..-1)}(), 0, #{member.name}size);
           EOS
+        when AST::Declarations::String ;
+          out.puts "int #{member.name}size = #{value}.#{member.name}.length;"
+          out.puts "stream.writeInt(#{member.name}size);"
+          out.puts <<-EOS.strip_heredoc
+            stream.write(#{value}.get#{member.name.slice(0,1).capitalize+member.name.slice(1..-1)}(), 0, #{member.name}size);
+          EOS
         when AST::Declarations::Array ;
           out.puts "int #{member.name}size = #{value}.get#{member.name.slice(0,1).capitalize+member.name.slice(1..-1)}().length;"
           unless member.declaration.fixed?
@@ -637,8 +643,6 @@ module Xdrgen
           raise "cannot render quadruple in golang"
         when AST::Typespecs::Bool ;
           "stream.writeInt(#{value} ? 1 : 0)"
-        when AST::Typespecs::String ;
-          "stream.writeString(#{value})"
         when AST::Typespecs::Simple ;
           "#{name type.resolved_type}.encode(stream, #{value})"
         when AST::Concerns::NestedDefinition ;
@@ -666,6 +670,12 @@ module Xdrgen
           else
             out.puts "int #{member.name}size = stream.readInt();"
           end
+          out.puts <<-EOS.strip_heredoc
+            #{value}.#{member.name} = new byte[#{member.name}size];
+            stream.read(#{value}.#{member.name}, 0, #{member.name}size);
+          EOS
+        when AST::Declarations::String ;
+          out.puts "int #{member.name}size = stream.readInt();"
           out.puts <<-EOS.strip_heredoc
             #{value}.#{member.name} = new byte[#{member.name}size];
             stream.read(#{value}.#{member.name}, 0, #{member.name}size);
@@ -708,8 +718,6 @@ module Xdrgen
           raise "cannot render quadruple in golang"
         when AST::Typespecs::Bool ;
           "stream.readInt() == 1 ? true : false"
-        when AST::Typespecs::String ;
-          "stream.readString()"
         when AST::Typespecs::Simple ;
           "#{name type.resolved_type}.decode(stream)"
         when AST::Concerns::NestedDefinition ;
@@ -724,7 +732,7 @@ module Xdrgen
         when AST::Declarations::Opaque ;
           "byte[]"
         when AST::Declarations::String ;
-          "String"
+          "byte[]"
         when AST::Declarations::Array ;
           "#{type_string decl.type}[]"
         when AST::Declarations::Optional ;
@@ -740,6 +748,8 @@ module Xdrgen
         case decl
         when AST::Declarations::Opaque ;
           true
+        when AST::Declarations::String ;
+          true
         when AST::Declarations::Array ;
           true
         when AST::Declarations::Optional ;
@@ -754,6 +764,8 @@ module Xdrgen
       def is_type_array(type)
         case type
         when AST::Typespecs::Opaque ;
+          true
+        when AST::Typespecs::String ;
           true
         else
           false
@@ -779,6 +791,8 @@ module Xdrgen
         when AST::Typespecs::Bool ;
           "Boolean"
         when AST::Typespecs::Opaque ;
+          "Byte[#{type.size}]"
+        when AST::Typespecs::String ;
           "Byte[#{type.size}]"
         when AST::Typespecs::Simple ;
           name type.resolved_type
