@@ -683,19 +683,19 @@ module Xdrgen
           out.puts <<-EOS.strip_heredoc
             #{value}.#{member.name} = new #{type_string member.type}[#{member.name}size];
             for (int i = 0; i < #{member.name}size; i++) {
-              #{value}.#{member.name}[i] = #{decode_type member.declaration.type};
+              #{value}.#{member.name}[i] = #{decode_type member.declaration};
             }
           EOS
         else
-          out.puts "#{value}.#{member.name} = #{decode_type member.declaration.type};"
+          out.puts "#{value}.#{member.name} = #{decode_type member.declaration};"
         end
         if member.type.sub_type == :optional
           out.puts "}"
         end
       end
 
-      def decode_type(type)
-        case type
+      def decode_type(decl)
+        case decl.type
         when AST::Typespecs::Int ;
           "stream.readInt()"
         when AST::Typespecs::UnsignedInt ;
@@ -713,13 +713,13 @@ module Xdrgen
         when AST::Typespecs::Bool ;
           "stream.readInt() == 1 ? true : false"
         when AST::Typespecs::String ;
-          "XdrString.decode(stream)"
+          "XdrString.decode(stream, #{decl.size})"
         when AST::Typespecs::Simple ;
-          "#{name type.resolved_type}.decode(stream)"
+          "#{name decl.type.resolved_type}.decode(stream)"
         when AST::Concerns::NestedDefinition ;
-          "#{name type}.decode(stream)"
+          "#{name decl.type}.decode(stream)"
         else
-          raise "Unknown typespec: #{type.class.name}"
+          raise "Unknown typespec: #{decl.type.class.name}"
         end
       end
 
