@@ -22,6 +22,10 @@ module Xdrgen
         template = IO.read(__dir__ + "/java/XdrElement.erb")
         result = ERB.new(template).result binding
         @output.write  "XdrElement.java", result
+
+        template = IO.read(__dir__ + "/java/XdrString.erb")
+        result = ERB.new(template).result binding
+        @output.write  "XdrString.java", result
       end
 
       def render_definitions(node)
@@ -638,7 +642,7 @@ module Xdrgen
         when AST::Typespecs::Bool ;
           "stream.writeInt(#{value} ? 1 : 0)"
         when AST::Typespecs::String ;
-          "stream.writeString(#{value})"
+          "#{value}.encode(stream)"
         when AST::Typespecs::Simple ;
           "#{name type.resolved_type}.encode(stream, #{value})"
         when AST::Concerns::NestedDefinition ;
@@ -679,19 +683,19 @@ module Xdrgen
           out.puts <<-EOS.strip_heredoc
             #{value}.#{member.name} = new #{type_string member.type}[#{member.name}size];
             for (int i = 0; i < #{member.name}size; i++) {
-              #{value}.#{member.name}[i] = #{decode_type member.declaration.type};
+              #{value}.#{member.name}[i] = #{decode_type member.declaration};
             }
           EOS
         else
-          out.puts "#{value}.#{member.name} = #{decode_type member.declaration.type};"
+          out.puts "#{value}.#{member.name} = #{decode_type member.declaration};"
         end
         if member.type.sub_type == :optional
           out.puts "}"
         end
       end
 
-      def decode_type(type)
-        case type
+      def decode_type(decl)
+        case decl.type
         when AST::Typespecs::Int ;
           "stream.readInt()"
         when AST::Typespecs::UnsignedInt ;
@@ -709,13 +713,13 @@ module Xdrgen
         when AST::Typespecs::Bool ;
           "stream.readInt() == 1 ? true : false"
         when AST::Typespecs::String ;
-          "stream.readString()"
+          "XdrString.decode(stream, #{decl.size})"
         when AST::Typespecs::Simple ;
-          "#{name type.resolved_type}.decode(stream)"
+          "#{name decl.type.resolved_type}.decode(stream)"
         when AST::Concerns::NestedDefinition ;
-          "#{name type}.decode(stream)"
+          "#{name decl.type}.decode(stream)"
         else
-          raise "Unknown typespec: #{type.class.name}"
+          raise "Unknown typespec: #{decl.type.class.name}"
         end
       end
 
@@ -724,7 +728,7 @@ module Xdrgen
         when AST::Declarations::Opaque ;
           "byte[]"
         when AST::Declarations::String ;
-          "String"
+          "XdrString"
         when AST::Declarations::Array ;
           "#{type_string decl.type}[]"
         when AST::Declarations::Optional ;
@@ -780,6 +784,8 @@ module Xdrgen
           "Boolean"
         when AST::Typespecs::Opaque ;
           "Byte[#{type.size}]"
+        when AST::Typespecs::String ;
+          "XdrString"
         when AST::Typespecs::Simple ;
           name type.resolved_type
         when AST::Concerns::NestedDefinition ;
