@@ -170,7 +170,15 @@ module Xdrgen
         parent = name named.parent_defn if named.is_a?(AST::Concerns::NestedDefinition)
 
         # NOTE: classify will strip plurality, so we restore it if necessary
-        plural = named.name.pluralize == named.name
+        #
+        # Downcase the value since pluralize adds a lower case `s`.
+        #
+        # Without downcasing, the following appears as singular, but it's plural:
+        #
+        #  "BEGIN_SPONSORING_FUTURE_RESERVEs" == "BEGIN_SPONSORING_FUTURE_RESERVES"
+        #  => false
+        #
+        plural = named.name.downcase.pluralize == named.name.downcase
         base   = named.name.underscore.classify
         result = plural ? base.pluralize : base
 
@@ -178,10 +186,7 @@ module Xdrgen
       end
 
       def const_name(named)
-        # NOTE: classify will strip plurality, so we restore it if necessary
-        plural = named.name.pluralize == named.name
-        base   = named.name.underscore.upcase
-        plural ? base.pluralize : base
+        named.name.underscore.upcase
       end
 
       def member_name(member)
