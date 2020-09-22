@@ -164,7 +164,7 @@ module Xdrgen
         parent = name named.parent_defn if named.is_a?(AST::Concerns::NestedDefinition)
 
         # NOTE: classify will strip plurality, so we restore it if necessary
-        plural = named.name.pluralize == named.name
+        plural = named.name.downcase.pluralize == named.name.downcase
         base   = named.name.underscore.classify
         result = plural ? base.pluralize : base
 
@@ -172,10 +172,7 @@ module Xdrgen
       end
 
       def const_name(named)
-        # NOTE: classify will strip plurality, so we restore it if necessary
-        plural = named.name.pluralize == named.name
-        base   = named.name.underscore.upcase
-        plural ? base.pluralize : base
+        named.name.underscore.upcase
       end
 
       def member_name(member)
