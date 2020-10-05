@@ -12,7 +12,11 @@ grammar XdrUnionGrammar
   rule union_body
     "switch"
     space?
-    "(" discriminant:declaration ")"
+    "("
+    space?
+    discriminant:declaration
+    space?
+    ")"
     space?
     "{"
     space?

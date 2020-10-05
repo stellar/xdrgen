@@ -8,3 +8,14 @@ union MyUnion switch (UnionKey type)
 
 
 };
+
+union SomeVeryLongUnionNamePushingSwitchParamToNewLine switch (
+	SomeLongUnionKeyType type)
+{
+    case ERROR:
+        Error error;
+    case MULTI:
+        Multi things<>;
+    default:
+		void;
+};
