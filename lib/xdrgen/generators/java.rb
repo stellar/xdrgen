@@ -331,15 +331,48 @@ module Xdrgen
         out.puts <<-EOS.strip_heredoc
           @Override
           public boolean equals(Object object) {
-            if (object == null || !(object instanceof #{type})) {
+            if (!(object instanceof #{type})) {
               return false;
             }
 
             #{type} other = (#{type}) object;
             return #{equalExpression};
           }
+
         EOS
 
+        out.puts "public static final class Builder {"
+        out.indent do
+          struct.members.map { |m|
+            out.puts "private #{decl_string(m.declaration)} #{m.name};"
+          }
+
+          struct.members.map { |m|
+            out.puts <<-EOS.strip_heredoc
+
+              public Builder #{m.name}(#{decl_string(m.declaration)} #{m.name}) {
+                this.#{m.name} = #{m.name};
+                return this;
+              }
+            EOS
+          }
+
+        end
+
+
+        out.indent do
+          out.break
+          out.puts "public #{name struct} build() {"
+          out.indent do
+            out.puts "#{name struct} val = new #{name struct}();"
+            struct.members.map { |m|
+              out.puts "val.set#{m.name.slice(0,1).capitalize+m.name.slice(1..-1)}(#{m.name});"
+            }
+            out.puts "return val;"
+          end
+          out.puts "}"
+        end
+        out.puts "}"
         out.break
       end
 
@@ -409,7 +442,7 @@ module Xdrgen
         out.puts <<-EOS.strip_heredoc
           @Override
           public boolean equals(Object object) {
-            if (object == null || !(object instanceof #{type})) {
+            if (!(object instanceof #{type})) {
               return false;
             }
 
@@ -442,6 +475,54 @@ module Xdrgen
             }
           EOS
         end
+        out.break
+
+        out.puts "public static final class Builder {"
+        out.indent do
+          out.puts "private #{type_string union.discriminant.type} discriminant;"
+          union.arms.each do |arm|
+            next if arm.void?
+            out.puts "private #{decl_string(arm.declaration)} #{arm.name};"
+          end
+          out.break
+
+          out.puts <<-EOS.strip_heredoc
+            public Builder discriminant(#{type_string union.discriminant.type} discriminant) {
+              this.discriminant = discriminant;
+              return this;
+            }
+          EOS
+
+          union.arms.each do |arm|
+            next if arm.void?
+            out.puts <<-EOS.strip_heredoc
+
+              public Builder #{arm.name}(#{decl_string(arm.declaration)} #{arm.name}) {
+                this.#{arm.name} = #{arm.name};
+                return this;
+              }
+            EOS
+          end
+        end
+
+        out.indent do
+          out.break
+          out.puts "public #{name union} build() {"
+          out.indent do
+            out.puts "#{name union} val = new #{name union}();"
+            out.puts "val.setDiscriminant(discriminant);"
+            union.arms.each do |arm|
+              next if arm.void?
+              out.puts "val.set#{arm.name.slice(0,1).capitalize+arm.name.slice(1..-1)}(#{arm.name});"
+            end
+            out.puts "return val;"
+          end
+          out.puts "}"
+        end
+        out.puts "}"
+        out.break
+
+
         out.puts "public static void encode(XdrDataOutputStream stream, #{name union} encoded#{name union}) throws IOException {"
         out.puts('//' + union.discriminant.type.class.to_s)
         out.puts("//" + type_string(union.discriminant.type))
@@ -591,7 +672,7 @@ module Xdrgen
         out.puts <<-EOS.strip_heredoc
           @Override
           public boolean equals(Object object) {
-            if (object == null || !(object instanceof #{type})) {
+            if (!(object instanceof #{type})) {
               return false;
             }
 
