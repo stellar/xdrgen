@@ -35,6 +35,7 @@ module Xdrgen
 
       def add_imports_for_definition(defn, imports)
         imports.add('java.io.ByteArrayInputStream')
+        imports.add('java.io.ByteArrayOutputStream')
         imports.add('okio.ByteString')
         case defn
         when AST::Definitions::Struct ;
@@ -158,7 +159,7 @@ module Xdrgen
         }
       end
 
-      def render_element(type, imports, element, post_name="extends XdrElement")
+      def render_element(type, imports, element, post_name="implements XdrElement")
         path = element.name.camelize + ".java"
         name = name_string element.name
         out  = @output.open(path)
@@ -220,6 +221,14 @@ module Xdrgen
         public void encode(XdrDataOutputStream stream) throws IOException {
           encode(stream, this);
         }
+
+        public ByteString encode() throws IOException {
+          ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
+          XdrDataOutputStream xdrOutputStream = new XdrDataOutputStream(byteStream);
+          encode(xdrOutputStream);
+          return new ByteString(byteStream.toByteArray());
+        }
+
         EOS
         out.break
       end
@@ -250,6 +259,13 @@ module Xdrgen
         out.puts <<-EOS.strip_heredoc
           public void encode(XdrDataOutputStream stream) throws IOException {
             encode(stream, this);
+          }
+
+          public ByteString encode() throws IOException {
+            ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
+            XdrDataOutputStream xdrOutputStream = new XdrDataOutputStream(byteStream);
+            encode(xdrOutputStream);
+            return new ByteString(byteStream.toByteArray());
           }
         EOS
 
@@ -346,6 +362,13 @@ module Xdrgen
         out.puts <<-EOS.strip_heredoc
           public void encode(XdrDataOutputStream stream) throws IOException {
             encode(stream, this);
+          }
+
+          public ByteString encode() throws IOException {
+            ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
+            XdrDataOutputStream xdrOutputStream = new XdrDataOutputStream(byteStream);
+            encode(xdrOutputStream);
+            return new ByteString(byteStream.toByteArray());
           }
         EOS
 
@@ -461,6 +484,13 @@ module Xdrgen
         out.puts <<-EOS.strip_heredoc
           public void encode(XdrDataOutputStream stream) throws IOException {
             encode(stream, this);
+          }
+
+          public ByteString encode() throws IOException {
+            ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
+            XdrDataOutputStream xdrOutputStream = new XdrDataOutputStream(byteStream);
+            encode(xdrOutputStream);
+            return new ByteString(byteStream.toByteArray());
           }
 
           public static #{name union} decode(ByteString bs) throws IOException {

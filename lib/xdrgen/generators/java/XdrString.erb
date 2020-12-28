@@ -1,9 +1,12 @@
 package <%= @namespace %>;
 
 import java.io.IOException;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.InvalidClassException;
 import java.nio.charset.Charset;
 import java.util.Arrays;
+import okio.ByteString;
 
 public class XdrString implements XdrElement {
     private byte[] bytes;
@@ -22,6 +25,13 @@ public class XdrString implements XdrElement {
         stream.write(this.bytes, 0, this.bytes.length);
     }
 
+    public ByteString encode() throws IOException {
+        ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
+        XdrDataOutputStream xdrOutputStream = new XdrDataOutputStream(byteStream);
+        encode(xdrOutputStream);
+        return new ByteString(byteStream.toByteArray());
+    }
+
     public static XdrString decode(XdrDataInputStream stream, int maxSize) throws IOException {
         int size = stream.readInt();
         if (size > maxSize) {
@@ -30,6 +40,10 @@ public class XdrString implements XdrElement {
         byte[] bytes = new byte[size];
         stream.read(bytes);
         return new XdrString(bytes);
+    }
+
+    public static XdrString decode(ByteString bs, int maxSize) throws IOException {
+        return decode(new XdrDataInputStream(new ByteArrayInputStream(bs.toByteArray())), maxSize);
     }
 
     public byte[] getBytes() {

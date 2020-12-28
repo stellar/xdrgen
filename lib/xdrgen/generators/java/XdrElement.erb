@@ -7,13 +7,7 @@ import okio.ByteString;
 /**
  * Common parent for all generated classes.
  */
-abstract class XdrElement {
+interface XdrElement {
   public abstract void encode(XdrDataOutputStream stream) throws IOException;
-
-  public ByteString encode() throws IOException {
-    ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
-    XdrDataOutputStream xdrOutputStream = new XdrDataOutputStream(byteStream);
-    encode(xdrOutputStream);
-    return new ByteString(byteStream.toByteArray());
-  }
+  public abstract ByteString encode() throws IOException;
 }
