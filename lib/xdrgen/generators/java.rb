@@ -34,6 +34,8 @@ module Xdrgen
       end
 
       def add_imports_for_definition(defn, imports)
+        imports.add('java.io.ByteArrayInputStream')
+        imports.add('okio.ByteString')
         case defn
         when AST::Definitions::Struct ;
           defn.members.each do |m|
@@ -156,7 +158,7 @@ module Xdrgen
         }
       end
 
-      def render_element(type, imports, element, post_name="implements XdrElement")
+      def render_element(type, imports, element, post_name="extends XdrElement")
         path = element.name.camelize + ".java"
         name = name_string element.name
         out  = @output.open(path)
@@ -190,6 +192,10 @@ module Xdrgen
 
         public int getValue() {
             return mValue;
+        }
+
+        public static #{name_string enum.name} decode(ByteString bs) throws IOException {
+          return decode(new XdrDataInputStream(new ByteArrayInputStream(bs.toByteArray())));
         }
 
         public static #{name_string enum.name} decode(XdrDataInputStream stream) throws IOException {
@@ -248,6 +254,10 @@ module Xdrgen
         EOS
 
         out.puts <<-EOS.strip_heredoc
+          public static #{name struct} decode(ByteString bs) throws IOException {
+            return decode(new XdrDataInputStream(new ByteArrayInputStream(bs.toByteArray())));
+          }
+
           public static #{name struct} decode(XdrDataInputStream stream) throws IOException {
             #{name struct} decoded#{name struct} = new #{name struct}();
         EOS
@@ -340,6 +350,10 @@ module Xdrgen
         EOS
 
         out.puts <<-EOS.strip_heredoc
+          public static #{name typedef} decode(ByteString bs) throws IOException {
+            return decode(new XdrDataInputStream(new ByteArrayInputStream(bs.toByteArray())));
+          }
+
           public static #{name typedef} decode(XdrDataInputStream stream) throws IOException {
             #{name typedef} decoded#{name typedef} = new #{name typedef}();
         EOS
@@ -447,6 +461,10 @@ module Xdrgen
         out.puts <<-EOS.strip_heredoc
           public void encode(XdrDataOutputStream stream) throws IOException {
             encode(stream, this);
+          }
+
+          public static #{name union} decode(ByteString bs) throws IOException {
+            return decode(new XdrDataInputStream(new ByteArrayInputStream(bs.toByteArray())));
           }
         EOS
 
