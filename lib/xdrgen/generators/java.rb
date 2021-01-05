@@ -353,18 +353,29 @@ module Xdrgen
       def render_typedef(typedef, out)
         out.puts <<-EOS.strip_heredoc
           private #{decl_string typedef.declaration} #{typedef.name};
+
+          public #{typedef.name.camelize}() {}
+
+          public #{typedef.name.camelize}(#{decl_string typedef.declaration} #{typedef.name}) {
+            this.#{typedef.name} = #{typedef.name};
+          }
+
           public #{decl_string typedef.declaration} get#{typedef.name.slice(0,1).capitalize+typedef.name.slice(1..-1)}() {
             return this.#{typedef.name};
           }
+
           public void set#{typedef.name.slice(0,1).capitalize+typedef.name.slice(1..-1)}(#{decl_string typedef.declaration} value) {
             this.#{typedef.name} = value;
           }
+
         EOS
 
-
         out.puts "public static void encode(XdrDataOutputStream stream, #{name typedef}  encoded#{name typedef}) throws IOException {"
-        encode_member "encoded#{name typedef}", typedef, out
+        out.indent do
+          encode_member "encoded#{name typedef}", typedef, out
+        end
         out.puts "}"
+        out.break
 
         out.puts <<-EOS.strip_heredoc
           public void encode(XdrDataOutputStream stream) throws IOException {
@@ -376,11 +387,12 @@ module Xdrgen
           public static #{name typedef} decode(XdrDataInputStream stream) throws IOException {
             #{name typedef} decoded#{name typedef} = new #{name typedef}();
         EOS
-        decode_member "decoded#{name typedef}", typedef, out
         out.indent do
+          decode_member "decoded#{name typedef}", typedef, out
           out.puts "return decoded#{name typedef};"
         end
         out.puts "}"
+        out.break
 
         hash_coder_for_decl =
           if is_decl_array(typedef.declaration)
@@ -393,6 +405,7 @@ module Xdrgen
           public int hashCode() {
             return #{hash_coder_for_decl}(this.#{typedef.name});
           }
+
         EOS
 
         equals_for_decl =
