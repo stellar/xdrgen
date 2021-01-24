@@ -3,7 +3,7 @@ package <%= @namespace %>;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.nio.charset.StandardCharsets;
+import java.nio.charset.Charset;
 
 public class XdrDataOutputStream extends DataOutputStream {
 
@@ -12,12 +12,6 @@ public class XdrDataOutputStream extends DataOutputStream {
     public XdrDataOutputStream(OutputStream out) {
         super(new XdrOutputStream(out));
         mOut = (XdrOutputStream) super.out;
-    }
-
-    public void writeString(String s) throws IOException {
-        byte[] chars = s.getBytes(StandardCharsets.UTF_8);
-        writeInt(chars.length);
-        write(chars);
     }
 
     public void writeIntArray(int[] a) throws IOException {

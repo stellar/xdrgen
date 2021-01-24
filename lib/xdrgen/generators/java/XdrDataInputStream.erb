@@ -4,7 +4,6 @@ import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
 
 public class XdrDataInputStream extends DataInputStream {
 
@@ -20,13 +19,6 @@ public class XdrDataInputStream extends DataInputStream {
     public XdrDataInputStream(InputStream in) {
         super(new XdrInputStream(in));
         mIn = (XdrInputStream) super.in;
-    }
-
-    public String readString() throws IOException {
-        int l = readInt();
-        byte[] bytes = new byte[l];
-        read(bytes);
-        return new String(bytes, StandardCharsets.UTF_8);
     }
 
     public int[] readIntArray() throws IOException {

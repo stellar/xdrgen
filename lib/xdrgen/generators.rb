@@ -6,6 +6,7 @@ module Xdrgen::Generators
   autoload :Go
   autoload :Javascript
   autoload :Java
+  autoload :Elixir
   autoload :Csharp
 
   def self.for_language(language)
