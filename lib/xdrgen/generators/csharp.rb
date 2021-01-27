@@ -386,11 +386,11 @@ module Xdrgen
         when AST::Typespecs::Int
           "stream.WriteInt(#{value})"
         when AST::Typespecs::UnsignedInt
-          "stream.WriteInt(#{value})"
+          "stream.WriteUInt(#{value})"
         when AST::Typespecs::Hyper
           "stream.WriteLong(#{value})"
         when AST::Typespecs::UnsignedHyper
-          "stream.WriteLong(#{value})"
+          "stream.WriteULong(#{value})"
         when AST::Typespecs::Float
           "stream.WriteFloat(#{value})"
         when AST::Typespecs::Double
@@ -495,11 +495,11 @@ module Xdrgen
         when AST::Typespecs::Int
           'stream.ReadInt()'
         when AST::Typespecs::UnsignedInt
-          'stream.ReadInt()'
+          'stream.ReadUInt()'
         when AST::Typespecs::Hyper
           'stream.ReadLong()'
         when AST::Typespecs::UnsignedHyper
-          'stream.ReadLong()'
+          'stream.ReadULong()'
         when AST::Typespecs::Float
           'stream.ReadFloat()'
         when AST::Typespecs::Double
@@ -541,11 +541,11 @@ module Xdrgen
         when AST::Typespecs::Int
           'int'
         when AST::Typespecs::UnsignedInt
-          'int'
+          'uint'
         when AST::Typespecs::Hyper
           'long'
         when AST::Typespecs::UnsignedHyper
-          'long'
+          'ulong'
         when AST::Typespecs::Float
           'float'
         when AST::Typespecs::Double
