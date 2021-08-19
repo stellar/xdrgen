@@ -164,7 +164,7 @@ module Xdrgen
         parent = name named.parent_defn if named.is_a?(AST::Concerns::NestedDefinition)
 
         # NOTE: classify will strip plurality, so we restore it if necessary
-        plural = named.name.downcase.pluralize == named.name.downcase
+        plural = named.name.underscore.downcase.pluralize == named.name.underscore.downcase
         base   = named.name.underscore.classify
         result = plural ? base.pluralize : base
 
