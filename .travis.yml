@@ -1,4 +1,0 @@
-language: ruby
-script: bundle exec rspec
-rvm:
-- 2.7.0
