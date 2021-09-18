@@ -177,7 +177,7 @@ module Xdrgen
           # TODO: Support defining binary interface on typedefs with optional
           # types. https://github.com/stellar/xdrgen/issues/61
           if defn.sub_type != :optional
-            render_binary_interface out, defn
+            render_binary_interface out, name(defn)
           end
         when AST::Definitions::Const ;
           render_const out, defn
