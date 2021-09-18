@@ -177,7 +177,7 @@ module Xdrgen
           # TODO: Support defining binary interface on typedefs with optional
           # types. https://github.com/stellar/xdrgen/issues/61
           if defn.sub_type != :optional
-            render_binary_interface out, name(defn)
+            render_binary_interface_typedef out, defn
           end
         when AST::Definitions::Const ;
           render_const out, defn
@@ -312,6 +312,39 @@ module Xdrgen
           out.puts access_arm(arm)
         end
 
+        out.break
+      end
+
+      def render_binary_interface_typedef(out, defn)
+        name = name(defn)
+        out.puts "// MarshalBinary implements encoding.BinaryMarshaler."
+        out.puts "func (s #{name}) MarshalBinary() ([]byte, error) {"
+        out.puts "  b := new(bytes.Buffer)"
+        out.puts "  _, err := Marshal(b, s)"
+        out.puts "  return b.Bytes(), err"
+        out.puts "}"
+        out.break
+        out.puts "// UnmarshalBinary implements encoding.BinaryUnmarshaler."
+        out.puts "func (s *#{name}) UnmarshalBinary(inp []byte) error {"
+        out.puts "  r := bytes.NewReader(inp)"
+        if defn.sub_type == :simple && name(defn.type) == "Int64"
+          out.puts "  d := xdr.NewDecoder(r)"
+          out.puts "  v, _, err := d.DecodeInt()"
+          out.puts "  if err != nil {"
+          out.puts "    return err"
+          out.puts "  }"
+          out.puts "  *s = #{name}(v)"
+          out.puts "  return nil"
+        else
+          out.puts "  _, err := Unmarshal(r, s)"
+          out.puts "  return err"
+        end
+        out.puts "}"
+        out.break
+        out.puts "var ("
+        out.puts "  _ encoding.BinaryMarshaler   = (*#{name})(nil)"
+        out.puts "  _ encoding.BinaryUnmarshaler = (*#{name})(nil)"
+        out.puts ")"
         out.break
       end
 
