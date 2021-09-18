@@ -332,20 +332,29 @@ module Xdrgen
         struct.members.each do |m|
           out.puts "  {"
           mn = name(m)
-          binding.pry if mn == "Sequence"
           mt = reference(m.declaration.type)
-          if m.sub_type == :simple && name(m.type) == "Int64"
-            out.puts "    d := xdr.NewDecoder(r)"
-            out.puts "    v, _, err := d.DecodeInt()"
-            out.puts "    if err != nil {"
-            out.puts "      return err"
-            out.puts "    }"
-            out.puts "    s.#{mn} = #{mt}(v)"
-          else
-            out.puts "    _, err := Unmarshal(r, &s.#{mn})"
-            out.puts "    if err != nil {"
-            out.puts "      return err"
-            out.puts "    }"
+          if m.sub_type == :simple
+            case name(m.type)
+            when "Int64"
+              out.puts "    d := xdr.NewDecoder(r)"
+              out.puts "    v, _, err := d.DecodeInt()"
+              out.puts "    if err != nil {"
+              out.puts "      return err"
+              out.puts "    }"
+              out.puts "    s.#{mn} = #{mt}(v)"
+            when "Uint64"
+              out.puts "    d := xdr.NewDecoder(r)"
+              out.puts "    v, _, err := d.DecodeUint()"
+              out.puts "    if err != nil {"
+              out.puts "      return err"
+              out.puts "    }"
+              out.puts "    s.#{mn} = #{mt}(v)"
+            else
+              out.puts "    _, err := Unmarshal(r, &s.#{mn})"
+              out.puts "    if err != nil {"
+              out.puts "      return err"
+              out.puts "    }"
+            end
           end
           out.puts "  }"
         end
