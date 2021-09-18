@@ -1,3 +1,5 @@
+require 'pry'
+
 module Xdrgen
   module Generators
 
@@ -165,7 +167,7 @@ module Xdrgen
         case defn
         when AST::Definitions::Struct ;
           render_struct out, defn
-          render_binary_interface out, name(defn)
+          render_binary_interface_struct out, defn
         when AST::Definitions::Enum ;
           render_enum out, defn
           render_binary_interface out, name(defn)
@@ -315,8 +317,8 @@ module Xdrgen
         out.break
       end
 
-      def render_binary_interface_typedef(out, defn)
-        name = name(defn)
+      def render_binary_interface_struct(out, struct)
+        name = name(struct)
         out.puts "// MarshalBinary implements encoding.BinaryMarshaler."
         out.puts "func (s #{name}) MarshalBinary() ([]byte, error) {"
         out.puts "  b := new(bytes.Buffer)"
@@ -327,7 +329,49 @@ module Xdrgen
         out.puts "// UnmarshalBinary implements encoding.BinaryUnmarshaler."
         out.puts "func (s *#{name}) UnmarshalBinary(inp []byte) error {"
         out.puts "  r := bytes.NewReader(inp)"
-        if defn.sub_type == :simple && name(defn.type) == "Int64"
+        struct.members.each do |m|
+          out.puts "  {"
+          mn = name(m)
+          binding.pry if mn == "Sequence"
+          mt = reference(m.declaration.type)
+          if m.sub_type == :simple && name(m.type) == "Int64"
+            out.puts "    d := xdr.NewDecoder(r)"
+            out.puts "    v, _, err := d.DecodeInt()"
+            out.puts "    if err != nil {"
+            out.puts "      return err"
+            out.puts "    }"
+            out.puts "    s.#{mn} = #{mt}(v)"
+          else
+            out.puts "    _, err := Unmarshal(r, &s.#{mn})"
+            out.puts "    if err != nil {"
+            out.puts "      return err"
+            out.puts "    }"
+          end
+          out.puts "  }"
+        end
+        out.puts "  return nil"
+        out.puts "}"
+        out.break
+        out.puts "var ("
+        out.puts "  _ encoding.BinaryMarshaler   = (*#{name})(nil)"
+        out.puts "  _ encoding.BinaryUnmarshaler = (*#{name})(nil)"
+        out.puts ")"
+        out.break
+      end
+
+      def render_binary_interface_typedef(out, typedef)
+        name = name(typedef)
+        out.puts "// MarshalBinary implements encoding.BinaryMarshaler."
+        out.puts "func (s #{name}) MarshalBinary() ([]byte, error) {"
+        out.puts "  b := new(bytes.Buffer)"
+        out.puts "  _, err := Marshal(b, s)"
+        out.puts "  return b.Bytes(), err"
+        out.puts "}"
+        out.break
+        out.puts "// UnmarshalBinary implements encoding.BinaryUnmarshaler."
+        out.puts "func (s *#{name}) UnmarshalBinary(inp []byte) error {"
+        out.puts "  r := bytes.NewReader(inp)"
+        if typedef.sub_type == :simple && name(typedef.type) == "Int64"
           out.puts "  d := xdr.NewDecoder(r)"
           out.puts "  v, _, err := d.DecodeInt()"
           out.puts "  if err != nil {"
