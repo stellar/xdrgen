@@ -173,7 +173,7 @@ module Xdrgen
           render_binary_interface out, name(defn)
         when AST::Definitions::Union ;
           render_union out, defn
-          render_binary_interface out, name(defn)
+          render_binary_interface_union out, name(defn)
         when AST::Definitions::Typedef ;
           render_typedef out, defn
           # TODO: Support defining binary interface on typedefs with optional
@@ -329,36 +329,81 @@ module Xdrgen
         out.puts "// UnmarshalBinary implements encoding.BinaryUnmarshaler."
         out.puts "func (s *#{name}) UnmarshalBinary(inp []byte) error {"
         out.puts "  r := bytes.NewReader(inp)"
+        out.puts "  d := xdr.NewDecoder(r)"
+        out.puts "  _ = d"
         struct.members.each do |m|
-          out.puts "  {"
           mn = name(m)
           mt = reference(m.declaration.type)
+          ptr = m.declaration.type.sub_type == :optional
+          assign_prefix = ptr ? "&": ""
           if m.sub_type == :simple
+            out.puts "  {"
+            if ptr
+              out.puts "    set, _, err := d.DecodeBool()"
+              out.puts "    if err != nil {"
+              out.puts "      return err"
+              out.puts "    }"
+              out.puts "    if set {"
+            end
             case name(m.type)
             when "Int64"
-              out.puts "    d := xdr.NewDecoder(r)"
-              out.puts "    v, _, err := d.DecodeInt()"
-              out.puts "    if err != nil {"
-              out.puts "      return err"
-              out.puts "    }"
-              out.puts "    s.#{mn} = #{mt}(v)"
+              out.puts "      v, _, err := d.DecodeHyper()"
+              out.puts "      if err != nil {"
+              out.puts "        return err"
+              out.puts "      }"
+              out.puts "      s.#{mn} = (#{mt})(#{assign_prefix}v)"
             when "Uint64"
-              out.puts "    d := xdr.NewDecoder(r)"
-              out.puts "    v, _, err := d.DecodeUint()"
-              out.puts "    if err != nil {"
-              out.puts "      return err"
-              out.puts "    }"
-              out.puts "    s.#{mn} = #{mt}(v)"
+              out.puts "      v, _, err := d.DecodeUhyper()"
+              out.puts "      if err != nil {"
+              out.puts "        return err"
+              out.puts "      }"
+              out.puts "      s.#{mn} = (#{mt})(#{assign_prefix}v)"
+            when "Int32"
+              out.puts "      v, _, err := d.DecodeInt()"
+              out.puts "      if err != nil {"
+              out.puts "        return err"
+              out.puts "      }"
+              out.puts "      s.#{mn} = (#{mt})(#{assign_prefix}v)"
+            when "Uint32"
+              out.puts "      v, _, err := d.DecodeUint()"
+              out.puts "      if err != nil {"
+              out.puts "        return err"
+              out.puts "      }"
+              out.puts "      s.#{mn} = (#{mt})(#{assign_prefix}v)"
             else
-              out.puts "    _, err := Unmarshal(r, &s.#{mn})"
-              out.puts "    if err != nil {"
-              out.puts "      return err"
+              out.puts "      _, err := Unmarshal(r, &s.#{mn})"
+              out.puts "      if err != nil {"
+              out.puts "        return err"
+              out.puts "      }"
+            end
+            if ptr
               out.puts "    }"
             end
           end
           out.puts "  }"
         end
         out.puts "  return nil"
+        out.puts "}"
+        out.break
+        out.puts "var ("
+        out.puts "  _ encoding.BinaryMarshaler   = (*#{name})(nil)"
+        out.puts "  _ encoding.BinaryUnmarshaler = (*#{name})(nil)"
+        out.puts ")"
+        out.break
+      end
+
+      def render_binary_interface_union(out, name)
+        out.puts "// MarshalBinary implements encoding.BinaryMarshaler."
+        out.puts "func (s #{name}) MarshalBinary() ([]byte, error) {"
+        out.puts "  b := new(bytes.Buffer)"
+        out.puts "  _, err := Marshal(b, s)"
+        out.puts "  return b.Bytes(), err"
+        out.puts "}"
+        out.break
+        out.puts "// UnmarshalBinary implements encoding.BinaryUnmarshaler."
+        out.puts "func (s *#{name}) UnmarshalBinary(inp []byte) error {"
+        out.puts "  _, err := Unmarshal(bytes.NewReader(inp), s)"
+        out.puts "  return err"
         out.puts "}"
         out.break
         out.puts "var ("
@@ -464,8 +509,8 @@ module Xdrgen
 
       private
 
-      def reference(type)
-        baseReference = case type
+      def base_reference(type)
+        case type
         when AST::Typespecs::Bool
           "bool"
         when AST::Typespecs::Double
@@ -499,7 +544,10 @@ module Xdrgen
         else
           raise "Unknown reference type: #{type.class.name}, #{type.class.ancestors}"
         end
+      end
 
+      def reference(type)
+        baseReference = base_reference(type)
         case type.sub_type
         when :simple
           baseReference
