@@ -543,8 +543,8 @@ module Xdrgen
 
       private
 
-      def base_reference(type)
-        case type
+      def reference(type)
+        baseReference = case type
         when AST::Typespecs::Bool
           "bool"
         when AST::Typespecs::Double
@@ -578,10 +578,7 @@ module Xdrgen
         else
           raise "Unknown reference type: #{type.class.name}, #{type.class.ancestors}"
         end
-      end
 
-      def reference(type)
-        baseReference = base_reference(type)
         case type.sub_type
         when :simple
           baseReference
