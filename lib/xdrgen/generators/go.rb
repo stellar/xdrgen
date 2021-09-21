@@ -379,28 +379,20 @@ module Xdrgen
           if arm.void?
             "// Void"
           else
-            an = name(arm)
-            at = reference(arm.type)
+            mn = name(arm)
             ptr = arm.type.sub_type == :optional
-            simple = arm.type.sub_type == :simple
-            if (simple || ptr) && at != "SponsorshipDescriptor" && at != "string" && at != "int32" && at != "[32]byte" && at != "[16]byte" && at != "[4]byte"
-              if ptr
-                out2.puts "  _, err = e.EncodeBool(s.#{an} != nil)"
-                out2.puts "  if err != nil {"
-                out2.puts "    return err"
-                out2.puts "  }"
-                out2.puts "  if s.#{an} != nil {"
-                out2.puts "    err = (*s.#{an}).EncodeInto(e)"
-                out2.puts "  }"
-              else
-                out2.puts "  err = s.#{an}.EncodeInto(e)"
-              end
+            if ptr
+              out2.puts "  _, err = e.EncodeBool(s.#{mn} != nil)"
+              out2.puts "  if err != nil {"
+              out2.puts "    return err"
+              out2.puts "  }"
+              out2.puts "  if s.#{mn} != nil {"
+              # out2.puts "    err = (*s.#{mn}).EncodeInto(e)"
+              render_encode(out2, "(*s.#{mn})", arm.type, self_encode: false)
+              out2.puts "  }"
             else
-              out2.puts "  _, err = e.Encode(s.#{an})"
+              render_encode(out2, "(*s.#{mn})", arm.type, self_encode: false)
             end
-            out2.puts "  if err != nil {"
-            out2.puts "    return err"
-            out2.puts "  }"
             out2.string
           end
         end
@@ -443,52 +435,8 @@ module Xdrgen
       def render_binary_interface(out, name, type)
         out.puts "func (s #{name}) EncodeInto(e *xdr.Encoder) error {"
         out.puts "  var err error"
-        case type
-        when AST::Typespecs::Opaque
-          if type.fixed?
-            out.puts "  _, err = e.EncodeFixedOpaque(s[:])"
-          else
-            out.puts "  _, err = e.EncodeOpaque(s[:])"
-          end
-        when AST::Typespecs::UnsignedHyper
-          out.puts "  _, err = e.EncodeUhyper(uint64(s))"
-        when AST::Typespecs::Hyper
-          out.puts "  _, err = e.EncodeHyper(int64(s))"
-        when AST::Typespecs::UnsignedInt
-          out.puts "  _, err = e.EncodeUint(uint32(s))"
-        when AST::Typespecs::Int
-          out.puts "  _, err = e.EncodeInt(int32(s))"
-        when AST::Typespecs::String
-          out.puts "  _, err = e.EncodeString(string(s))"
-        when AST::Typespecs::Simple
-          case type.sub_type
-          when :simple
-            out.puts "  err = #{name type}(s).EncodeInto(e)"
-          when :array
-            out.puts "  for i := 0; i < len(s); i++ {"
-            out.puts "    err = s[i].EncodeInto(e)"
-            out.puts "    if err != nil {"
-            out.puts "      return err"
-            out.puts "    }"
-            out.puts "  }"
-          when :var_array
-            out.puts "  err = s[i].EncodeInto(e)"
-            out.puts "  if err != nil {"
-            out.puts "    return err"
-            out.puts "  }"
-            out.puts "  for i := 0; i < len(s); i++ {"
-            out.puts "    err = s[i].EncodeInto(e)"
-            out.puts "    if err != nil {"
-            out.puts "      return err"
-            out.puts "    }"
-            out.puts "  }"
-          end
-        when AST::Definitions::Base
-          out.puts "  err = #{name type}(s).EncodeInto(e)"
-        else
-          out.puts "  _, err = e.Encode(s)"
-        end
-        out.puts "  return err"
+        render_encode(out, "s", type, self_encode: true)
+        out.puts "  return nil"
         out.puts "}"
         out.break
         out.puts "// MarshalBinary implements encoding.BinaryMarshaler."
@@ -510,6 +458,68 @@ module Xdrgen
         out.puts "  _ encoding.BinaryUnmarshaler = (*#{name})(nil)"
         out.puts ")"
         out.break
+      end
+
+      # render_encode assumes there is an `e` variable containing an
+      # xdr.Encoder, and a variable defined by `name` that is the value to
+      # encode.
+      def render_encode(out, var, type, self_encode:)
+        case type
+        when AST::Typespecs::UnsignedHyper
+          out.puts "  _, err = e.EncodeUhyper(uint64(#{var}))"
+        when AST::Typespecs::Hyper
+          out.puts "  _, err = e.EncodeHyper(int64(#{var}))"
+        when AST::Typespecs::UnsignedInt
+          out.puts "  _, err = e.EncodeUint(uint32(#{var}))"
+        when AST::Typespecs::Int
+          out.puts "  _, err = e.EncodeInt(int32(#{var}))"
+        when AST::Typespecs::String
+          out.puts "  _, err = e.EncodeString(string(#{var}))"
+        when AST::Typespecs::Opaque
+          if type.fixed?
+            out.puts "  _, err = e.EncodeFixedOpaque(#{var}[:])"
+          else
+            out.puts "  _, err = e.EncodeOpaque(#{var}[:])"
+          end
+        when AST::Typespecs::Simple
+          case type.sub_type
+          when :simple, :optional
+            if self_encode
+              out.puts "  err = #{name type}(#{var}).EncodeInto(e)"
+            else
+              out.puts "  err = #{var}.EncodeInto(e)"
+            end
+          when :array
+            out.puts "  for i := 0; i < len(#{var}); i++ {"
+            out.puts "    err = #{var}[i].EncodeInto(e)"
+            out.puts "    if err != nil {"
+            out.puts "      return err"
+            out.puts "    }"
+            out.puts "  }"
+          when :var_array
+            out.puts "  _, err = e.EncodeUint(uint32(len(#{var})))"
+            out.puts "  if err != nil {"
+            out.puts "    return err"
+            out.puts "  }"
+            out.puts "  for i := 0; i < len(#{var}); i++ {"
+            out.puts "    err = #{var}[i].EncodeInto(e)"
+            out.puts "    if err != nil {"
+            out.puts "      return err"
+            out.puts "    }"
+            out.puts "  }"
+          end
+        when AST::Definitions::Base
+          if self_encode
+            out.puts "  err = #{name type}(#{var}).EncodeInto(e)"
+          else
+            out.puts "  err = #{var}.EncodeInto(e)"
+          end
+        else
+          out.puts "  _, err = e.Encode(#{var})"
+        end
+        out.puts "  if err != nil {"
+        out.puts "    return err"
+        out.puts "  }"
       end
 
       def render_top_matter(out)
