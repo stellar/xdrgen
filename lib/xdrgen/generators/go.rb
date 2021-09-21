@@ -380,14 +380,12 @@ module Xdrgen
             "// Void"
           else
             mn = name(arm)
-            ptr = arm.type.sub_type == :optional
-            if ptr
+            if arm.type.sub_type == :optional
               out2.puts "  _, err = e.EncodeBool(s.#{mn} != nil)"
               out2.puts "  if err != nil {"
               out2.puts "    return err"
               out2.puts "  }"
               out2.puts "  if s.#{mn} != nil {"
-              # out2.puts "    err = (*s.#{mn}).EncodeInto(e)"
               render_encode(out2, "(*s.#{mn})", arm.type, self_encode: false)
               out2.puts "  }"
             else
