@@ -395,7 +395,7 @@ module Xdrgen
 
       def render_enum_encode_to_interface(out, typedef)
         name = name(typedef)
-        type = AST::Typespecs::Int
+        type = typedef
         out.puts "// EncodeTo encodes this value using the Encoder."
         out.puts "func (s #{name}) EncodeTo(e *xdr.Encoder) error {"
         out.puts "  var err error"
@@ -450,7 +450,7 @@ module Xdrgen
           out.puts "  _, err = e.EncodeHyper(int64(#{var}))"
         when AST::Typespecs::UnsignedInt
           out.puts "  _, err = e.EncodeUint(uint32(#{var}))"
-        when AST::Typespecs::Int
+        when AST::Typespecs::Int, AST::Definitions::Enum
           out.puts "  _, err = e.EncodeInt(int32(#{var}))"
         when AST::Typespecs::String
           out.puts "  _, err = e.EncodeString(string(#{var}))"
