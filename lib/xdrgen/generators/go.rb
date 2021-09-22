@@ -321,27 +321,17 @@ module Xdrgen
         out.puts "  var err error"
         struct.members.each do |m|
           mn = name(m)
-          mt = reference(m.declaration.type)
-          ptr = m.declaration.type.sub_type == :optional
-          simple = m.declaration.type.sub_type == :simple
-          if (simple || ptr) && mt != "SponsorshipDescriptor" && mt != "string" && mt != "int32" && mt != "[32]byte"
-            if ptr
-              out.puts "  _, err = e.EncodeBool(s.#{mn} != nil)"
-              out.puts "  if err != nil {"
-              out.puts "    return err"
-              out.puts "  }"
-              out.puts "  if s.#{mn} != nil {"
-              out.puts "    err = (*s.#{mn}).EncodeInto(e)"
-              out.puts "  }"
-            else
-              out.puts "  err = s.#{mn}.EncodeInto(e)"
-            end
+          if m.type.sub_type == :optional
+            out.puts "  _, err = e.EncodeBool(s.#{mn} != nil)"
+            out.puts "  if err != nil {"
+            out.puts "    return err"
+            out.puts "  }"
+            out.puts "  if s.#{mn} != nil {"
+            render_encode(out, "(*s.#{mn})", m.declaration.type, self_encode: false)
+            out.puts "  }"
           else
-            out.puts "  _, err = e.Encode(s.#{mn})"
+            render_encode(out, "s.#{mn}", m.declaration.type, self_encode: false)
           end
-          out.puts "  if err != nil {"
-          out.puts "    return err"
-          out.puts "  }"
         end
         out.puts "  return nil"
         out.puts "}"
