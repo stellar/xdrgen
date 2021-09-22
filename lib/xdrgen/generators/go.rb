@@ -349,10 +349,10 @@ module Xdrgen
             out.puts "    return err"
             out.puts "  }"
             out.puts "  if s.#{mn} != nil {"
-            render_encode(out, "(*s.#{mn})", m.declaration.type, self_encode: false)
+            render_encode_to_body(out, "(*s.#{mn})", m.declaration.type, self_encode: false)
             out.puts "  }"
           else
-            render_encode(out, "s.#{mn}", m.declaration.type, self_encode: false)
+            render_encode_to_body(out, "s.#{mn}", m.declaration.type, self_encode: false)
           end
         end
         out.puts "  return nil"
@@ -380,10 +380,10 @@ module Xdrgen
               out2.puts "    return err"
               out2.puts "  }"
               out2.puts "  if s.#{mn} != nil {"
-              render_encode(out2, "(*s.#{mn})", arm.type, self_encode: false)
+              render_encode_to_body(out2, "(*s.#{mn})", arm.type, self_encode: false)
               out2.puts "  }"
             else
-              render_encode(out2, "(*s.#{mn})", arm.type, self_encode: false)
+              render_encode_to_body(out2, "(*s.#{mn})", arm.type, self_encode: false)
             end
             out2.string
           end
@@ -399,7 +399,7 @@ module Xdrgen
         out.puts "// EncodeTo encodes this value using the Encoder."
         out.puts "func (s #{name}) EncodeTo(e *xdr.Encoder) error {"
         out.puts "  var err error"
-        render_encode(out, "s", type, self_encode: true)
+        render_encode_to_body(out, "s", type, self_encode: true)
         out.puts "  return nil"
         out.puts "}"
         out.break
@@ -411,7 +411,7 @@ module Xdrgen
         out.puts "// EncodeTo encodes this value using the Encoder."
         out.puts "func (s #{name}) EncodeTo(e *xdr.Encoder) error {"
         out.puts "  var err error"
-        render_encode(out, "s", type, self_encode: true)
+        render_encode_to_body(out, "s", type, self_encode: true)
         out.puts "  return nil"
         out.puts "}"
         out.break
@@ -439,10 +439,10 @@ module Xdrgen
         out.break
       end
 
-      # render_encode assumes there is an `e` variable containing an
+      # render_encode_to_body assumes there is an `e` variable containing an
       # xdr.Encoder, and a variable defined by `name` that is the value to
       # encode.
-      def render_encode(out, var, type, self_encode:)
+      def render_encode_to_body(out, var, type, self_encode:)
         case type
         when AST::Typespecs::UnsignedHyper
           out.puts "  _, err = e.EncodeUhyper(uint64(#{var}))"
