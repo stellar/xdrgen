@@ -177,28 +177,28 @@ module Xdrgen
         case defn
         when AST::Definitions::Struct ;
           render_struct out, defn
-          render_struct_encode_to out, defn
+          render_struct_encode_to_interface out, defn
           render_binary_interface out, name(defn)
-          render_xdr_type_func out, name(defn)
+          render_xdr_type_interface out, name(defn)
         when AST::Definitions::Enum ;
           render_enum out, defn
-          render_enum_encode_to out, defn
+          render_enum_encode_to_interface out, defn
           render_binary_interface out, name(defn)
-          render_xdr_type_func out, name(defn)
+          render_xdr_type_interface out, name(defn)
         when AST::Definitions::Union ;
           render_union out, defn
-          render_union_encode_to out, defn
+          render_union_encode_to_interface out, defn
           render_binary_interface out, name(defn)
-          render_xdr_type_func out, name(defn)
+          render_xdr_type_interface out, name(defn)
         when AST::Definitions::Typedef ;
           render_typedef out, defn
           # Typedefs that wrap a pointer type are not supported in Go because Go
           # does not allow pointer types to have methods. Don't define methods
           # for the type because that will be a Go compiler error.
           if defn.sub_type != :optional
-            render_typedef_encode_to out, defn
+            render_typedef_encode_to_interface out, defn
             render_binary_interface out, name(defn)
-            render_xdr_type_func out, name(defn)
+            render_xdr_type_interface out, name(defn)
           end
         when AST::Definitions::Const ;
           render_const out, defn
@@ -336,7 +336,7 @@ module Xdrgen
         out.break
       end
 
-      def render_struct_encode_to(out, struct)
+      def render_struct_encode_to_interface(out, struct)
         name = name(struct)
         out.puts "// EncodeTo encodes this value using the Encoder."
         out.puts "func (s *#{name}) EncodeTo(e *xdr.Encoder) error {"
@@ -360,7 +360,7 @@ module Xdrgen
         out.break
       end
 
-      def render_union_encode_to(out, union)
+      def render_union_encode_to_interface(out, union)
         name = name(union)
         out.puts "// EncodeTo encodes this value using the Encoder."
         out.puts "func (s #{name}) EncodeTo(e *xdr.Encoder) error {"
@@ -393,7 +393,7 @@ module Xdrgen
         out.break
       end
 
-      def render_enum_encode_to(out, typedef)
+      def render_enum_encode_to_interface(out, typedef)
         name = name(typedef)
         type = AST::Typespecs::Int
         out.puts "// EncodeTo encodes this value using the Encoder."
@@ -405,7 +405,7 @@ module Xdrgen
         out.break
       end
 
-      def render_typedef_encode_to(out, typedef)
+      def render_typedef_encode_to_interface(out, typedef)
         name = name(typedef)
         type = typedef.declaration.type
         out.puts "// EncodeTo encodes this value using the Encoder."
@@ -501,7 +501,7 @@ module Xdrgen
         out.puts "  }"
       end
 
-      def render_xdr_type_func(out, name)
+      def render_xdr_type_interface(out, name)
         out.puts "// xdrType signals that this type is an type representing"
         out.puts "// representing XDR values defined by this package."
         out.puts "func (s #{name}) xdrType() {}"
