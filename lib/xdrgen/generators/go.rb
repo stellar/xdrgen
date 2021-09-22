@@ -486,6 +486,8 @@ module Xdrgen
             out.puts "      return err"
             out.puts "    }"
             out.puts "  }"
+          else
+            raise "Unknown sub_type: #{type.sub_type}"
           end
         when AST::Definitions::Base
           if self_encode
