@@ -16,6 +16,16 @@ module Xdrgen
       private
 
       def render_typedef(out, typedef)
+        # Typedefs that wrap a pointer type are not well supported in Go because
+        # Go does not allow pointer types to have methods. This prevents us from
+        # defining the EncodeInto method on these types which is very
+        # inconvenient for the render functions that generate structs that
+        # contain these types, because xdrgen doesn't know in that moment they
+        # are a type without EncodeInto. Since this type cannot have its own
+        # methods, we make it a type alias so at least it inherits the
+        # EncodeInto method from the aliased type. This is a bit of a hack, and
+        # the hack will only work as long as the aliased type is another defined
+        # type that has an EncodeInto.
         if typedef.sub_type == :optional
           out.puts "type #{name typedef} = #{reference typedef.declaration.type}"
         else
@@ -177,8 +187,9 @@ module Xdrgen
           render_binary_interface_union out, defn
         when AST::Definitions::Typedef ;
           render_typedef out, defn
-          # TODO: Support defining binary interface on typedefs with optional
-          # types. https://github.com/stellar/xdrgen/issues/61
+          # Typedefs that wrap a pointer type are not supported in Go because Go
+          # does not allow pointer types to have methods. Don't define methods
+          # for the type because that will be a Go compiler error.
           if defn.sub_type != :optional
             render_binary_interface_typedef out, defn
           end
