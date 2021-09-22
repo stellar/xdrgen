@@ -178,12 +178,15 @@ module Xdrgen
         when AST::Definitions::Struct ;
           render_struct out, defn
           render_binary_interface_struct out, defn
+          render_xdr_type_func out, name(defn)
         when AST::Definitions::Enum ;
           render_enum out, defn
           render_binary_interface_enum out, defn
+          render_xdr_type_func out, name(defn)
         when AST::Definitions::Union ;
           render_union out, defn
           render_binary_interface_union out, defn
+          render_xdr_type_func out, name(defn)
         when AST::Definitions::Typedef ;
           render_typedef out, defn
           # Typedefs that wrap a pointer type are not supported in Go because Go
@@ -191,6 +194,7 @@ module Xdrgen
           # for the type because that will be a Go compiler error.
           if defn.sub_type != :optional
             render_binary_interface_typedef out, defn
+            render_xdr_type_func out, name(defn)
           end
         when AST::Definitions::Const ;
           render_const out, defn
@@ -330,6 +334,7 @@ module Xdrgen
 
       def render_binary_interface_struct(out, struct)
         name = name(struct)
+        out.puts "// EncodeTo encodes this value using the Encoder."
         out.puts "func (s #{name}) EncodeTo(e *xdr.Encoder) error {"
         out.puts "  var err error"
         struct.members.each do |m|
@@ -364,6 +369,7 @@ module Xdrgen
         out.puts "}"
         out.break
         out.puts "var ("
+        out.puts "  _ xdrType                    = (*#{name})(nil)"
         out.puts "  _ encoding.BinaryMarshaler   = (*#{name})(nil)"
         out.puts "  _ encoding.BinaryUnmarshaler = (*#{name})(nil)"
         out.puts ")"
@@ -372,6 +378,7 @@ module Xdrgen
 
       def render_binary_interface_union(out, union)
         name = name(union)
+        out.puts "// EncodeTo encodes this value using the Encoder."
         out.puts "func (s #{name}) EncodeTo(e *xdr.Encoder) error {"
         out.puts "  _, err := e.EncodeInt(int32(s.#{name(union.discriminant)}))"
         out.puts "  if err != nil {"
@@ -415,6 +422,7 @@ module Xdrgen
         out.puts "}"
         out.break
         out.puts "var ("
+        out.puts "  _ xdrType                    = (*#{name})(nil)"
         out.puts "  _ encoding.BinaryMarshaler   = (*#{name})(nil)"
         out.puts "  _ encoding.BinaryUnmarshaler = (*#{name})(nil)"
         out.puts ")"
@@ -434,6 +442,7 @@ module Xdrgen
       end
 
       def render_binary_interface(out, name, type)
+        out.puts "// EncodeTo encodes this value using the Encoder."
         out.puts "func (s #{name}) EncodeTo(e *xdr.Encoder) error {"
         out.puts "  var err error"
         render_encode(out, "s", type, self_encode: true)
@@ -455,6 +464,7 @@ module Xdrgen
         out.puts "}"
         out.break
         out.puts "var ("
+        out.puts "  _ xdrType                    = (*#{name})(nil)"
         out.puts "  _ encoding.BinaryMarshaler   = (*#{name})(nil)"
         out.puts "  _ encoding.BinaryUnmarshaler = (*#{name})(nil)"
         out.puts ")"
@@ -523,6 +533,13 @@ module Xdrgen
         out.puts "  }"
       end
 
+      def render_xdr_type_func(out, name)
+        out.puts "// xdrType signals that this type is an type representing"
+        out.puts "// representing XDR values defined by this package."
+        out.puts "func (s #{name}) xdrType() {}"
+        out.break
+      end
+
       def render_top_matter(out)
         out.puts <<-EOS.strip_heredoc
           // Package #{@namespace || "main"} is generated from:
@@ -541,9 +558,8 @@ module Xdrgen
             "github.com/stellar/go-xdr/xdr3"
           )
 
-          type xdrEncodeable interface {
-            EncodeInto(*xdr.Encoder) error
-            encoding.BinaryMarshaler
+          type xdrType interface {
+            xdrType()
           }
 
           // Unmarshal reads an xdr element from `r` into `v`.
@@ -554,16 +570,17 @@ module Xdrgen
 
           // Marshal writes an xdr element `v` into `w`.
           func Marshal(w io.Writer, v interface{}) (int, error) {
-            if bm, ok := v.(xdrEncodeable); ok {
-              b, err := bm.MarshalBinary()
-              if err != nil {
-                return 0, err
+            if _, ok := v.(xdrType); ok {
+              if bm, ok := v.(encoding.BinaryMarshaler); ok {
+                b, err := bm.MarshalBinary()
+                if err != nil {
+                  return 0, err
+                }
+                return w.Write(b)
               }
-              return w.Write(b)
-            } else {
-              // delegate to xdr package's Marshal
-              return xdr.Marshal(w, v)
             }
+            // delegate to xdr package's Marshal
+            return xdr.Marshal(w, v)
           }
         EOS
         out.break
