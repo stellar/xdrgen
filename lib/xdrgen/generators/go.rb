@@ -18,14 +18,13 @@ module Xdrgen
       def render_typedef(out, typedef)
         # Typedefs that wrap a pointer type are not well supported in Go because
         # Go does not allow pointer types to have methods. This prevents us from
-        # defining the EncodeInto method on these types which is very
-        # inconvenient for the render functions that generate structs that
-        # contain these types, because xdrgen doesn't know in that moment they
-        # are a type without EncodeInto. Since this type cannot have its own
-        # methods, we make it a type alias so at least it inherits the
-        # EncodeInto method from the aliased type. This is a bit of a hack, and
-        # the hack will only work as long as the aliased type is another defined
-        # type that has an EncodeInto.
+        # defining the EncodeTo method on these types which is very inconvenient
+        # for the render functions that generate structs that contain these
+        # types, because xdrgen doesn't know in that moment they are a type
+        # without EncodeTo. Since this type cannot have its own methods, we make
+        # it a type alias so at least it inherits the EncodeTo method from the
+        # aliased type. This is a bit of a hack, and the hack will only work as
+        # long as the aliased type is another defined type that has an EncodeTo.
         if typedef.sub_type == :optional
           out.puts "type #{name typedef} = #{reference typedef.declaration.type}"
         else
@@ -331,7 +330,7 @@ module Xdrgen
 
       def render_binary_interface_struct(out, struct)
         name = name(struct)
-        out.puts "func (s #{name}) EncodeInto(e *xdr.Encoder) error {"
+        out.puts "func (s #{name}) EncodeTo(e *xdr.Encoder) error {"
         out.puts "  var err error"
         struct.members.each do |m|
           mn = name(m)
@@ -354,7 +353,7 @@ module Xdrgen
         out.puts "func (s #{name}) MarshalBinary() ([]byte, error) {"
         out.puts "  b := bytes.Buffer{}"
         out.puts "  e := xdr.NewEncoder(&b)"
-        out.puts "  err := s.EncodeInto(e)"
+        out.puts "  err := s.EncodeTo(e)"
         out.puts "  return b.Bytes(), err"
         out.puts "}"
         out.break
@@ -373,7 +372,7 @@ module Xdrgen
 
       def render_binary_interface_union(out, union)
         name = name(union)
-        out.puts "func (s #{name}) EncodeInto(e *xdr.Encoder) error {"
+        out.puts "func (s #{name}) EncodeTo(e *xdr.Encoder) error {"
         out.puts "  _, err := e.EncodeInt(int32(s.#{name(union.discriminant)}))"
         out.puts "  if err != nil {"
         out.puts "    return err"
@@ -405,7 +404,7 @@ module Xdrgen
         out.puts "func (s #{name}) MarshalBinary() ([]byte, error) {"
         out.puts "  b := bytes.Buffer{}"
         out.puts "  e := xdr.NewEncoder(&b)"
-        out.puts "  err := s.EncodeInto(e)"
+        out.puts "  err := s.EncodeTo(e)"
         out.puts "  return b.Bytes(), err"
         out.puts "}"
         out.break
@@ -435,7 +434,7 @@ module Xdrgen
       end
 
       def render_binary_interface(out, name, type)
-        out.puts "func (s #{name}) EncodeInto(e *xdr.Encoder) error {"
+        out.puts "func (s #{name}) EncodeTo(e *xdr.Encoder) error {"
         out.puts "  var err error"
         render_encode(out, "s", type, self_encode: true)
         out.puts "  return nil"
@@ -445,7 +444,7 @@ module Xdrgen
         out.puts "func (s #{name}) MarshalBinary() ([]byte, error) {"
         out.puts "  b := bytes.Buffer{}"
         out.puts "  e := xdr.NewEncoder(&b)"
-        out.puts "  err := s.EncodeInto(e)"
+        out.puts "  err := s.EncodeTo(e)"
         out.puts "  return b.Bytes(), err"
         out.puts "}"
         out.break
@@ -487,13 +486,13 @@ module Xdrgen
           case type.sub_type
           when :simple, :optional
             if self_encode
-              out.puts "  err = #{name type}(#{var}).EncodeInto(e)"
+              out.puts "  err = #{name type}(#{var}).EncodeTo(e)"
             else
-              out.puts "  err = #{var}.EncodeInto(e)"
+              out.puts "  err = #{var}.EncodeTo(e)"
             end
           when :array
             out.puts "  for i := 0; i < len(#{var}); i++ {"
-            out.puts "    err = #{var}[i].EncodeInto(e)"
+            out.puts "    err = #{var}[i].EncodeTo(e)"
             out.puts "    if err != nil {"
             out.puts "      return err"
             out.puts "    }"
@@ -504,7 +503,7 @@ module Xdrgen
             out.puts "    return err"
             out.puts "  }"
             out.puts "  for i := 0; i < len(#{var}); i++ {"
-            out.puts "    err = #{var}[i].EncodeInto(e)"
+            out.puts "    err = #{var}[i].EncodeTo(e)"
             out.puts "    if err != nil {"
             out.puts "      return err"
             out.puts "    }"
@@ -512,9 +511,9 @@ module Xdrgen
           end
         when AST::Definitions::Base
           if self_encode
-            out.puts "  err = #{name type}(#{var}).EncodeInto(e)"
+            out.puts "  err = #{name type}(#{var}).EncodeTo(e)"
           else
-            out.puts "  err = #{var}.EncodeInto(e)"
+            out.puts "  err = #{var}.EncodeTo(e)"
           end
         else
           out.puts "  _, err = e.Encode(#{var})"
