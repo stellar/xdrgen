@@ -541,6 +541,11 @@ module Xdrgen
             "github.com/stellar/go-xdr/xdr3"
           )
 
+          type xdrEncodeable interface {
+            EncodeInto(*xdr.Encoder) error
+            encoding.BinaryMarshaler
+          }
+
           // Unmarshal reads an xdr element from `r` into `v`.
           func Unmarshal(r io.Reader, v interface{}) (int, error) {
             // delegate to xdr package's Unmarshal
@@ -549,7 +554,7 @@ module Xdrgen
 
           // Marshal writes an xdr element `v` into `w`.
           func Marshal(w io.Writer, v interface{}) (int, error) {
-            if bm, ok := v.(encoding.BinaryMarshaler); ok {
+            if bm, ok := v.(xdrEncodeable); ok {
               b, err := bm.MarshalBinary()
               if err != nil {
                 return 0, err
