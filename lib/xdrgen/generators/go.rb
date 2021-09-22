@@ -16,8 +16,11 @@ module Xdrgen
       private
 
       def render_typedef(out, typedef)
-        out.puts "type #{name typedef} #{reference typedef.declaration.type}"
-
+        if typedef.sub_type == :optional
+          out.puts "type #{name typedef} = #{reference typedef.declaration.type}"
+        else
+          out.puts "type #{name typedef} #{reference typedef.declaration.type}"
+        end
 
         # write sizing restrictions
         case typedef.declaration
