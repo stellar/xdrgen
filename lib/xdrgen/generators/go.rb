@@ -343,7 +343,7 @@ module Xdrgen
         out.puts "  var err error"
         struct.members.each do |m|
           mn = name(m)
-          if m.type.sub_type == :optional
+          if m.type.sub_type == :optional || (m.type.is_a?(AST::Identifier) && m.type.sub_type == :simple && m.type.resolved_type.sub_type == :optional)
             out.puts "  _, err = e.EncodeBool(s.#{mn} != nil)"
             out.puts "  if err != nil {"
             out.puts "    return err"
@@ -463,6 +463,7 @@ module Xdrgen
         when AST::Typespecs::Simple
           case type.sub_type
           when :simple, :optional
+            # TODO: if m.type.sub_type == :optional || (m.type.is_a?(AST::Identifier) && m.type.sub_type == :simple && m.type.resolved_type.sub_type == :optional)
             if self_encode
               out.puts "  err = #{name type}(#{var}).EncodeTo(e)"
             else
@@ -470,6 +471,7 @@ module Xdrgen
             end
           when :array
             out.puts "  for i := 0; i < len(#{var}); i++ {"
+            # TODO: if m.type.sub_type == :optional || (m.type.is_a?(AST::Identifier) && m.type.sub_type == :simple && m.type.resolved_type.sub_type == :optional)
             out.puts "    err = #{var}[i].EncodeTo(e)"
             out.puts "    if err != nil {"
             out.puts "      return err"
@@ -481,6 +483,7 @@ module Xdrgen
             out.puts "    return err"
             out.puts "  }"
             out.puts "  for i := 0; i < len(#{var}); i++ {"
+            # TODO: if m.type.sub_type == :optional || (m.type.is_a?(AST::Identifier) && m.type.sub_type == :simple && m.type.resolved_type.sub_type == :optional)
             out.puts "    err = #{var}[i].EncodeTo(e)"
             out.puts "    if err != nil {"
             out.puts "      return err"
