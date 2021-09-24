@@ -343,17 +343,7 @@ module Xdrgen
         out.puts "  var err error"
         struct.members.each do |m|
           mn = name(m)
-          if m.type.sub_type == :optional || (m.type.is_a?(AST::Identifier) && m.type.sub_type == :simple && m.type.resolved_type.sub_type == :optional)
-            out.puts "  _, err = e.EncodeBool(s.#{mn} != nil)"
-            out.puts "  if err != nil {"
-            out.puts "    return err"
-            out.puts "  }"
-            out.puts "  if s.#{mn} != nil {"
-            render_encode_to_body(out, "(*s.#{mn})", m.declaration.type, self_encode: false)
-            out.puts "  }"
-          else
-            render_encode_to_body(out, "s.#{mn}", m.declaration.type, self_encode: false)
-          end
+          render_encode_to_body(out, "s.#{mn}", m.type, self_encode: false)
         end
         out.puts "  return nil"
         out.puts "}"
@@ -374,17 +364,7 @@ module Xdrgen
             "// Void"
           else
             mn = name(arm)
-            if arm.type.sub_type == :optional
-              out2.puts "  _, err = e.EncodeBool(s.#{mn} != nil)"
-              out2.puts "  if err != nil {"
-              out2.puts "    return err"
-              out2.puts "  }"
-              out2.puts "  if s.#{mn} != nil {"
-              render_encode_to_body(out2, "(*s.#{mn})", arm.type, self_encode: false)
-              out2.puts "  }"
-            else
-              render_encode_to_body(out2, "(*s.#{mn})", arm.type, self_encode: false)
-            end
+            render_encode_to_body(out2, "(*s.#{mn})", arm.type, self_encode: false)
             out2.string
           end
         end
@@ -443,6 +423,15 @@ module Xdrgen
       # xdr.Encoder, and a variable defined by `name` that is the value to
       # encode.
       def render_encode_to_body(out, var, type, self_encode:)
+        optional = type.sub_type == :optional
+        if optional
+          out.puts "  _, err = e.EncodeBool(#{var} != nil)"
+          out.puts "  if err != nil {"
+          out.puts "    return err"
+          out.puts "  }"
+          out.puts "  if #{var} != nil {"
+          var = "(*#{var})"
+        end
         case type
         when AST::Typespecs::UnsignedHyper
           out.puts "  _, err = e.EncodeUhyper(uint64(#{var}))"
@@ -463,15 +452,22 @@ module Xdrgen
         when AST::Typespecs::Simple
           case type.sub_type
           when :simple, :optional
-            # TODO: if m.type.sub_type == :optional || (m.type.is_a?(AST::Identifier) && m.type.sub_type == :simple && m.type.resolved_type.sub_type == :optional)
-            if self_encode
-              out.puts "  err = #{name type}(#{var}).EncodeTo(e)"
-            else
-              out.puts "  err = #{var}.EncodeTo(e)"
+            optional_within = type.is_a?(AST::Identifier) && type.sub_type == :simple && type.resolved_type.sub_type == :optional
+            if optional_within
+              out.puts "  _, err = e.EncodeBool(#{var} != nil)"
+              out.puts "  if err != nil {"
+              out.puts "    return err"
+              out.puts "  }"
+              out.puts "  if #{var} != nil {"
+              var = "(*#{var})"
+            end
+            var = "#{name type}(#{var})" if self_encode
+            out.puts "  err = #{var}.EncodeTo(e)"
+            if optional_within
+              out.puts "  }"
             end
           when :array
             out.puts "  for i := 0; i < len(#{var}); i++ {"
-            # TODO: if m.type.sub_type == :optional || (m.type.is_a?(AST::Identifier) && m.type.sub_type == :simple && m.type.resolved_type.sub_type == :optional)
             out.puts "    err = #{var}[i].EncodeTo(e)"
             out.puts "    if err != nil {"
             out.puts "      return err"
@@ -483,7 +479,6 @@ module Xdrgen
             out.puts "    return err"
             out.puts "  }"
             out.puts "  for i := 0; i < len(#{var}); i++ {"
-            # TODO: if m.type.sub_type == :optional || (m.type.is_a?(AST::Identifier) && m.type.sub_type == :simple && m.type.resolved_type.sub_type == :optional)
             out.puts "    err = #{var}[i].EncodeTo(e)"
             out.puts "    if err != nil {"
             out.puts "      return err"
@@ -500,6 +495,9 @@ module Xdrgen
           end
         else
           out.puts "  _, err = e.Encode(#{var})"
+        end
+        if optional
+          out.puts "  }"
         end
         out.puts "  if err != nil {"
         out.puts "    return err"
