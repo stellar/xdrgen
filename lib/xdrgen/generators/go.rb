@@ -452,7 +452,7 @@ module Xdrgen
         when AST::Typespecs::Simple
           case type.sub_type
           when :simple, :optional
-            optional_within = type.is_a?(AST::Identifier) && type.sub_type == :simple && type.resolved_type.sub_type == :optional
+            optional_within = type.is_a?(AST::Identifier) && type.resolved_type.sub_type == :optional
             if optional_within
               out.puts "  _, err = e.EncodeBool(#{var} != nil)"
               out.puts "  if err != nil {"
@@ -468,10 +468,23 @@ module Xdrgen
             end
           when :array
             out.puts "  for i := 0; i < len(#{var}); i++ {"
-            out.puts "    err = #{var}[i].EncodeTo(e)"
-            out.puts "    if err != nil {"
-            out.puts "      return err"
-            out.puts "    }"
+            element_var = "#{var}[i]"
+            optional_within = type.is_a?(AST::Identifier) && type.resolved_type.sub_type == :optional
+            if optional_within
+              out.puts "    _, err = e.EncodeBool(#{element_var} != nil)"
+              out.puts "    if err != nil {"
+              out.puts "      return err"
+              out.puts "    }"
+              out.puts "    if #{element_var} != nil {"
+              var = "(*#{element_var})"
+            end
+            out.puts "      err = #{element_var}.EncodeTo(e)"
+            out.puts "      if err != nil {"
+            out.puts "        return err"
+            out.puts "      }"
+            if optional_within
+              out.puts "    }"
+            end
             out.puts "  }"
           when :var_array
             out.puts "  _, err = e.EncodeUint(uint32(len(#{var})))"
@@ -479,10 +492,23 @@ module Xdrgen
             out.puts "    return err"
             out.puts "  }"
             out.puts "  for i := 0; i < len(#{var}); i++ {"
-            out.puts "    err = #{var}[i].EncodeTo(e)"
-            out.puts "    if err != nil {"
-            out.puts "      return err"
-            out.puts "    }"
+            element_var = "#{var}[i]"
+            optional_within = type.is_a?(AST::Identifier) && type.resolved_type.sub_type == :optional
+            if optional_within
+              out.puts "    _, err = e.EncodeBool(#{element_var} != nil)"
+              out.puts "    if err != nil {"
+              out.puts "      return err"
+              out.puts "    }"
+              out.puts "    if #{element_var} != nil {"
+              var = "(*#{element_var})"
+            end
+            out.puts "      err = #{element_var}.EncodeTo(e)"
+            out.puts "      if err != nil {"
+            out.puts "        return err"
+            out.puts "      }"
+            if optional_within
+              out.puts "    }"
+            end
             out.puts "  }"
           else
             raise "Unknown sub_type: #{type.sub_type}"
