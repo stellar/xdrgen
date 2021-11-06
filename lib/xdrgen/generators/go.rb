@@ -16,8 +16,20 @@ module Xdrgen
       private
 
       def render_typedef(out, typedef)
-        out.puts "type #{name typedef} #{reference typedef.declaration.type}"
-
+        # Typedefs that wrap a pointer type are not well supported in Go because
+        # Go does not allow pointer types to have methods. This prevents us from
+        # defining the EncodeTo method on these types which is very inconvenient
+        # for the render functions that generate structs that contain these
+        # types, because xdrgen doesn't know in that moment they are a type
+        # without EncodeTo. Since this type cannot have its own methods, we make
+        # it a type alias so at least it inherits the EncodeTo method from the
+        # aliased type. This is a bit of a hack, and the hack will only work as
+        # long as the aliased type is another defined type that has an EncodeTo.
+        if typedef.sub_type == :optional
+          out.puts "type #{name typedef} = #{reference typedef.declaration.type}"
+        else
+          out.puts "type #{name typedef} #{reference typedef.declaration.type}"
+        end
 
         # write sizing restrictions
         case typedef.declaration
@@ -165,19 +177,28 @@ module Xdrgen
         case defn
         when AST::Definitions::Struct ;
           render_struct out, defn
+          render_struct_encode_to_interface out, defn
           render_binary_interface out, name(defn)
+          render_xdr_type_interface out, name(defn)
         when AST::Definitions::Enum ;
           render_enum out, defn
+          render_enum_encode_to_interface out, defn
           render_binary_interface out, name(defn)
+          render_xdr_type_interface out, name(defn)
         when AST::Definitions::Union ;
           render_union out, defn
+          render_union_encode_to_interface out, defn
           render_binary_interface out, name(defn)
+          render_xdr_type_interface out, name(defn)
         when AST::Definitions::Typedef ;
           render_typedef out, defn
-          # TODO: Support defining binary interface on typedefs with optional
-          # types. https://github.com/stellar/xdrgen/issues/61
+          # Typedefs that wrap a pointer type are not supported in Go because Go
+          # does not allow pointer types to have methods. Don't define methods
+          # for the type because that will be a Go compiler error.
           if defn.sub_type != :optional
+            render_typedef_encode_to_interface out, defn
             render_binary_interface out, name(defn)
+            render_xdr_type_interface out, name(defn)
           end
         when AST::Definitions::Const ;
           render_const out, defn
@@ -315,11 +336,73 @@ module Xdrgen
         out.break
       end
 
+      def render_struct_encode_to_interface(out, struct)
+        name = name(struct)
+        out.puts "// EncodeTo encodes this value using the Encoder."
+        out.puts "func (s *#{name}) EncodeTo(e *xdr.Encoder) error {"
+        out.puts "  var err error"
+        struct.members.each do |m|
+          mn = name(m)
+          render_encode_to_body(out, "s.#{mn}", m.type, self_encode: false)
+        end
+        out.puts "  return nil"
+        out.puts "}"
+        out.break
+      end
+
+      def render_union_encode_to_interface(out, union)
+        name = name(union)
+        out.puts "// EncodeTo encodes this value using the Encoder."
+        out.puts "func (s #{name}) EncodeTo(e *xdr.Encoder) error {"
+        out.puts "  _, err := e.EncodeInt(int32(s.#{name(union.discriminant)}))"
+        out.puts "  if err != nil {"
+        out.puts "    return err"
+        out.puts "  }"
+        switch_for(out, union, "s.#{name(union.discriminant)}") do |arm, kase|
+          out2 = StringIO.new
+          if arm.void?
+            "// Void"
+          else
+            mn = name(arm)
+            render_encode_to_body(out2, "(*s.#{mn})", arm.type, self_encode: false)
+            out2.string
+          end
+        end
+        out.puts "  return err"
+        out.puts "}"
+        out.break
+      end
+
+      def render_enum_encode_to_interface(out, typedef)
+        name = name(typedef)
+        type = typedef
+        out.puts "// EncodeTo encodes this value using the Encoder."
+        out.puts "func (s #{name}) EncodeTo(e *xdr.Encoder) error {"
+        out.puts "  var err error"
+        render_encode_to_body(out, "s", type, self_encode: true)
+        out.puts "  return nil"
+        out.puts "}"
+        out.break
+      end
+
+      def render_typedef_encode_to_interface(out, typedef)
+        name = name(typedef)
+        type = typedef.declaration.type
+        out.puts "// EncodeTo encodes this value using the Encoder."
+        out.puts "func (s #{name}) EncodeTo(e *xdr.Encoder) error {"
+        out.puts "  var err error"
+        render_encode_to_body(out, "s", type, self_encode: true)
+        out.puts "  return nil"
+        out.puts "}"
+        out.break
+      end
+
       def render_binary_interface(out, name)
         out.puts "// MarshalBinary implements encoding.BinaryMarshaler."
         out.puts "func (s #{name}) MarshalBinary() ([]byte, error) {"
-        out.puts "  b := new(bytes.Buffer)"
-        out.puts "  _, err := Marshal(b, s)"
+        out.puts "  b := bytes.Buffer{}"
+        out.puts "  e := xdr.NewEncoder(&b)"
+        out.puts "  err := s.EncodeTo(e)"
         out.puts "  return b.Bytes(), err"
         out.puts "}"
         out.break
@@ -333,6 +416,126 @@ module Xdrgen
         out.puts "  _ encoding.BinaryMarshaler   = (*#{name})(nil)"
         out.puts "  _ encoding.BinaryUnmarshaler = (*#{name})(nil)"
         out.puts ")"
+        out.break
+      end
+
+      # render_encode_to_body assumes there is an `e` variable containing an
+      # xdr.Encoder, and a variable defined by `name` that is the value to
+      # encode.
+      def render_encode_to_body(out, var, type, self_encode:)
+        optional = type.sub_type == :optional
+        if optional
+          out.puts "  _, err = e.EncodeBool(#{var} != nil)"
+          out.puts "  if err != nil {"
+          out.puts "    return err"
+          out.puts "  }"
+          out.puts "  if #{var} != nil {"
+          var = "(*#{var})"
+        end
+        case type
+        when AST::Typespecs::UnsignedHyper
+          out.puts "  _, err = e.EncodeUhyper(uint64(#{var}))"
+        when AST::Typespecs::Hyper
+          out.puts "  _, err = e.EncodeHyper(int64(#{var}))"
+        when AST::Typespecs::UnsignedInt
+          out.puts "  _, err = e.EncodeUint(uint32(#{var}))"
+        when AST::Typespecs::Int, AST::Definitions::Enum
+          out.puts "  _, err = e.EncodeInt(int32(#{var}))"
+        when AST::Typespecs::String
+          out.puts "  _, err = e.EncodeString(string(#{var}))"
+        when AST::Typespecs::Opaque
+          if type.fixed?
+            out.puts "  _, err = e.EncodeFixedOpaque(#{var}[:])"
+          else
+            out.puts "  _, err = e.EncodeOpaque(#{var}[:])"
+          end
+        when AST::Typespecs::Simple
+          case type.sub_type
+          when :simple, :optional
+            optional_within = type.is_a?(AST::Identifier) && type.resolved_type.sub_type == :optional
+            if optional_within
+              out.puts "  _, err = e.EncodeBool(#{var} != nil)"
+              out.puts "  if err != nil {"
+              out.puts "    return err"
+              out.puts "  }"
+              out.puts "  if #{var} != nil {"
+              var = "(*#{var})"
+            end
+            var = "#{name type}(#{var})" if self_encode
+            out.puts "  err = #{var}.EncodeTo(e)"
+            if optional_within
+              out.puts "  }"
+            end
+          when :array
+            out.puts "  for i := 0; i < len(#{var}); i++ {"
+            element_var = "#{var}[i]"
+            optional_within = type.is_a?(AST::Identifier) && type.resolved_type.sub_type == :optional
+            if optional_within
+              out.puts "    _, err = e.EncodeBool(#{element_var} != nil)"
+              out.puts "    if err != nil {"
+              out.puts "      return err"
+              out.puts "    }"
+              out.puts "    if #{element_var} != nil {"
+              var = "(*#{element_var})"
+            end
+            out.puts "      err = #{element_var}.EncodeTo(e)"
+            out.puts "      if err != nil {"
+            out.puts "        return err"
+            out.puts "      }"
+            if optional_within
+              out.puts "    }"
+            end
+            out.puts "  }"
+          when :var_array
+            out.puts "  _, err = e.EncodeUint(uint32(len(#{var})))"
+            out.puts "  if err != nil {"
+            out.puts "    return err"
+            out.puts "  }"
+            out.puts "  for i := 0; i < len(#{var}); i++ {"
+            element_var = "#{var}[i]"
+            optional_within = type.is_a?(AST::Identifier) && type.resolved_type.sub_type == :optional
+            if optional_within
+              out.puts "    _, err = e.EncodeBool(#{element_var} != nil)"
+              out.puts "    if err != nil {"
+              out.puts "      return err"
+              out.puts "    }"
+              out.puts "    if #{element_var} != nil {"
+              var = "(*#{element_var})"
+            end
+            out.puts "      err = #{element_var}.EncodeTo(e)"
+            out.puts "      if err != nil {"
+            out.puts "        return err"
+            out.puts "      }"
+            if optional_within
+              out.puts "    }"
+            end
+            out.puts "  }"
+          else
+            raise "Unknown sub_type: #{type.sub_type}"
+          end
+        when AST::Definitions::Base
+          if self_encode
+            out.puts "  err = #{name type}(#{var}).EncodeTo(e)"
+          else
+            out.puts "  err = #{var}.EncodeTo(e)"
+          end
+        else
+          out.puts "  _, err = e.Encode(#{var})"
+        end
+        if optional
+          out.puts "  }"
+        end
+        out.puts "  if err != nil {"
+        out.puts "    return err"
+        out.puts "  }"
+      end
+
+      def render_xdr_type_interface(out, name)
+        out.puts "// xdrType signals that this type is an type representing"
+        out.puts "// representing XDR values defined by this package."
+        out.puts "func (s #{name}) xdrType() {}"
+        out.break
+        out.puts "var _ xdrType = (*#{name})(nil)"
         out.break
       end
 
@@ -354,6 +557,10 @@ module Xdrgen
             "github.com/stellar/go-xdr/xdr3"
           )
 
+          type xdrType interface {
+            xdrType()
+          }
+
           // Unmarshal reads an xdr element from `r` into `v`.
           func Unmarshal(r io.Reader, v interface{}) (int, error) {
             // delegate to xdr package's Unmarshal
@@ -362,6 +569,15 @@ module Xdrgen
 
           // Marshal writes an xdr element `v` into `w`.
           func Marshal(w io.Writer, v interface{}) (int, error) {
+            if _, ok := v.(xdrType); ok {
+              if bm, ok := v.(encoding.BinaryMarshaler); ok {
+                b, err := bm.MarshalBinary()
+                if err != nil {
+                  return 0, err
+                }
+                return w.Write(b)
+              }
+            }
             // delegate to xdr package's Marshal
             return xdr.Marshal(w, v)
           }
