@@ -390,7 +390,7 @@ module Xdrgen
         type = typedef.declaration.type
         out.puts "// EncodeTo encodes this value using the Encoder."
 
-        if type.is_a?(AST::Typespecs::Opaque) and type.fixed?
+        if type.is_a?(AST::Typespecs::Opaque) && type.fixed?
           # Implement EncodeTo by pointer in fixed opaque types (arrays)
           # otherwise (if called by value), Go will make a heap allocation
           # for every by-value call since the copy required by the call
@@ -475,7 +475,7 @@ module Xdrgen
               if type.resolved_type.is_a?(AST::Definitions::Typedef)
                 declared_type = type.resolved_type.declaration.type
                 # Fixed opaque types implement EncodeTo by pointer
-                if declared_type.is_a?(AST::Typespecs::Opaque) and declared_type.fixed?
+                if declared_type.is_a?(AST::Typespecs::Opaque) && declared_type.fixed?
                   newvar = "(*#{name type})(&#{var})"
                 end
               end
