@@ -389,7 +389,16 @@ module Xdrgen
         name = name(typedef)
         type = typedef.declaration.type
         out.puts "// EncodeTo encodes this value using the Encoder."
-        out.puts "func (s #{name}) EncodeTo(e *xdr.Encoder) error {"
+
+        if type.is_a?(AST::Typespecs::Opaque) and type.fixed?
+          # Implement EncodeTo by pointer in fixed opaque types (arrays)
+          # otherwise (if called by value), Go will make a heap allocation
+          # for every by-value call since the copy required by the call
+          # tends to escape the stack due to the large array sizes.
+          out.puts "func (s *#{name}) EncodeTo(e *xdr.Encoder) error {"
+        else
+          out.puts "func (s #{name}) EncodeTo(e *xdr.Encoder) error {"
+        end
         out.puts "  var err error"
         render_encode_to_body(out, "s", type, self_encode: true)
         out.puts "  return nil"
@@ -461,7 +470,17 @@ module Xdrgen
               out.puts "  if #{var} != nil {"
               var = "(*#{var})"
             end
-            var = "#{name type}(#{var})" if self_encode
+            if self_encode
+              newvar = "#{name type}(#{var})"
+              if type.resolved_type.is_a?(AST::Definitions::Typedef)
+                declared_type = type.resolved_type.declaration.type
+                # Fixed opaque types implement EncodeTo by pointer
+                if declared_type.is_a?(AST::Typespecs::Opaque) and declared_type.fixed?
+                  newvar = "(*#{name type})(&#{var})"
+                end
+              end
+              var = newvar
+            end
             out.puts "  err = #{var}.EncodeTo(e)"
             if optional_within
               out.puts "  }"
