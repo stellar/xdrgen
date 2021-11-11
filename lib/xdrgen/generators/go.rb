@@ -644,21 +644,42 @@ module Xdrgen
         case type
         when AST::Typespecs::UnsignedHyper
           out.puts "  #{var}, _, err = d.DecodeUhyper()"
+          out.puts "  if err != nil {"
+          out.puts "    return err"
+          out.puts "  }"
         when AST::Typespecs::Hyper
           out.puts "  #{var}, _, err = d.DecodeHyper()"
+          out.puts "  if err != nil {"
+          out.puts "    return err"
+          out.puts "  }"
         when AST::Typespecs::UnsignedInt
           out.puts "  #{var}, _, err = d.DecodeUint()"
+          out.puts "  if err != nil {"
+          out.puts "    return err"
+          out.puts "  }"
         when AST::Typespecs::Int, AST::Definitions::Enum
           out.puts "  #{var}, _, err = d.DecodeInt()"
+          out.puts "  if err != nil {"
+          out.puts "    return err"
+          out.puts "  }"
         when AST::Typespecs::String
           # TODO: check maxsize annotation
           out.puts "  #{var}, _, err = d.DecodeString(0)"
+          out.puts "  if err != nil {"
+          out.puts "    return err"
+          out.puts "  }"
         when AST::Typespecs::Opaque
           if type.fixed?
             out.puts "  _, err = d.DecodeFixedOpaqueInplace(#{var}[:])"
+            out.puts "  if err != nil {"
+            out.puts "    return err"
+            out.puts "  }"
           else
             # TODO: check maxsize annotation abd use that instead of 0
             out.puts "  #{var}, _, err = d.DecodeOpaque(0)"
+            out.puts "  if err != nil {"
+            out.puts "    return err"
+            out.puts "  }"
           end
         when AST::Typespecs::Simple
           case type.sub_type
@@ -676,7 +697,12 @@ module Xdrgen
             end
             var = "(*#{name type})(#{var})" if self_encode
             out.puts "  err = #{var}.DecodeFrom(d)"
-            close_optional_within = optional_within
+            out.puts "  if err != nil {"
+            out.puts "    return err"
+            out.puts "  }"
+            if optional_within
+              out.puts "  }"
+            end
           when :array
             out.puts "  for i := 0; i < len(#{var}); i++ {"
             element_var = "#{var}[i]"
@@ -705,19 +731,21 @@ module Xdrgen
             out.puts "  if err != nil {"
             out.puts "    return err"
             out.puts "  }"
-            out.puts "  #{var} = make([]#{name type}, l)"
-            out.puts "  for i := uint32(0); i < l; i++ {"
-            element_var = "#{var}[i]"
+            out.puts "  #{var} = nil"
+            out.puts "  if l > 0 {"
+            out.puts "    #{var} = make([]#{name type}, l)"
+            out.puts "    for i := uint32(0); i < l; i++ {"
+            element_var =   "#{var}[i]"
             optional_within = type.is_a?(AST::Identifier) && type.resolved_type.sub_type == :optional
             if optional_within
-              out.puts "    var eb bool"
-              out.puts "    eb, _,  err = d.DecodeBool()"
-              out.puts "    if err != nil {"
-              out.puts "      return err"
-              out.puts "    }"
-              out.puts "    #{element_var} = nil"
-              out.puts "    if eb {"
-              out.puts "       #{element_var} = new(#{name type.resolved_type.declaration.type})"
+              out.puts "      var eb bool"
+              out.puts "      eb, _,  err = d.DecodeBool()"
+              out.puts "      if err != nil {"
+              out.puts "        return err"
+              out.puts "      }"
+              out.puts "      #{element_var} = nil"
+              out.puts "      if eb {"
+              out.puts "         #{element_var} = new(#{name type.resolved_type.declaration.type})"
               var = "(*#{element_var})"
             end
             out.puts "      err = #{element_var}.DecodeFrom(d)"
@@ -727,6 +755,7 @@ module Xdrgen
             if optional_within
               out.puts "    }"
             end
+            out.puts "    }"
             out.puts "  }"
           else
             raise "Unknown sub_type: #{type.sub_type}"
@@ -737,15 +766,14 @@ module Xdrgen
           else
             out.puts "  err = #{var}.DecodeFrom(d)"
           end
+          out.puts "  if err != nil {"
+          out.puts "    return err"
+          out.puts "  }"
         else
           out.puts "  _, err = e.Encode(#{var})"
-        end
-        out.puts "  if err != nil {"
-        out.puts "    return err"
-        out.puts "  }"
-        if close_optional_within
-           # otherwise the error checking above will be rendered outside the optional_within's if block
-           out.puts "  }"
+          out.puts "  if err != nil {"
+          out.puts "    return err"
+          out.puts "  }"
         end
         if optional
            out.puts "  }"
