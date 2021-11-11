@@ -563,7 +563,7 @@ module Xdrgen
             out2.string
           end
         end
-        out.puts "  return err"
+        out.puts "  return nil"
         out.puts "}"
         out.break
       end
