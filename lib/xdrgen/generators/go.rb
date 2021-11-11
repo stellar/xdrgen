@@ -554,16 +554,17 @@ module Xdrgen
         switch_for(out, union, "u.#{name(union.discriminant)}") do |arm, kase|
           out2 = StringIO.new
           if arm.void?
-            "// Void"
+            out2.puts "// Void"
           else
             mn = name(arm)
             type = arm.type
-            out2.puts "u.#{mn} = new(#{reference arm.type})"
+            out2.puts "  u.#{mn} = new(#{reference arm.type})"
             render_decode_from_body(out2, "(*u.#{mn})",type, declared_variables: [], self_encode: false)
-            out2.string
           end
+          out2.puts "  return nil"
+          out2.string
         end
-        out.puts "  return nil"
+        out.puts "  return fmt.Errorf(\"#{name(union.discriminant)} (#{reference union.discriminant.type}) switch value '%d' is not valid for union #{name}\", u.#{name(union.discriminant)})"
         out.puts "}"
         out.break
       end
