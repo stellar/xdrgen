@@ -625,10 +625,10 @@ module Xdrgen
       # encode.
       def render_decode_from_body(out, var, type, declared_variables:, self_encode:)
         tail = <<-EOS.strip_heredoc
+          n += nTmp
           if err != nil {
             return n, err
           }
-          n += nTmp
         EOS
         optional = type.sub_type == :optional
         if optional
