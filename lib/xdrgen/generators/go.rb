@@ -591,18 +591,9 @@ module Xdrgen
         out.puts "  var err error"
         var = "s"
         sub_var_type = ""
-        # TODO: maybe use a reference() call
         case type
-        when AST::Typespecs::UnsignedHyper
-          sub_var_type = "uint64"
-        when AST::Typespecs::Hyper
-          sub_var_type = "int64"
-        when AST::Typespecs::UnsignedInt
-          sub_var_type = "uint32"
-        when AST::Typespecs::Int, AST::Definitions::Enum
-          sub_var_type = "int32"
-        when AST::Typespecs::String
-          sub_var_type = "string"
+        when AST::Typespecs::UnsignedHyper, AST::Typespecs::Hyper, AST::Typespecs::UnsignedInt, AST::Typespecs::Int, AST::Typespecs::String
+          sub_var_type = reference(type)
         end
         if (type.is_a?(AST::Typespecs::Opaque) && !type.fixed?) || (type.is_a?(AST::Typespecs::Simple) && type.sub_type == :var_array)
             var = "(*s)"
@@ -630,7 +621,6 @@ module Xdrgen
       # encode.
       def render_decode_from_body(out, var, type, declared_variables:, self_encode:)
         optional = type.sub_type == :optional
-        close_optional_within = false
         if optional
           render_variable_declaration(out, "  ", 'b', "bool", declared_variables: declared_variables)
           out.puts "  b, _, err = d.DecodeBool()"
@@ -663,8 +653,9 @@ module Xdrgen
           out.puts "    return err"
           out.puts "  }"
         when AST::Typespecs::String
-          # TODO: check maxsize annotation
-          out.puts "  #{var}, _, err = d.DecodeString(0)"
+          arg = "0"
+          arg = type.decl.resolved_size if !type.decl.resolved_size.nil?
+          out.puts "  #{var}, _, err = d.DecodeString(#{arg})"
           out.puts "  if err != nil {"
           out.puts "    return err"
           out.puts "  }"
@@ -675,8 +666,9 @@ module Xdrgen
             out.puts "    return err"
             out.puts "  }"
           else
-            # TODO: check maxsize annotation abd use that instead of 0
-            out.puts "  #{var}, _, err = d.DecodeOpaque(0)"
+            arg = "0"
+            arg = type.decl.resolved_size if !type.decl.resolved_size.nil?
+            out.puts "  #{var}, _, err = d.DecodeOpaque(#{arg})"
             out.puts "  if err != nil {"
             out.puts "    return err"
             out.puts "  }"
@@ -731,6 +723,11 @@ module Xdrgen
             out.puts "  if err != nil {"
             out.puts "    return err"
             out.puts "  }"
+            if !type.decl.resolved_size.nil?
+               out.puts "  if l > #{type.decl.resolved_size} {"
+               out.puts "    return fmt.Errorf(\"data size (%d) exceeds max slice limit (#{type.decl.resolved_size})\", l)"
+               out.puts "  }"
+            end
             out.puts "  #{var} = nil"
             out.puts "  if l > 0 {"
             out.puts "    #{var} = make([]#{name type}, l)"
