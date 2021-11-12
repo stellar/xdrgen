@@ -709,7 +709,7 @@ module Xdrgen
             out.puts tail
             if !type.decl.resolved_size.nil?
                out.puts "  if l > #{type.decl.resolved_size} {"
-               out.puts "    return n, fmt.Errorf(\"data size (%d) exceeds max slice limit (#{type.decl.resolved_size})\", l)"
+               out.puts "    return n, fmt.Errorf(\"data size (%d) exceeds size limit (#{type.decl.resolved_size}) of #{name type}\", l)"
                out.puts "  }"
             end
             out.puts "  #{var} = nil"
