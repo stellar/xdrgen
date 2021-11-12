@@ -566,7 +566,9 @@ module Xdrgen
           out2.puts "  return n, nil"
           out2.string
         end
-        out.puts "  return n, fmt.Errorf(\"#{name(union.discriminant)} (#{reference union.discriminant.type}) switch value '%d' is not valid for union #{name}\", u.#{name(union.discriminant)})"
+        unless union.default_arm.present?
+          out.puts "  return n, fmt.Errorf(\"#{name(union.discriminant)} (#{reference union.discriminant.type}) switch value '%d' is not valid for union #{name}\", u.#{name(union.discriminant)})"
+        end
         out.puts "}"
         out.break
       end
