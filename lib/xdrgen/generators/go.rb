@@ -178,18 +178,21 @@ module Xdrgen
         when AST::Definitions::Struct ;
           render_struct out, defn
           render_struct_encode_to_interface out, defn
+          render_decoder_from_interface out, name(defn)
           render_struct_decode_from_interface out, defn
           render_binary_interface out, name(defn)
           render_xdr_type_interface out, name(defn)
         when AST::Definitions::Enum ;
           render_enum out, defn
           render_enum_encode_to_interface out, defn
+          render_decoder_from_interface out, name(defn)
           render_enum_decode_from_interface out, defn
           render_binary_interface out, name(defn)
           render_xdr_type_interface out, name(defn)
         when AST::Definitions::Union ;
           render_union out, defn
           render_union_encode_to_interface out, defn
+          render_decoder_from_interface out, name(defn)
           render_union_decode_from_interface out, defn
           render_binary_interface out, name(defn)
           render_xdr_type_interface out, name(defn)
@@ -200,6 +203,7 @@ module Xdrgen
           # for the type because that will be a Go compiler error.
           if defn.sub_type != :optional
             render_typedef_encode_to_interface out, defn
+            render_decoder_from_interface out, name(defn)
             render_typedef_decode_from_interface out, defn
             render_binary_interface out, name(defn)
             render_xdr_type_interface out, name(defn)
@@ -564,7 +568,7 @@ module Xdrgen
           out2.string
         end
         unless union.default_arm.present?
-          out.puts "  return n, fmt.Errorf(\"#{name(union.discriminant)} (#{reference union.discriminant.type}) switch value '%d' is not valid for union #{name}\", u.#{name(union.discriminant)})"
+                    out.puts "  return n, fmt.Errorf(\"union #{name} has invalid #{name(union.discriminant)} (#{reference union.discriminant.type}) switch value '%d'\", u.#{name(union.discriminant)})"
         end
         out.puts "}"
         out.break
@@ -578,7 +582,7 @@ module Xdrgen
         func (e *#{name}) DecodeFrom(d *xdr.Decoder) (int, error) {
           v, n, err := d.DecodeInt()
           if err != nil {
-            return n, err
+            return n, fmt.Errorf("decoding #{name}: %s", err)
           }
           if _, ok := #{private_name type}Map[v]; !ok {
             return n, fmt.Errorf("'%d' is not a valid #{name} enum value", v)
@@ -605,19 +609,19 @@ module Xdrgen
         if (type.is_a?(AST::Typespecs::Opaque) && !type.fixed?) || (type.is_a?(AST::Typespecs::Simple) && type.sub_type == :var_array)
             var = "(*s)"
         end
-        if !sub_var_type.empty?
+        unless sub_var_type.empty?
           out.puts "  var v #{sub_var_type}"
           var = "v"
         end
         render_decode_from_body(out, var, type, declared_variables: [], self_encode: true)
-        out.puts "  *s = #{name}(v)" if !sub_var_type.empty?
+        out.puts "  *s = #{name}(v)" unless sub_var_type.empty?
         out.puts "  return n, nil"
         out.puts "}"
         out.break
       end
 
       def render_variable_declaration(out, indent, var, type, declared_variables:)
-        if !declared_variables.include?var
+        unless declared_variables.include?var
            out.puts "#{indent}var #{var} #{type}"
            declared_variables.append(var)
         end
@@ -630,7 +634,7 @@ module Xdrgen
         tail = <<-EOS.strip_heredoc
           n += nTmp
           if err != nil {
-            return n, err
+            return n, fmt.Errorf("decoding #{name type}: %s", err)
           }
         EOS
         optional = type.sub_type == :optional
@@ -657,7 +661,7 @@ module Xdrgen
           out.puts tail
         when AST::Typespecs::String
           arg = "0"
-          arg = type.decl.resolved_size if !type.decl.resolved_size.nil?
+          arg = type.decl.resolved_size unless type.decl.resolved_size.nil?
           out.puts "  #{var}, nTmp, err = d.DecodeString(#{arg})"
           out.puts tail
         when AST::Typespecs::Opaque
@@ -666,7 +670,7 @@ module Xdrgen
             out.puts tail
           else
             arg = "0"
-            arg = type.decl.resolved_size if !type.decl.resolved_size.nil?
+            arg = type.decl.resolved_size unless type.decl.resolved_size.nil?
             out.puts "  #{var}, nTmp, err = d.DecodeOpaque(#{arg})"
             out.puts tail
           end
@@ -710,9 +714,9 @@ module Xdrgen
             render_variable_declaration(out, "  ", 'l', "uint32", declared_variables: declared_variables)
             out.puts "  l, nTmp, err = d.DecodeUint()"
             out.puts tail
-            if !type.decl.resolved_size.nil?
+            unless type.decl.resolved_size.nil?
                out.puts "  if l > #{type.decl.resolved_size} {"
-               out.puts "    return n, fmt.Errorf(\"data size (%d) exceeds size limit (#{type.decl.resolved_size}) of #{name type}\", l)"
+               out.puts "    return n, fmt.Errorf(\"decoding #{name type}: data size (%d) exceeds size limit (#{type.decl.resolved_size})\", l)"
                out.puts "  }"
             end
             out.puts "  #{var} = nil"
@@ -789,6 +793,10 @@ module Xdrgen
         out.break
       end
 
+      def render_decoder_from_interface(out, name)
+        out.puts "var _ decoderFrom = (*#{name})(nil)"
+      end
+
       def render_top_matter(out)
         out.puts <<-EOS.strip_heredoc
           // Package #{@namespace || "main"} is generated from:
@@ -811,13 +819,13 @@ module Xdrgen
             xdrType()
           }
 
-          type xdrDecodable interface {
+          type decoderFrom interface {
             DecodeFrom(d *xdr.Decoder) (int, error)
           }
 
           // Unmarshal reads an xdr element from `r` into `v`.
           func Unmarshal(r io.Reader, v interface{}) (int, error) {
-            if decodable, ok := v.(xdrDecodable); ok {
+            if decodable, ok := v.(decoderFrom); ok {
               d := xdr.NewDecoder(r)
               return decodable.DecodeFrom(d)
             }
