@@ -392,12 +392,16 @@ module Xdrgen
         EOS
       end
 
+      def is_fixed_opaque(type)
+        type.is_a?(AST::Typespecs::Opaque) && type.fixed?
+      end
+
       def render_typedef_encode_to_interface(out, typedef)
         name = name(typedef)
         type = typedef.declaration.type
         out.puts "// EncodeTo encodes this value using the Encoder."
-
-        if type.is_a?(AST::Typespecs::Opaque) && type.fixed?
+        if is_fixed_opaque(type) ||
+           (type.is_a?(AST::Identifier) && type.resolved_type.is_a?(AST::Definitions::Typedef) && is_fixed_opaque(type.resolved_type.declaration.type))
           # Implement EncodeTo by pointer in fixed opaque types (arrays)
           # otherwise (if called by value), Go will make a heap allocation
           # for every by-value call since the copy required by the call
@@ -480,10 +484,12 @@ module Xdrgen
             end
             if self_encode
               newvar = "#{name type}(#{var})"
-              if type.resolved_type.is_a?(AST::Definitions::Typedef)
-                declared_type = type.resolved_type.declaration.type
+              if type.resolved_type.is_a?(AST::Definitions::Typedef) && is_fixed_opaque(type.resolved_type.declaration.type)
                 # Fixed opaque types implement EncodeTo by pointer
-                if declared_type.is_a?(AST::Typespecs::Opaque) && declared_type.fixed?
+                if type.is_a?(AST::Identifier)
+                  # we are already calling by pointer, so we just need to cast
+                  newvar = "(*#{name type})(#{var})"
+                else
                   newvar = "(*#{name type})(&#{var})"
                 end
               end
