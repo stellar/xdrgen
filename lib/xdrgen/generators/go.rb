@@ -178,16 +178,22 @@ module Xdrgen
         when AST::Definitions::Struct ;
           render_struct out, defn
           render_struct_encode_to_interface out, defn
+          render_decoder_from_interface out, name(defn)
+          render_struct_decode_from_interface out, defn
           render_binary_interface out, name(defn)
           render_xdr_type_interface out, name(defn)
         when AST::Definitions::Enum ;
           render_enum out, defn
           render_enum_encode_to_interface out, defn
+          render_decoder_from_interface out, name(defn)
+          render_enum_decode_from_interface out, defn
           render_binary_interface out, name(defn)
           render_xdr_type_interface out, name(defn)
         when AST::Definitions::Union ;
           render_union out, defn
           render_union_encode_to_interface out, defn
+          render_decoder_from_interface out, name(defn)
+          render_union_decode_from_interface out, defn
           render_binary_interface out, name(defn)
           render_xdr_type_interface out, name(defn)
         when AST::Definitions::Typedef ;
@@ -197,6 +203,8 @@ module Xdrgen
           # for the type because that will be a Go compiler error.
           if defn.sub_type != :optional
             render_typedef_encode_to_interface out, defn
+            render_decoder_from_interface out, name(defn)
+            render_typedef_decode_from_interface out, defn
             render_binary_interface out, name(defn)
             render_xdr_type_interface out, name(defn)
           end
@@ -417,30 +425,8 @@ module Xdrgen
         out.break
       end
 
-      def render_binary_interface(out, name)
-        out.puts "// MarshalBinary implements encoding.BinaryMarshaler."
-        out.puts "func (s #{name}) MarshalBinary() ([]byte, error) {"
-        out.puts "  b := bytes.Buffer{}"
-        out.puts "  e := xdr.NewEncoder(&b)"
-        out.puts "  err := s.EncodeTo(e)"
-        out.puts "  return b.Bytes(), err"
-        out.puts "}"
-        out.break
-        out.puts "// UnmarshalBinary implements encoding.BinaryUnmarshaler."
-        out.puts "func (s *#{name}) UnmarshalBinary(inp []byte) error {"
-        out.puts "  _, err := Unmarshal(bytes.NewReader(inp), s)"
-        out.puts "  return err"
-        out.puts "}"
-        out.break
-        out.puts "var ("
-        out.puts "  _ encoding.BinaryMarshaler   = (*#{name})(nil)"
-        out.puts "  _ encoding.BinaryUnmarshaler = (*#{name})(nil)"
-        out.puts ")"
-        out.break
-      end
-
       # render_encode_to_body assumes there is an `e` variable containing an
-      # xdr.Encoder, and a variable defined by `name` that is the value to
+      # xdr.Encoder, and a variable defined by `var` that is the value to
       # encode.
       def render_encode_to_body(out, var, type, self_encode:)
         def check_error(str)
@@ -545,6 +531,259 @@ module Xdrgen
         end
       end
 
+      def render_struct_decode_from_interface(out, struct)
+        name = name(struct)
+        out.puts "// DecodeFrom decodes this value using the Decoder."
+        out.puts "func (s *#{name}) DecodeFrom(d *xdr.Decoder) (int, error) {"
+        out.puts "  var err error"
+        out.puts "  var n, nTmp int"
+        declared_variables = []
+        struct.members.each do |m|
+          mn = name(m)
+          render_decode_from_body(out, "s.#{mn}", m.type, declared_variables: declared_variables, self_encode: false)
+        end
+        out.puts "  return n, nil"
+        out.puts "}"
+        out.break
+      end
+
+      def render_union_decode_from_interface(out, union)
+        name = name(union)
+        out.puts "// DecodeFrom decodes this value using the Decoder."
+        out.puts "func (u *#{name}) DecodeFrom(d *xdr.Decoder) (int, error) {"
+        out.puts "  var err error"
+        out.puts "  var n, nTmp int"
+        render_decode_from_body(out, "u.#{name(union.discriminant)}", union.discriminant.type, declared_variables: [], self_encode: false)
+        switch_for(out, union, "u.#{name(union.discriminant)}") do |arm, kase|
+          out2 = StringIO.new
+          if arm.void?
+            out2.puts "// Void"
+          else
+            mn = name(arm)
+            type = arm.type
+            out2.puts "  u.#{mn} = new(#{reference arm.type})"
+            render_decode_from_body(out2, "(*u.#{mn})",type, declared_variables: [], self_encode: false)
+          end
+          out2.puts "  return n, nil"
+          out2.string
+        end
+        unless union.default_arm.present?
+                    out.puts "  return n, fmt.Errorf(\"union #{name} has invalid #{name(union.discriminant)} (#{reference union.discriminant.type}) switch value '%d'\", u.#{name(union.discriminant)})"
+        end
+        out.puts "}"
+        out.break
+      end
+
+      def render_enum_decode_from_interface(out, typedef)
+        name = name(typedef)
+        type = typedef
+        out.puts <<-EOS.strip_heredoc
+        // DecodeFrom decodes this value using the Decoder.
+        func (e *#{name}) DecodeFrom(d *xdr.Decoder) (int, error) {
+          v, n, err := d.DecodeInt()
+          if err != nil {
+            return n, fmt.Errorf("decoding #{name}: %s", err)
+          }
+          if _, ok := #{private_name type}Map[v]; !ok {
+            return n, fmt.Errorf("'%d' is not a valid #{name} enum value", v)
+          }
+          *e = #{name}(v)
+          return n, nil
+        }
+        EOS
+      end
+
+      def render_typedef_decode_from_interface(out, typedef)
+        name = name(typedef)
+        type = typedef.declaration.type
+        out.puts "// DecodeFrom decodes this value using the Decoder."
+        out.puts "func (s *#{name}) DecodeFrom(d *xdr.Decoder) (int, error) {"
+        out.puts "  var err error"
+        out.puts "  var n, nTmp int"
+        var = "s"
+        sub_var_type = ""
+        case type
+        when AST::Typespecs::UnsignedHyper, AST::Typespecs::Hyper, AST::Typespecs::UnsignedInt, AST::Typespecs::Int, AST::Typespecs::String
+          sub_var_type = reference(type)
+        end
+        if (type.is_a?(AST::Typespecs::Opaque) && !type.fixed?) || (type.is_a?(AST::Typespecs::Simple) && type.sub_type == :var_array)
+            var = "(*s)"
+        end
+        unless sub_var_type.empty?
+          out.puts "  var v #{sub_var_type}"
+          var = "v"
+        end
+        render_decode_from_body(out, var, type, declared_variables: [], self_encode: true)
+        out.puts "  *s = #{name}(v)" unless sub_var_type.empty?
+        out.puts "  return n, nil"
+        out.puts "}"
+        out.break
+      end
+
+      def render_variable_declaration(out, indent, var, type, declared_variables:)
+        unless declared_variables.include?var
+           out.puts "#{indent}var #{var} #{type}"
+           declared_variables.append(var)
+        end
+      end
+
+      # render_decode_from_body assumes there is an `d` variable containing an
+      # xdr.Decoder, and a variable defined by `var` that is the value to
+      # encode.
+      def render_decode_from_body(out, var, type, declared_variables:, self_encode:)
+        tail = <<-EOS.strip_heredoc
+          n += nTmp
+          if err != nil {
+            return n, fmt.Errorf("decoding #{name type}: %s", err)
+          }
+        EOS
+        optional = type.sub_type == :optional
+        if optional
+          render_variable_declaration(out, "  ", 'b', "bool", declared_variables: declared_variables)
+          out.puts "  b, nTmp, err = d.DecodeBool()"
+          out.puts tail
+          out.puts "  #{var} = nil"
+          out.puts "  if b {"
+          out.puts "     #{var} = new(#{name type})"
+        end
+        case type
+        when AST::Typespecs::UnsignedHyper
+          out.puts "  #{var}, nTmp, err = d.DecodeUhyper()"
+          out.puts tail
+        when AST::Typespecs::Hyper
+          out.puts "  #{var}, nTmp, err = d.DecodeHyper()"
+          out.puts tail
+        when AST::Typespecs::UnsignedInt
+          out.puts "  #{var}, nTmp, err = d.DecodeUint()"
+          out.puts tail
+        when AST::Typespecs::Int
+          out.puts "  #{var}, nTmp, err = d.DecodeInt()"
+          out.puts tail
+        when AST::Typespecs::String
+          arg = "0"
+          arg = type.decl.resolved_size unless type.decl.resolved_size.nil?
+          out.puts "  #{var}, nTmp, err = d.DecodeString(#{arg})"
+          out.puts tail
+        when AST::Typespecs::Opaque
+          if type.fixed?
+            out.puts "  nTmp, err = d.DecodeFixedOpaqueInplace(#{var}[:])"
+            out.puts tail
+          else
+            arg = "0"
+            arg = type.decl.resolved_size unless type.decl.resolved_size.nil?
+            out.puts "  #{var}, nTmp, err = d.DecodeOpaque(#{arg})"
+            out.puts tail
+          end
+        when AST::Typespecs::Simple
+          case type.sub_type
+          when :simple, :optional
+            optional_within = type.is_a?(AST::Identifier) && type.resolved_type.sub_type == :optional
+            if optional_within
+              render_variable_declaration(out, "  ", 'b', "bool", declared_variables: declared_variables)
+              out.puts "  b, nTmp, err = d.DecodeBool()"
+              out.puts tail
+              out.puts "  #{var} = nil"
+              out.puts "  if b {"
+              out.puts "     #{var} = new(#{name type.resolved_type.declaration.type})"
+            end
+            var = "(*#{name type})(#{var})" if self_encode
+            out.puts "  nTmp, err = #{var}.DecodeFrom(d)"
+            out.puts tail
+            if optional_within
+              out.puts "  }"
+            end
+          when :array
+            out.puts "  for i := 0; i < len(#{var}); i++ {"
+            element_var = "#{var}[i]"
+            optional_within = type.is_a?(AST::Identifier) && type.resolved_type.sub_type == :optional
+            if optional_within
+              out.puts "    var eb bool"
+              out.puts "    eb, nTmp, err = d.DecodeBool()"
+              out.puts tail
+              out.puts "    #{var} = nil"
+              out.puts "    if eb {"
+              var = "(*#{element_var})"
+            end
+            out.puts "      nTmp, err = #{element_var}.DecodeFrom(d)"
+            out.puts tail
+            if optional_within
+              out.puts "    }"
+            end
+            out.puts "  }"
+          when :var_array
+            render_variable_declaration(out, "  ", 'l', "uint32", declared_variables: declared_variables)
+            out.puts "  l, nTmp, err = d.DecodeUint()"
+            out.puts tail
+            unless type.decl.resolved_size.nil?
+               out.puts "  if l > #{type.decl.resolved_size} {"
+               out.puts "    return n, fmt.Errorf(\"decoding #{name type}: data size (%d) exceeds size limit (#{type.decl.resolved_size})\", l)"
+               out.puts "  }"
+            end
+            out.puts "  #{var} = nil"
+            out.puts "  if l > 0 {"
+            out.puts "    #{var} = make([]#{name type}, l)"
+            out.puts "    for i := uint32(0); i < l; i++ {"
+            element_var =   "#{var}[i]"
+            optional_within = type.is_a?(AST::Identifier) && type.resolved_type.sub_type == :optional
+            if optional_within
+              out.puts "      var eb bool"
+              out.puts "      eb, nTmp,  err = d.DecodeBool()"
+              out.puts tail
+              out.puts "      #{element_var} = nil"
+              out.puts "      if eb {"
+              out.puts "         #{element_var} = new(#{name type.resolved_type.declaration.type})"
+              var = "(*#{element_var})"
+            end
+            out.puts "      nTmp, err = #{element_var}.DecodeFrom(d)"
+            out.puts tail
+            if optional_within
+              out.puts "    }"
+            end
+            out.puts "    }"
+            out.puts "  }"
+          else
+            raise "Unknown sub_type: #{type.sub_type}"
+          end
+        when AST::Definitions::Base
+          if self_encode
+            out.puts "  nTmp, err = #{name type}(#{var}).DecodeFrom(d)"
+          else
+            out.puts "  nTmp, err = #{var}.DecodeFrom(d)"
+          end
+          out.puts tail
+        else
+          out.puts "  nTmp, err = e.Decode(#{var})"
+          out.puts tail
+        end
+        if optional
+           out.puts "  }"
+        end
+      end
+
+      def render_binary_interface(out, name)
+        out.puts "// MarshalBinary implements encoding.BinaryMarshaler."
+        out.puts "func (s #{name}) MarshalBinary() ([]byte, error) {"
+        out.puts "  b := bytes.Buffer{}"
+        out.puts "  e := xdr.NewEncoder(&b)"
+        out.puts "  err := s.EncodeTo(e)"
+        out.puts "  return b.Bytes(), err"
+        out.puts "}"
+        out.break
+        out.puts "// UnmarshalBinary implements encoding.BinaryUnmarshaler."
+        out.puts "func (s *#{name}) UnmarshalBinary(inp []byte) error {"
+        out.puts "  r := bytes.NewReader(inp)"
+        out.puts "  d := xdr.NewDecoder(r)"
+        out.puts "  _, err := s.DecodeFrom(d)"
+        out.puts "  return err"
+        out.puts "}"
+        out.break
+        out.puts "var ("
+        out.puts "  _ encoding.BinaryMarshaler   = (*#{name})(nil)"
+        out.puts "  _ encoding.BinaryUnmarshaler = (*#{name})(nil)"
+        out.puts ")"
+        out.break
+      end
+
       def render_xdr_type_interface(out, name)
         out.puts "// xdrType signals that this type is an type representing"
         out.puts "// representing XDR values defined by this package."
@@ -552,6 +791,10 @@ module Xdrgen
         out.break
         out.puts "var _ xdrType = (*#{name})(nil)"
         out.break
+      end
+
+      def render_decoder_from_interface(out, name)
+        out.puts "var _ decoderFrom = (*#{name})(nil)"
       end
 
       def render_top_matter(out)
@@ -576,8 +819,16 @@ module Xdrgen
             xdrType()
           }
 
+          type decoderFrom interface {
+            DecodeFrom(d *xdr.Decoder) (int, error)
+          }
+
           // Unmarshal reads an xdr element from `r` into `v`.
           func Unmarshal(r io.Reader, v interface{}) (int, error) {
+            if decodable, ok := v.(decoderFrom); ok {
+              d := xdr.NewDecoder(r)
+              return decodable.DecodeFrom(d)
+            }
             // delegate to xdr package's Unmarshal
           	return xdr.Unmarshal(r, v)
           }
