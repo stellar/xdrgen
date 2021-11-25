@@ -16,8 +16,8 @@ Xdrgen is a very early project.  Aside from the test fixtures in
 are the .x files used for the
 [stellar-core project](https://github.com/stellar/stellar-core).
 
-Xdrgen presently supports these output languages:  ruby, javacript, java,
-golang, and elixir:
+Xdrgen presently supports these output languages: ruby, javacript, java,
+golang, elixir and Python:
 
 - ruby: complete support
 - javascript: complete support
@@ -26,6 +26,7 @@ golang, and elixir:
 - elixir: support is experimental as the SDK is in early development. Generated
   code requires [:exdr](https://github.com/revelrylabs/exdr) in your deps
 - C#: complete support
+- Python: complete support
   
 Testing is _very_ sparse, but will improve over time.
 
