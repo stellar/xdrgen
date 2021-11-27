@@ -53,6 +53,7 @@ module Xdrgen
       end
 
       def render_const(out, const)
+        render_const_source_comment out, const
         out.puts "#{const.name}: int = #{const.value}"
       end
 
@@ -782,6 +783,11 @@ module Xdrgen
         end
 
         out.puts '"""'
+      end
+
+      def render_const_source_comment(out, defn)
+        return if defn.is_a?(AST::Definitions::Namespace)
+        out.puts "#: #{defn.text_value}"
       end
 
       def type_hint_string(decl, container_name)
