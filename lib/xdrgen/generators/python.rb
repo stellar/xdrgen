@@ -46,6 +46,7 @@ module Xdrgen
         enum_name = enum.name
         out.puts "class #{enum_name}(IntEnum):"
         out.indent(2) do
+          render_source_comment(out, enum)
           enum.members.each do |member|
             out.puts "#{member.name}: int = #{member.value}"
           end
@@ -69,6 +70,7 @@ module Xdrgen
         typedef_name = typedef.name.camelize
         out.puts "class #{typedef_name}:"
         out.indent(2) do
+          render_source_comment(out, typedef)
           out.puts "def __init__(self, #{typedef_name.underscore}: #{type_hint_string typedef}) -> None:"
           out.indent(2) do
             render_array_length_checker typedef, out
@@ -102,8 +104,8 @@ module Xdrgen
       def render_union(out, union)
         union_name = name union
         out.puts "class #{union_name}:"
-
         out.indent(2) do
+          render_source_comment(out, union)
           out.puts <<~HEREDOC
             def __init__(
                 self,
@@ -211,6 +213,7 @@ module Xdrgen
         out.puts "class #{struct_name}:"
 
         out.indent(2) do
+          render_source_comment(out, struct)
           out.puts <<~HEREDOC
             def __init__(
                 self,
@@ -665,6 +668,21 @@ module Xdrgen
         else
           raise "Unknown typespec: #{decl.type.class.name}"
         end
+      end
+
+      def render_source_comment(out, defn)
+        return if defn.is_a?(AST::Definitions::Namespace)
+
+        out.puts <<-EOS.strip_heredoc
+          """
+          XDR Source Code::
+
+        EOS
+        out.indent(2) do
+          out.puts defn.text_value
+        end
+
+        out.puts '"""'
       end
 
       def type_hint_string(decl)
