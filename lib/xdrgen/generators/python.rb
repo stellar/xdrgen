@@ -390,8 +390,8 @@ module Xdrgen
               out.puts "packer.pack_uint(len(self.#{member.name.underscore}))"
             end
             out.puts <<~HEREDOC
-              for item in self.#{member.name.underscore}:
-                  item.pack(packer)
+              for #{member.name.underscore}_item in self.#{member.name.underscore}:
+                  #{member.name.underscore}_item.pack(packer)
             HEREDOC
           else
             if member.type.sub_type == :optional or is_union_member
