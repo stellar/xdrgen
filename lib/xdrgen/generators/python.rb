@@ -384,10 +384,7 @@ module Xdrgen
                     raise ValueError("#{member.name.underscore} should not be None.")
               HEREDOC
             end
-            if member.declaration.fixed?
-              _, size = member.declaration.type.array_size
-              out.puts "packer.pack_uint(#{size})"
-            else
+            unless member.declaration.fixed?
               out.puts "packer.pack_uint(len(self.#{member.name.underscore}))"
             end
             out.puts <<~HEREDOC
@@ -413,8 +410,13 @@ module Xdrgen
         end
         case member.declaration
         when AST::Declarations::Array
+          if member.declaration.fixed?
+            _, size = member.declaration.type.array_size
+            out.puts "length = #{size}"
+          else
+            out.puts "length = unpacker.unpack_uint()"
+          end
           out.puts <<-EOS.strip_heredoc
-            length = unpacker.unpack_uint()
             #{member.name.underscore} = []
             for _ in range(length):
                 #{member.name.underscore}.append(#{decode_type(member.declaration)})
@@ -812,6 +814,12 @@ module Xdrgen
             "#{type_string decl.type}"
           end
         end
+      end
+
+      
+
+      def is_keyword(word)
+        %w[False await else import pass None break except in raise True class finally is return and continue for lambda try as def from nonlocal while assert del global not with async elif if or yield].include? word
       end
 
       def is_base_type(type)
