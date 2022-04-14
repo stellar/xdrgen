@@ -752,7 +752,7 @@ module Xdrgen
           end
           out.puts tail
         else
-          out.puts "  nTmp, err = e.Decode(#{var})"
+          out.puts "  nTmp, err = d.Decode(#{var})"
           out.puts tail
         end
         if optional
