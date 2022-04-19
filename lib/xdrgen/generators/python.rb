@@ -221,7 +221,7 @@ module Xdrgen
               end
             end
             if union.default_arm.present? and not union.default_arm.void?
-              raise "default_arm is not supported, union_name = #{union_name}"
+              encode_member union.default_arm, out, true
             end
           end
 
@@ -247,10 +247,13 @@ module Xdrgen
                 end
               end
             end
-            out.puts "return cls(#{union_discriminant_name_underscore}=#{union_discriminant_name_underscore})"
 
             if union.default_arm.present? and not union.default_arm.void?
-              raise "default_arm is not supported, union_name = #{union_name}"
+              decode_member union.default_arm, out
+              arm_name_underscore = union.default_arm.name.underscore
+              out.puts "return cls(#{union_discriminant_name_underscore}=#{union_discriminant_name_underscore}, #{arm_name_underscore}=#{arm_name_underscore})"
+            else
+              out.puts "return cls(#{union_discriminant_name_underscore}=#{union_discriminant_name_underscore})"
             end
           end
 
