@@ -65,8 +65,8 @@ module Xdrgen
       end
 
       def render_enum(enum)
-        enum_name = enum.name
-        enum_name_underscore = enum.name.underscore
+        enum_name = name enum
+        enum_name_underscore = enum_name.underscore
         @init_out.puts "from .#{enum_name_underscore} import #{enum_name}"
 
         file_name = "#{enum_name_underscore}.py"
@@ -204,7 +204,7 @@ module Xdrgen
           end
           out.puts "def pack(self, packer: Packer) -> None:"
           out.indent(2) do
-            out.puts "#{encode_type union.discriminant, union_discriminant_name_underscore}"
+            out.puts "#{encode_type union.discriminant, 'self.' + union_discriminant_name_underscore}"
             union.normal_arms.each do |arm|
               arm.cases.each do |c|
                 if c.value.is_a?(AST::Identifier)
@@ -408,7 +408,7 @@ module Xdrgen
             end
             out.puts <<~HEREDOC
               for #{member_name_underscore}_item in self.#{member_name_underscore}:
-                  #{member_name_underscore}_item.pack(packer)
+                  #{encode_type member.declaration, member_name_underscore + '_item'}
             HEREDOC
           else
             if member.type.sub_type == :optional or is_union_member
@@ -417,7 +417,7 @@ module Xdrgen
                     raise ValueError("#{member_name_underscore} should not be None.")
               HEREDOC
             end
-            out.puts "#{encode_type member.declaration, member_name_underscore}"
+            out.puts encode_type member.declaration, 'self.' + member_name_underscore
           end
         end
       end
@@ -474,7 +474,8 @@ module Xdrgen
           if member.declaration.fixed?
             out.puts <<~HEREDOC
               if #{member_name_underscore} and len(#{member_name_underscore}) != #{size}:
-                  raise ValueError(f\"The length of `#{member_name_underscore}` should be #{size}, but got {len(#{member_name_underscore})}.\")
+                  expect_size = #{size}
+                  raise ValueError(f\"The length of `#{member_name_underscore}` should be {expect_size}, but got {len(#{member_name_underscore})}.\")
             HEREDOC
           else
             out.puts <<~HEREDOC
@@ -519,27 +520,27 @@ module Xdrgen
       def encode_type(decl, value)
         case decl.type
         when AST::Typespecs::Int;
-          "Integer(self.#{value}).pack(packer)"
+          "Integer(#{value}).pack(packer)"
         when AST::Typespecs::UnsignedInt;
-          "UnsignedInteger(self.#{value}).pack(packer)"
+          "UnsignedInteger(#{value}).pack(packer)"
         when AST::Typespecs::Hyper;
-          "Hyper(self.#{value}).pack(packer)"
+          "Hyper(#{value}).pack(packer)"
         when AST::Typespecs::UnsignedHyper;
-          "UnsignedHyper(self.#{value}).pack(packer)"
+          "UnsignedHyper(#{value}).pack(packer)"
         when AST::Typespecs::Float;
-          "Float(self.#{value}).pack(packer)"
+          "Float(#{value}).pack(packer)"
         when AST::Typespecs::Double;
-          "Double(self.#{value}).pack(packer)"
+          "Double(#{value}).pack(packer)"
         when AST::Typespecs::Quadruple;
           raise "cannot render quadruple in Python"
         when AST::Typespecs::Bool;
-          "Boolean(self.#{value}).pack(packer)"
+          "Boolean(#{value}).pack(packer)"
         when AST::Typespecs::Opaque;
-          "Opaque(self.#{value}, #{decl.size || MAX_SIZE}, #{decl.fixed? ? "True" : "False"}).pack(packer)"
+          "Opaque(#{value}, #{decl.size || MAX_SIZE}, #{decl.fixed? ? "True" : "False"}).pack(packer)"
         when AST::Typespecs::String;
-          "String(self.#{value}, #{decl.size || MAX_SIZE}).pack(packer)"
+          "String(#{value}, #{decl.size || MAX_SIZE}).pack(packer)"
         else
-          "self.#{value}.pack(packer)"
+          "#{value}.pack(packer)"
         end
       end
 
@@ -560,7 +561,7 @@ module Xdrgen
         when AST::Typespecs::Quadruple
           raise "cannot render quadruple in Python"
         when AST::Typespecs::Bool
-          "Integer.unpack(unpacker)"
+          "Boolean.unpack(unpacker)"
         when AST::Typespecs::Opaque
           "Opaque.unpack(unpacker, #{decl.size || MAX_SIZE}, #{decl.fixed? ? "True" : "False"})"
         when AST::Typespecs::String
