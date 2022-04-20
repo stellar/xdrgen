@@ -99,7 +99,7 @@ module Xdrgen
       end
 
       def render_struct(out, struct)
-        out.puts "#[derive(Debug, XDROut, XDRIn)]"
+        out.puts "#[derive(Clone, Debug, XDROut, XDRIn)]"
         out.puts "pub struct #{name struct} {"
         out.indent do
           struct.members.each do |m|
@@ -116,7 +116,7 @@ module Xdrgen
       end
 
       def render_enum(out, enum)
-        out.puts "#[derive(Debug, XDROut, XDRIn)]"
+        out.puts "#[derive(Clone, Debug, XDROut, XDRIn)]"
         out.puts "pub enum #{name enum} {"
         out.indent do
           enum.members.each do |m|
@@ -129,7 +129,7 @@ module Xdrgen
 
       def render_union(out, union)
         out.puts "// union"
-        out.puts "#[derive(Debug, XDROut, XDRIn)]"
+        out.puts "#[derive(Clone, Debug, XDROut, XDRIn)]"
         out.puts "pub enum #{name union} {"
         out.indent do
           union.arms.each do |arm|
@@ -158,7 +158,7 @@ module Xdrgen
       end
 
       def render_typedef(out, typedef)
-        out.puts "#[derive(Debug, XDROut, XDRIn)]"
+        out.puts "#[derive(Clone, Debug, XDROut, XDRIn)]"
         out.puts "pub struct #{name typedef} {"
         out.indent do
             render_typedef_decl(out, typedef)
