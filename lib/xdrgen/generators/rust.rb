@@ -235,7 +235,7 @@ module Xdrgen
         when :simple
           base_ref
         when :optional
-          "Option<#{base_ref}>"
+          "Option<Box<#{base_ref}>>"
         when :array
           is_named, size = type.array_size
 
