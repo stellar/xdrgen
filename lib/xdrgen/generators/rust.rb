@@ -8,9 +8,10 @@ module Xdrgen
         path = "#{@namespace}.rs"
         out = @output.open(path)
 
-        render_top_matter out
+        render_top_matter(out)
+        render_lib(out)
         render_definitions(out, @top)
-        #render_bottom_matter out
+        out.break
       end
 
       private
@@ -18,27 +19,14 @@ module Xdrgen
       def render_top_matter(out)
         out.puts <<-EOS.strip_heredoc
           // Module #{@namepsace} is generated from:
-          //
         EOS
         out.puts "//  #{@output.source_paths.join("\n//  ")}"
-        out.puts <<-EOS.strip_heredoc
-          //
-          // DO NOT EDIT or your changes may be overwritten
-          //! Stellar XDR types
-          #![allow(dead_code)]
-          #[allow(unused_imports)]
-          use xdr_rs_serialize::de::{
-                read_fixed_array, read_fixed_opaque, read_var_array, read_var_opaque, read_var_string,
-                XDRIn,
-          };
-          use xdr_rs_serialize::error::Error;
-          #[allow(unused_imports)]
-          use xdr_rs_serialize::ser::{
-                write_fixed_array, write_fixed_opaque, write_var_array, write_var_opaque, write_var_string,
-                XDROut,
-          };
-          use xdr_rs_serialize_derive::{XDRIn, XDROut};
-        EOS
+        out.break
+      end
+
+      def render_lib(out)
+        lib = IO.read(__dir__ + "/rust/src/lib.rs")
+        out.puts(lib)
         out.break
       end
 
@@ -97,24 +85,42 @@ module Xdrgen
       end
 
       def render_struct(out, struct)
-        out.puts "#[derive(Clone, Debug, XDROut, XDRIn)]"
+        out.puts "#[derive(Clone, Debug)]"
         out.puts "pub struct #{name struct} {"
         out.indent do
           struct.members.each do |m|
-            render_struct_member(out, struct, m)
+            out.puts "pub #{field_name m}: #{reference(struct, m.declaration.type)},"
           end
         end
         out.puts "}"
+        out.puts ""
+        out.puts <<-EOS.strip_heredoc
+        impl ReadXDR for #{name struct} {
+            fn read_xdr(r: &mut impl Read) -> Result<Self> {
+                Ok(Self{
+                  #{struct.members.map do |m|
+                    "#{field_name(m)}: <#{reference(struct, m.declaration.type)} as ReadXDR>::read_xdr(r)?,"
+                  end.join("\n")}
+                })
+            }
+        }
+
+        impl WriteXDR for #{name struct} {
+            fn write_xdr(&self, w: &mut impl Write) -> Result<()> {
+                #{struct.members.map do |m|
+                  "self.#{field_name(m)}.write_xdr(w)?;"
+                end.join("\n")}
+                Ok(())
+            }
+        }
+        EOS
         out.break
       end
 
-      def render_struct_member(out, struct, m)
-        render_type_decorator(out, m.declaration.type)
-        out.puts "pub #{field_name m}: #{reference(m.declaration.type)},"
-      end
-
       def render_enum(out, enum)
-        out.puts "#[derive(Clone, Debug, XDROut, XDRIn)]"
+        out.puts "// enum"
+        out.puts "#[derive(Clone, Copy, Debug)]"
+        out.puts "#[repr(i32)]"
         out.puts "pub enum #{name enum} {"
         out.indent do
           enum.members.each do |m|
@@ -122,77 +128,167 @@ module Xdrgen
           end
         end
         out.puts '}'
+        out.puts ""
+        out.puts <<-EOS.strip_heredoc
+        impl TryFrom<i32> for #{name enum} {
+            type Error = Error;
+
+            fn try_from(i: i32) -> std::result::Result<Self, Self::Error> {
+                let e = match i {
+                    #{enum.members.map do |m| "#{m.value} => #{name enum}::#{name m}," end.join("\n")}
+                    #[allow(unreachable_patterns)]
+                    _ => return Err(Error::Invalid),
+                };
+                Ok(e)
+            }
+        }
+
+        impl From<#{name enum}> for i32 {
+            fn from(e: #{name enum}) -> Self {
+                e as Self
+            }
+        }
+
+        impl ReadXDR for #{name enum} {
+            fn read_xdr(r: &mut impl Read) -> Result<Self> {
+                let e = i32::read_xdr(r)?;
+                let v: Self = e.try_into()?;
+                Ok(v)
+            }
+        }
+
+        impl WriteXDR for #{name enum} {
+            fn write_xdr(&self, w: &mut impl Write) -> Result<()> {
+                let i: i32 = (*self).into();
+                i.write_xdr(w)
+            }
+        }
+        EOS
         out.break
       end
 
+      def union_is_idents(union)
+        union.normal_arms.first&.cases.first&.value.is_a?(AST::Identifier)
+      end
+
+      def union_cases(out, union)
+        results = []
+        union.normal_arms.each do |arm|
+          arm.cases.each do |kase|
+              if kase.value.is_a?(AST::Identifier)
+                case_name = kase.value.name.underscore.camelize
+                value = nil
+              else
+                case_name = "V#{kase.value.value}"
+                value = kase.value.value
+              end
+              results << yield(case_name, arm, value)
+          end
+        end
+        results
+      end
+
       def render_union(out, union)
-        out.puts "// union"
-        out.puts "#[derive(Clone, Debug, XDROut, XDRIn)]"
+        discriminant_type = reference(nil, union.discriminant.type)
+        out.puts "// union with discriminant #{discriminant_type}"
+        out.puts "#[derive(Clone, Debug)]"
         out.puts "pub enum #{name union} {"
         out.indent do
-          union.arms.each do |arm|
-            case arm
-            when AST::Definitions::UnionDefaultArm
-                out.puts "// default"
-                case_name = name arm
-                out.puts "// #{union.discriminant.type}"
-                out.puts arm.void? ? "#{case_name}," : "#{case_name}(#{reference arm.type}),"
-            else
-              arm.cases.each do |kase|
-                  if kase.value.is_a?(AST::Identifier)
-                    out.puts "// IDEN #{kase.value.name}"
-                    case_name = kase.value.name.underscore.camelize
-                  else
-                    out.puts "// NO IDEN #{kase.value.value}"
-                    case_name = "V#{kase.value.value}"
-                  end
-                  out.puts arm.void? ? "#{case_name}(())," : "#{case_name}(#{reference arm.type}),"
-              end
-            end
+          # TODO: Add handling of default arms.
+          union_cases(out, union) do |case_name, arm|
+            out.puts arm.void? ? "#{case_name}#{"(())" unless arm.void?}," : "#{case_name}(#{reference(union, arm.type)}),"
           end
         end
         out.puts '}'
+        out.puts ""
+        out.puts <<-EOS.strip_heredoc
+        impl #{name union} {
+            fn discriminant(&self) -> #{discriminant_type} {
+                match self {
+                    #{union_cases(out, union) do |case_name, arm, value|
+                      value.nil? ? "Self::#{case_name}#{"(_)" unless arm.void?} => #{discriminant_type}::#{case_name}," :
+                      discriminant_type == "i32" ? "Self::#{case_name}#{"(_)" unless arm.void?} => #{value},"
+                                 : "Self::#{case_name}#{"(_)" unless arm.void?} => #{discriminant_type}(#{value}),"
+                    end.join("\n")}
+                }
+            }
+        }
+
+        impl ReadXDR for #{name union} {
+            fn read_xdr(r: &mut impl Read) -> Result<Self> {
+                let dv: #{discriminant_type} = <#{discriminant_type} as ReadXDR>::read_xdr(r)?;
+                let v = match #{union_is_idents(union) ? "dv" : "dv.into()"} {
+                    #{union_cases(out, union) do |case_name, arm, value|
+                      if arm.void?
+                        value.nil? ? "#{discriminant_type}::#{case_name} => Self::#{case_name},"
+                                  : "#{value} => Self::#{case_name},"
+                      else
+                        value.nil? ? "#{discriminant_type}::#{case_name} => Self::#{case_name}(<#{reference_to_call(union, arm.type)} as ReadXDR>::read_xdr(r)?),"
+                                  : "#{value} => Self::#{case_name}(<#{reference_to_call(union, arm.type)} as ReadXDR>::read_xdr(r)?),"
+                      end
+                    end.join("\n")}
+                    #[allow(unreachable_patterns)]
+                    _ => return Err(Error::Invalid),
+                };
+                Ok(v)
+            }
+        }
+
+        impl WriteXDR for #{name union} {
+            fn write_xdr(&self, w: &mut impl Write) -> Result<()> {
+                self.discriminant().write_xdr(w)?;
+                match self {
+                    #{union_cases(out, union) do |case_name, arm, value|
+                      if arm.void?
+                        "Self::#{case_name} => ().write_xdr(w)?,"
+                      else
+                        "Self::#{case_name}(v) => v.write_xdr(w)?,"
+                      end
+                    end.join("\n")}
+                };
+                Ok(())
+            }
+        }
+        EOS
         out.break
       end
 
       def render_typedef(out, typedef)
-        out.puts "#[derive(Clone, Debug, XDROut, XDRIn)]"
-        out.puts "pub struct #{name typedef} {"
-        out.indent do
-            render_typedef_decl(out, typedef)
-        end
-        out.puts "}"
+        out.puts "#[derive(Clone, Debug)]"
+        out.puts "pub struct #{name typedef}(pub #{reference(typedef, typedef.type)});"
         out.puts ""
-        out.puts "impl #{name typedef} {"
-        out.puts "    pub fn new(value: #{reference typedef.type}) -> #{name typedef} {"
-        out.puts "        #{name typedef} { value }"
-        out.puts "    }"
-        out.puts "}"
+        out.puts <<-EOS.strip_heredoc
+        impl From<#{name typedef}> for #{reference(typedef, typedef.type)} {
+            fn from(x: #{name typedef}) -> Self {
+                x.0
+            }
+        }
+
+        impl From<#{reference(typedef, typedef.type)}> for #{name typedef} {
+            fn from(x: #{reference(typedef, typedef.type)}) -> Self {
+                #{name typedef}(x)
+            }
+        }
+
+        impl ReadXDR for #{name typedef} {
+            fn read_xdr(r: &mut impl Read) -> Result<Self> {
+                let i = <#{reference_to_call(typedef, typedef.type)} as ReadXDR>::read_xdr(r)?;
+                let v = #{name typedef}(i);
+                Ok(v)
+            }
+        }
+
+        impl WriteXDR for #{name typedef} {
+            fn write_xdr(&self, w: &mut impl Write) -> Result<()> {
+                self.0.write_xdr(w)
+            }
+        }
+        EOS
         out.break
       end
 
-      def render_typedef_decl(out, typedef)
-        render_type_decorator(out, typedef.type)
-        out.puts "pub value: #{reference typedef.type},"
-      end
-
-      def render_type_decorator(out, type)
-        case type
-        when AST::Typespecs::Opaque
-          if type.fixed?
-            out.puts "#[array(fixed = #{type.size})]"
-          else
-            out.puts "#[array(var = #{type.size})]"
-          end
-        when AST::Typespecs::String
-          out.puts "#[array(var = #{type.size})]"
-        when AST::Typespecs::Simple, AST::Definitions::Base, AST::Concerns::NestedDefinition
-          out.puts "// TODO"
-        end
-      end
-
       def render_const(out, const)
-        out.puts "const #{name(const).underscore.upcase}: u64 = #{const.value};"
+        out.puts "pub const #{name(const).underscore.upcase}: u64 = #{const.value};"
         out.break
       end
 
@@ -200,10 +296,11 @@ module Xdrgen
         case type
         when AST::Typespecs::Bool
           'bool'
-        when AST::Typespecs::Double
-          'f64'
-        when AST::Typespecs::Float
-          'f32'
+        # TODO: Implement floats.
+        # when AST::Typespecs::Double
+        #   'f64'
+        # when AST::Typespecs::Float
+        #   'f32'
         when AST::Typespecs::UnsignedHyper
           'u64'
         when AST::Typespecs::UnsignedInt
@@ -215,9 +312,13 @@ module Xdrgen
         when AST::Typespecs::Quadruple
           raise 'no quadruple support for rust'
         when AST::Typespecs::String
-          'String'
+          "Vec::<u8>"
         when AST::Typespecs::Opaque
-          "Vec<u8>"
+          if type.fixed?
+            "[u8; #{type.size}]"
+          else
+            "Vec::<u8>"
+          end
         when AST::Typespecs::Simple, AST::Definitions::Base, AST::Concerns::NestedDefinition
           name type
         else
@@ -225,29 +326,61 @@ module Xdrgen
         end
       end
 
-      def reference(type)
+      def reference(parent, type)
         base_ref = base_reference type
 
         case type.sub_type
         when :simple
           base_ref
         when :optional
-          "Option<Box<#{base_ref}>>"
+          parent_name = name(parent) if parent
+          if parent_name == base_ref
+            "Option<Box<#{base_ref}>>"
+          else
+            "Option<#{base_ref}>"
+          end
         when :array
           is_named, size = type.array_size
-
-          # if named, lookup the const definition
-          if is_named
-            size = name @top.find_definition(size)
-          end
-
-          "Vec<#{base_ref}>"
+          size = name @top.find_definition(size) if is_named
+          "[#{base_ref}; #{size}]"
         when :var_array
           "Vec<#{base_ref}>"
         else
           raise "Unknown sub_type: #{type.sub_type}"
         end
+      end
 
+      def base_reference_to_call(type)
+        case type
+        when AST::Typespecs::String
+          "Vec::<u8>"
+        when AST::Typespecs::Opaque
+          if type.fixed?
+            "[u8; #{type.size}]"
+          else
+            "Vec::<u8>"
+          end
+        else
+          base_reference(type)
+        end
+      end
+
+      def reference_to_call(parent, type)
+        base_ref = base_reference_to_call type
+
+        case type.sub_type
+        when :optional
+          parent_name = name(parent) if parent
+          if parent_name == base_ref
+            "Option::<Box<#{base_ref}>>"
+          else
+            "Option::<#{base_ref}>"
+          end
+        when :var_array
+          "Vec::<#{base_ref}>"
+        else
+          reference(parent, type)
+        end
       end
 
       def name(named)

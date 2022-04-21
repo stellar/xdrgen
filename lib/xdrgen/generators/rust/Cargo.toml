@@ -1,0 +1,8 @@
+[package]
+name = "rs-xdr"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+byteorder = "1.4.3"
+base64 = "0.13.0"
