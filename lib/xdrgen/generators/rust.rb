@@ -40,6 +40,7 @@ module Xdrgen
                 write_fixed_array_json, write_fixed_opaque_json, write_var_array_json, write_var_opaque_json, write_var_string_json,
                 XDROut,
           };
+          use xdr_rs_serialize_derive::{XDRIn, XDROut};
         EOS
         out.break
       end
