@@ -157,8 +157,23 @@ module Xdrgen
 
       def render_typedef(out, typedef)
         out.puts "#[derive(Clone, Debug, XDROut, XDRIn)]"
-        out.puts "pub struct #{name typedef}(#{reference typedef.type});"
+        out.puts "pub struct #{name typedef} {"
+        out.indent do
+            render_typedef_decl(out, typedef)
+        end
+        out.puts "}"
+        out.puts ""
+        out.puts "impl #{name typedef} {"
+        out.puts "    pub fn new(value: #{reference typedef.type}) -> #{name typedef} {"
+        out.puts "        #{name typedef} { value }"
+        out.puts "    }"
+        out.puts "}"
         out.break
+      end
+
+      def render_typedef_decl(out, typedef)
+        render_type_decorator(out, typedef.type)
+        out.puts "pub value: #{reference typedef.type},"
       end
 
       def render_type_decorator(out, type)
