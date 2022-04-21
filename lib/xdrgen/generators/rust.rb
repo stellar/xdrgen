@@ -26,18 +26,15 @@ module Xdrgen
           // DO NOT EDIT or your changes may be overwritten
           //! Stellar XDR types
           #![allow(dead_code)]
-          use std::io::Write;
           #[allow(unused_imports)]
           use xdr_rs_serialize::de::{
                 read_fixed_array, read_fixed_opaque, read_var_array, read_var_opaque, read_var_string,
-                read_fixed_array_json, read_fixed_opaque_json, read_var_array_json, read_var_opaque_json, read_var_string_json,
                 XDRIn,
           };
           use xdr_rs_serialize::error::Error;
           #[allow(unused_imports)]
           use xdr_rs_serialize::ser::{
                 write_fixed_array, write_fixed_opaque, write_var_array, write_var_opaque, write_var_string,
-                write_fixed_array_json, write_fixed_opaque_json, write_var_array_json, write_var_opaque_json, write_var_string_json,
                 XDROut,
           };
           use xdr_rs_serialize_derive::{XDRIn, XDROut};
