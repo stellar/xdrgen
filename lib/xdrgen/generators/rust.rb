@@ -85,7 +85,7 @@ module Xdrgen
       end
 
       def render_struct(out, struct)
-        out.puts "#[derive(Clone, Debug)]"
+        out.puts "#[derive(Clone, Debug, PartialEq, Eq)]"
         out.puts "pub struct #{name struct} {"
         out.indent do
           struct.members.each do |m|
@@ -119,7 +119,7 @@ module Xdrgen
 
       def render_enum(out, enum)
         out.puts "// enum"
-        out.puts "#[derive(Clone, Copy, Debug)]"
+        out.puts "#[derive(Clone, Copy, Debug, PartialEq, Eq)]"
         out.puts "#[repr(i32)]"
         out.puts "pub enum #{name enum} {"
         out.indent do
@@ -191,7 +191,7 @@ module Xdrgen
       def render_union(out, union)
         discriminant_type = reference(nil, union.discriminant.type)
         out.puts "// union with discriminant #{discriminant_type}"
-        out.puts "#[derive(Clone, Debug)]"
+        out.puts "#[derive(Clone, Debug, PartialEq, Eq)]"
         out.puts "pub enum #{name union} {"
         out.indent do
           # TODO: Add handling of default arms.
@@ -254,7 +254,7 @@ module Xdrgen
       end
 
       def render_typedef(out, typedef)
-        out.puts "#[derive(Clone, Debug)]"
+        out.puts "#[derive(Clone, Debug, PartialEq, Eq)]"
         out.puts "pub struct #{name typedef}(pub #{reference(typedef, typedef.type)});"
         out.puts ""
         out.puts <<-EOS.strip_heredoc
