@@ -3,7 +3,6 @@ use std::{
     fmt::Debug,
     io,
     io::{Cursor, Read, Write},
-    mem::{transmute_copy, MaybeUninit},
     num::TryFromIntError,
 };
 
@@ -260,19 +259,12 @@ impl<const N: usize> WriteXDR for [u8; N] {
 
 impl<T: ReadXDR + Clone, const N: usize> ReadXDR for [T; N] {
     fn read_xdr(r: &mut impl Read) -> Result<Self> {
-        // TODO: Make this not horrible. Ideally we could use [(); N].try_map
-        // here, but it is still an unstable feature. Or maybe using fixed size
-        // arrays for fixed sized data sets is more trouble than it is worth.
-        let arr = {
-            let mut arr: [MaybeUninit<T>; N] = unsafe { MaybeUninit::uninit().assume_init() };
-
-            for e in arr.iter_mut() {
-                let t = T::read_xdr(r)?;
-                *e = MaybeUninit::new(t);
-            }
-
-            unsafe { transmute_copy::<_, [T; N]>(&arr) }
-        };
+        let mut vec = Vec::with_capacity(N);
+        for _ in 0..N {
+            let t = T::read_xdr(r)?;
+            vec.push(t);
+        }
+        let arr: [T; N] = vec.try_into().unwrap_or_else(|_: Vec<T>| unreachable!());
         Ok(arr)
     }
 }
