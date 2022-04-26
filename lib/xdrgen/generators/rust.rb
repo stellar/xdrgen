@@ -8,6 +8,8 @@ module Xdrgen
         path = "#{@namespace}.rs"
         out = @output.open(path)
 
+        @type_field_types = build_type_field_types(@top)
+
         render_top_matter(out)
         render_lib(out)
         render_definitions(out, @top)
@@ -15,6 +17,38 @@ module Xdrgen
       end
 
       private
+
+      def build_type_field_types(node)
+        types = Hash.new { |h, k| h[k] = [] }
+        ingest_node = lambda do |n|
+          n.definitions.each{ |nn| ingest_node.call(nn) } if n.respond_to?(:definitions)
+          n.nested_definitions.each{ |nn| ingest_node.call(nn) } if n.respond_to?(:nested_definitions)
+          case n
+          when AST::Definitions::Struct
+            n.members.each do |m|
+              types[name(n)] << base_reference(m.declaration.type)
+            end
+          when AST::Definitions::Union ;
+            union_cases(n) do |_, arm|
+              types[name(n)] << base_reference(arm.type) unless arm.void?
+            end
+          end
+        end
+        ingest_node.call(node)
+        types
+      end
+
+      def is_type_in_type_field_types(type_with_fields, type, seen = [])
+        return false if seen.include?(type_with_fields)
+        seen << type_with_fields
+        @type_field_types[type_with_fields].any? do |field_type|
+          if field_type == type
+            true
+          else
+            is_type_in_type_field_types(field_type, type, seen)
+          end
+        end
+      end
 
       def render_top_matter(out)
         out.puts <<-EOS.strip_heredoc
@@ -171,7 +205,7 @@ module Xdrgen
         union.normal_arms.first&.cases.first&.value.is_a?(AST::Identifier)
       end
 
-      def union_cases(out, union)
+      def union_cases(union)
         results = []
         union.normal_arms.each do |arm|
           arm.cases.each do |kase|
@@ -195,7 +229,7 @@ module Xdrgen
         out.puts "pub enum #{name union} {"
         out.indent do
           # TODO: Add handling of default arms.
-          union_cases(out, union) do |case_name, arm|
+          union_cases(union) do |case_name, arm|
             out.puts arm.void? ? "#{case_name}#{"(())" unless arm.void?}," : "#{case_name}(#{reference(union, arm.type)}),"
           end
         end
@@ -205,7 +239,7 @@ module Xdrgen
         impl #{name union} {
             fn discriminant(&self) -> #{discriminant_type} {
                 match self {
-                    #{union_cases(out, union) do |case_name, arm, value|
+                    #{union_cases(union) do |case_name, arm, value|
                       value.nil? ? "Self::#{case_name}#{"(_)" unless arm.void?} => #{discriminant_type}::#{case_name}," :
                       discriminant_type == "i32" ? "Self::#{case_name}#{"(_)" unless arm.void?} => #{value},"
                                  : "Self::#{case_name}#{"(_)" unless arm.void?} => #{discriminant_type}(#{value}),"
@@ -218,7 +252,7 @@ module Xdrgen
             fn read_xdr(r: &mut impl Read) -> Result<Self> {
                 let dv: #{discriminant_type} = <#{discriminant_type} as ReadXDR>::read_xdr(r)?;
                 let v = match #{union_is_idents(union) ? "dv" : "dv.into()"} {
-                    #{union_cases(out, union) do |case_name, arm, value|
+                    #{union_cases(union) do |case_name, arm, value|
                       if arm.void?
                         value.nil? ? "#{discriminant_type}::#{case_name} => Self::#{case_name},"
                                   : "#{value} => Self::#{case_name},"
@@ -238,7 +272,7 @@ module Xdrgen
             fn write_xdr(&self, w: &mut impl Write) -> Result<()> {
                 self.discriminant().write_xdr(w)?;
                 match self {
-                    #{union_cases(out, union) do |case_name, arm, value|
+                    #{union_cases(union) do |case_name, arm, value|
                       if arm.void?
                         "Self::#{case_name} => ().write_xdr(w)?,"
                       else
@@ -334,7 +368,7 @@ module Xdrgen
           base_ref
         when :optional
           parent_name = name(parent) if parent
-          if parent_name == base_ref
+          if is_type_in_type_field_types(base_ref, parent_name)
             "Option<Box<#{base_ref}>>"
           else
             "Option<#{base_ref}>"
@@ -371,7 +405,7 @@ module Xdrgen
         case type.sub_type
         when :optional
           parent_name = name(parent) if parent
-          if parent_name == base_ref
+          if is_type_in_type_field_types(base_ref, parent_name)
             "Option::<Box<#{base_ref}>>"
           else
             "Option::<#{base_ref}>"
