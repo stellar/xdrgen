@@ -332,11 +332,10 @@ module Xdrgen
         case type
         when AST::Typespecs::Bool
           'bool'
-        # TODO: Implement floats.
-        # when AST::Typespecs::Double
-        #   'f64'
-        # when AST::Typespecs::Float
-        #   'f32'
+        when AST::Typespecs::Double
+          'f64'
+        when AST::Typespecs::Float
+          'f32'
         when AST::Typespecs::UnsignedHyper
           'u64'
         when AST::Typespecs::UnsignedInt
