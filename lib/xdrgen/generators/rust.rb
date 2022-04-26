@@ -38,6 +38,8 @@ module Xdrgen
         types
       end
 
+      # Determines if 'type' is referenced directly or indirectly by 'type_with_fields'.
+      # Used to determine if 'type_with_fields' has a recursive relationship to 'type'.
       def is_type_in_type_field_types(type_with_fields, type, seen = [])
         return false if seen.include?(type_with_fields)
         seen << type_with_fields
