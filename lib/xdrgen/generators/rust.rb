@@ -239,7 +239,7 @@ module Xdrgen
         out.puts ""
         out.puts <<-EOS.strip_heredoc
         impl #{name union} {
-            fn discriminant(&self) -> #{discriminant_type} {
+            pub fn discriminant(&self) -> #{discriminant_type} {
                 match self {
                     #{union_cases(union) do |case_name, arm, value|
                       value.nil? ? "Self::#{case_name}#{"(_)" unless arm.void?} => #{discriminant_type}::#{case_name}," :
