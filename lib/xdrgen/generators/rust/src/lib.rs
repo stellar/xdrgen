@@ -114,26 +114,25 @@ impl WriteXDR for u64 {
 }
 
 impl ReadXDR for f32 {
-    fn read_xdr(r: &mut impl Read) -> Result<Self> {
+    fn read_xdr(_r: &mut impl Read) -> Result<Self> {
         todo!()
     }
 }
 
 impl WriteXDR for f32 {
-    fn write_xdr(&self, w: &mut impl Write) -> Result<()> {
+    fn write_xdr(&self, _w: &mut impl Write) -> Result<()> {
         todo!()
     }
 }
 
 impl ReadXDR for f64 {
-    fn read_xdr(r: &mut impl Read) -> Result<Self> {
-        let i = r.read_u64::<BigEndian>()?;
+    fn read_xdr(_r: &mut impl Read) -> Result<Self> {
         todo!()
     }
 }
 
 impl WriteXDR for f64 {
-    fn write_xdr(&self, w: &mut impl Write) -> Result<()> {
+    fn write_xdr(&self, _w: &mut impl Write) -> Result<()> {
         todo!()
     }
 }
