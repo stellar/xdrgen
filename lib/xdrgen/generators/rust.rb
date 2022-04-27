@@ -1,3 +1,5 @@
+require "pry"
+
 module Xdrgen
   module Generators
 
@@ -226,6 +228,7 @@ module Xdrgen
 
       def render_union(out, union)
         discriminant_type = reference(nil, union.discriminant.type)
+        discriminant_type_builtin = is_builtin_type(union.discriminant.type) || (is_builtin_type(union.discriminant.type.resolved_type.type) if union.discriminant.type.respond_to?(:resolved_type) && AST::Definitions::Typedef === union.discriminant.type.resolved_type)
         out.puts "// union with discriminant #{discriminant_type}"
         out.puts "#[derive(Clone, Debug, Hash, PartialEq, Eq)]"
         out.puts "pub enum #{name union} {"
@@ -243,7 +246,7 @@ module Xdrgen
                 match self {
                     #{union_cases(union) do |case_name, arm, value|
                       value.nil? ? "Self::#{case_name}#{"(_)" unless arm.void?} => #{discriminant_type}::#{case_name}," :
-                      discriminant_type == "i32" ? "Self::#{case_name}#{"(_)" unless arm.void?} => #{value},"
+                      discriminant_type_builtin ? "Self::#{case_name}#{"(_)" unless arm.void?} => #{value},"
                                  : "Self::#{case_name}#{"(_)" unless arm.void?} => #{discriminant_type}(#{value}),"
                     end.join("\n")}
                 }
@@ -253,7 +256,7 @@ module Xdrgen
         impl ReadXDR for #{name union} {
             fn read_xdr(r: &mut impl Read) -> Result<Self> {
                 let dv: #{discriminant_type} = <#{discriminant_type} as ReadXDR>::read_xdr(r)?;
-                let v = match #{union_is_idents(union) ? "dv" : "dv.into()"} {
+                let v = match #{discriminant_type_builtin ? "dv" : "dv.into()"} {
                     #{union_cases(union) do |case_name, arm, value|
                       if arm.void?
                         value.nil? ? "#{discriminant_type}::#{case_name} => Self::#{case_name},"
@@ -290,42 +293,56 @@ module Xdrgen
       end
 
       def render_typedef(out, typedef)
-        out.puts "#[derive(Clone, Debug, Hash, PartialEq, Eq)]"
-        out.puts "pub struct #{name typedef}(pub #{reference(typedef, typedef.type)});"
-        out.puts ""
-        out.puts <<-EOS.strip_heredoc
-        impl From<#{name typedef}> for #{reference(typedef, typedef.type)} {
-            fn from(x: #{name typedef}) -> Self {
-                x.0
-            }
-        }
+        if is_builtin_type(typedef.type)
+          out.puts "pub type #{name typedef} = #{reference(typedef, typedef.type)};"
+        else
+          out.puts "#[derive(Clone, Debug, Hash, PartialEq, Eq)]"
+          out.puts "pub struct #{name typedef}(pub #{reference(typedef, typedef.type)});"
+          out.puts ""
+          out.puts <<-EOS.strip_heredoc
+          impl From<#{name typedef}> for #{reference(typedef, typedef.type)} {
+              fn from(x: #{name typedef}) -> Self {
+                  x.0
+              }
+          }
 
-        impl From<#{reference(typedef, typedef.type)}> for #{name typedef} {
-            fn from(x: #{reference(typedef, typedef.type)}) -> Self {
-                #{name typedef}(x)
-            }
-        }
+          impl From<#{reference(typedef, typedef.type)}> for #{name typedef} {
+              fn from(x: #{reference(typedef, typedef.type)}) -> Self {
+                  #{name typedef}(x)
+              }
+          }
 
-        impl ReadXDR for #{name typedef} {
-            fn read_xdr(r: &mut impl Read) -> Result<Self> {
-                let i = <#{reference_to_call(typedef, typedef.type)} as ReadXDR>::read_xdr(r)?;
-                let v = #{name typedef}(i);
-                Ok(v)
-            }
-        }
+          impl ReadXDR for #{name typedef} {
+              fn read_xdr(r: &mut impl Read) -> Result<Self> {
+                  let i = <#{reference_to_call(typedef, typedef.type)} as ReadXDR>::read_xdr(r)?;
+                  let v = #{name typedef}(i);
+                  Ok(v)
+              }
+          }
 
-        impl WriteXDR for #{name typedef} {
-            fn write_xdr(&self, w: &mut impl Write) -> Result<()> {
-                self.0.write_xdr(w)
-            }
-        }
-        EOS
+          impl WriteXDR for #{name typedef} {
+              fn write_xdr(&self, w: &mut impl Write) -> Result<()> {
+                  self.0.write_xdr(w)
+              }
+          }
+          EOS
+        end
         out.break
       end
 
       def render_const(out, const)
         out.puts "pub const #{name(const).underscore.upcase}: u64 = #{const.value};"
         out.break
+      end
+
+      def is_builtin_type(type)
+        [
+          AST::Typespecs::Bool,
+          AST::Typespecs::Double, AST::Typespecs::Float,
+          AST::Typespecs::UnsignedHyper, AST::Typespecs::UnsignedInt,
+          AST::Typespecs::Hyper, AST::Typespecs::Int,
+          AST::Typespecs::String,
+        ].any? { |t| t === type }
       end
 
       def base_reference(type)
@@ -355,7 +372,11 @@ module Xdrgen
             "Vec::<u8>"
           end
         when AST::Typespecs::Simple, AST::Definitions::Base, AST::Concerns::NestedDefinition
-          name type
+          if type.respond_to?(:resolved_type) && AST::Definitions::Typedef === type.resolved_type && is_builtin_type(type.resolved_type.type)
+            base_reference(type.resolved_type.type)
+          else
+            name type
+          end
         else
           raise "Unknown reference type: #{type.class.name}, #{type.class.ancestors}"
         end
