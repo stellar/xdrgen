@@ -8,6 +8,7 @@ use std::{
 #[derive(Debug)]
 pub enum Error {
     Invalid,
+    LengthExceedsMax,
     IO(io::Error),
     OutOfRange(TryFromIntError),
 }
@@ -45,7 +46,37 @@ where
     }
 }
 
+pub trait ReadVariableXDR<const MAX: u32 = { u32::MAX }>
+where
+    Self: Sized,
+{
+    fn read_xdr(r: &mut impl Read) -> Result<Self>;
+
+    fn read_xdr_into(&mut self, r: &mut impl Read) -> Result<()> {
+        *self = Self::read_xdr(r)?;
+        Ok(())
+    }
+
+    fn from_xdr_base64(b64: String) -> Result<Self> {
+        let mut b64_reader = Cursor::new(b64);
+        let mut dec = base64::read::DecoderReader::new(&mut b64_reader, base64::STANDARD);
+        let t = Self::read_xdr(&mut dec)?;
+        Ok(t)
+    }
+}
+
 pub trait WriteXDR {
+    fn write_xdr(&self, w: &mut impl Write) -> Result<()>;
+
+    fn to_xdr_base64(&self) -> Result<String> {
+        let mut enc = base64::write::EncoderStringWriter::new(base64::STANDARD);
+        self.write_xdr(&mut enc)?;
+        let b64 = enc.into_inner();
+        Ok(b64)
+    }
+}
+
+pub trait WriteVariableXDR<const MAX: u32 = { u32::MAX }> {
     fn write_xdr(&self, w: &mut impl Write) -> Result<()>;
 
     fn to_xdr_base64(&self) -> Result<String> {
@@ -178,7 +209,33 @@ impl<T: ReadXDR> ReadXDR for Option<T> {
     }
 }
 
+impl<T: ReadVariableXDR, const MAX: u32> ReadVariableXDR<MAX> for Option<T> {
+    fn read_xdr(r: &mut impl Read) -> Result<Self> {
+        let i = u32::read_xdr(r)?;
+        match i {
+            0 => Ok(None),
+            1 => {
+                let t = T::read_xdr(r)?;
+                Ok(Some(t))
+            }
+            _ => Err(Error::Invalid),
+        }
+    }
+}
+
 impl<T: WriteXDR> WriteXDR for Option<T> {
+    fn write_xdr(&self, w: &mut impl Write) -> Result<()> {
+        if let Some(t) = self {
+            (1 as u32).write_xdr(w)?;
+            t.write_xdr(w)?;
+        } else {
+            (0 as u32).write_xdr(w)?;
+        }
+        Ok(())
+    }
+}
+
+impl<T: WriteVariableXDR, const MAX: u32> WriteVariableXDR<MAX> for Option<T> {
     fn write_xdr(&self, w: &mut impl Write) -> Result<()> {
         if let Some(t) = self {
             (1 as u32).write_xdr(w)?;
@@ -216,10 +273,12 @@ impl WriteXDR for () {
     }
 }
 
-impl ReadXDR for Vec<u8> {
+impl<const MAX: u32> ReadVariableXDR<MAX> for Vec<u8> {
     fn read_xdr(r: &mut impl Read) -> Result<Self> {
         let len: u32 = u32::read_xdr(r)?;
-        // TODO: Error on length greater than max length.
+        if len > MAX {
+            return Err(Error::LengthExceedsMax);
+        }
 
         let mut vec = vec![0u8; len as usize];
         r.read_exact(&mut vec)?;
@@ -232,10 +291,12 @@ impl ReadXDR for Vec<u8> {
     }
 }
 
-impl WriteXDR for Vec<u8> {
+impl<const MAX: u32> WriteVariableXDR<MAX> for Vec<u8> {
     fn write_xdr(&self, w: &mut impl Write) -> Result<()> {
         let len: u32 = self.len().try_into()?;
-        // TODO: Error on length greater than max length.
+        if len > MAX {
+            return Err(Error::LengthExceedsMax);
+        }
         len.write_xdr(w)?;
 
         w.write_all(self)?;
@@ -248,10 +309,12 @@ impl WriteXDR for Vec<u8> {
     }
 }
 
-impl<T: ReadXDR> ReadXDR for Vec<T> {
+impl<T: ReadXDR, const MAX: u32> ReadVariableXDR<MAX> for Vec<T> {
     fn read_xdr(r: &mut impl Read) -> Result<Self> {
         let len = u32::read_xdr(r)?;
-        // TODO: Error on length greater than max length.
+        if len > MAX {
+            return Err(Error::LengthExceedsMax);
+        }
 
         let mut vec = Vec::with_capacity(len.try_into()?);
         for _ in 0..len {
@@ -263,10 +326,12 @@ impl<T: ReadXDR> ReadXDR for Vec<T> {
     }
 }
 
-impl<T: WriteXDR> WriteXDR for Vec<T> {
+impl<T: WriteXDR, const MAX: u32> WriteVariableXDR<MAX> for Vec<T> {
     fn write_xdr(&self, w: &mut impl Write) -> Result<()> {
         let len: u32 = self.len().try_into()?;
-        // TODO: Error on length greater than max length.
+        if len > MAX {
+            return Err(Error::LengthExceedsMax);
+        }
         len.write_xdr(w)?;
 
         for t in self.iter() {

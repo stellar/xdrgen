@@ -135,7 +135,7 @@ module Xdrgen
             fn read_xdr(r: &mut impl Read) -> Result<Self> {
                 Ok(Self{
                   #{struct.members.map do |m|
-                    "#{field_name(m)}: <#{reference(struct, m.declaration.type)} as ReadXDR>::read_xdr(r)?,"
+                    "#{field_name(m)}: #{reference_to_call(struct, m.declaration.type, :read)}::read_xdr(r)?,"
                   end.join("\n")}
                 })
             }
@@ -144,7 +144,7 @@ module Xdrgen
         impl WriteXDR for #{name struct} {
             fn write_xdr(&self, w: &mut impl Write) -> Result<()> {
                 #{struct.members.map do |m|
-                  "self.#{field_name(m)}.write_xdr(w)?;"
+                  "#{reference_to_call(struct, m.declaration.type, :write)}::write_xdr(&self.#{field_name(m)}, w)?;"
                 end.join("\n")}
                 Ok(())
             }
@@ -260,8 +260,8 @@ module Xdrgen
                         value.nil? ? "#{discriminant_type}::#{case_name} => Self::#{case_name},"
                                   : "#{value} => Self::#{case_name},"
                       else
-                        value.nil? ? "#{discriminant_type}::#{case_name} => Self::#{case_name}(<#{reference_to_call(union, arm.type)} as ReadXDR>::read_xdr(r)?),"
-                                  : "#{value} => Self::#{case_name}(<#{reference_to_call(union, arm.type)} as ReadXDR>::read_xdr(r)?),"
+                        value.nil? ? "#{discriminant_type}::#{case_name} => Self::#{case_name}(#{reference_to_call(union, arm.type, :read)}::read_xdr(r)?),"
+                                  : "#{value} => Self::#{case_name}(#{reference_to_call(union, arm.type, :read)}::read_xdr(r)?),"
                       end
                     end.join("\n")}
                     #[allow(unreachable_patterns)]
@@ -279,7 +279,7 @@ module Xdrgen
                       if arm.void?
                         "Self::#{case_name} => ().write_xdr(w)?,"
                       else
-                        "Self::#{case_name}(v) => v.write_xdr(w)?,"
+                        "Self::#{case_name}(v) => #{reference_to_call(union, arm.type, :write)}::write_xdr(&v, w)?,"
                       end
                     end.join("\n")}
                 };
@@ -318,7 +318,7 @@ module Xdrgen
 
           impl ReadXDR for #{name typedef} {
               fn read_xdr(r: &mut impl Read) -> Result<Self> {
-                  let i = <#{reference_to_call(typedef, typedef.type)} as ReadXDR>::read_xdr(r)?;
+                  let i = #{reference_to_call(typedef, typedef.type, :read)}::read_xdr(r)?;
                   let v = #{name typedef}(i);
                   Ok(v)
               }
@@ -326,7 +326,7 @@ module Xdrgen
 
           impl WriteXDR for #{name typedef} {
               fn write_xdr(&self, w: &mut impl Write) -> Result<()> {
-                  self.0.write_xdr(w)
+                  #{reference_to_call(typedef, typedef.type, :write)}::write_xdr(&self.0, w)
               }
           }
           EOS
@@ -410,25 +410,49 @@ module Xdrgen
         end
       end
 
-      def base_reference_to_call(type)
-        case type
-        when AST::Typespecs::String
-          "Vec::<u8>"
-        when AST::Typespecs::Opaque
-          if type.fixed?
-            "[u8; #{type.size}]"
-          else
-            "Vec::<u8>"
+      def xdr_trait(op, var_len, max_len)
+        if var_len
+          case op
+          when :read; "ReadVariableXDR<#{max_len}>"
+          when :write; "WriteVariableXDR<#{max_len}>"
+          else; raise "Unknown trait for op: #{op}"
           end
         else
-          base_reference(type)
+          case op
+          when :read; "ReadXDR"
+          when :write; "WriteXDR"
+          else; raise "Unknown trait for op: #{op}"
+          end
         end
       end
 
-      def reference_to_call(parent, type)
-        base_ref = base_reference_to_call type
+      def base_reference_to_call(type, op)
+        case type
+        when AST::Typespecs::String
+          ["Vec::<u8>", xdr_trait(op, true, type.decl.resolved_size)]
+        when AST::Typespecs::Opaque
+          if type.fixed?
+            ["[u8; #{type.size}]", xdr_trait(op, false, nil)]
+          else
+            ["Vec::<u8>", xdr_trait(op, true, type.decl.resolved_size)]
+          end
+        when AST::Typespecs::Simple, AST::Definitions::Base, AST::Concerns::NestedDefinition
+          if type.respond_to?(:resolved_type) && AST::Definitions::Typedef === type.resolved_type && is_builtin_type(type.resolved_type.type)
+            base_reference_to_call(type.resolved_type.type, op)
+          else
+            [base_reference(type), nil]
+          end
+        else
+          [base_reference(type), nil]
+        end
+      end
 
-        case type.sub_type
+      def reference_to_call(parent, type, op)
+        base_ref, trait = base_reference_to_call(type, op)
+
+        ref = case type.sub_type
+        when :simple
+          base_ref
         when :optional
           parent_name = name(parent) if parent
           if is_type_in_type_field_types(base_ref, parent_name)
@@ -436,11 +460,19 @@ module Xdrgen
           else
             "Option::<#{base_ref}>"
           end
+        when :array
+          is_named, size = type.array_size
+          size = name @top.find_definition(size) if is_named
+          "[#{base_ref}; #{size}]"
         when :var_array
+          trait = xdr_trait(op, true, type.decl.resolved_size)
           "Vec::<#{base_ref}>"
         else
-          reference(parent, type)
+          raise "Unknown sub_type: #{type.sub_type}"
         end
+
+        trait = xdr_trait(op, false, nil) if trait.nil?
+        "<#{ref} as #{trait}>"
       end
 
       def name(named)
