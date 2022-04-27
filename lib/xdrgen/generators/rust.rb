@@ -310,6 +310,12 @@ module Xdrgen
               }
           }
 
+          impl AsRef<#{reference(typedef, typedef.type)}> for #{name typedef} {
+              fn as_ref(&self) -> &#{reference(typedef, typedef.type)} {
+                  &self.0
+              }
+          }
+
           impl ReadXDR for #{name typedef} {
               fn read_xdr(r: &mut impl Read) -> Result<Self> {
                   let i = <#{reference_to_call(typedef, typedef.type)} as ReadXDR>::read_xdr(r)?;
