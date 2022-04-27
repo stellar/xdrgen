@@ -1,4 +1,3 @@
-use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
 use std::{
     fmt::Debug,
     io,
@@ -59,56 +58,68 @@ pub trait WriteXDR {
 
 impl ReadXDR for i32 {
     fn read_xdr(r: &mut impl Read) -> Result<Self> {
-        let i = r.read_i32::<BigEndian>()?;
+        let mut b = [0u8; 4];
+        r.read_exact(&mut b)?;
+        let i = i32::from_be_bytes(b);
         Ok(i)
     }
 }
 
 impl WriteXDR for i32 {
     fn write_xdr(&self, w: &mut impl Write) -> Result<()> {
-        w.write_i32::<BigEndian>(*self).map_err(Error::IO)?;
+        let b: [u8; 4] = self.to_be_bytes();
+        w.write_all(&b)?;
         Ok(())
     }
 }
 
 impl ReadXDR for u32 {
     fn read_xdr(r: &mut impl Read) -> Result<Self> {
-        let i = r.read_u32::<BigEndian>()?;
+        let mut b = [0u8; 4];
+        r.read_exact(&mut b)?;
+        let i = u32::from_be_bytes(b);
         Ok(i)
     }
 }
 
 impl WriteXDR for u32 {
     fn write_xdr(&self, w: &mut impl Write) -> Result<()> {
-        w.write_u32::<BigEndian>(*self)?;
+        let b: [u8; 4] = self.to_be_bytes();
+        w.write_all(&b)?;
         Ok(())
     }
 }
 
 impl ReadXDR for i64 {
     fn read_xdr(r: &mut impl Read) -> Result<Self> {
-        let i = r.read_i64::<BigEndian>()?;
+        let mut b = [0u8; 8];
+        r.read_exact(&mut b)?;
+        let i = i64::from_be_bytes(b);
         Ok(i)
     }
 }
 
 impl WriteXDR for i64 {
     fn write_xdr(&self, w: &mut impl Write) -> Result<()> {
-        w.write_i64::<BigEndian>(*self)?;
+        let b: [u8; 8] = self.to_be_bytes();
+        w.write_all(&b)?;
         Ok(())
     }
 }
 
 impl ReadXDR for u64 {
     fn read_xdr(r: &mut impl Read) -> Result<Self> {
-        let i = r.read_u64::<BigEndian>()?;
+        let mut b = [0u8; 8];
+        r.read_exact(&mut b)?;
+        let i = u64::from_be_bytes(b);
         Ok(i)
     }
 }
 
 impl WriteXDR for u64 {
     fn write_xdr(&self, w: &mut impl Write) -> Result<()> {
-        w.write_u64::<BigEndian>(*self)?;
+        let b: [u8; 8] = self.to_be_bytes();
+        w.write_all(&b)?;
         Ok(())
     }
 }
@@ -139,7 +150,7 @@ impl WriteXDR for f64 {
 
 impl ReadXDR for bool {
     fn read_xdr(r: &mut impl Read) -> Result<Self> {
-        let i = r.read_u32::<BigEndian>()?;
+        let i = u32::read_xdr(r)?;
         let b = i == 1;
         Ok(b)
     }
@@ -147,15 +158,15 @@ impl ReadXDR for bool {
 
 impl WriteXDR for bool {
     fn write_xdr(&self, w: &mut impl Write) -> Result<()> {
-        let i = if *self { 1 } else { 0 };
-        w.write_u32::<BigEndian>(i)?;
+        let i: u32 = if *self { 1 } else { 0 };
+        i.write_xdr(w)?;
         Ok(())
     }
 }
 
 impl<T: ReadXDR> ReadXDR for Option<T> {
     fn read_xdr(r: &mut impl Read) -> Result<Self> {
-        let i: u32 = r.read_u32::<BigEndian>()?;
+        let i = u32::read_xdr(r)?;
         match i {
             0 => Ok(None),
             1 => {
@@ -170,10 +181,10 @@ impl<T: ReadXDR> ReadXDR for Option<T> {
 impl<T: WriteXDR> WriteXDR for Option<T> {
     fn write_xdr(&self, w: &mut impl Write) -> Result<()> {
         if let Some(t) = self {
-            w.write_u32::<BigEndian>(1)?;
+            (1 as u32).write_xdr(w)?;
             t.write_xdr(w)?;
         } else {
-            w.write_u32::<BigEndian>(0)?;
+            (0 as u32).write_xdr(w)?;
         }
         Ok(())
     }
@@ -225,7 +236,7 @@ impl WriteXDR for Vec<u8> {
     fn write_xdr(&self, w: &mut impl Write) -> Result<()> {
         let len: u32 = self.len().try_into()?;
         // TODO: Error on length greater than max length.
-        w.write_u32::<BigEndian>(len)?;
+        len.write_xdr(w)?;
 
         w.write_all(self)?;
 
@@ -256,7 +267,7 @@ impl<T: WriteXDR> WriteXDR for Vec<T> {
     fn write_xdr(&self, w: &mut impl Write) -> Result<()> {
         let len: u32 = self.len().try_into()?;
         // TODO: Error on length greater than max length.
-        w.write_u32::<BigEndian>(len)?;
+        len.write_xdr(w)?;
 
         for t in self.iter() {
             t.write_xdr(w)?;
