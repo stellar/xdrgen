@@ -292,7 +292,7 @@ impl<const N: usize> WriteXDR for [u8; N] {
     }
 }
 
-impl<T: ReadXDR + Clone, const N: usize> ReadXDR for [T; N] {
+impl<T: ReadXDR, const N: usize> ReadXDR for [T; N] {
     fn read_xdr(r: &mut impl Read) -> Result<Self> {
         let mut vec = Vec::with_capacity(N);
         for _ in 0..N {
@@ -304,7 +304,7 @@ impl<T: ReadXDR + Clone, const N: usize> ReadXDR for [T; N] {
     }
 }
 
-impl<T: WriteXDR + Clone, const N: usize> WriteXDR for [T; N] {
+impl<T: WriteXDR, const N: usize> WriteXDR for [T; N] {
     fn write_xdr(&self, w: &mut impl Write) -> Result<()> {
         for t in self {
             t.write_xdr(w)?;
