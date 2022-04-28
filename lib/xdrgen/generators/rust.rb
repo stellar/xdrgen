@@ -368,10 +368,16 @@ module Xdrgen
         when AST::Typespecs::Quadruple
           raise 'no quadruple support for rust'
         when AST::Typespecs::String
-          "Vec::<u8>"
+          if !type.decl.resolved_size.nil?
+            "VecM::<u8, #{type.decl.resolved_size}>"
+          else
+            "Vec::<u8>"
+          end
         when AST::Typespecs::Opaque
           if type.fixed?
             "[u8; #{type.size}]"
+          elsif !type.decl.resolved_size.nil?
+            "VecM::<u8, #{type.decl.resolved_size}>"
           else
             "Vec::<u8>"
           end
@@ -404,7 +410,11 @@ module Xdrgen
           size = name @top.find_definition(size) if is_named
           "[#{base_ref}; #{size}]"
         when :var_array
-          "Vec<#{base_ref}>"
+          if !type.decl.resolved_size.nil?
+            "VecM::<#{base_ref}, #{type.decl.resolved_size}>"
+          else
+            "Vec::<#{base_ref}>"
+          end
         else
           raise "Unknown sub_type: #{type.sub_type}"
         end
@@ -429,10 +439,16 @@ module Xdrgen
       def base_reference_to_call(type, op)
         case type
         when AST::Typespecs::String
-          ["Vec::<u8>", xdr_trait(op, true, type.decl.resolved_size)]
+          if !type.decl.resolved_size.nil?
+            ["VecM::<u8, #{type.decl.resolved_size}>", xdr_trait(op, true, type.decl.resolved_size)]
+          else
+            ["Vec::<u8>", xdr_trait(op, true, type.decl.resolved_size)]
+          end
         when AST::Typespecs::Opaque
           if type.fixed?
             ["[u8; #{type.size}]", xdr_trait(op, false, nil)]
+          elsif !type.decl.resolved_size.nil?
+            ["VecM::<u8, #{type.decl.resolved_size}>", xdr_trait(op, true, type.decl.resolved_size)]
           else
             ["Vec::<u8>", xdr_trait(op, true, type.decl.resolved_size)]
           end
@@ -466,7 +482,11 @@ module Xdrgen
           "[#{base_ref}; #{size}]"
         when :var_array
           trait = xdr_trait(op, true, type.decl.resolved_size)
-          "Vec::<#{base_ref}>"
+          if !type.decl.resolved_size.nil?
+            "VecM::<#{base_ref}, #{type.decl.resolved_size}>"
+          else
+            "Vec::<#{base_ref}>"
+          end
         else
           raise "Unknown sub_type: #{type.sub_type}"
         end

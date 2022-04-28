@@ -2,7 +2,6 @@ use std::{
     fmt::Debug,
     io,
     io::{Cursor, Read, Write},
-    num::TryFromIntError,
 };
 
 #[derive(Debug)]
@@ -10,7 +9,6 @@ pub enum Error {
     Invalid,
     LengthExceedsMax,
     IO(io::Error),
-    OutOfRange(TryFromIntError),
 }
 
 impl From<io::Error> for Error {
@@ -19,13 +17,7 @@ impl From<io::Error> for Error {
     }
 }
 
-impl From<TryFromIntError> for Error {
-    fn from(e: TryFromIntError) -> Self {
-        Error::OutOfRange(e)
-    }
-}
-
-pub type Result<T> = std::result::Result<T, Error>;
+type Result<T> = std::result::Result<T, Error>;
 
 pub trait ReadXDR
 where
@@ -209,7 +201,7 @@ impl<T: ReadXDR> ReadXDR for Option<T> {
     }
 }
 
-impl<T: ReadVariableXDR, const MAX: u32> ReadVariableXDR<MAX> for Option<T> {
+impl<T: ReadVariableXDR<MAX>, const MAX: u32> ReadVariableXDR<MAX> for Option<T> {
     fn read_xdr(r: &mut impl Read) -> Result<Self> {
         let i = u32::read_xdr(r)?;
         match i {
@@ -235,7 +227,7 @@ impl<T: WriteXDR> WriteXDR for Option<T> {
     }
 }
 
-impl<T: WriteVariableXDR, const MAX: u32> WriteVariableXDR<MAX> for Option<T> {
+impl<T: WriteVariableXDR<MAX>, const MAX: u32> WriteVariableXDR<MAX> for Option<T> {
     fn write_xdr(&self, w: &mut impl Write) -> Result<()> {
         if let Some(t) = self {
             (1 as u32).write_xdr(w)?;
@@ -293,7 +285,7 @@ impl<const MAX: u32> ReadVariableXDR<MAX> for Vec<u8> {
 
 impl<const MAX: u32> WriteVariableXDR<MAX> for Vec<u8> {
     fn write_xdr(&self, w: &mut impl Write) -> Result<()> {
-        let len: u32 = self.len().try_into()?;
+        let len: u32 = self.len().try_into().map_err(|_| Error::LengthExceedsMax)?;
         if len > MAX {
             return Err(Error::LengthExceedsMax);
         }
@@ -316,7 +308,7 @@ impl<T: ReadXDR, const MAX: u32> ReadVariableXDR<MAX> for Vec<T> {
             return Err(Error::LengthExceedsMax);
         }
 
-        let mut vec = Vec::with_capacity(len.try_into()?);
+        let mut vec = Vec::with_capacity(len as usize);
         for _ in 0..len {
             let t = T::read_xdr(r)?;
             vec.push(t);
@@ -328,7 +320,7 @@ impl<T: ReadXDR, const MAX: u32> ReadVariableXDR<MAX> for Vec<T> {
 
 impl<T: WriteXDR, const MAX: u32> WriteVariableXDR<MAX> for Vec<T> {
     fn write_xdr(&self, w: &mut impl Write) -> Result<()> {
-        let len: u32 = self.len().try_into()?;
+        let len: u32 = self.len().try_into().map_err(|_| Error::LengthExceedsMax)?;
         if len > MAX {
             return Err(Error::LengthExceedsMax);
         }
@@ -375,6 +367,99 @@ impl<T: WriteXDR, const N: usize> WriteXDR for [T; N] {
             t.write_xdr(w)?;
         }
         Ok(())
+    }
+}
+
+#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
+pub struct VecM<T, const MAX: u32 = { u32::MAX }>(Vec<T>);
+
+impl<T, const MAX: u32> VecM<T, MAX> {
+    pub fn to_vec(self) -> Vec<T> {
+        self.into()
+    }
+
+    pub fn as_vec(&self) -> &Vec<T> {
+        self.as_ref()
+    }
+
+    pub fn as_slice(&self) -> &[T] {
+        self.as_ref()
+    }
+}
+
+impl<T, const MAX: u32> TryFrom<Vec<T>> for VecM<T, MAX> {
+    type Error = Error;
+
+    fn try_from(v: Vec<T>) -> std::result::Result<Self, Self::Error> {
+        let len: u32 = match v.len().try_into() {
+            Ok(len) => len,
+            Err(_) => Err(Error::LengthExceedsMax)?,
+        };
+        if len <= MAX {
+            Ok(VecM(v))
+        } else {
+            Err(Error::LengthExceedsMax)
+        }
+    }
+}
+
+impl<T, const MAX: u32> From<VecM<T, MAX>> for Vec<T> {
+    fn from(v: VecM<T, MAX>) -> Self {
+        v.0
+    }
+}
+
+impl<T: Clone, const MAX: u32> TryFrom<&[T]> for VecM<T, MAX> {
+    type Error = Error;
+
+    fn try_from(v: &[T]) -> std::result::Result<Self, Self::Error> {
+        let len: u32 = match v.len().try_into() {
+            Ok(len) => len,
+            Err(_) => Err(Error::LengthExceedsMax)?,
+        };
+        if len <= MAX {
+            Ok(VecM(v.to_vec()))
+        } else {
+            Err(Error::LengthExceedsMax)
+        }
+    }
+}
+
+impl<T, const MAX: u32> AsRef<Vec<T>> for VecM<T, MAX> {
+    fn as_ref(&self) -> &Vec<T> {
+        &self.0
+    }
+}
+
+impl<T, const MAX: u32> AsRef<[T]> for VecM<T, MAX> {
+    fn as_ref(&self) -> &[T] {
+        &self.0
+    }
+}
+
+impl<const MAX: u32> ReadVariableXDR<MAX> for VecM<u8, MAX> {
+    fn read_xdr(r: &mut impl Read) -> Result<Self> {
+        let v = <Vec<u8> as ReadVariableXDR<MAX>>::read_xdr(r)?;
+        Ok(v.try_into().unwrap())
+    }
+}
+
+impl<const MAX: u32> WriteVariableXDR<MAX> for VecM<u8, MAX> {
+    fn write_xdr(&self, w: &mut impl Write) -> Result<()> {
+        <Vec<u8> as WriteVariableXDR<MAX>>::write_xdr(&self.0, w)
+    }
+}
+
+impl<T: ReadXDR, const MAX: u32> ReadVariableXDR<MAX> for VecM<T, MAX> {
+    fn read_xdr(r: &mut impl Read) -> Result<Self> {
+        let v = <Vec<T> as ReadVariableXDR<MAX>>::read_xdr(r)?;
+        Ok(v.try_into().unwrap())
+    }
+}
+
+impl<T: WriteXDR, const MAX: u32> WriteVariableXDR<MAX> for VecM<T, MAX> {
+    fn write_xdr(&self, w: &mut impl Write) -> Result<()> {
+        <Vec<T> as WriteVariableXDR<MAX>>::write_xdr(&self.0, w)
     }
 }
 
