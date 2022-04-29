@@ -420,8 +420,8 @@ module Xdrgen
         end
       end
 
-      def xdr_trait(op, var_len, max_len)
-        if var_len
+      def xdr_trait(op, max_len)
+        if !max_len.nil?
           case op
           when :read; "ReadVariableXDR<#{max_len}>"
           when :write; "WriteVariableXDR<#{max_len}>"
@@ -440,17 +440,17 @@ module Xdrgen
         case type
         when AST::Typespecs::String
           if !type.decl.resolved_size.nil?
-            ["VecM::<u8, #{type.decl.resolved_size}>", xdr_trait(op, true, type.decl.resolved_size)]
+            ["VecM::<u8, #{type.decl.resolved_size}>", xdr_trait(op, type.decl.resolved_size)]
           else
-            ["Vec::<u8>", xdr_trait(op, true, type.decl.resolved_size)]
+            ["Vec::<u8>", xdr_trait(op, type.decl.resolved_size)]
           end
         when AST::Typespecs::Opaque
           if type.fixed?
-            ["[u8; #{type.size}]", xdr_trait(op, false, nil)]
+            ["[u8; #{type.size}]", xdr_trait(op, nil)]
           elsif !type.decl.resolved_size.nil?
-            ["VecM::<u8, #{type.decl.resolved_size}>", xdr_trait(op, true, type.decl.resolved_size)]
+            ["VecM::<u8, #{type.decl.resolved_size}>", xdr_trait(op, type.decl.resolved_size)]
           else
-            ["Vec::<u8>", xdr_trait(op, true, type.decl.resolved_size)]
+            ["Vec::<u8>", xdr_trait(op, type.decl.resolved_size)]
           end
         when AST::Typespecs::Simple, AST::Definitions::Base, AST::Concerns::NestedDefinition
           if type.respond_to?(:resolved_type) && AST::Definitions::Typedef === type.resolved_type && is_builtin_type(type.resolved_type.type)
@@ -481,7 +481,7 @@ module Xdrgen
           size = name @top.find_definition(size) if is_named
           "[#{base_ref}; #{size}]"
         when :var_array
-          trait = xdr_trait(op, true, type.decl.resolved_size)
+          trait = xdr_trait(op, type.decl.resolved_size)
           if !type.decl.resolved_size.nil?
             "VecM::<#{base_ref}, #{type.decl.resolved_size}>"
           else
@@ -491,7 +491,7 @@ module Xdrgen
           raise "Unknown sub_type: #{type.sub_type}"
         end
 
-        trait = xdr_trait(op, false, nil) if trait.nil?
+        trait = xdr_trait(op, nil) if trait.nil?
         "<#{ref} as #{trait}>"
       end
 
