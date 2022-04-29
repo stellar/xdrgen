@@ -474,7 +474,11 @@ module Xdrgen
           raise "Unknown sub_type: #{type.sub_type}"
         end
 
-        "<#{ref}>"
+        if ref.starts_with?("[") && ref.ends_with?("]")
+          "<#{ref}>"
+        else
+          ref
+        end
       end
 
       def name(named)
