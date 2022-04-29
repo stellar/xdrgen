@@ -144,7 +144,7 @@ module Xdrgen
         impl WriteXDR for #{name struct} {
             fn write_xdr(&self, w: &mut impl Write) -> Result<()> {
                 #{struct.members.map do |m|
-                  "#{reference_to_call(struct, m.declaration.type, :write)}::write_xdr(&self.#{field_name(m)}, w)?;"
+                  "self.#{field_name(m)}.write_xdr(w)?;"
                 end.join("\n")}
                 Ok(())
             }
@@ -279,7 +279,7 @@ module Xdrgen
                       if arm.void?
                         "Self::#{case_name} => ().write_xdr(w)?,"
                       else
-                        "Self::#{case_name}(v) => #{reference_to_call(union, arm.type, :write)}::write_xdr(&v, w)?,"
+                        "Self::#{case_name}(v) => v.write_xdr(w)?,"
                       end
                     end.join("\n")}
                 };
@@ -326,7 +326,7 @@ module Xdrgen
 
           impl WriteXDR for #{name typedef} {
               fn write_xdr(&self, w: &mut impl Write) -> Result<()> {
-                  #{reference_to_call(typedef, typedef.type, :write)}::write_xdr(&self.0, w)
+                  self.0.write_xdr(w)
               }
           }
           EOS
