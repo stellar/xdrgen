@@ -8,6 +8,7 @@ use std::{
 pub enum Error {
     Invalid,
     LengthExceedsMax,
+    LengthMismatch,
     IO(io::Error),
 }
 
@@ -306,6 +307,10 @@ impl<T: WriteXDR, const N: usize> WriteXDR for [T; N] {
 pub struct VecM<T, const MAX: u32 = { u32::MAX }>(Vec<T>);
 
 impl<T, const MAX: u32> VecM<T, MAX> {
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
     pub fn to_vec(self) -> Vec<T> {
         self.into()
     }
@@ -323,10 +328,7 @@ impl<T, const MAX: u32> TryFrom<Vec<T>> for VecM<T, MAX> {
     type Error = Error;
 
     fn try_from(v: Vec<T>) -> std::result::Result<Self, Self::Error> {
-        let len: u32 = match v.len().try_into() {
-            Ok(len) => len,
-            Err(_) => Err(Error::LengthExceedsMax)?,
-        };
+        let len: u32 = v.len().try_into().map_err(|_| Error::LengthExceedsMax)?;
         if len <= MAX {
             Ok(VecM(v))
         } else {
@@ -341,14 +343,17 @@ impl<T, const MAX: u32> From<VecM<T, MAX>> for Vec<T> {
     }
 }
 
+impl<T, const MAX: u32> AsRef<Vec<T>> for VecM<T, MAX> {
+    fn as_ref(&self) -> &Vec<T> {
+        &self.0
+    }
+}
+
 impl<T: Clone, const MAX: u32> TryFrom<&[T]> for VecM<T, MAX> {
     type Error = Error;
 
     fn try_from(v: &[T]) -> std::result::Result<Self, Self::Error> {
-        let len: u32 = match v.len().try_into() {
-            Ok(len) => len,
-            Err(_) => Err(Error::LengthExceedsMax)?,
-        };
+        let len: u32 = v.len().try_into().map_err(|_| Error::LengthExceedsMax)?;
         if len <= MAX {
             Ok(VecM(v.to_vec()))
         } else {
@@ -357,15 +362,31 @@ impl<T: Clone, const MAX: u32> TryFrom<&[T]> for VecM<T, MAX> {
     }
 }
 
-impl<T, const MAX: u32> AsRef<Vec<T>> for VecM<T, MAX> {
-    fn as_ref(&self) -> &Vec<T> {
+impl<T, const MAX: u32> AsRef<[T]> for VecM<T, MAX> {
+    fn as_ref(&self) -> &[T] {
         &self.0
     }
 }
 
-impl<T, const MAX: u32> AsRef<[T]> for VecM<T, MAX> {
-    fn as_ref(&self) -> &[T] {
-        &self.0
+impl<T: Clone, const N: usize, const MAX: u32> TryFrom<[T; N]> for VecM<T, MAX> {
+    type Error = Error;
+
+    fn try_from(v: [T; N]) -> std::result::Result<Self, Self::Error> {
+        let len: u32 = v.len().try_into().map_err(|_| Error::LengthExceedsMax)?;
+        if len <= MAX {
+            Ok(VecM(v.to_vec()))
+        } else {
+            Err(Error::LengthExceedsMax)
+        }
+    }
+}
+
+impl<T: Clone, const N: usize, const MAX: u32> TryFrom<VecM<T, MAX>> for [T; N] {
+    type Error = VecM<T, MAX>;
+
+    fn try_from(v: VecM<T, MAX>) -> std::result::Result<Self, Self::Error> {
+        let s: [T; N] = v.0.try_into().map_err(|v: Vec<T>| VecM::<T, MAX>(v))?;
+        Ok(s)
     }
 }
 
