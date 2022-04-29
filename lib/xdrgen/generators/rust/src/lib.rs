@@ -210,63 +210,6 @@ impl WriteXDR for () {
     }
 }
 
-impl ReadXDR for Vec<u8> {
-    fn read_xdr(r: &mut impl Read) -> Result<Self> {
-        let len: u32 = u32::read_xdr(r)?;
-
-        let mut vec = vec![0u8; len as usize];
-        r.read_exact(&mut vec)?;
-
-        let pad_len = (4 - (len % 4)) % 4;
-        let mut pad = vec![0u8; pad_len as usize];
-        r.read_exact(&mut pad)?;
-
-        Ok(vec)
-    }
-}
-
-impl WriteXDR for Vec<u8> {
-    fn write_xdr(&self, w: &mut impl Write) -> Result<()> {
-        let len: u32 = self.len().try_into().map_err(|_| Error::LengthExceedsMax)?;
-        len.write_xdr(w)?;
-
-        w.write_all(self)?;
-
-        let pad_len = (4 - (len % 4)) % 4;
-        let mut pad = vec![0u8; pad_len as usize];
-        w.write_all(&mut pad)?;
-
-        Ok(())
-    }
-}
-
-impl<T: ReadXDR> ReadXDR for Vec<T> {
-    fn read_xdr(r: &mut impl Read) -> Result<Self> {
-        let len = u32::read_xdr(r)?;
-
-        let mut vec = Vec::with_capacity(len as usize);
-        for _ in 0..len {
-            let t = T::read_xdr(r)?;
-            vec.push(t);
-        }
-
-        Ok(vec)
-    }
-}
-
-impl<T: WriteXDR> WriteXDR for Vec<T> {
-    fn write_xdr(&self, w: &mut impl Write) -> Result<()> {
-        let len: u32 = self.len().try_into().map_err(|_| Error::LengthExceedsMax)?;
-        len.write_xdr(w)?;
-
-        for t in self.iter() {
-            t.write_xdr(w)?;
-        }
-
-        Ok(())
-    }
-}
-
 impl<const N: usize> ReadXDR for [u8; N] {
     fn read_xdr(r: &mut impl Read) -> Result<Self> {
         let mut arr = [0u8; N];
@@ -392,27 +335,64 @@ impl<T: Clone, const N: usize, const MAX: u32> TryFrom<VecM<T, MAX>> for [T; N] 
 
 impl<const MAX: u32> ReadXDR for VecM<u8, MAX> {
     fn read_xdr(r: &mut impl Read) -> Result<Self> {
-        let v = Vec::<u8>::read_xdr(r)?;
-        Ok(v.try_into().unwrap())
+        let len: u32 = u32::read_xdr(r)?;
+        if len > MAX {
+            return Err(Error::LengthExceedsMax);
+        }
+
+        let mut vec = vec![0u8; len as usize];
+        r.read_exact(&mut vec)?;
+
+        let pad_len = (4 - (len % 4)) % 4;
+        let mut pad = vec![0u8; pad_len as usize];
+        r.read_exact(&mut pad)?;
+
+        Ok(VecM(vec))
     }
 }
 
 impl<const MAX: u32> WriteXDR for VecM<u8, MAX> {
     fn write_xdr(&self, w: &mut impl Write) -> Result<()> {
-        self.0.write_xdr(w)
+        let len: u32 = self.len().try_into().map_err(|_| Error::LengthExceedsMax)?;
+        len.write_xdr(w)?;
+
+        w.write_all(&self.0)?;
+
+        let pad_len = (4 - (len % 4)) % 4;
+        let mut pad = vec![0u8; pad_len as usize];
+        w.write_all(&mut pad)?;
+
+        Ok(())
     }
 }
 
 impl<T: ReadXDR, const MAX: u32> ReadXDR for VecM<T, MAX> {
     fn read_xdr(r: &mut impl Read) -> Result<Self> {
-        let v = Vec::<T>::read_xdr(r)?;
-        Ok(v.try_into().unwrap())
+        let len = u32::read_xdr(r)?;
+        if len > MAX {
+            return Err(Error::LengthExceedsMax);
+        }
+
+        let mut vec = Vec::with_capacity(len as usize);
+        for _ in 0..len {
+            let t = T::read_xdr(r)?;
+            vec.push(t);
+        }
+
+        Ok(VecM(vec))
     }
 }
 
 impl<T: WriteXDR, const MAX: u32> WriteXDR for VecM<T, MAX> {
     fn write_xdr(&self, w: &mut impl Write) -> Result<()> {
-        self.0.write_xdr(w)
+        let len: u32 = self.len().try_into().map_err(|_| Error::LengthExceedsMax)?;
+        len.write_xdr(w)?;
+
+        for t in self.0.iter() {
+            t.write_xdr(w)?;
+        }
+
+        Ok(())
     }
 }
 

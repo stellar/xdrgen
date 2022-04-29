@@ -371,7 +371,7 @@ module Xdrgen
           if !type.decl.resolved_size.nil?
             "VecM::<u8, #{type.decl.resolved_size}>"
           else
-            "Vec::<u8>"
+            "VecM::<u8>"
           end
         when AST::Typespecs::Opaque
           if type.fixed?
@@ -379,7 +379,7 @@ module Xdrgen
           elsif !type.decl.resolved_size.nil?
             "VecM::<u8, #{type.decl.resolved_size}>"
           else
-            "Vec::<u8>"
+            "VecM::<u8>"
           end
         when AST::Typespecs::Simple, AST::Definitions::Base, AST::Concerns::NestedDefinition
           if type.respond_to?(:resolved_type) && AST::Definitions::Typedef === type.resolved_type && is_builtin_type(type.resolved_type.type)
@@ -413,7 +413,7 @@ module Xdrgen
           if !type.decl.resolved_size.nil?
             "VecM::<#{base_ref}, #{type.decl.resolved_size}>"
           else
-            "Vec::<#{base_ref}>"
+            "VecM::<#{base_ref}>"
           end
         else
           raise "Unknown sub_type: #{type.sub_type}"
@@ -426,7 +426,7 @@ module Xdrgen
           if !type.decl.resolved_size.nil?
             "VecM::<u8, #{type.decl.resolved_size}>"
           else
-            "Vec::<u8>"
+            "VecM::<u8>"
           end
         when AST::Typespecs::Opaque
           if type.fixed?
@@ -434,7 +434,7 @@ module Xdrgen
           elsif !type.decl.resolved_size.nil?
             "VecM::<u8, #{type.decl.resolved_size}>"
           else
-            "Vec::<u8>"
+            "VecM::<u8>"
           end
         when AST::Typespecs::Simple, AST::Definitions::Base, AST::Concerns::NestedDefinition
           if type.respond_to?(:resolved_type) && AST::Definitions::Typedef === type.resolved_type && is_builtin_type(type.resolved_type.type)
@@ -468,7 +468,7 @@ module Xdrgen
           if !type.decl.resolved_size.nil?
             "VecM::<#{base_ref}, #{type.decl.resolved_size}>"
           else
-            "Vec::<#{base_ref}>"
+            "VecM::<#{base_ref}>"
           end
         else
           raise "Unknown sub_type: #{type.sub_type}"
