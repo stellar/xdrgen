@@ -3,6 +3,7 @@ use std::{
     fmt::Debug,
     io,
     io::{Cursor, Read, Write},
+    slice::Iter,
 };
 
 #[derive(Debug)]
@@ -282,6 +283,10 @@ impl<T, const MAX: u32> VecM<T, MAX> {
 
     pub fn as_slice(&self) -> &[T] {
         self.as_ref()
+    }
+
+    pub fn iter(&self) -> Iter<'_, T> {
+        self.0.iter()
     }
 }
 
