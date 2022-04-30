@@ -1,4 +1,5 @@
 use std::{
+    fmt,
     fmt::Debug,
     io,
     io::{Cursor, Read, Write},
@@ -12,9 +13,26 @@ pub enum Error {
     IO(io::Error),
 }
 
+impl fmt::Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Error::Invalid => write!(f, "xdr value invalid"),
+            Error::LengthExceedsMax => write!(f, "xdr value max length exceeded"),
+            Error::LengthMismatch => write!(f, "xdr value length does not match"),
+            Error::IO(e) => write!(f, "{}", e),
+        }
+    }
+}
+
 impl From<io::Error> for Error {
     fn from(e: io::Error) -> Self {
         Error::IO(e)
+    }
+}
+
+impl From<Error> for () {
+    fn from(_: Error) -> () {
+        ()
     }
 }
 
