@@ -132,6 +132,7 @@ module Xdrgen
         out.puts ""
         out.puts <<-EOS.strip_heredoc
         impl ReadXDR for #{name struct} {
+            #[cfg(feature = "std")]
             fn read_xdr(r: &mut impl Read) -> Result<Self> {
                 Ok(Self{
                   #{struct.members.map do |m|
@@ -142,6 +143,7 @@ module Xdrgen
         }
 
         impl WriteXDR for #{name struct} {
+            #[cfg(feature = "std")]
             fn write_xdr(&self, w: &mut impl Write) -> Result<()> {
                 #{struct.members.map do |m|
                   "self.#{field_name(m)}.write_xdr(w)?;"
@@ -169,7 +171,7 @@ module Xdrgen
         impl TryFrom<i32> for #{name enum} {
             type Error = Error;
 
-            fn try_from(i: i32) -> std::result::Result<Self, Self::Error> {
+            fn try_from(i: i32) -> Result<Self> {
                 let e = match i {
                     #{enum.members.map do |m| "#{m.value} => #{name enum}::#{name m}," end.join("\n")}
                     #[allow(unreachable_patterns)]
@@ -186,6 +188,7 @@ module Xdrgen
         }
 
         impl ReadXDR for #{name enum} {
+            #[cfg(feature = "std")]
             fn read_xdr(r: &mut impl Read) -> Result<Self> {
                 let e = i32::read_xdr(r)?;
                 let v: Self = e.try_into()?;
@@ -194,6 +197,7 @@ module Xdrgen
         }
 
         impl WriteXDR for #{name enum} {
+            #[cfg(feature = "std")]
             fn write_xdr(&self, w: &mut impl Write) -> Result<()> {
                 let i: i32 = (*self).into();
                 i.write_xdr(w)
@@ -252,6 +256,7 @@ module Xdrgen
         }
 
         impl ReadXDR for #{name union} {
+            #[cfg(feature = "std")]
             fn read_xdr(r: &mut impl Read) -> Result<Self> {
                 let dv: #{discriminant_type} = <#{discriminant_type} as ReadXDR>::read_xdr(r)?;
                 let v = match #{discriminant_type_builtin ? "dv" : "dv.into()"} {
@@ -272,6 +277,7 @@ module Xdrgen
         }
 
         impl WriteXDR for #{name union} {
+            #[cfg(feature = "std")]
             fn write_xdr(&self, w: &mut impl Write) -> Result<()> {
                 self.discriminant().write_xdr(w)?;
                 match self {
@@ -317,6 +323,7 @@ module Xdrgen
           }
 
           impl ReadXDR for #{name typedef} {
+              #[cfg(feature = "std")]
               fn read_xdr(r: &mut impl Read) -> Result<Self> {
                   let i = #{reference_to_call(typedef, typedef.type, :read)}::read_xdr(r)?;
                   let v = #{name typedef}(i);
@@ -325,6 +332,7 @@ module Xdrgen
           }
 
           impl WriteXDR for #{name typedef} {
+              #[cfg(feature = "std")]
               fn write_xdr(&self, w: &mut impl Write) -> Result<()> {
                   self.0.write_xdr(w)
               }

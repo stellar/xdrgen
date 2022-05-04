@@ -1,9 +1,18 @@
+#![forbid(unsafe_code)]
+#![cfg_attr(not(feature = "std"), no_std)]
+
+#[cfg(not(feature = "std"))]
+extern crate alloc;
+
+#[cfg(not(feature = "std"))]
+use alloc::{boxed::Box, vec::Vec};
+
+use core::{fmt, fmt::Debug, slice::Iter};
+
+#[cfg(feature = "std")]
 use std::{
-    fmt,
-    fmt::Debug,
     io,
     io::{Cursor, Read, Write},
-    slice::Iter,
 };
 
 #[derive(Debug)]
@@ -11,6 +20,7 @@ pub enum Error {
     Invalid,
     LengthExceedsMax,
     LengthMismatch,
+    #[cfg(feature = "std")]
     IO(io::Error),
 }
 
@@ -20,11 +30,13 @@ impl fmt::Display for Error {
             Error::Invalid => write!(f, "xdr value invalid"),
             Error::LengthExceedsMax => write!(f, "xdr value max length exceeded"),
             Error::LengthMismatch => write!(f, "xdr value length does not match"),
+            #[cfg(feature = "std")]
             Error::IO(e) => write!(f, "{}", e),
         }
     }
 }
 
+#[cfg(feature = "std")]
 impl From<io::Error> for Error {
     fn from(e: io::Error) -> Self {
         Error::IO(e)
@@ -37,19 +49,22 @@ impl From<Error> for () {
     }
 }
 
-type Result<T> = std::result::Result<T, Error>;
+type Result<T> = core::result::Result<T, Error>;
 
 pub trait ReadXDR
 where
     Self: Sized,
 {
+    #[cfg(feature = "std")]
     fn read_xdr(r: &mut impl Read) -> Result<Self>;
 
+    #[cfg(feature = "std")]
     fn read_xdr_into(&mut self, r: &mut impl Read) -> Result<()> {
         *self = Self::read_xdr(r)?;
         Ok(())
     }
 
+    #[cfg(feature = "std")]
     fn from_xdr_base64(b64: String) -> Result<Self> {
         let mut b64_reader = Cursor::new(b64);
         let mut dec = base64::read::DecoderReader::new(&mut b64_reader, base64::STANDARD);
@@ -59,8 +74,10 @@ where
 }
 
 pub trait WriteXDR {
+    #[cfg(feature = "std")]
     fn write_xdr(&self, w: &mut impl Write) -> Result<()>;
 
+    #[cfg(feature = "std")]
     fn to_xdr_base64(&self) -> Result<String> {
         let mut enc = base64::write::EncoderStringWriter::new(base64::STANDARD);
         self.write_xdr(&mut enc)?;
@@ -70,6 +87,7 @@ pub trait WriteXDR {
 }
 
 impl ReadXDR for i32 {
+    #[cfg(feature = "std")]
     fn read_xdr(r: &mut impl Read) -> Result<Self> {
         let mut b = [0u8; 4];
         r.read_exact(&mut b)?;
@@ -79,6 +97,7 @@ impl ReadXDR for i32 {
 }
 
 impl WriteXDR for i32 {
+    #[cfg(feature = "std")]
     fn write_xdr(&self, w: &mut impl Write) -> Result<()> {
         let b: [u8; 4] = self.to_be_bytes();
         w.write_all(&b)?;
@@ -87,6 +106,7 @@ impl WriteXDR for i32 {
 }
 
 impl ReadXDR for u32 {
+    #[cfg(feature = "std")]
     fn read_xdr(r: &mut impl Read) -> Result<Self> {
         let mut b = [0u8; 4];
         r.read_exact(&mut b)?;
@@ -96,6 +116,7 @@ impl ReadXDR for u32 {
 }
 
 impl WriteXDR for u32 {
+    #[cfg(feature = "std")]
     fn write_xdr(&self, w: &mut impl Write) -> Result<()> {
         let b: [u8; 4] = self.to_be_bytes();
         w.write_all(&b)?;
@@ -104,6 +125,7 @@ impl WriteXDR for u32 {
 }
 
 impl ReadXDR for i64 {
+    #[cfg(feature = "std")]
     fn read_xdr(r: &mut impl Read) -> Result<Self> {
         let mut b = [0u8; 8];
         r.read_exact(&mut b)?;
@@ -113,6 +135,7 @@ impl ReadXDR for i64 {
 }
 
 impl WriteXDR for i64 {
+    #[cfg(feature = "std")]
     fn write_xdr(&self, w: &mut impl Write) -> Result<()> {
         let b: [u8; 8] = self.to_be_bytes();
         w.write_all(&b)?;
@@ -121,6 +144,7 @@ impl WriteXDR for i64 {
 }
 
 impl ReadXDR for u64 {
+    #[cfg(feature = "std")]
     fn read_xdr(r: &mut impl Read) -> Result<Self> {
         let mut b = [0u8; 8];
         r.read_exact(&mut b)?;
@@ -130,6 +154,7 @@ impl ReadXDR for u64 {
 }
 
 impl WriteXDR for u64 {
+    #[cfg(feature = "std")]
     fn write_xdr(&self, w: &mut impl Write) -> Result<()> {
         let b: [u8; 8] = self.to_be_bytes();
         w.write_all(&b)?;
@@ -138,30 +163,35 @@ impl WriteXDR for u64 {
 }
 
 impl ReadXDR for f32 {
+    #[cfg(feature = "std")]
     fn read_xdr(_r: &mut impl Read) -> Result<Self> {
         todo!()
     }
 }
 
 impl WriteXDR for f32 {
+    #[cfg(feature = "std")]
     fn write_xdr(&self, _w: &mut impl Write) -> Result<()> {
         todo!()
     }
 }
 
 impl ReadXDR for f64 {
+    #[cfg(feature = "std")]
     fn read_xdr(_r: &mut impl Read) -> Result<Self> {
         todo!()
     }
 }
 
 impl WriteXDR for f64 {
+    #[cfg(feature = "std")]
     fn write_xdr(&self, _w: &mut impl Write) -> Result<()> {
         todo!()
     }
 }
 
 impl ReadXDR for bool {
+    #[cfg(feature = "std")]
     fn read_xdr(r: &mut impl Read) -> Result<Self> {
         let i = u32::read_xdr(r)?;
         let b = i == 1;
@@ -170,6 +200,7 @@ impl ReadXDR for bool {
 }
 
 impl WriteXDR for bool {
+    #[cfg(feature = "std")]
     fn write_xdr(&self, w: &mut impl Write) -> Result<()> {
         let i: u32 = if *self { 1 } else { 0 };
         i.write_xdr(w)?;
@@ -178,6 +209,7 @@ impl WriteXDR for bool {
 }
 
 impl<T: ReadXDR> ReadXDR for Option<T> {
+    #[cfg(feature = "std")]
     fn read_xdr(r: &mut impl Read) -> Result<Self> {
         let i = u32::read_xdr(r)?;
         match i {
@@ -192,6 +224,7 @@ impl<T: ReadXDR> ReadXDR for Option<T> {
 }
 
 impl<T: WriteXDR> WriteXDR for Option<T> {
+    #[cfg(feature = "std")]
     fn write_xdr(&self, w: &mut impl Write) -> Result<()> {
         if let Some(t) = self {
             (1 as u32).write_xdr(w)?;
@@ -204,6 +237,7 @@ impl<T: WriteXDR> WriteXDR for Option<T> {
 }
 
 impl<T: ReadXDR> ReadXDR for Box<T> {
+    #[cfg(feature = "std")]
     fn read_xdr(r: &mut impl Read) -> Result<Self> {
         let t = T::read_xdr(r)?;
         Ok(Box::new(t))
@@ -211,6 +245,7 @@ impl<T: ReadXDR> ReadXDR for Box<T> {
 }
 
 impl<T: WriteXDR> WriteXDR for Box<T> {
+    #[cfg(feature = "std")]
     fn write_xdr(&self, w: &mut impl Write) -> Result<()> {
         T::write_xdr(self, w)?;
         Ok(())
@@ -218,18 +253,21 @@ impl<T: WriteXDR> WriteXDR for Box<T> {
 }
 
 impl ReadXDR for () {
+    #[cfg(feature = "std")]
     fn read_xdr(_r: &mut impl Read) -> Result<Self> {
         Ok(())
     }
 }
 
 impl WriteXDR for () {
+    #[cfg(feature = "std")]
     fn write_xdr(&self, _w: &mut impl Write) -> Result<()> {
         Ok(())
     }
 }
 
 impl<const N: usize> ReadXDR for [u8; N] {
+    #[cfg(feature = "std")]
     fn read_xdr(r: &mut impl Read) -> Result<Self> {
         let mut arr = [0u8; N];
         r.read_exact(&mut arr)?;
@@ -238,6 +276,7 @@ impl<const N: usize> ReadXDR for [u8; N] {
 }
 
 impl<const N: usize> WriteXDR for [u8; N] {
+    #[cfg(feature = "std")]
     fn write_xdr(&self, w: &mut impl Write) -> Result<()> {
         w.write_all(self)?;
         Ok(())
@@ -245,6 +284,7 @@ impl<const N: usize> WriteXDR for [u8; N] {
 }
 
 impl<T: ReadXDR, const N: usize> ReadXDR for [T; N] {
+    #[cfg(feature = "std")]
     fn read_xdr(r: &mut impl Read) -> Result<Self> {
         let mut vec = Vec::with_capacity(N);
         for _ in 0..N {
@@ -257,6 +297,7 @@ impl<T: ReadXDR, const N: usize> ReadXDR for [T; N] {
 }
 
 impl<T: WriteXDR, const N: usize> WriteXDR for [T; N] {
+    #[cfg(feature = "std")]
     fn write_xdr(&self, w: &mut impl Write) -> Result<()> {
         for t in self {
             t.write_xdr(w)?;
@@ -293,7 +334,7 @@ impl<T, const MAX: u32> VecM<T, MAX> {
 impl<T, const MAX: u32> TryFrom<Vec<T>> for VecM<T, MAX> {
     type Error = Error;
 
-    fn try_from(v: Vec<T>) -> std::result::Result<Self, Self::Error> {
+    fn try_from(v: Vec<T>) -> Result<Self> {
         let len: u32 = v.len().try_into().map_err(|_| Error::LengthExceedsMax)?;
         if len <= MAX {
             Ok(VecM(v))
@@ -318,7 +359,7 @@ impl<T, const MAX: u32> AsRef<Vec<T>> for VecM<T, MAX> {
 impl<T: Clone, const MAX: u32> TryFrom<&[T]> for VecM<T, MAX> {
     type Error = Error;
 
-    fn try_from(v: &[T]) -> std::result::Result<Self, Self::Error> {
+    fn try_from(v: &[T]) -> Result<Self> {
         let len: u32 = v.len().try_into().map_err(|_| Error::LengthExceedsMax)?;
         if len <= MAX {
             Ok(VecM(v.to_vec()))
@@ -337,7 +378,7 @@ impl<T, const MAX: u32> AsRef<[T]> for VecM<T, MAX> {
 impl<T: Clone, const N: usize, const MAX: u32> TryFrom<[T; N]> for VecM<T, MAX> {
     type Error = Error;
 
-    fn try_from(v: [T; N]) -> std::result::Result<Self, Self::Error> {
+    fn try_from(v: [T; N]) -> Result<Self> {
         let len: u32 = v.len().try_into().map_err(|_| Error::LengthExceedsMax)?;
         if len <= MAX {
             Ok(VecM(v.to_vec()))
@@ -350,13 +391,14 @@ impl<T: Clone, const N: usize, const MAX: u32> TryFrom<[T; N]> for VecM<T, MAX> 
 impl<T: Clone, const N: usize, const MAX: u32> TryFrom<VecM<T, MAX>> for [T; N] {
     type Error = VecM<T, MAX>;
 
-    fn try_from(v: VecM<T, MAX>) -> std::result::Result<Self, Self::Error> {
+    fn try_from(v: VecM<T, MAX>) -> core::result::Result<Self, Self::Error> {
         let s: [T; N] = v.0.try_into().map_err(|v: Vec<T>| VecM::<T, MAX>(v))?;
         Ok(s)
     }
 }
 
 impl<const MAX: u32> ReadXDR for VecM<u8, MAX> {
+    #[cfg(feature = "std")]
     fn read_xdr(r: &mut impl Read) -> Result<Self> {
         let len: u32 = u32::read_xdr(r)?;
         if len > MAX {
@@ -375,6 +417,7 @@ impl<const MAX: u32> ReadXDR for VecM<u8, MAX> {
 }
 
 impl<const MAX: u32> WriteXDR for VecM<u8, MAX> {
+    #[cfg(feature = "std")]
     fn write_xdr(&self, w: &mut impl Write) -> Result<()> {
         let len: u32 = self.len().try_into().map_err(|_| Error::LengthExceedsMax)?;
         len.write_xdr(w)?;
@@ -390,6 +433,7 @@ impl<const MAX: u32> WriteXDR for VecM<u8, MAX> {
 }
 
 impl<T: ReadXDR, const MAX: u32> ReadXDR for VecM<T, MAX> {
+    #[cfg(feature = "std")]
     fn read_xdr(r: &mut impl Read) -> Result<Self> {
         let len = u32::read_xdr(r)?;
         if len > MAX {
@@ -407,6 +451,7 @@ impl<T: ReadXDR, const MAX: u32> ReadXDR for VecM<T, MAX> {
 }
 
 impl<T: WriteXDR, const MAX: u32> WriteXDR for VecM<T, MAX> {
+    #[cfg(feature = "std")]
     fn write_xdr(&self, w: &mut impl Write) -> Result<()> {
         let len: u32 = self.len().try_into().map_err(|_| Error::LengthExceedsMax)?;
         len.write_xdr(w)?;

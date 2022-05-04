@@ -5,3 +5,7 @@ edition = "2021"
 
 [dependencies]
 base64 = "0.13.0"
+
+[features]
+default = ["std"]
+std = ["base64/std"]
