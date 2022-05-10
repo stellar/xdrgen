@@ -11,7 +11,7 @@ use core::{fmt, fmt::Debug, slice::Iter};
 
 #[cfg(feature = "std")]
 use std::{
-    io,
+    error, io,
     io::{Cursor, Read, Write},
 };
 
@@ -22,6 +22,16 @@ pub enum Error {
     LengthMismatch,
     #[cfg(feature = "std")]
     IO(io::Error),
+}
+
+#[cfg(feature = "std")]
+impl error::Error for Error {
+    fn source(&self) -> Option<&(dyn error::Error + 'static)> {
+        match self {
+            Self::IO(e) => Some(e),
+            _ => None,
+        }
+    }
 }
 
 impl fmt::Display for Error {
