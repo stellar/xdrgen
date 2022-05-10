@@ -317,7 +317,7 @@ module Xdrgen
         when AST::Declarations::Opaque
           out.puts "int #{member.name}size = #{value}.InnerValue.Length;"
           unless member.declaration.fixed?
-            out.puts "stream.WriteInt(#{member.name.camelize}size);"
+            out.puts "stream.WriteInt(#{member.name}size);"
           end
           out.puts <<-EOS.strip_heredoc
                 stream.Write(#{value}.InnerValue, 0, #{member.name}size);
@@ -356,7 +356,7 @@ module Xdrgen
         when AST::Declarations::Opaque
           out.puts "int #{member.name}size = #{value}.#{member.name.camelize}.Length;"
           unless member.declaration.fixed?
-            out.puts "stream.WriteInt(#{member.name.camelize}size);"
+            out.puts "stream.WriteInt(#{member.name}size);"
           end
           out.puts <<-EOS.strip_heredoc
                 stream.Write(#{value}.#{member.name.camelize}, 0, #{member.name}size);
