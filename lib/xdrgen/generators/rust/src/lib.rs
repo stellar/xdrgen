@@ -1,13 +1,30 @@
 #![forbid(unsafe_code)]
 #![cfg_attr(not(feature = "std"), no_std)]
 
-#[cfg(not(feature = "std"))]
-extern crate alloc;
+use core::{fmt, fmt::Debug, slice::Iter};
 
-#[cfg(not(feature = "std"))]
+// When feature alloc is turned off use static lifetime Box and Vec types.
+#[cfg(not(feature = "alloc"))]
+mod noalloc {
+    pub mod boxed {
+        pub type Box<T> = &'static T;
+    }
+    pub mod vec {
+        pub type Vec<T> = &'static [T];
+    }
+}
+#[cfg(not(feature = "alloc"))]
+use noalloc::{boxed::Box, vec::Vec};
+
+// When feature std is turned off, but feature alloc is turned on import the
+// alloc crate and use its Box and Vec types.
+#[cfg(all(not(feature = "std"), feature = "alloc"))]
+extern crate alloc;
+#[cfg(all(not(feature = "std"), feature = "alloc"))]
 use alloc::{boxed::Box, vec::Vec};
 
-use core::{fmt, fmt::Debug, slice::Iter};
+// TODO: Add support for when the alloc or std feature is enabled for specifying
+// a custom allocator, instead of the Global allocator being used.
 
 #[cfg(feature = "std")]
 use std::{
@@ -59,6 +76,7 @@ impl From<Error> for () {
     }
 }
 
+#[allow(dead_code)]
 type Result<T> = core::result::Result<T, Error>;
 
 pub trait ReadXDR
@@ -316,8 +334,15 @@ impl<T: WriteXDR, const N: usize> WriteXDR for [T; N] {
     }
 }
 
+#[cfg(feature = "alloc")]
 #[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub struct VecM<T, const MAX: u32 = { u32::MAX }>(Vec<T>);
+
+#[cfg(not(feature = "alloc"))]
+#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
+pub struct VecM<T, const MAX: u32 = { u32::MAX }>(Vec<T>)
+where
+    T: 'static;
 
 impl<T, const MAX: u32> VecM<T, MAX> {
     pub fn len(&self) -> usize {
@@ -366,6 +391,7 @@ impl<T, const MAX: u32> AsRef<Vec<T>> for VecM<T, MAX> {
     }
 }
 
+#[cfg(feature = "alloc")]
 impl<T: Clone, const MAX: u32> TryFrom<&[T]> for VecM<T, MAX> {
     type Error = Error;
 
@@ -381,10 +407,11 @@ impl<T: Clone, const MAX: u32> TryFrom<&[T]> for VecM<T, MAX> {
 
 impl<T, const MAX: u32> AsRef<[T]> for VecM<T, MAX> {
     fn as_ref(&self) -> &[T] {
-        &self.0
+        self.0.as_ref()
     }
 }
 
+#[cfg(feature = "alloc")]
 impl<T: Clone, const N: usize, const MAX: u32> TryFrom<[T; N]> for VecM<T, MAX> {
     type Error = Error;
 
@@ -398,12 +425,44 @@ impl<T: Clone, const N: usize, const MAX: u32> TryFrom<[T; N]> for VecM<T, MAX> 
     }
 }
 
+#[cfg(feature = "alloc")]
 impl<T: Clone, const N: usize, const MAX: u32> TryFrom<VecM<T, MAX>> for [T; N] {
     type Error = VecM<T, MAX>;
 
     fn try_from(v: VecM<T, MAX>) -> core::result::Result<Self, Self::Error> {
         let s: [T; N] = v.0.try_into().map_err(|v: Vec<T>| VecM::<T, MAX>(v))?;
         Ok(s)
+    }
+}
+
+#[cfg(feature = "alloc")]
+impl<T: Clone, const N: usize, const MAX: u32> TryFrom<&[T; N]> for VecM<T, MAX> {
+    type Error = Error;
+
+    fn try_from(v: &[T; N]) -> Result<Self> {
+        let len: u32 = v.len().try_into().map_err(|_| Error::LengthExceedsMax)?;
+        if len <= MAX {
+            Ok(VecM(v.to_vec()))
+        } else {
+            Err(Error::LengthExceedsMax)
+        }
+    }
+}
+
+#[cfg(not(feature = "alloc"))]
+impl<T: Clone, const N: usize, const MAX: u32> TryFrom<&'static [T; N]> for VecM<T, MAX>
+where
+    T: 'static,
+{
+    type Error = Error;
+
+    fn try_from(v: &'static [T; N]) -> Result<Self> {
+        let len: u32 = v.len().try_into().map_err(|_| Error::LengthExceedsMax)?;
+        if len <= MAX {
+            Ok(VecM(v))
+        } else {
+            Err(Error::LengthExceedsMax)
+        }
     }
 }
 

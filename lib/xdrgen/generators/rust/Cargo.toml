@@ -8,4 +8,5 @@ base64 = "0.13.0"
 
 [features]
 default = ["std"]
-std = ["base64/std"]
+std = ["alloc", "base64/std"]
+alloc = []
