@@ -338,6 +338,57 @@ module Xdrgen
               }
           }
           EOS
+          if is_var_array_type(typedef.type)
+            out.puts ""
+            out.puts <<-EOS.strip_heredoc
+            impl #{name typedef} {
+                pub fn len(&self) -> usize {
+                    self.0.len()
+                }
+
+                pub fn to_vec(self) -> Vec<#{element_type_for_vec(typedef.type)}> {
+                    self.into()
+                }
+
+                pub fn as_vec(&self) -> &Vec<#{element_type_for_vec(typedef.type)}> {
+                    self.as_ref()
+                }
+
+                pub fn as_slice(&self) -> &[#{element_type_for_vec(typedef.type)}] {
+                    self.as_ref()
+                }
+
+                pub fn iter(&self) -> Iter<'_, #{element_type_for_vec(typedef.type)}> {
+                    self.0.iter()
+                }
+            }
+
+            impl From<#{name typedef}> for Vec<#{element_type_for_vec(typedef.type)}> {
+                fn from(x: #{name typedef}) -> Self {
+                    x.0.0
+                }
+            }
+
+            impl TryFrom<Vec<#{element_type_for_vec(typedef.type)}>> for #{name typedef} {
+                type Error = Error;
+                fn try_from(x: Vec<#{element_type_for_vec(typedef.type)}>) -> Result<Self> {
+                    Ok(#{name typedef}(x.try_into()?))
+                }
+            }
+
+            impl AsRef<Vec<#{element_type_for_vec(typedef.type)}>> for #{name typedef} {
+                fn as_ref(&self) -> &Vec<#{element_type_for_vec(typedef.type)}> {
+                    &self.0.0
+                }
+            }
+
+            impl AsRef<[#{element_type_for_vec(typedef.type)}]> for #{name typedef} {
+                fn as_ref(&self) -> &[#{element_type_for_vec(typedef.type)}] {
+                    &self.0.0
+                }
+            }
+            EOS
+          end
         end
         out.break
       end
@@ -355,6 +406,12 @@ module Xdrgen
           AST::Typespecs::Hyper, AST::Typespecs::Int,
           AST::Typespecs::String,
         ].any? { |t| t === type }
+      end
+
+      def is_var_array_type(type)
+        (type == AST::Typespecs::Opaque && !type.fixed?) ||
+        (type == AST::Typespecs::String) ||
+        (type.sub_type == :var_array)
       end
 
       def base_reference(type)
@@ -425,6 +482,23 @@ module Xdrgen
           end
         else
           raise "Unknown sub_type: #{type.sub_type}"
+        end
+      end
+
+      def element_type_for_vec(type)
+        case type
+        when AST::Typespecs::String
+          "u8"
+        when AST::Typespecs::Opaque
+          "u8"
+        when AST::Typespecs::Simple, AST::Definitions::Base, AST::Concerns::NestedDefinition
+          if type.respond_to?(:resolved_type) && AST::Definitions::Typedef === type.resolved_type && is_builtin_type(type.resolved_type.type)
+            base_reference(type.resolved_type.type)
+          else
+            name type
+          end
+        else
+          raise "Unknown element type for vec: #{type.class.name}, #{type.class.ancestors}"
         end
       end
 
