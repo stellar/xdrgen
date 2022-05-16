@@ -216,7 +216,7 @@ module Xdrgen
         union.normal_arms.each do |arm|
           arm.cases.each do |kase|
               if kase.value.is_a?(AST::Identifier)
-                case_name = kase.value.name.underscore.camelize
+                case_name = kase.name_short.underscore.camelize
                 value = nil
               else
                 case_name = "V#{kase.value.value}"
@@ -235,7 +235,6 @@ module Xdrgen
         out.puts "#[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]"
         out.puts "pub enum #{name union} {"
         out.indent do
-          # TODO: Add handling of default arms.
           union_cases(union) do |case_name, arm|
             out.puts arm.void? ? "#{case_name}#{"(())" unless arm.void?}," : "#{case_name}(#{reference(union, arm.type)}),"
           end
@@ -566,7 +565,9 @@ module Xdrgen
       def name(named)
         parent = name named.parent_defn if named.is_a?(AST::Concerns::NestedDefinition)
 
-        base = if named.respond_to?(:name)
+        base = if named.respond_to?(:name_short)
+          named.name_short
+        elsif named.respond_to?(:name)
           named.name
         else
           named.text_value
