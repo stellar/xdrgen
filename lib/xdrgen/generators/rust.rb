@@ -4,6 +4,8 @@ module Xdrgen
     class Rust < Xdrgen::Generators::Base
 
       def generate
+        $stderr.puts "warn: rust generator is experimental"
+
         @already_rendered = []
         path = "#{@namespace}.rs"
         out = @output.open(path)
