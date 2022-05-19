@@ -229,6 +229,9 @@ module Xdrgen
       end
 
       def render_union(out, union)
+        if union.default_arm.present?
+          $stderr.puts "warn: union #{name union} includes default arms and default arms are not supported in the rust generator"
+        end
         discriminant_type = reference(nil, union.discriminant.type)
         discriminant_type_builtin = is_builtin_type(union.discriminant.type) || (is_builtin_type(union.discriminant.type.resolved_type.type) if union.discriminant.type.respond_to?(:resolved_type) && AST::Definitions::Typedef === union.discriminant.type.resolved_type)
         out.puts "// union with discriminant #{discriminant_type}"
