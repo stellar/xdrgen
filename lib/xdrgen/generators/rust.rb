@@ -251,9 +251,11 @@ module Xdrgen
             pub fn discriminant(&self) -> #{discriminant_type} {
                 match self {
                     #{union_cases(union) do |case_name, arm, value|
-                      value.nil? ? "Self::#{case_name}#{"(_)" unless arm.void?} => #{discriminant_type}::#{case_name}," :
-                      discriminant_type_builtin ? "Self::#{case_name}#{"(_)" unless arm.void?} => #{value},"
-                                 : "Self::#{case_name}#{"(_)" unless arm.void?} => #{discriminant_type}(#{value}),"
+                      "Self::#{case_name}#{"(_)" unless arm.void?} => #{
+                        value.nil?                ? "#{discriminant_type}::#{case_name}" :
+                        discriminant_type_builtin ? "#{value}" :
+                                                    "#{discriminant_type}(#{value})"
+                      },"
                     end.join("\n")}
                 }
             }
@@ -265,13 +267,11 @@ module Xdrgen
                 let dv: #{discriminant_type} = <#{discriminant_type} as ReadXdr>::read_xdr(r)?;
                 let v = match #{discriminant_type_builtin ? "dv" : "dv.into()"} {
                     #{union_cases(union) do |case_name, arm, value|
-                      if arm.void?
-                        value.nil? ? "#{discriminant_type}::#{case_name} => Self::#{case_name},"
-                                  : "#{value} => Self::#{case_name},"
-                      else
-                        value.nil? ? "#{discriminant_type}::#{case_name} => Self::#{case_name}(#{reference_to_call(union, arm.type, :read)}::read_xdr(r)?),"
-                                  : "#{value} => Self::#{case_name}(#{reference_to_call(union, arm.type, :read)}::read_xdr(r)?),"
-                      end
+                      "#{
+                        value.nil? ? "#{discriminant_type}::#{case_name}" : "#{value}"
+                      } => #{
+                        arm.void? ? "Self::#{case_name}" : "Self::#{case_name}(#{reference_to_call(union, arm.type, :read)}::read_xdr(r)?)"
+                      },"
                     end.join("\n")}
                     #[allow(unreachable_patterns)]
                     _ => return Err(Error::Invalid),
