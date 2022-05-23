@@ -15,7 +15,6 @@ module Xdrgen::AST
       end
 
       def name_short
-        # prefix = find_common_prefix(union.normal_arms.map(&:cases).flatten.map(&:value).map(&:name))
         prefix = find_common_prefix(union.discriminant_type.members.map(&:name))
         value.name.delete_prefix(prefix)
       end
