@@ -423,8 +423,10 @@ module Xdrgen
         when AST::Typespecs::Bool
           'bool'
         when AST::Typespecs::Double
+          $stderr.puts "warn: rust generator has not implemented f64 support"
           'f64'
         when AST::Typespecs::Float
+          $stderr.puts "warn: rust generator has not implemented f64 support"
           'f32'
         when AST::Typespecs::UnsignedHyper
           'u64'
