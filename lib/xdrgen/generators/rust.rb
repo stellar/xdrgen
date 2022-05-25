@@ -466,12 +466,18 @@ module Xdrgen
       def reference(parent, type)
         base_ref = base_reference type
 
+        parent_name = name(parent) if parent
+        cyclic = is_type_in_type_field_types(base_ref, parent_name)
+
         case type.sub_type
         when :simple
-          base_ref
+          if cyclic
+            "Box<#{base_ref}>"
+          else
+            base_ref
+          end
         when :optional
-          parent_name = name(parent) if parent
-          if is_type_in_type_field_types(base_ref, parent_name)
+          if cyclic
             "Option<Box<#{base_ref}>>"
           else
             "Option<#{base_ref}>"
@@ -538,12 +544,18 @@ module Xdrgen
       def reference_to_call(parent, type, op)
         base_ref = base_reference_to_call(type, op)
 
+        parent_name = name(parent) if parent
+        cyclic = is_type_in_type_field_types(base_ref, parent_name)
+
         ref = case type.sub_type
         when :simple
-          base_ref
+          if cyclic
+            "Box<#{base_ref}>"
+          else
+            base_ref
+          end
         when :optional
-          parent_name = name(parent) if parent
-          if is_type_in_type_field_types(base_ref, parent_name)
+          if cyclic
             "Option::<Box<#{base_ref}>>"
           else
             "Option::<#{base_ref}>"
@@ -564,6 +576,8 @@ module Xdrgen
 
         if ref.starts_with?("[") && ref.ends_with?("]")
           "<#{ref}>"
+        elsif ref.starts_with?("Box<") && ref.ends_with?(">")
+          "Box::#{ref.delete_prefix("Box")}"
         else
           ref
         end
