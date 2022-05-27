@@ -379,7 +379,6 @@ module Xdrgen
                     self.as_ref()
                 }
 
-                #[must_use]
                 pub fn iter(&self) -> Iter<'_, #{element_type_for_vec(typedef.type)}> {
                     self.0.iter()
                 }
