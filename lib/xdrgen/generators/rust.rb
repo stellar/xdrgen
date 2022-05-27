@@ -184,6 +184,7 @@ module Xdrgen
         }
 
         impl From<#{name enum}> for i32 {
+            #[must_use]
             fn from(e: #{name enum}) -> Self {
                 e as Self
             }
@@ -248,7 +249,9 @@ module Xdrgen
         out.puts ""
         out.puts <<-EOS.strip_heredoc
         impl #{name union} {
+            #[must_use]
             pub fn discriminant(&self) -> #{discriminant_type} {
+                #[allow(clippy::match_same_arms)]
                 match self {
                     #{union_cases(union) do |case_name, arm, value|
                       "Self::#{case_name}#{"(_)" unless arm.void?} => #{
@@ -265,7 +268,8 @@ module Xdrgen
             #[cfg(feature = "std")]
             fn read_xdr(r: &mut impl Read) -> Result<Self> {
                 let dv: #{discriminant_type} = <#{discriminant_type} as ReadXdr>::read_xdr(r)?;
-                let v = match #{discriminant_type_builtin ? "dv" : "dv.into()"} {
+                #[allow(clippy::match_same_arms, clippy::match_wildcard_for_single_variants)]
+                let v = match dv {
                     #{union_cases(union) do |case_name, arm, value|
                       "#{
                         value.nil? ? "#{discriminant_type}::#{case_name}" : "#{value}"
@@ -284,6 +288,7 @@ module Xdrgen
             #[cfg(feature = "std")]
             fn write_xdr(&self, w: &mut impl Write) -> Result<()> {
                 self.discriminant().write_xdr(w)?;
+                #[allow(clippy::match_same_arms)]
                 match self {
                     #{union_cases(union) do |case_name, arm, value|
                       if arm.void?
@@ -309,18 +314,21 @@ module Xdrgen
           out.puts ""
           out.puts <<-EOS.strip_heredoc
           impl From<#{name typedef}> for #{reference(typedef, typedef.type)} {
+              #[must_use]
               fn from(x: #{name typedef}) -> Self {
                   x.0
               }
           }
 
           impl From<#{reference(typedef, typedef.type)}> for #{name typedef} {
+              #[must_use]
               fn from(x: #{reference(typedef, typedef.type)}) -> Self {
                   #{name typedef}(x)
               }
           }
 
           impl AsRef<#{reference(typedef, typedef.type)}> for #{name typedef} {
+              #[must_use]
               fn as_ref(&self) -> &#{reference(typedef, typedef.type)} {
                   &self.0
               }
@@ -346,28 +354,39 @@ module Xdrgen
             out.puts ""
             out.puts <<-EOS.strip_heredoc
             impl #{name typedef} {
+                #[must_use]
                 pub fn len(&self) -> usize {
                     self.0.len()
                 }
 
+                #[must_use]
+                pub fn is_empty(&self) -> bool {
+                    self.0.is_empty()
+                }
+
+                #[must_use]
                 pub fn to_vec(self) -> Vec<#{element_type_for_vec(typedef.type)}> {
                     self.into()
                 }
 
+                #[must_use]
                 pub fn as_vec(&self) -> &Vec<#{element_type_for_vec(typedef.type)}> {
                     self.as_ref()
                 }
 
+                #[must_use]
                 pub fn as_slice(&self) -> &[#{element_type_for_vec(typedef.type)}] {
                     self.as_ref()
                 }
 
+                #[must_use]
                 pub fn iter(&self) -> Iter<'_, #{element_type_for_vec(typedef.type)}> {
                     self.0.iter()
                 }
             }
 
             impl From<#{name typedef}> for Vec<#{element_type_for_vec(typedef.type)}> {
+                #[must_use]
                 fn from(x: #{name typedef}) -> Self {
                     x.0.0
                 }
@@ -381,14 +400,22 @@ module Xdrgen
             }
 
             impl AsRef<Vec<#{element_type_for_vec(typedef.type)}>> for #{name typedef} {
+                #[must_use]
                 fn as_ref(&self) -> &Vec<#{element_type_for_vec(typedef.type)}> {
                     &self.0.0
                 }
             }
 
             impl AsRef<[#{element_type_for_vec(typedef.type)}]> for #{name typedef} {
+                #[cfg(feature = "alloc")]
+                #[must_use]
                 fn as_ref(&self) -> &[#{element_type_for_vec(typedef.type)}] {
                     &self.0.0
+                }
+                #[cfg(not(feature = "alloc"))]
+                #[must_use]
+                fn as_ref(&self) -> &[#{element_type_for_vec(typedef.type)}] {
+                    self.0.0
                 }
             }
             EOS

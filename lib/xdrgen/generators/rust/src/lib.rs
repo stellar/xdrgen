@@ -1,5 +1,6 @@
 #![forbid(unsafe_code)]
 #![cfg_attr(not(feature = "std"), no_std)]
+#![allow(clippy::missing_errors_doc)]
 
 use core::{fmt, fmt::Debug, slice::Iter};
 
@@ -43,6 +44,7 @@ pub enum Error {
 
 #[cfg(feature = "std")]
 impl error::Error for Error {
+    #[must_use]
     fn source(&self) -> Option<&(dyn error::Error + 'static)> {
         match self {
             Self::IO(e) => Some(e),
@@ -65,15 +67,14 @@ impl fmt::Display for Error {
 
 #[cfg(feature = "std")]
 impl From<io::Error> for Error {
+    #[must_use]
     fn from(e: io::Error) -> Self {
         Error::IO(e)
     }
 }
 
 impl From<Error> for () {
-    fn from(_: Error) -> () {
-        ()
-    }
+    fn from(_: Error) {}
 }
 
 #[allow(dead_code)]
@@ -255,10 +256,10 @@ impl<T: WriteXdr> WriteXdr for Option<T> {
     #[cfg(feature = "std")]
     fn write_xdr(&self, w: &mut impl Write) -> Result<()> {
         if let Some(t) = self {
-            (1 as u32).write_xdr(w)?;
+            1u32.write_xdr(w)?;
             t.write_xdr(w)?;
         } else {
-            (0 as u32).write_xdr(w)?;
+            0u32.write_xdr(w)?;
         }
         Ok(())
     }
@@ -345,22 +346,32 @@ where
     T: 'static;
 
 impl<T, const MAX: u32> VecM<T, MAX> {
+    #[must_use]
     pub fn len(&self) -> usize {
         self.0.len()
     }
 
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
+
+    #[must_use]
     pub fn to_vec(self) -> Vec<T> {
         self.into()
     }
 
+    #[must_use]
     pub fn as_vec(&self) -> &Vec<T> {
         self.as_ref()
     }
 
+    #[must_use]
     pub fn as_slice(&self) -> &[T] {
         self.as_ref()
     }
 
+    #[must_use]
     pub fn iter(&self) -> Iter<'_, T> {
         self.0.iter()
     }
@@ -380,12 +391,14 @@ impl<T, const MAX: u32> TryFrom<Vec<T>> for VecM<T, MAX> {
 }
 
 impl<T, const MAX: u32> From<VecM<T, MAX>> for Vec<T> {
+    #[must_use]
     fn from(v: VecM<T, MAX>) -> Self {
         v.0
     }
 }
 
 impl<T, const MAX: u32> AsRef<Vec<T>> for VecM<T, MAX> {
+    #[must_use]
     fn as_ref(&self) -> &Vec<T> {
         &self.0
     }
@@ -406,8 +419,15 @@ impl<T: Clone, const MAX: u32> TryFrom<&[T]> for VecM<T, MAX> {
 }
 
 impl<T, const MAX: u32> AsRef<[T]> for VecM<T, MAX> {
+    #[cfg(feature = "alloc")]
+    #[must_use]
     fn as_ref(&self) -> &[T] {
         self.0.as_ref()
+    }
+    #[cfg(not(feature = "alloc"))]
+    #[must_use]
+    fn as_ref(&self) -> &[T] {
+        self.0
     }
 }
 
@@ -494,8 +514,8 @@ impl<const MAX: u32> WriteXdr for VecM<u8, MAX> {
         w.write_all(&self.0)?;
 
         let pad_len = (4 - (len % 4)) % 4;
-        let mut pad = vec![0u8; pad_len as usize];
-        w.write_all(&mut pad)?;
+        let pad = vec![0u8; pad_len as usize];
+        w.write_all(&pad)?;
 
         Ok(())
     }
@@ -525,7 +545,7 @@ impl<T: WriteXdr, const MAX: u32> WriteXdr for VecM<T, MAX> {
         let len: u32 = self.len().try_into().map_err(|_| Error::LengthExceedsMax)?;
         len.write_xdr(w)?;
 
-        for t in self.0.iter() {
+        for t in &self.0 {
             t.write_xdr(w)?;
         }
 
