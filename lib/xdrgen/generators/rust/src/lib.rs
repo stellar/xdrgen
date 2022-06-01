@@ -24,8 +24,7 @@ extern crate alloc;
 #[cfg(all(not(feature = "std"), feature = "alloc"))]
 use alloc::{boxed::Box, vec::Vec};
 
-// TODO: Add support for when the alloc or std feature is enabled for specifying
-// a custom allocator, instead of the Global allocator being used.
+// TODO: Add support for read/write xdr fns when std not available.
 
 #[cfg(feature = "std")]
 use std::{
@@ -550,9 +549,4 @@ impl<T: WriteXdr, const MAX: u32> WriteXdr for VecM<T, MAX> {
 
         Ok(())
     }
-}
-
-#[cfg(test)]
-mod tests {
-    // TODO: Write tests.
 }
