@@ -20,7 +20,7 @@ describe Xdrgen::Generators do
   def generate(language, path)
     compilation = Xdrgen::Compilation.new(
         [path],
-        output_dir: "tmp/generator_spec_#{language}/#{File.basename path}",
+        output_dir: "#{SPEC_ROOT}/output/generator_spec_#{language}/#{File.basename path}",
         language:   language,
         namespace:  "MyXDR"
       )

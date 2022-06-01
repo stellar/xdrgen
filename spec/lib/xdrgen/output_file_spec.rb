@@ -1,7 +1,7 @@
 require 'spec_helper'
 
 describe Xdrgen::OutputFile, "#balance_after" do
-  let(:output_path){ "#{SPEC_ROOT}/../tmp/balanced.txt"}
+  let(:output_path){ "#{SPEC_ROOT}/output/balanced.txt"}
   let(:unbalanced) do
     <<-EOS.strip_heredoc
     attribute :hello, XDR::UnsignedInt
