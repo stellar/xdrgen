@@ -3,7 +3,7 @@
 
 // Package MyXDR is generated from:
 //
-//  /wd/spec/support/../fixtures/generator/optional.x
+//  spec/fixtures/generator/optional.x
 //
 // DO NOT EDIT or your changes may be overwritten
 package MyXDR

@@ -3,7 +3,7 @@
 
 // Package MyXDR is generated from:
 //
-//  /wd/spec/support/../fixtures/generator/block_comments.x
+//  spec/fixtures/generator/block_comments.x
 //
 // DO NOT EDIT or your changes may be overwritten
 package MyXDR
