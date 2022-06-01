@@ -19,5 +19,9 @@ jobs:
       with:
         ruby-version: ${{ matrix.ruby-version }}
         bundler-cache: true # runs 'bundle install' and caches installed gems automatically
+    - name: Remove test outputs for tests to generate
+      run: rm -fr spec/output
     - name: Run Rspec tests
       run: bundle exec rspec
+    - name: Check test outputs contain no diffs
+      run: git add spec/output && git status && git diff --staged --exit-code -- spec/output || (echo "Test outputs contain changes. Run 'make' locally and check that the changes are desired. If they're desired, commit them as part of the change." && exit 1)

@@ -804,7 +804,7 @@ module Xdrgen
 
           // Package #{@namespace || "main"} is generated from:
           //
-          //  #{@output.source_paths.join("\n//  ")}
+          //  #{@output.relative_source_paths.join("\n//  ")}
           //
           // DO NOT EDIT or your changes may be overwritten
           package #{@namespace || "main"}

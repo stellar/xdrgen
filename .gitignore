@@ -16,3 +16,4 @@ spec/fixtures/hayashi/
 gen/
 .DS_Store
 .ruby-version
+/vendor/

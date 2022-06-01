@@ -12,6 +12,10 @@ module Xdrgen
       @files      = {}
     end
 
+    def relative_source_paths
+      @source_paths.map { |p| Pathname.new(p).relative_path_from(Dir.pwd) }
+    end
+
     def open(child_path)
       if @files.has_key?(child_path)
         raise Xdrgen::DuplicateFileError, "Cannot open #{child_path} twice"
