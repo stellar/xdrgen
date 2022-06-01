@@ -22,4 +22,4 @@ jobs:
     - name: Run Rspec tests
       run: bundle exec rspec
     - name: Check test outputs contain no diffs
-      run: git diff --exit-code -- spec/output || (echo "---\nTest outputs contain changes. Run 'make' locally and check that the changes are desired. If they're desired, commit them as part of the change." && exit 1)
+      run: git add . && git diff --exit-code -- spec/output || (echo "---\nTest outputs contain changes. Run 'make' locally and check that the changes are desired. If they're desired, commit them as part of the change." && exit 1)
