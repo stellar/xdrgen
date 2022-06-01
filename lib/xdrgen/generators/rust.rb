@@ -57,8 +57,8 @@ module Xdrgen
       def render_top_matter(out)
         out.puts <<-EOS.strip_heredoc
           // Module #{@namepsace} is generated from:
+          //  #{@output.relative_source_paths.join("\n//  ")}
         EOS
-        out.puts "//  #{@output.source_paths.join("\n//  ")}"
         out.break
       end
 
