@@ -13,7 +13,7 @@ module Xdrgen
     end
 
     def relative_source_paths
-      @source_paths.map { |p| Pathname.new(p).relative_path_from(Dir.pwd) }
+      @source_paths.map { |p| Pathname.new(p).expand_path.relative_path_from(Dir.pwd) }
     end
 
     def open(child_path)
