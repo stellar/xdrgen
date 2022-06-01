@@ -21,3 +21,5 @@ jobs:
         bundler-cache: true # runs 'bundle install' and caches installed gems automatically
     - name: Run Rspec tests
       run: bundle exec rspec
+    - name: Check test outputs contain no diffs
+      run: git diff --exit-code spec/output || (echo "Test outputs contain changes. Run 'make' locally and check that the changes are desired. If they're desire, commit them as part of the change." && exit 1)
