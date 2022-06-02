@@ -299,6 +299,8 @@ impl<const N: usize> ReadXdr for [u8; N] {
     fn read_xdr(r: &mut impl Read) -> Result<Self> {
         let mut arr = [0u8; N];
         r.read_exact(&mut arr)?;
+        // TODO: Fix padding to 4 bytes.
+        // TODO: Check padding is zero.
         Ok(arr)
     }
 }
@@ -307,6 +309,7 @@ impl<const N: usize> WriteXdr for [u8; N] {
     #[cfg(feature = "std")]
     fn write_xdr(&self, w: &mut impl Write) -> Result<()> {
         w.write_all(self)?;
+        // TODO: Fix padding to 4 bytes.
         Ok(())
     }
 }
@@ -498,6 +501,7 @@ impl<const MAX: u32> ReadXdr for VecM<u8, MAX> {
         let pad_len = (4 - (len % 4)) % 4;
         let mut pad = vec![0u8; pad_len as usize];
         r.read_exact(&mut pad)?;
+        // TODO: Check padding is zero.
 
         Ok(VecM(vec))
     }
