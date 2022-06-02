@@ -480,7 +480,8 @@ module Xdrgen
           else
             out.puts <<~HEREDOC
               if #{member_name_underscore} and len(#{member_name_underscore}) > #{size || MAX_SIZE}:
-                  raise ValueError(f\"The maximum length of `#{member_name_underscore}` should be #{size || MAX_SIZE}, but got {len(#{member_name_underscore})}.\")
+                  expect_size = #{size || MAX_SIZE}
+                  raise ValueError(f\"The maximum length of `#{member_name_underscore}` should be {expect_size}, but got {len(#{member_name_underscore})}.\")
             HEREDOC
           end
         end

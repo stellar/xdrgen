@@ -18,8 +18,9 @@ class TestArray2:
 
     def __init__(self, test_array2: List[int]) -> None:
         if test_array2 and len(test_array2) > FOO:
+            expect_size = FOO
             raise ValueError(
-                f"The maximum length of `test_array2` should be FOO, but got {len(test_array2)}."
+                f"The maximum length of `test_array2` should be {expect_size}, but got {len(test_array2)}."
             )
         self.test_array2 = test_array2
 

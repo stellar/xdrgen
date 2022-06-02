@@ -33,8 +33,9 @@ class MyUnion:
         things: List[Multi] = None,
     ) -> None:
         if things and len(things) > 4294967295:
+            expect_size = 4294967295
             raise ValueError(
-                f"The maximum length of `things` should be 4294967295, but got {len(things)}."
+                f"The maximum length of `things` should be {expect_size}, but got {len(things)}."
             )
         self.type = type
         self.error = error
