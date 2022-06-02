@@ -1,8 +1,6 @@
 // Module  is generated from:
 //  spec/fixtures/generator/enum.x
 
-#![forbid(unsafe_code)]
-#![cfg_attr(not(feature = "std"), no_std)]
 #![allow(clippy::missing_errors_doc)]
 
 use core::{fmt, fmt::Debug, slice::Iter};
