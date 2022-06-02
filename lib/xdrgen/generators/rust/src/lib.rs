@@ -118,8 +118,8 @@ pub trait WriteXdr {
 
 /// Pad_len returns the number of bytes to pad an XDR value of the given length
 /// to make the final serialized size a multiple of 4.
-const fn pad_len(len: u32) -> usize {
-    ((4 - (len % 4)) % 4) as usize
+fn pad_len(len: usize) -> usize {
+    (4 - (len % 4)) % 4
 }
 
 impl ReadXdr for i32 {
@@ -307,8 +307,13 @@ impl<const N: usize> ReadXdr for [u8; N] {
     fn read_xdr(r: &mut impl Read) -> Result<Self> {
         let mut arr = [0u8; N];
         r.read_exact(&mut arr)?;
-        // TODO: Fix padding to 4 bytes.
-        // TODO: Check padding is zero.
+
+        let pad = &mut [0u8; 3][..pad_len(N)];
+        r.read_exact(pad)?;
+        if pad.iter().any(|b| *b != 0) {
+            return Err(Error::NonZeroPadding);
+        }
+
         Ok(arr)
     }
 }
@@ -317,7 +322,7 @@ impl<const N: usize> WriteXdr for [u8; N] {
     #[cfg(feature = "std")]
     fn write_xdr(&self, w: &mut impl Write) -> Result<()> {
         w.write_all(self)?;
-        // TODO: Fix padding to 4 bytes.
+        w.write_all(&[0u8; 3][..pad_len(N)])?;
         Ok(())
     }
 }
@@ -506,7 +511,7 @@ impl<const MAX: u32> ReadXdr for VecM<u8, MAX> {
         let mut vec = vec![0u8; len as usize];
         r.read_exact(&mut vec)?;
 
-        let pad = &mut [0u8; 3][..pad_len(len)];
+        let pad = &mut [0u8; 3][..pad_len(len as usize)];
         r.read_exact(pad)?;
         if pad.iter().any(|b| *b != 0) {
             return Err(Error::NonZeroPadding);
@@ -524,7 +529,7 @@ impl<const MAX: u32> WriteXdr for VecM<u8, MAX> {
 
         w.write_all(&self.0)?;
 
-        w.write_all(&[0u8; 3][..pad_len(len)])?;
+        w.write_all(&[0u8; 3][..pad_len(len as usize)])?;
 
         Ok(())
     }
@@ -618,5 +623,55 @@ mod tests {
         let v: VecM<u8, 8> = vec![2].try_into().unwrap();
         v.write_xdr(&mut Cursor::new(&mut buf)).unwrap();
         assert_eq!(buf, vec![0, 0, 0, 1, 2, 0, 0, 0]);
+    }
+
+    #[test]
+    pub fn arr_u8_read_without_padding() {
+        let mut buf = Cursor::new(vec![2, 2, 2, 2]);
+        let v = <[u8; 4]>::read_xdr(&mut buf).unwrap();
+        assert_eq!(v, [2, 2, 2, 2]);
+    }
+
+    #[test]
+    pub fn arr_u8_read_with_padding() {
+        let mut buf = Cursor::new(vec![2, 0, 0, 0]);
+        let v = <[u8; 1]>::read_xdr(&mut buf).unwrap();
+        assert_eq!(v, [2]);
+    }
+
+    #[test]
+    pub fn arr_u8_read_with_insufficient_padding() {
+        let mut buf = Cursor::new(vec![2, 0, 0]);
+        let res = <[u8; 1]>::read_xdr(&mut buf);
+        match res {
+            Err(Error::IO(_)) => (),
+            _ => panic!("expected IO error got {:?}", res),
+        }
+    }
+
+    #[test]
+    pub fn arr_u8_read_with_non_zero_padding() {
+        let mut buf = Cursor::new(vec![2, 3, 0, 0]);
+        let res = <[u8; 1]>::read_xdr(&mut buf);
+        match res {
+            Err(Error::NonZeroPadding) => (),
+            _ => panic!("expected NonZeroPadding got {:?}", res),
+        }
+    }
+
+    #[test]
+    pub fn arr_u8_write_without_padding() {
+        let mut buf = vec![];
+        [2u8, 2, 2, 2]
+            .write_xdr(&mut Cursor::new(&mut buf))
+            .unwrap();
+        assert_eq!(buf, vec![2, 2, 2, 2]);
+    }
+
+    #[test]
+    pub fn arr_u8_write_with_padding() {
+        let mut buf = vec![];
+        [2u8].write_xdr(&mut Cursor::new(&mut buf)).unwrap();
+        assert_eq!(buf, vec![2, 0, 0, 0]);
     }
 }
