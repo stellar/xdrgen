@@ -6,6 +6,11 @@ module Xdrgen::AST
       include Concerns::Named
       include Concerns::Contained
 
+      def name_short
+        prefix = find_common_prefix(enum.members.map(&:name))
+        name.delete_prefix(prefix)
+      end
+
       def value
         unsigned_value = defined_value || auto_value
 

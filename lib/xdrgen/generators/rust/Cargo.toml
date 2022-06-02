@@ -1,0 +1,12 @@
+[package]
+name = "rs-xdr"
+version = "0.0.0"
+edition = "2021"
+
+[dependencies]
+base64 = "0.13.0"
+
+[features]
+default = ["std"]
+std = ["alloc", "base64/std"]
+alloc = []
