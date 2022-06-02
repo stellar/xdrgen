@@ -116,6 +116,12 @@ pub trait WriteXdr {
     }
 }
 
+/// Pad_len returns the number of bytes to pad an XDR value of the given length
+/// to make the final serialized size a multiple of 4.
+const fn pad_len(len: u32) -> usize {
+    ((4 - (len % 4)) % 4) as usize
+}
+
 impl ReadXdr for i32 {
     #[cfg(feature = "std")]
     fn read_xdr(r: &mut impl Read) -> Result<Self> {
@@ -500,9 +506,8 @@ impl<const MAX: u32> ReadXdr for VecM<u8, MAX> {
         let mut vec = vec![0u8; len as usize];
         r.read_exact(&mut vec)?;
 
-        let pad_len = (4 - (len % 4)) % 4;
-        let mut pad = vec![0u8; pad_len as usize];
-        r.read_exact(&mut pad)?;
+        let pad = &mut [0u8; 3][..pad_len(len)];
+        r.read_exact(pad)?;
         if pad.iter().any(|b| *b != 0) {
             return Err(Error::NonZeroPadding);
         }
@@ -519,9 +524,7 @@ impl<const MAX: u32> WriteXdr for VecM<u8, MAX> {
 
         w.write_all(&self.0)?;
 
-        let pad_len = (4 - (len % 4)) % 4;
-        let pad = &[0u8; 3][..pad_len as usize];
-        w.write_all(pad)?;
+        w.write_all(&[0u8; 3][..pad_len(len)])?;
 
         Ok(())
     }
