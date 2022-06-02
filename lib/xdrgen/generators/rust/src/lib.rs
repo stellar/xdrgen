@@ -116,8 +116,8 @@ pub trait WriteXdr {
     }
 }
 
-/// Pad_len returns the number of bytes to pad an XDR value of the given length
-/// to make the final serialized size a multiple of 4.
+/// `Pad_len` returns the number of bytes to pad an XDR value of the given
+/// length to make the final serialized size a multiple of 4.
 fn pad_len(len: usize) -> usize {
     (4 - (len % 4)) % 4
 }
