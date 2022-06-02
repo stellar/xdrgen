@@ -63,7 +63,7 @@ module Xdrgen
       end
 
       def render_lib(out)
-        lib = IO.read(__dir__ + "/rust/src/lib.rs")
+        lib = IO.read(__dir__ + "/rust/src/types.rs")
         out.puts(lib)
         out.break
       end
