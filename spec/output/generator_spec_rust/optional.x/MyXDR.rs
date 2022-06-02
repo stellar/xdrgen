@@ -523,8 +523,8 @@ impl<const MAX: u32> WriteXdr for VecM<u8, MAX> {
         w.write_all(&self.0)?;
 
         let pad_len = (4 - (len % 4)) % 4;
-        let pad = vec![0u8; pad_len as usize];
-        w.write_all(&pad)?;
+        let pad = &[0u8; 3][..pad_len as usize];
+        w.write_all(pad)?;
 
         Ok(())
     }
@@ -571,6 +571,13 @@ mod tests {
     use super::{Error, ReadXdr, VecM};
 
     #[test]
+    pub fn vec_u8_read_without_padding() {
+        let mut buf = Cursor::new(vec![0, 0, 0, 4, 2, 2, 2, 2]);
+        let v = VecM::<u8, 8>::read_xdr(&mut buf).unwrap();
+        assert_eq!(v.to_vec(), vec![2, 2, 2, 2]);
+    }
+
+    #[test]
     pub fn vec_u8_read_with_padding() {
         let mut buf = Cursor::new(vec![0, 0, 0, 1, 2, 0, 0, 0]);
         let v = VecM::<u8, 8>::read_xdr(&mut buf).unwrap();
@@ -595,6 +602,14 @@ mod tests {
             Err(Error::NonZeroPadding) => (),
             _ => panic!("expected NonZeroPadding got {:?}", res),
         }
+    }
+
+    #[test]
+    pub fn vec_u8_write_without_padding() {
+        let mut buf = vec![];
+        let v: VecM<u8, 8> = vec![2, 2, 2, 2].try_into().unwrap();
+        v.write_xdr(&mut Cursor::new(&mut buf)).unwrap();
+        assert_eq!(buf, vec![0, 0, 0, 4, 2, 2, 2, 2]);
     }
 
     #[test]

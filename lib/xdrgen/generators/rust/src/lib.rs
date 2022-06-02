@@ -520,8 +520,8 @@ impl<const MAX: u32> WriteXdr for VecM<u8, MAX> {
         w.write_all(&self.0)?;
 
         let pad_len = (4 - (len % 4)) % 4;
-        let pad = vec![0u8; pad_len as usize];
-        w.write_all(&pad)?;
+        let pad = &[0u8; 3][..pad_len as usize];
+        w.write_all(pad)?;
 
         Ok(())
     }
