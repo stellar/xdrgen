@@ -175,7 +175,7 @@ module Xdrgen
 
             fn try_from(i: i32) -> Result<Self> {
                 let e = match i {
-                    #{enum.members.map do |m| "#{format_number(m.value)} => #{name enum}::#{name m}," end.join("\n")}
+                    #{enum.members.map do |m| "#{m.value} => #{name enum}::#{name m}," end.join("\n")}
                     #[allow(unreachable_patterns)]
                     _ => return Err(Error::Invalid),
                 };
@@ -256,8 +256,8 @@ module Xdrgen
                     #{union_cases(union) do |case_name, arm, value|
                       "Self::#{case_name}#{"(_)" unless arm.void?} => #{
                         value.nil?                ? "#{discriminant_type}::#{case_name}" :
-                        discriminant_type_builtin ? "#{format_number(value)}" :
-                                                    "#{discriminant_type}(#{format_number(value)})"
+                        discriminant_type_builtin ? "#{value}" :
+                                                    "#{discriminant_type}(#{value})"
                       },"
                     end.join("\n")}
                 }
@@ -272,7 +272,7 @@ module Xdrgen
                 let v = match dv {
                     #{union_cases(union) do |case_name, arm, value|
                       "#{
-                        value.nil? ? "#{discriminant_type}::#{case_name}" : "#{format_number(value)}"
+                        value.nil? ? "#{discriminant_type}::#{case_name}" : "#{value}"
                       } => #{
                         arm.void? ? "Self::#{case_name}" : "Self::#{case_name}(#{reference_to_call(union, arm.type, :read)}::read_xdr(r)?)"
                       },"
@@ -424,7 +424,7 @@ module Xdrgen
       end
 
       def render_const(out, const)
-        out.puts "pub const #{name(const).underscore.upcase}: u64 = #{format_number(const.value)};"
+        out.puts "pub const #{name(const).underscore.upcase}: u64 = #{const.value};"
         out.break
       end
 
@@ -466,15 +466,15 @@ module Xdrgen
           raise 'no quadruple support for rust'
         when AST::Typespecs::String
           if !type.decl.resolved_size.nil?
-            "VecM::<u8, #{format_number(type.decl.resolved_size)}>"
+            "VecM::<u8, #{type.decl.resolved_size}>"
           else
             "VecM::<u8>"
           end
         when AST::Typespecs::Opaque
           if type.fixed?
-            "[u8; #{format_number(type.size)}]"
+            "[u8; #{type.size}]"
           elsif !type.decl.resolved_size.nil?
-            "VecM::<u8, #{format_number(type.decl.resolved_size)}>"
+            "VecM::<u8, #{type.decl.resolved_size}>"
           else
             "VecM::<u8>"
           end
@@ -511,10 +511,10 @@ module Xdrgen
         when :array
           is_named, size = type.array_size
           size = name @top.find_definition(size) if is_named
-          "[#{base_ref}; #{format_number(size)}]"
+          "[#{base_ref}; #{size}]"
         when :var_array
           if !type.decl.resolved_size.nil?
-            "VecM::<#{base_ref}, #{format_number(type.decl.resolved_size)}>"
+            "VecM::<#{base_ref}, #{type.decl.resolved_size}>"
           else
             "VecM::<#{base_ref}>"
           end
@@ -544,15 +544,15 @@ module Xdrgen
         case type
         when AST::Typespecs::String
           if !type.decl.resolved_size.nil?
-            "VecM::<u8, #{format_number(type.decl.resolved_size)}>"
+            "VecM::<u8, #{type.decl.resolved_size}>"
           else
             "VecM::<u8>"
           end
         when AST::Typespecs::Opaque
           if type.fixed?
-            "[u8; #{format_number(type.size)}]"
+            "[u8; #{type.size}]"
           elsif !type.decl.resolved_size.nil?
-            "VecM::<u8, #{format_number(type.decl.resolved_size)}>"
+            "VecM::<u8, #{type.decl.resolved_size}>"
           else
             "VecM::<u8>"
           end
@@ -589,10 +589,10 @@ module Xdrgen
         when :array
           is_named, size = type.array_size
           size = name @top.find_definition(size) if is_named
-          "[#{base_ref}; #{format_number(size)}]"
+          "[#{base_ref}; #{size}]"
         when :var_array
           if !type.decl.resolved_size.nil?
-            "VecM::<#{base_ref}, #{format_number(type.decl.resolved_size)}>"
+            "VecM::<#{base_ref}, #{type.decl.resolved_size}>"
           else
             "VecM::<#{base_ref}>"
           end
@@ -633,10 +633,6 @@ module Xdrgen
         when 'Error' then 'SError'
         else name
         end
-      end
-
-      def format_number(num)
-        num.to_s.chars.reverse.each_slice(3).map(&:join).map(&:reverse).reverse.join('_')
       end
 
     end

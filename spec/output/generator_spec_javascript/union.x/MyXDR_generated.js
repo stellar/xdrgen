@@ -93,30 +93,5 @@ xdr.union("IntUnion", {
 // ===========================================================================
 xdr.typedef("IntUnion2", xdr.lookup("IntUnion"));
 
-// === xdr source ============================================================
-//
-//   union IntUnion3 switch (int type)
-//   {
-//       case 0:
-//           Error error;
-//       case 1000:
-//           Multi things<>;
-//   
-//   };
-//
-// ===========================================================================
-xdr.union("IntUnion3", {
-  switchOn: xdr.int(),
-  switchName: "type",
-  switches: [
-    [0, "error"],
-    [1000, "things"],
-  ],
-  arms: {
-    error: xdr.lookup("Error"),
-    things: xdr.varArray(xdr.lookup("Multi"), 2147483647),
-  },
-});
-
 });
 export default types;

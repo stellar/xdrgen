@@ -1,7 +1,7 @@
 // Module  is generated from:
 //  spec/fixtures/generator/enum.x
 
-#![allow(clippy::missing_errors_doc)]
+#![allow(clippy::missing_errors_doc, clippy::unreadable_literal)]
 
 use core::{fmt, fmt::Debug, slice::Iter};
 
@@ -879,62 +879,6 @@ pub enum Color2 {
         }
 
         impl WriteXdr for Color2 {
-            #[cfg(feature = "std")]
-            fn write_xdr(&self, w: &mut impl Write) -> Result<()> {
-                let i: i32 = (*self).into();
-                i.write_xdr(w)
-            }
-        }
-
-// Color3 is an XDR Enum defines as:
-//
-//   enum Color3 {
-//        RED3=RED,  
-//        GREEN3=1000,  
-//        BLUE3=2000  
-//    };
-//
-// enum
-#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
-#[repr(i32)]
-pub enum Color3 {
-  Red3 = 0,
-  Green3 = 1000,
-  Blue3 = 2000,
-}
-
-        impl TryFrom<i32> for Color3 {
-            type Error = Error;
-
-            fn try_from(i: i32) -> Result<Self> {
-                let e = match i {
-                    0 => Color3::Red3,
-1_000 => Color3::Green3,
-2_000 => Color3::Blue3,
-                    #[allow(unreachable_patterns)]
-                    _ => return Err(Error::Invalid),
-                };
-                Ok(e)
-            }
-        }
-
-        impl From<Color3> for i32 {
-            #[must_use]
-            fn from(e: Color3) -> Self {
-                e as Self
-            }
-        }
-
-        impl ReadXdr for Color3 {
-            #[cfg(feature = "std")]
-            fn read_xdr(r: &mut impl Read) -> Result<Self> {
-                let e = i32::read_xdr(r)?;
-                let v: Self = e.try_into()?;
-                Ok(v)
-            }
-        }
-
-        impl WriteXdr for Color3 {
             #[cfg(feature = "std")]
             fn write_xdr(&self, w: &mut impl Write) -> Result<()> {
                 let i: i32 = (*self).into();

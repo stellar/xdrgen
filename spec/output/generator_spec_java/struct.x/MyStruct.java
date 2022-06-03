@@ -17,7 +17,7 @@ import java.util.Arrays;
 //      int64  aBigInt;
 //      opaque someOpaque[10];
 //      string someString<>;
-//      string maxString<1000>;
+//      string maxString<100>;
 //  };
 
 //  ===========================================================================
@@ -77,7 +77,7 @@ public class MyStruct implements XdrElement {
     decodedMyStruct.someOpaque = new byte[someOpaquesize];
     stream.read(decodedMyStruct.someOpaque, 0, someOpaquesize);
     decodedMyStruct.someString = XdrString.decode(stream, );
-    decodedMyStruct.maxString = XdrString.decode(stream, 1000);
+    decodedMyStruct.maxString = XdrString.decode(stream, 100);
     return decodedMyStruct;
   }
   @Override

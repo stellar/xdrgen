@@ -1,7 +1,7 @@
 // Module  is generated from:
 //  spec/fixtures/generator/union.x
 
-#![allow(clippy::missing_errors_doc)]
+#![allow(clippy::missing_errors_doc, clippy::unreadable_literal)]
 
 use core::{fmt, fmt::Debug, slice::Iter};
 
@@ -901,60 +901,3 @@ impl WriteXdr for IntUnion2 {
         self.0.write_xdr(w)
     }
 }
-
-// IntUnion3 is an XDR Union defines as:
-//
-//   union IntUnion3 switch (int type)
-//    {
-//        case 0:
-//            Error error;
-//        case 1000:
-//            Multi things<>;
-//    
-//    };
-//
-// union with discriminant i32
-#[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
-pub enum IntUnion3 {
-  V0(i32),
-  V1000(VecM::<i32>),
-}
-
-        impl IntUnion3 {
-            #[must_use]
-            pub fn discriminant(&self) -> i32 {
-                #[allow(clippy::match_same_arms)]
-                match self {
-                    Self::V0(_) => 0,
-Self::V1000(_) => 1_000,
-                }
-            }
-        }
-
-        impl ReadXdr for IntUnion3 {
-            #[cfg(feature = "std")]
-            fn read_xdr(r: &mut impl Read) -> Result<Self> {
-                let dv: i32 = <i32 as ReadXdr>::read_xdr(r)?;
-                #[allow(clippy::match_same_arms, clippy::match_wildcard_for_single_variants)]
-                let v = match dv {
-                    0 => Self::V0(i32::read_xdr(r)?),
-1_000 => Self::V1000(VecM::<i32>::read_xdr(r)?),
-                    #[allow(unreachable_patterns)]
-                    _ => return Err(Error::Invalid),
-                };
-                Ok(v)
-            }
-        }
-
-        impl WriteXdr for IntUnion3 {
-            #[cfg(feature = "std")]
-            fn write_xdr(&self, w: &mut impl Write) -> Result<()> {
-                self.discriminant().write_xdr(w)?;
-                #[allow(clippy::match_same_arms)]
-                match self {
-                    Self::V0(v) => v.write_xdr(w)?,
-Self::V1000(v) => v.write_xdr(w)?,
-                };
-                Ok(())
-            }
-        }

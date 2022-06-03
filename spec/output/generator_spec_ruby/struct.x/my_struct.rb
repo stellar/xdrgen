@@ -11,7 +11,7 @@ require 'xdr'
 #       int64  aBigInt;
 #       opaque someOpaque[10];
 #       string someString<>;
-#       string maxString<1000>;
+#       string maxString<100>;
 #   };
 #
 # ===========================================================================
@@ -20,5 +20,5 @@ class MyStruct < XDR::Struct
   attribute :a_big_int,   Int64
   attribute :some_opaque, XDR::Opaque[10]
   attribute :some_string, XDR::String[]
-  attribute :max_string,  XDR::String[1000]
+  attribute :max_string,  XDR::String[100]
 end

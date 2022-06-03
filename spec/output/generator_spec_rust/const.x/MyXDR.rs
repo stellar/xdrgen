@@ -1,7 +1,7 @@
 // Module  is generated from:
 //  spec/fixtures/generator/const.x
 
-#![allow(clippy::missing_errors_doc)]
+#![allow(clippy::missing_errors_doc, clippy::unreadable_literal)]
 
 use core::{fmt, fmt::Debug, slice::Iter};
 
@@ -684,12 +684,6 @@ mod tests {
 //
 pub const FOO: u64 = 1;
 
-// Bar is an XDR Const defines as:
-//
-//   const BAR = 1000;
-//
-pub const BAR: u64 = 1_000;
-
 // TestArray is an XDR Typedef defines as:
 //
 //   typedef int TestArray[FOO];
@@ -698,6 +692,6 @@ pub type TestArray = [i32; Foo];
 
 // TestArray2 is an XDR Typedef defines as:
 //
-//   typedef int TestArray2<BAR>;
+//   typedef int TestArray2<FOO>;
 //
-pub type TestArray2 = VecM::<i32, 1_000>;
+pub type TestArray2 = VecM::<i32, 1>;

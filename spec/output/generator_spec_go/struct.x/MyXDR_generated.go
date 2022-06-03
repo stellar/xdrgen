@@ -115,7 +115,7 @@ var _ xdrType = (*Int64)(nil)
 //        int64  aBigInt;
 //        opaque someOpaque[10];
 //        string someString<>;
-//        string maxString<1000>;
+//        string maxString<100>;
 //    };
 //
 type MyStruct struct {
@@ -123,7 +123,7 @@ type MyStruct struct {
   ABigInt Int64 
   SomeOpaque [10]byte `xdrmaxsize:"10"`
   SomeString string 
-  MaxString string `xdrmaxsize:"1000"`
+  MaxString string `xdrmaxsize:"100"`
 }
 
 // EncodeTo encodes this value using the Encoder.
@@ -172,7 +172,7 @@ n += nTmp
 if err != nil {
   return n, fmt.Errorf("decoding SomeString: %s", err)
 }
-  s.MaxString, nTmp, err = d.DecodeString(1000)
+  s.MaxString, nTmp, err = d.DecodeString(100)
 n += nTmp
 if err != nil {
   return n, fmt.Errorf("decoding MaxString: %s", err)

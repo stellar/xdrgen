@@ -26,12 +26,3 @@ union IntUnion switch (int type)
 };
 
 typedef IntUnion IntUnion2;
-
-union IntUnion3 switch (int type)
-{
-    case 0:
-        Error error;
-    case 1000:
-        Multi things<>;
-
-};

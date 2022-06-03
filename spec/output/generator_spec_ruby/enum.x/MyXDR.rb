@@ -6,4 +6,3 @@ require 'xdr'
 autoload :MessageType
 autoload :Color
 autoload :Color2
-autoload :Color3

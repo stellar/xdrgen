@@ -26,7 +26,7 @@ defmodule MyXDR do
           int64  aBigInt;
           opaque someOpaque[10];
           string someString<>;
-          string maxString<1000>;
+          string maxString<100>;
       };
 
   ===========================================================================
@@ -36,7 +36,7 @@ defmodule MyXDR do
     a_big_int: "Int64",
     some_opaque: build_type(Opaque, 10),
     some_string: build_type(XDR.Type.String, ),
-    max_string: build_type(XDR.Type.String, 1000)
+    max_string: build_type(XDR.Type.String, 100)
   )
 
 end

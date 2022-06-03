@@ -10,7 +10,7 @@ import java.util.Arrays;
 
 // === xdr source ============================================================
 
-//  typedef int TestArray2<BAR>;
+//  typedef int TestArray2<FOO>;
 
 //  ===========================================================================
 public class TestArray2 implements XdrElement {
