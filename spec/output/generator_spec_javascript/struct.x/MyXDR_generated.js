@@ -23,7 +23,7 @@ xdr.typedef("Int64", xdr.hyper());
 //       int64  aBigInt;
 //       opaque someOpaque[10];
 //       string someString<>;
-//       string maxString<100>;
+//       string maxString<1000>;
 //   };
 //
 // ===========================================================================
@@ -32,7 +32,7 @@ xdr.struct("MyStruct", [
   ["aBigInt", xdr.lookup("Int64")],
   ["someOpaque", xdr.opaque(10)],
   ["someString", xdr.string()],
-  ["maxString", xdr.string(100)],
+  ["maxString", xdr.string(1000)],
 ]);
 
 });

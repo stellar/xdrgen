@@ -1,7 +1,7 @@
 // Module  is generated from:
 //  spec/fixtures/generator/test.x
 
-#![allow(clippy::missing_errors_doc, clippy::unreadable_literal)]
+#![allow(clippy::missing_errors_doc)]
 
 use core::{fmt, fmt::Debug, slice::Iter};
 
@@ -1411,7 +1411,7 @@ pub enum Color {
 //
 //   const FOO = 1244;
 //
-pub const FOO: u64 = 1244;
+pub const FOO: u64 = 1_244;
 
 // Bar is an XDR Const defines as:
 //

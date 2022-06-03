@@ -20,6 +20,15 @@ defmodule MyXDR do
   comment ~S"""
   === xdr source ============================================================
 
+      const BAR = 1000;
+
+  ===========================================================================
+  """
+  define_type("BAR", Const, 1000);
+
+  comment ~S"""
+  === xdr source ============================================================
+
       typedef int TestArray[FOO];
 
   ===========================================================================
@@ -29,10 +38,10 @@ defmodule MyXDR do
   comment ~S"""
   === xdr source ============================================================
 
-      typedef int TestArray2<FOO>;
+      typedef int TestArray2<BAR>;
 
   ===========================================================================
   """
-  define_type("TestArray2", VariableArray, max_length: "FOO", type: buid_type(base_ref))
+  define_type("TestArray2", VariableArray, max_length: "BAR", type: buid_type(base_ref))
 
 end

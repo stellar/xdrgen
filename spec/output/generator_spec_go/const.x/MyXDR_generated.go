@@ -56,6 +56,12 @@ func Marshal(w io.Writer, v interface{}) (int, error) {
 //
 const Foo = 1
 
+// Bar is an XDR Const defines as:
+//
+//   const BAR = 1000;
+//
+const Bar = 1000
+
 // TestArray is an XDR Typedef defines as:
 //
 //   typedef int TestArray[FOO];
@@ -114,12 +120,12 @@ var _ xdrType = (*TestArray)(nil)
 
 // TestArray2 is an XDR Typedef defines as:
 //
-//   typedef int TestArray2<FOO>;
+//   typedef int TestArray2<BAR>;
 //
 type TestArray2 []int32
 // XDRMaxSize implements the Sized interface for TestArray2
 func (e TestArray2) XDRMaxSize() int {
-  return 1
+  return 1000
 }
 // EncodeTo encodes this value using the Encoder.
 func (s TestArray2) EncodeTo(e *xdr.Encoder) error {

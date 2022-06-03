@@ -4,5 +4,6 @@
 require 'xdr'
 
 FOO = 1
+BAR = 1000
 TestArray = XDR::Array[int, FOO]
-TestArray2 = XDR::VarArray[int, FOO]
+TestArray2 = XDR::VarArray[int, BAR]

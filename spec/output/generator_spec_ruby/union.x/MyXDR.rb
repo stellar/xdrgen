@@ -9,3 +9,4 @@ autoload :UnionKey
 autoload :MyUnion
 autoload :IntUnion
 IntUnion2 = IntUnion
+autoload :IntUnion3

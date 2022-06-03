@@ -1,7 +1,7 @@
 // Module  is generated from:
 //  spec/fixtures/generator/struct.x
 
-#![allow(clippy::missing_errors_doc, clippy::unreadable_literal)]
+#![allow(clippy::missing_errors_doc)]
 
 use core::{fmt, fmt::Debug, slice::Iter};
 
@@ -692,7 +692,7 @@ pub type Int64 = i64;
 //        int64  aBigInt;
 //        opaque someOpaque[10];
 //        string someString<>;
-//        string maxString<100>;
+//        string maxString<1000>;
 //    };
 //
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
@@ -701,7 +701,7 @@ pub struct MyStruct {
   pub a_big_int: i64,
   pub some_opaque: [u8; 10],
   pub some_string: VecM::<u8>,
-  pub max_string: VecM::<u8, 100>,
+  pub max_string: VecM::<u8, 1_000>,
 }
 
         impl ReadXdr for MyStruct {
@@ -712,7 +712,7 @@ pub struct MyStruct {
 a_big_int: i64::read_xdr(r)?,
 some_opaque: <[u8; 10]>::read_xdr(r)?,
 some_string: VecM::<u8>::read_xdr(r)?,
-max_string: VecM::<u8, 100>::read_xdr(r)?,
+max_string: VecM::<u8, 1_000>::read_xdr(r)?,
                 })
             }
         }

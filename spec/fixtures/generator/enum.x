@@ -34,3 +34,9 @@ enum Color2 {
     GREEN2=1,  
     BLUE2=2  
 };
+
+enum Color3 {
+    RED3=RED,  
+    GREEN3=1000,  
+    BLUE3=2000  
+};

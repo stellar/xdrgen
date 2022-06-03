@@ -17,6 +17,13 @@ xdr.const("FOO", 1);
 
 // === xdr source ============================================================
 //
+//   const BAR = 1000;
+//
+// ===========================================================================
+xdr.const("BAR", 1000);
+
+// === xdr source ============================================================
+//
 //   typedef int TestArray[FOO];
 //
 // ===========================================================================
@@ -24,10 +31,10 @@ xdr.typedef("TestArray", xdr.array(xdr.int(), xdr.lookup("FOO")));
 
 // === xdr source ============================================================
 //
-//   typedef int TestArray2<FOO>;
+//   typedef int TestArray2<BAR>;
 //
 // ===========================================================================
-xdr.typedef("TestArray2", xdr.varArray(xdr.int(), xdr.lookup("FOO")));
+xdr.typedef("TestArray2", xdr.varArray(xdr.int(), xdr.lookup("BAR")));
 
 });
 export default types;

@@ -330,5 +330,85 @@ func (s Color2) xdrType() {}
 
 var _ xdrType = (*Color2)(nil)
 
+// Color3 is an XDR Enum defines as:
+//
+//   enum Color3 {
+//        RED3=RED,  
+//        GREEN3=1000,  
+//        BLUE3=2000  
+//    };
+//
+type Color3 int32
+const (
+  Color3Red3 Color3 = 0
+  Color3Green3 Color3 = 1000
+  Color3Blue3 Color3 = 2000
+)
+var color3Map = map[int32]string{
+  0: "Color3Red3",
+  1000: "Color3Green3",
+  2000: "Color3Blue3",
+}
+
+// ValidEnum validates a proposed value for this enum.  Implements
+// the Enum interface for Color3
+func (e Color3) ValidEnum(v int32) bool {
+  _, ok := color3Map[v]
+  return ok
+}
+// String returns the name of `e`
+func (e Color3) String() string {
+  name, _ := color3Map[int32(e)]
+  return name
+}
+
+// EncodeTo encodes this value using the Encoder.
+func (e Color3) EncodeTo(enc *xdr.Encoder) error {
+  if _, ok := color3Map[int32(e)]; !ok {
+    return fmt.Errorf("'%d' is not a valid Color3 enum value", e)
+  }
+  _, err := enc.EncodeInt(int32(e))
+  return err
+}
+var _ decoderFrom = (*Color3)(nil)
+// DecodeFrom decodes this value using the Decoder.
+func (e *Color3) DecodeFrom(d *xdr.Decoder) (int, error) {
+  v, n, err := d.DecodeInt()
+  if err != nil {
+    return n, fmt.Errorf("decoding Color3: %s", err)
+  }
+  if _, ok := color3Map[v]; !ok {
+    return n, fmt.Errorf("'%d' is not a valid Color3 enum value", v)
+  }
+  *e = Color3(v)
+  return n, nil
+}
+// MarshalBinary implements encoding.BinaryMarshaler.
+func (s Color3) MarshalBinary() ([]byte, error) {
+  b := bytes.Buffer{}
+  e := xdr.NewEncoder(&b)
+  err := s.EncodeTo(e)
+  return b.Bytes(), err
+}
+
+// UnmarshalBinary implements encoding.BinaryUnmarshaler.
+func (s *Color3) UnmarshalBinary(inp []byte) error {
+  r := bytes.NewReader(inp)
+  d := xdr.NewDecoder(r)
+  _, err := s.DecodeFrom(d)
+  return err
+}
+
+var (
+  _ encoding.BinaryMarshaler   = (*Color3)(nil)
+  _ encoding.BinaryUnmarshaler = (*Color3)(nil)
+)
+
+// xdrType signals that this type is an type representing
+// representing XDR values defined by this package.
+func (s Color3) xdrType() {}
+
+var _ xdrType = (*Color3)(nil)
+
         var fmtTest = fmt.Sprint("this is a dummy usage of fmt")
 

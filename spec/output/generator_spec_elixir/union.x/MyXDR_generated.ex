@@ -105,4 +105,31 @@ defmodule MyXDR do
   """
   define_type("IntUnion2", "IntUnion")
 
+  comment ~S"""
+  === xdr source ============================================================
+
+      union IntUnion3 switch (int type)
+      {
+          case 0:
+              Error error;
+          case 1000:
+              Multi things<>;
+      
+      };
+
+  ===========================================================================
+  """
+  define_type("IntUnion3", Union,
+    switch_type: build_type(Int),
+    switch_name: :type,
+    switches: [
+      {0, :error},
+      {1000, :things},
+    ],
+    arms: [
+      error: "Error",
+      things: build_type(VariableArray, max_length: 2147483647, type: "Multi"),
+    ]
+  )
+
 end

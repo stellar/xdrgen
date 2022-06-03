@@ -6,5 +6,5 @@ struct MyStruct
     int64  aBigInt;
     opaque someOpaque[10];
     string someString<>;
-    string maxString<100>;
+    string maxString<1000>;
 };
