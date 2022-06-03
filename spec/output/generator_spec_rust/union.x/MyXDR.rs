@@ -1,7 +1,7 @@
 // Module  is generated from:
 //  spec/fixtures/generator/union.x
 
-#![allow(clippy::missing_errors_doc)]
+#![allow(clippy::missing_errors_doc, clippy::unreadable_literal)]
 
 use core::{fmt, fmt::Debug, slice::Iter};
 
