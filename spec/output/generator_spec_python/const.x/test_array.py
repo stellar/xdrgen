@@ -17,10 +17,10 @@ class TestArray:
     """
 
     def __init__(self, test_array: List[int]) -> None:
-        if test_array and len(test_array) != FOO:
-            expect_size = FOO
+        _expect_length = FOO
+        if test_array and len(test_array) != _expect_length:
             raise ValueError(
-                f"The length of `test_array` should be {expect_size}, but got {len(test_array)}."
+                f"The length of `test_array` should be {_expect_length}, but got {len(test_array)}."
             )
         self.test_array = test_array
 

@@ -24,8 +24,6 @@ class OptHash2:
             packer.pack_uint(0)
         else:
             packer.pack_uint(1)
-            if self.opt_hash2 is None:
-                raise ValueError("opt_hash2 should not be None.")
             self.opt_hash2.pack(packer)
 
     @classmethod

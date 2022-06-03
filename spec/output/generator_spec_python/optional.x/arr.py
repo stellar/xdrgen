@@ -16,10 +16,10 @@ class Arr:
     """
 
     def __init__(self, arr: List[int]) -> None:
-        if arr and len(arr) != 2:
-            expect_size = 2
+        _expect_length = 2
+        if arr and len(arr) != _expect_length:
             raise ValueError(
-                f"The length of `arr` should be {expect_size}, but got {len(arr)}."
+                f"The length of `arr` should be {_expect_length}, but got {len(arr)}."
             )
         self.arr = arr
 

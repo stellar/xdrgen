@@ -17,10 +17,10 @@ class Hashes1:
     """
 
     def __init__(self, hashes1: List[Hash]) -> None:
-        if hashes1 and len(hashes1) != 12:
-            expect_size = 12
+        _expect_length = 12
+        if hashes1 and len(hashes1) != _expect_length:
             raise ValueError(
-                f"The length of `hashes1` should be {expect_size}, but got {len(hashes1)}."
+                f"The length of `hashes1` should be {_expect_length}, but got {len(hashes1)}."
             )
         self.hashes1 = hashes1
 

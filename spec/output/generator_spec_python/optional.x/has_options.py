@@ -37,22 +37,16 @@ class HasOptions:
             packer.pack_uint(0)
         else:
             packer.pack_uint(1)
-            if self.first_option is None:
-                raise ValueError("first_option should not be None.")
             Integer(self.first_option).pack(packer)
         if self.second_option is None:
             packer.pack_uint(0)
         else:
             packer.pack_uint(1)
-            if self.second_option is None:
-                raise ValueError("second_option should not be None.")
             Integer(self.second_option).pack(packer)
         if self.third_option is None:
             packer.pack_uint(0)
         else:
             packer.pack_uint(1)
-            if self.third_option is None:
-                raise ValueError("third_option should not be None.")
             self.third_option.pack(packer)
 
     @classmethod

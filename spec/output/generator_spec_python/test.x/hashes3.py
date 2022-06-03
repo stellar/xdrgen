@@ -17,10 +17,10 @@ class Hashes3:
     """
 
     def __init__(self, hashes3: List[Hash]) -> None:
-        if hashes3 and len(hashes3) > 4294967295:
-            expect_size = 4294967295
+        _expect_max_length = 4294967295
+        if hashes3 and len(hashes3) > _expect_max_length:
             raise ValueError(
-                f"The maximum length of `hashes3` should be {expect_size}, but got {len(hashes3)}."
+                f"The maximum length of `hashes3` should be {_expect_max_length}, but got {len(hashes3)}."
             )
         self.hashes3 = hashes3
 

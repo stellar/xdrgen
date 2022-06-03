@@ -395,14 +395,14 @@ module Xdrgen
         end
 
         out.indent(member.type.sub_type == :optional ? 2 : 0) do
+          if is_union_member # All members of union are actually optional
+            out.puts <<~HEREDOC
+              if self.#{member_name_underscore} is None:
+                  raise ValueError("#{member_name_underscore} should not be None.")
+            HEREDOC
+          end
           case member.declaration
           when AST::Declarations::Array
-            if is_union_member # All members of union are actually optional
-              out.puts <<~HEREDOC
-                if self.#{member_name_underscore} is None:
-                    raise ValueError("#{member_name_underscore} should not be None.")
-              HEREDOC
-            end
             unless member.declaration.fixed?
               out.puts "packer.pack_uint(len(self.#{member_name_underscore}))"
             end
@@ -411,12 +411,6 @@ module Xdrgen
                   #{encode_type member.declaration, member_name_underscore + '_item'}
             HEREDOC
           else
-            if member.type.sub_type == :optional or is_union_member
-              out.puts <<~HEREDOC
-                if self.#{member_name_underscore} is None:
-                    raise ValueError("#{member_name_underscore} should not be None.")
-              HEREDOC
-            end
             out.puts encode_type member.declaration, 'self.' + member_name_underscore
           end
         end
@@ -473,15 +467,15 @@ module Xdrgen
           member_name_underscore = member.name.underscore
           if member.declaration.fixed?
             out.puts <<~HEREDOC
-              if #{member_name_underscore} and len(#{member_name_underscore}) != #{size}:
-                  expect_size = #{size}
-                  raise ValueError(f\"The length of `#{member_name_underscore}` should be {expect_size}, but got {len(#{member_name_underscore})}.\")
+              _expect_length = #{size}
+              if #{member_name_underscore} and len(#{member_name_underscore}) != _expect_length:
+                  raise ValueError(f\"The length of `#{member_name_underscore}` should be {_expect_length}, but got {len(#{member_name_underscore})}.\")
             HEREDOC
           else
             out.puts <<~HEREDOC
-              if #{member_name_underscore} and len(#{member_name_underscore}) > #{size || MAX_SIZE}:
-                  expect_size = #{size || MAX_SIZE}
-                  raise ValueError(f\"The maximum length of `#{member_name_underscore}` should be {expect_size}, but got {len(#{member_name_underscore})}.\")
+              _expect_max_length = #{size || MAX_SIZE}
+              if #{member_name_underscore} and len(#{member_name_underscore}) > _expect_max_length:
+                  raise ValueError(f\"The maximum length of `#{member_name_underscore}` should be {_expect_max_length}, but got {len(#{member_name_underscore})}.\")
             HEREDOC
           end
         end
