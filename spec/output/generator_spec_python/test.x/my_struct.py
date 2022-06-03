@@ -115,4 +115,4 @@ class MyStruct:
             f"field6={self.field6}",
             f"field7={self.field7}",
         ]
-        return f"<MyStruct {[', '.join(out)]}>"
+        return f"<MyStruct [{', '.join(out)}]>"

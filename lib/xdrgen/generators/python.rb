@@ -280,7 +280,7 @@ module Xdrgen
               arm_name_underscore = arm.name.underscore
               out.puts "out.append(f'#{arm_name_underscore}={self.#{arm_name_underscore}}') if self.#{arm_name_underscore} is not None else None"
             end
-            out.puts "return f\"<#{union_name} {[', '.join(out)]}>\""
+            out.puts "return f\"<#{union_name} [{', '.join(out)}]>\""
           end
         end
         out.close
@@ -372,7 +372,7 @@ module Xdrgen
               end
             end
             out.puts "]"
-            out.puts "return f\"<#{struct_name} {[', '.join(out)]}>\""
+            out.puts "return f\"<#{struct_name} [{', '.join(out)}]>\""
           end
 
         end

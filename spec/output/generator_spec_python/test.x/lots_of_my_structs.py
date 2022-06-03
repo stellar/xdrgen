@@ -73,4 +73,4 @@ class LotsOfMyStructs:
         out = [
             f"members={self.members}",
         ]
-        return f"<LotsOfMyStructs {[', '.join(out)]}>"
+        return f"<LotsOfMyStructs [{', '.join(out)}]>"

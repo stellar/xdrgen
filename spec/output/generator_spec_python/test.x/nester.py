@@ -96,4 +96,4 @@ class Nester:
             f"nested_struct={self.nested_struct}",
             f"nested_union={self.nested_union}",
         ]
-        return f"<Nester {[', '.join(out)]}>"
+        return f"<Nester [{', '.join(out)}]>"

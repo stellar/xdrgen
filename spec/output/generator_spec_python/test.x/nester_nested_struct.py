@@ -60,4 +60,4 @@ class NesterNestedStruct:
         out = [
             f"blah={self.blah}",
         ]
-        return f"<NesterNestedStruct {[', '.join(out)]}>"
+        return f"<NesterNestedStruct [{', '.join(out)}]>"

@@ -94,4 +94,4 @@ class HasOptions:
             f"second_option={self.second_option}",
             f"third_option={self.third_option}",
         ]
-        return f"<HasOptions {[', '.join(out)]}>"
+        return f"<HasOptions [{', '.join(out)}]>"

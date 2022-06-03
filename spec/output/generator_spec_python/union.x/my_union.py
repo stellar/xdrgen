@@ -103,4 +103,4 @@ class MyUnion:
         out.append(f"type={self.type}")
         out.append(f"error={self.error}") if self.error is not None else None
         out.append(f"things={self.things}") if self.things is not None else None
-        return f"<MyUnion {[', '.join(out)]}>"
+        return f"<MyUnion [{', '.join(out)}]>"

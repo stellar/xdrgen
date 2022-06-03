@@ -97,4 +97,4 @@ class MyStruct:
             f"some_string={self.some_string}",
             f"max_string={self.max_string}",
         ]
-        return f"<MyStruct {[', '.join(out)]}>"
+        return f"<MyStruct [{', '.join(out)}]>"

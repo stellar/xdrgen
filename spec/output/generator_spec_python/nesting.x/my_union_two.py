@@ -69,4 +69,4 @@ class MyUnionTwo:
             f"some_int={self.some_int}",
             f"foo={self.foo}",
         ]
-        return f"<MyUnionTwo {[', '.join(out)]}>"
+        return f"<MyUnionTwo [{', '.join(out)}]>"

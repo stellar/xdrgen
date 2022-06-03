@@ -60,4 +60,4 @@ class MyUnionOne:
         out = [
             f"some_int={self.some_int}",
         ]
-        return f"<MyUnionOne {[', '.join(out)]}>"
+        return f"<MyUnionOne [{', '.join(out)}]>"

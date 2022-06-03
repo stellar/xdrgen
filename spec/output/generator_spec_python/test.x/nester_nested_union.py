@@ -73,4 +73,4 @@ class NesterNestedUnion:
         out = []
         out.append(f"color={self.color}")
         out.append(f"blah2={self.blah2}") if self.blah2 is not None else None
-        return f"<NesterNestedUnion {[', '.join(out)]}>"
+        return f"<NesterNestedUnion [{', '.join(out)}]>"

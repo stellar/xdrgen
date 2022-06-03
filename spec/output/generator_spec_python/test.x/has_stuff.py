@@ -62,4 +62,4 @@ class HasStuff:
         out = [
             f"data={self.data}",
         ]
-        return f"<HasStuff {[', '.join(out)]}>"
+        return f"<HasStuff [{', '.join(out)}]>"
