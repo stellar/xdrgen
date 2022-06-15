@@ -73,7 +73,7 @@ module Xdrgen
           /// `FILES_SHA256` is the SHA256 hashes of the source files:
           ///   #{@output.relative_source_paths.join("\n///   ")}
           pub const FILES_SHA256: &[&str] = &[
-            #{@output.relative_source_paths.map(){ |path| const_name.(path) }.join(",\n")}
+            #{@output.relative_source_path_sha256_hashes.map(){ |path, hash| "/* #{path} */ #{hash} }.join(",\n")}
           ];
         EOS
         out.break
