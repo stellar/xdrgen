@@ -60,6 +60,8 @@ module Xdrgen
           //   #{@output.relative_source_paths.join("\n//  ")}
         EOS
         out.break
+        out.puts "#![allow(clippy::missing_errors_doc, clippy::unreadable_literal)]"
+        out.break
         const_name = lambda { |path| "FILE_#{path.gsub(%r{[^\w]}, "_").upcase}_SHA256" }
         @output.relative_source_path_sha256_hashes.each do |path, hash|
           out.puts <<-EOS.strip_heredoc
