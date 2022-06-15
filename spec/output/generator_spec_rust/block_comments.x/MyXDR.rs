@@ -1,15 +1,13 @@
 // Module  is generated from:
-//   spec/fixtures/generator/block_comments.x
-
-/// FILE_SPEC_FIXTURES_GENERATOR_BLOCK_COMMENTS_X_SHA256 is the SHA256 hash of source file spec/fixtures/generator/block_comments.x.
-pub const FILE_SPEC_FIXTURES_GENERATOR_BLOCK_COMMENTS_X_SHA256: &str = "e13131bc4134f38da17b9d5e9f67d2695a69ef98e3ef272833f4c18d0cc88a30";
-/// FILES_SHA256 is the SHA256 hashes of the source files:
-///   spec/fixtures/generator/block_comments.x
-pub const FILES_SHA256: &[&str] = [
-  FILE_SPEC_FIXTURES_GENERATOR_BLOCK_COMMENTS_X_SHA256
-];
+//  spec/fixtures/generator/block_comments.x
 
 #![allow(clippy::missing_errors_doc, clippy::unreadable_literal)]
+
+/// `FILES_SHA256` is the SHA256 hashes of the source files:
+///   spec/fixtures/generator/block_comments.x
+pub const FILES_SHA256: &[&str] = &[
+  /* spec/fixtures/generator/block_comments.x */ "e13131bc4134f38da17b9d5e9f67d2695a69ef98e3ef272833f4c18d0cc88a30"
+];
 
 use core::{fmt, fmt::Debug, slice::Iter};
 

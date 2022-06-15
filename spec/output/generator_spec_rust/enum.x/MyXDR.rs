@@ -1,15 +1,13 @@
 // Module  is generated from:
-//   spec/fixtures/generator/enum.x
-
-/// FILE_SPEC_FIXTURES_GENERATOR_ENUM_X_SHA256 is the SHA256 hash of source file spec/fixtures/generator/enum.x.
-pub const FILE_SPEC_FIXTURES_GENERATOR_ENUM_X_SHA256: &str = "35cf5e97e2057039640ed260e8b38bb2733a3c3ca8529c93877bdec02a999d7f";
-/// FILES_SHA256 is the SHA256 hashes of the source files:
-///   spec/fixtures/generator/enum.x
-pub const FILES_SHA256: &[&str] = [
-  FILE_SPEC_FIXTURES_GENERATOR_ENUM_X_SHA256
-];
+//  spec/fixtures/generator/enum.x
 
 #![allow(clippy::missing_errors_doc, clippy::unreadable_literal)]
+
+/// `FILES_SHA256` is the SHA256 hashes of the source files:
+///   spec/fixtures/generator/enum.x
+pub const FILES_SHA256: &[&str] = &[
+  /* spec/fixtures/generator/enum.x */ "35cf5e97e2057039640ed260e8b38bb2733a3c3ca8529c93877bdec02a999d7f"
+];
 
 use core::{fmt, fmt::Debug, slice::Iter};
 

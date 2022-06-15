@@ -17,14 +17,10 @@ import (
   "github.com/stellar/go-xdr/xdr3"
 )
 
-const (
-  // FileSpecFixturesGeneratorNestingXSHA256 is the SHA256 hash of source file spec/fixtures/generator/nesting.x.
-  FileSpecFixturesGeneratorNestingXSHA256 = "5537949272c11f1bd09cf613a3751668b5018d686a1c2aaa3baa91183ca18f6a"
-)
 // FilesSHA256 is the SHA256 hashes of source files:
 //   spec/fixtures/generator/nesting.x
 var FilesSHA256 = [...]string{
-  FileSpecFixturesGeneratorNestingXSHA256
+  /* spec/fixtures/generator/nesting.x */ "5537949272c11f1bd09cf613a3751668b5018d686a1c2aaa3baa91183ca18f6a"
 }
 
 type xdrType interface {

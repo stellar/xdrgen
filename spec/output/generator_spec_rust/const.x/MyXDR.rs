@@ -1,15 +1,13 @@
 // Module  is generated from:
-//   spec/fixtures/generator/const.x
-
-/// FILE_SPEC_FIXTURES_GENERATOR_CONST_X_SHA256 is the SHA256 hash of source file spec/fixtures/generator/const.x.
-pub const FILE_SPEC_FIXTURES_GENERATOR_CONST_X_SHA256: &str = "0bff3b37592fcc16cad2fe10b9a72f5d39d033a114917c24e86a9ebd9cda9c37";
-/// FILES_SHA256 is the SHA256 hashes of the source files:
-///   spec/fixtures/generator/const.x
-pub const FILES_SHA256: &[&str] = [
-  FILE_SPEC_FIXTURES_GENERATOR_CONST_X_SHA256
-];
+//  spec/fixtures/generator/const.x
 
 #![allow(clippy::missing_errors_doc, clippy::unreadable_literal)]
+
+/// `FILES_SHA256` is the SHA256 hashes of the source files:
+///   spec/fixtures/generator/const.x
+pub const FILES_SHA256: &[&str] = &[
+  /* spec/fixtures/generator/const.x */ "0bff3b37592fcc16cad2fe10b9a72f5d39d033a114917c24e86a9ebd9cda9c37"
+];
 
 use core::{fmt, fmt::Debug, slice::Iter};
 

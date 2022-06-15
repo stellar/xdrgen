@@ -819,22 +819,11 @@ module Xdrgen
           )
         EOS
         out.break
-        const_name = lambda { |path| "File#{path.gsub(%r{[^\w]}, "_").camelize}SHA256" }
-        out.puts "const ("
-        out.indent do
-          @output.relative_source_path_sha256_hashes.each do |path, hash|
-            out.puts <<-EOS.strip_heredoc
-              // #{const_name.(path)} is the SHA256 hash of source file #{path}.
-              #{const_name.(path)} = "#{hash}"
-            EOS
-          end
-        end
-        out.puts ")"
         out.puts <<-EOS.strip_heredoc
         // FilesSHA256 is the SHA256 hashes of source files:
         //   #{@output.relative_source_paths.join("\n//  ")}
         var FilesSHA256 = [...]string{
-          #{@output.relative_source_paths.map(){ |path| const_name.(path) }.join(",\n")}
+          #{@output.relative_source_path_sha256_hashes.map(){ |path, hash| "/* #{path} */ \"#{hash}\"" }.join(",\n")}
         }
         EOS
         out.break
