@@ -65,12 +65,12 @@ module Xdrgen
         const_name = lambda { |path| "FILE_#{path.gsub(%r{[^\w]}, "_").upcase}_SHA256" }
         @output.relative_source_path_sha256_hashes.each do |path, hash|
           out.puts <<-EOS.strip_heredoc
-            /// #{const_name.(path)} is the SHA256 hash of source file #{path}.
+            /// `#{const_name.(path)}` is the SHA256 hash of source file #{path}.
             pub const #{const_name.(path)}: &str = "#{hash}";
           EOS
         end
         out.puts <<-EOS.strip_heredoc
-          /// FILES_SHA256 is the SHA256 hashes of the source files:
+          /// `FILES_SHA256` is the SHA256 hashes of the source files:
           ///   #{@output.relative_source_paths.join("\n///   ")}
           pub const FILES_SHA256: &[&str] = &[
             #{@output.relative_source_paths.map(){ |path| const_name.(path) }.join(",\n")}
