@@ -363,7 +363,7 @@ impl<T, const MAX: u32> Deref for VecM<T, MAX> {
     type Target = Vec<T>;
 
     fn deref(&self) -> &Self::Target {
-        self.as_ref()
+        &self.0
     }
 }
 

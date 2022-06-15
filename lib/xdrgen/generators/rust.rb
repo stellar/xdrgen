@@ -356,7 +356,7 @@ module Xdrgen
             impl Deref for #{name typedef} {
               type Target = Vec<#{element_type_for_vec(typedef.type)}>;
               fn deref(&self) -> &Self::Target {
-                  self.as_ref()
+                  &self.0
               }
             }
 
