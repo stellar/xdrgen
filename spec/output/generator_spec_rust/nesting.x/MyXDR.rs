@@ -3,8 +3,7 @@
 
 #![allow(clippy::missing_errors_doc, clippy::unreadable_literal)]
 
-/// `FILES_SHA256` is the SHA256 hashes of the source files:
-///   spec/fixtures/generator/nesting.x
+/// `FILES_SHA256` is the SHA256 hashes of the source files.
 pub const FILES_SHA256: &[&str] = &[
   /* spec/fixtures/generator/nesting.x */ "5537949272c11f1bd09cf613a3751668b5018d686a1c2aaa3baa91183ca18f6a"
 ];

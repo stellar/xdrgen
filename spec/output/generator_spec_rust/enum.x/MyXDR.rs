@@ -3,8 +3,7 @@
 
 #![allow(clippy::missing_errors_doc, clippy::unreadable_literal)]
 
-/// `FILES_SHA256` is the SHA256 hashes of the source files:
-///   spec/fixtures/generator/enum.x
+/// `FILES_SHA256` is the SHA256 hashes of the source files.
 pub const FILES_SHA256: &[&str] = &[
   /* spec/fixtures/generator/enum.x */ "35cf5e97e2057039640ed260e8b38bb2733a3c3ca8529c93877bdec02a999d7f"
 ];

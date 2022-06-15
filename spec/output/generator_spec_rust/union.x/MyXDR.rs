@@ -3,8 +3,7 @@
 
 #![allow(clippy::missing_errors_doc, clippy::unreadable_literal)]
 
-/// `FILES_SHA256` is the SHA256 hashes of the source files:
-///   spec/fixtures/generator/union.x
+/// `FILES_SHA256` is the SHA256 hashes of the source files.
 pub const FILES_SHA256: &[&str] = &[
   /* spec/fixtures/generator/union.x */ "c251258d967223b341ebcf2d5bb0718e9a039b46232cb743865d9acd0c4bbe41"
 ];

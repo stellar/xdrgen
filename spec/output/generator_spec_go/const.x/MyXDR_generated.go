@@ -17,8 +17,7 @@ import (
   "github.com/stellar/go-xdr/xdr3"
 )
 
-// FilesSHA256 is the SHA256 hashes of source files:
-//   spec/fixtures/generator/const.x
+// FilesSHA256 is the SHA256 hashes of source files.
 var FilesSHA256 = [...]string{
   /* spec/fixtures/generator/const.x */ "0bff3b37592fcc16cad2fe10b9a72f5d39d033a114917c24e86a9ebd9cda9c37"
 }
