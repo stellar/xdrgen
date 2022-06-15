@@ -3,7 +3,7 @@
 
 #![allow(clippy::missing_errors_doc, clippy::unreadable_literal)]
 
-use core::{fmt, fmt::Debug, slice::Iter};
+use core::{fmt, fmt::Debug, ops::Deref, slice::Iter};
 
 // When feature alloc is turned off use static lifetime Box and Vec types.
 #[cfg(not(feature = "alloc"))]
@@ -361,6 +361,14 @@ pub struct VecM<T, const MAX: u32 = { u32::MAX }>(Vec<T>);
 pub struct VecM<T, const MAX: u32 = { u32::MAX }>(Vec<T>)
 where
     T: 'static;
+
+impl<T, const MAX: u32> Deref for VecM<T, MAX> {
+    type Target = [T];
+
+    fn deref(&self) -> &Self::Target {
+        self.as_ref()
+    }
+}
 
 impl<T, const MAX: u32> VecM<T, MAX> {
     #[must_use]
@@ -954,6 +962,13 @@ impl WriteXdr for Hashes2 {
     }
 }
 
+impl Deref for Hashes2 {
+  type Target = [Hash];
+  fn deref(&self) -> &Self::Target {
+      self.as_ref()
+  }
+}
+
 impl Hashes2 {
     #[must_use]
     pub fn len(&self) -> usize {
@@ -1061,6 +1076,13 @@ impl WriteXdr for Hashes3 {
     fn write_xdr(&self, w: &mut impl Write) -> Result<()> {
         self.0.write_xdr(w)
     }
+}
+
+impl Deref for Hashes3 {
+  type Target = [Hash];
+  fn deref(&self) -> &Self::Target {
+      self.as_ref()
+  }
 }
 
 impl Hashes3 {

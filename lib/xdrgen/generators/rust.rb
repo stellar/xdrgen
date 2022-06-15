@@ -351,8 +351,15 @@ module Xdrgen
           }
           EOS
           if is_var_array_type(typedef.type)
-            out.puts ""
+            out.break
             out.puts <<-EOS.strip_heredoc
+            impl Deref for #{name typedef} {
+              type Target = [#{element_type_for_vec(typedef.type)}];
+              fn deref(&self) -> &Self::Target {
+                  self.as_ref()
+              }
+            }
+
             impl #{name typedef} {
                 #[must_use]
                 pub fn len(&self) -> usize {
