@@ -363,7 +363,7 @@ where
     T: 'static;
 
 impl<T, const MAX: u32> Deref for VecM<T, MAX> {
-    type Target = [T];
+    type Target = Vec<T>;
 
     fn deref(&self) -> &Self::Target {
         self.as_ref()
@@ -963,7 +963,7 @@ impl WriteXdr for Hashes2 {
 }
 
 impl Deref for Hashes2 {
-  type Target = [Hash];
+  type Target = Vec<Hash>;
   fn deref(&self) -> &Self::Target {
       self.as_ref()
   }
@@ -1079,7 +1079,7 @@ impl WriteXdr for Hashes3 {
 }
 
 impl Deref for Hashes3 {
-  type Target = [Hash];
+  type Target = Vec<Hash>;
   fn deref(&self) -> &Self::Target {
       self.as_ref()
   }
