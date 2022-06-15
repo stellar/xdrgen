@@ -1,5 +1,13 @@
 // Module  is generated from:
-//  spec/fixtures/generator/nesting.x
+//   spec/fixtures/generator/nesting.x
+
+/// FILE_SPEC_FIXTURES_GENERATOR_NESTING_X_SHA256 is the SHA256 hash of source file spec/fixtures/generator/nesting.x.
+pub const FILE_SPEC_FIXTURES_GENERATOR_NESTING_X_SHA256: &str = "5537949272c11f1bd09cf613a3751668b5018d686a1c2aaa3baa91183ca18f6a";
+/// FILES_SHA256 is the SHA256 hashes of the source files:
+///   spec/fixtures/generator/nesting.x
+pub const FILES_SHA256: &[&str] = [
+  FILE_SPEC_FIXTURES_GENERATOR_NESTING_X_SHA256
+];
 
 #![allow(clippy::missing_errors_doc, clippy::unreadable_literal)]
 

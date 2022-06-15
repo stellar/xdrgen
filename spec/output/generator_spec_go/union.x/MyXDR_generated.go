@@ -17,6 +17,16 @@ import (
   "github.com/stellar/go-xdr/xdr3"
 )
 
+const (
+  // FileSpecFixturesGeneratorUnionXSHA256 is the SHA256 hash of source file spec/fixtures/generator/union.x.
+  FileSpecFixturesGeneratorUnionXSHA256 = "c251258d967223b341ebcf2d5bb0718e9a039b46232cb743865d9acd0c4bbe41"
+)
+// FilesSHA256 is the SHA256 hashes of source files:
+//   spec/fixtures/generator/union.x
+var FilesSHA256 = [...]string{
+  FileSpecFixturesGeneratorUnionXSHA256
+}
+
 type xdrType interface {
   xdrType()
 }

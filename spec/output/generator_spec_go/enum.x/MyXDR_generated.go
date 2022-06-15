@@ -17,6 +17,16 @@ import (
   "github.com/stellar/go-xdr/xdr3"
 )
 
+const (
+  // FileSpecFixturesGeneratorEnumXSHA256 is the SHA256 hash of source file spec/fixtures/generator/enum.x.
+  FileSpecFixturesGeneratorEnumXSHA256 = "35cf5e97e2057039640ed260e8b38bb2733a3c3ca8529c93877bdec02a999d7f"
+)
+// FilesSHA256 is the SHA256 hashes of source files:
+//   spec/fixtures/generator/enum.x
+var FilesSHA256 = [...]string{
+  FileSpecFixturesGeneratorEnumXSHA256
+}
+
 type xdrType interface {
   xdrType()
 }

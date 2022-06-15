@@ -17,6 +17,16 @@ import (
   "github.com/stellar/go-xdr/xdr3"
 )
 
+const (
+  // FileSpecFixturesGeneratorBlockCommentsXSHA256 is the SHA256 hash of source file spec/fixtures/generator/block_comments.x.
+  FileSpecFixturesGeneratorBlockCommentsXSHA256 = "e13131bc4134f38da17b9d5e9f67d2695a69ef98e3ef272833f4c18d0cc88a30"
+)
+// FilesSHA256 is the SHA256 hashes of source files:
+//   spec/fixtures/generator/block_comments.x
+var FilesSHA256 = [...]string{
+  FileSpecFixturesGeneratorBlockCommentsXSHA256
+}
+
 type xdrType interface {
   xdrType()
 }
