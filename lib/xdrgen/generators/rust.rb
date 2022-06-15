@@ -57,7 +57,7 @@ module Xdrgen
       def render_top_matter(out)
         out.puts <<-EOS.strip_heredoc
           // Module #{@namepsace} is generated from:
-          //   #{@output.relative_source_paths.join("\n//  ")}
+          //  #{@output.relative_source_paths.join("\n//  ")}
         EOS
         out.break
         out.puts "#![allow(clippy::missing_errors_doc, clippy::unreadable_literal)]"
@@ -71,8 +71,8 @@ module Xdrgen
         end
         out.puts <<-EOS.strip_heredoc
           /// FILES_SHA256 is the SHA256 hashes of the source files:
-          ///   #{@output.relative_source_paths.join("\n//  ")}
-          pub const FILES_SHA256: &[&str] = [
+          ///   #{@output.relative_source_paths.join("\n///   ")}
+          pub const FILES_SHA256: &[&str] = &[
             #{@output.relative_source_paths.map(){ |path| const_name.(path) }.join(",\n")}
           ];
         EOS
