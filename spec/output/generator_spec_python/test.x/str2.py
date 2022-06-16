@@ -1,30 +1,27 @@
 # This is an automatically generated file.
 # DO NOT EDIT or your changes may be overwritten
 import base64
+from enum import IntEnum
+from typing import List, Optional
 from xdrlib import Packer, Unpacker
-from .base import String
+from .base import Integer, UnsignedInteger, Float, Double, Hyper, UnsignedHyper, Boolean, String, Opaque
+from .constants import *
 
-__all__ = ["Str2"]
-
-
+__all__ = ['Str2']
 class Str2:
     """
     XDR Source Code::
 
         typedef string str2<>;
     """
-
     def __init__(self, str2: bytes) -> None:
         self.str2 = str2
-
     def pack(self, packer: Packer) -> None:
         String(self.str2, 4294967295).pack(packer)
-
     @classmethod
     def unpack(cls, unpacker: Unpacker) -> "Str2":
         str2 = String.unpack(unpacker)
         return cls(str2)
-
     def to_xdr_bytes(self) -> bytes:
         packer = Packer()
         self.pack(packer)
@@ -43,7 +40,6 @@ class Str2:
     def from_xdr(cls, xdr: str) -> "Str2":
         xdr_bytes = base64.b64decode(xdr.encode())
         return cls.from_xdr_bytes(xdr_bytes)
-
     def __eq__(self, other: object):
         if not isinstance(other, self.__class__):
             return NotImplemented

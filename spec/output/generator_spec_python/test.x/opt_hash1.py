@@ -1,36 +1,32 @@
 # This is an automatically generated file.
 # DO NOT EDIT or your changes may be overwritten
 import base64
-from typing import Optional
+from enum import IntEnum
+from typing import List, Optional
 from xdrlib import Packer, Unpacker
+from .base import Integer, UnsignedInteger, Float, Double, Hyper, UnsignedHyper, Boolean, String, Opaque
+from .constants import *
 
 from .hash import Hash
-
-__all__ = ["OptHash1"]
-
-
+__all__ = ['OptHash1']
 class OptHash1:
     """
     XDR Source Code::
 
         typedef Hash *optHash1;
     """
-
     def __init__(self, opt_hash1: Optional[Hash]) -> None:
         self.opt_hash1 = opt_hash1
-
     def pack(self, packer: Packer) -> None:
         if self.opt_hash1 is None:
             packer.pack_uint(0)
         else:
             packer.pack_uint(1)
             self.opt_hash1.pack(packer)
-
     @classmethod
     def unpack(cls, unpacker: Unpacker) -> "OptHash1":
         opt_hash1 = Hash.unpack(unpacker) if unpacker.unpack_uint() else None
         return cls(opt_hash1)
-
     def to_xdr_bytes(self) -> bytes:
         packer = Packer()
         self.pack(packer)
@@ -49,7 +45,6 @@ class OptHash1:
     def from_xdr(cls, xdr: str) -> "OptHash1":
         xdr_bytes = base64.b64decode(xdr.encode())
         return cls.from_xdr_bytes(xdr_bytes)
-
     def __eq__(self, other: object):
         if not isinstance(other, self.__class__):
             return NotImplemented

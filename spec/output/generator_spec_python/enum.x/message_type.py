@@ -2,40 +2,40 @@
 # DO NOT EDIT or your changes may be overwritten
 import base64
 from enum import IntEnum
+from typing import List, Optional
 from xdrlib import Packer, Unpacker
+from .base import Integer, UnsignedInteger, Float, Double, Hyper, UnsignedHyper, Boolean, String, Opaque
+from .constants import *
 
-__all__ = ["MessageType"]
-
-
+__all__ = ['MessageType']
 class MessageType(IntEnum):
     """
     XDR Source Code::
 
         enum MessageType
         {
-            ERROR_MSG,
+            ERROR_MSG,    
             HELLO,
             DONT_HAVE,
 
-            GET_PEERS,   // gets a list of peers this guy knows about
+            GET_PEERS,   // gets a list of peers this guy knows about        
             PEERS,
 
-            GET_TX_SET,  // gets a particular txset by hash
-            TX_SET,
+            GET_TX_SET,  // gets a particular txset by hash        
+            TX_SET,    
 
-            GET_VALIDATIONS, // gets validations for a given ledger hash
-            VALIDATIONS,
+            GET_VALIDATIONS, // gets validations for a given ledger hash        
+            VALIDATIONS,    
 
-            TRANSACTION, //pass on a tx you have heard about
+            TRANSACTION, //pass on a tx you have heard about        
             JSON_TRANSACTION,
 
-            // FBA
-            GET_FBA_QUORUMSET,
-            FBA_QUORUMSET,
+            // FBA        
+            GET_FBA_QUORUMSET,        
+            FBA_QUORUMSET,    
             FBA_MESSAGE
         };
     """
-
     ERROR_MSG = 0
     HELLO = 1
     DONT_HAVE = 2
@@ -50,7 +50,6 @@ class MessageType(IntEnum):
     GET_FBA_QUORUMSET = 11
     FBA_QUORUMSET = 12
     FBA_MESSAGE = 13
-
     def pack(self, packer: Packer) -> None:
         packer.pack_int(self.value)
 
@@ -58,7 +57,6 @@ class MessageType(IntEnum):
     def unpack(cls, unpacker: Unpacker) -> "MessageType":
         value = unpacker.unpack_int()
         return cls(value)
-
     def to_xdr_bytes(self) -> bytes:
         packer = Packer()
         self.pack(packer)

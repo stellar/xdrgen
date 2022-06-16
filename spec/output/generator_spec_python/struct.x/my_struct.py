@@ -1,14 +1,14 @@
 # This is an automatically generated file.
 # DO NOT EDIT or your changes may be overwritten
 import base64
+from enum import IntEnum
+from typing import List, Optional
 from xdrlib import Packer, Unpacker
-from .base import Integer, Opaque, String
+from .base import Integer, UnsignedInteger, Float, Double, Hyper, UnsignedHyper, Boolean, String, Opaque
+from .constants import *
 
 from .int64 import Int64
-
-__all__ = ["MyStruct"]
-
-
+__all__ = ['MyStruct']
 class MyStruct:
     """
     XDR Source Code::
@@ -22,7 +22,6 @@ class MyStruct:
             string maxString<100>;
         };
     """
-
     def __init__(
         self,
         some_int: int,
@@ -36,14 +35,12 @@ class MyStruct:
         self.some_opaque = some_opaque
         self.some_string = some_string
         self.max_string = max_string
-
     def pack(self, packer: Packer) -> None:
         Integer(self.some_int).pack(packer)
         self.a_big_int.pack(packer)
         Opaque(self.some_opaque, 10, True).pack(packer)
         String(self.some_string, 4294967295).pack(packer)
         String(self.max_string, 100).pack(packer)
-
     @classmethod
     def unpack(cls, unpacker: Unpacker) -> "MyStruct":
         some_int = Integer.unpack(unpacker)
@@ -58,7 +55,6 @@ class MyStruct:
             some_string=some_string,
             max_string=max_string,
         )
-
     def to_xdr_bytes(self) -> bytes:
         packer = Packer()
         self.pack(packer)
@@ -77,24 +73,16 @@ class MyStruct:
     def from_xdr(cls, xdr: str) -> "MyStruct":
         xdr_bytes = base64.b64decode(xdr.encode())
         return cls.from_xdr_bytes(xdr_bytes)
-
     def __eq__(self, other: object):
         if not isinstance(other, self.__class__):
             return NotImplemented
-        return (
-            self.some_int == other.some_int
-            and self.a_big_int == other.a_big_int
-            and self.some_opaque == other.some_opaque
-            and self.some_string == other.some_string
-            and self.max_string == other.max_string
-        )
-
+        return self.some_int== other.some_int and self.a_big_int== other.a_big_int and self.some_opaque== other.some_opaque and self.some_string== other.some_string and self.max_string== other.max_string
     def __str__(self):
         out = [
-            f"some_int={self.some_int}",
-            f"a_big_int={self.a_big_int}",
-            f"some_opaque={self.some_opaque}",
-            f"some_string={self.some_string}",
-            f"max_string={self.max_string}",
+            f'some_int={self.some_int}',
+            f'a_big_int={self.a_big_int}',
+            f'some_opaque={self.some_opaque}',
+            f'some_string={self.some_string}',
+            f'max_string={self.max_string}',
         ]
         return f"<MyStruct [{', '.join(out)}]>"

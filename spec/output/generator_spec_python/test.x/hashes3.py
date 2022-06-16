@@ -1,34 +1,29 @@
 # This is an automatically generated file.
 # DO NOT EDIT or your changes may be overwritten
 import base64
-from typing import List
+from enum import IntEnum
+from typing import List, Optional
 from xdrlib import Packer, Unpacker
+from .base import Integer, UnsignedInteger, Float, Double, Hyper, UnsignedHyper, Boolean, String, Opaque
+from .constants import *
 
 from .hash import Hash
-
-__all__ = ["Hashes3"]
-
-
+__all__ = ['Hashes3']
 class Hashes3:
     """
     XDR Source Code::
 
         typedef Hash Hashes3<>;
     """
-
     def __init__(self, hashes3: List[Hash]) -> None:
         _expect_max_length = 4294967295
         if hashes3 and len(hashes3) > _expect_max_length:
-            raise ValueError(
-                f"The maximum length of `hashes3` should be {_expect_max_length}, but got {len(hashes3)}."
-            )
+            raise ValueError(f"The maximum length of `hashes3` should be {_expect_max_length}, but got {len(hashes3)}.")
         self.hashes3 = hashes3
-
     def pack(self, packer: Packer) -> None:
         packer.pack_uint(len(self.hashes3))
         for hashes3_item in self.hashes3:
             hashes3_item.pack(packer)
-
     @classmethod
     def unpack(cls, unpacker: Unpacker) -> "Hashes3":
         length = unpacker.unpack_uint()
@@ -36,7 +31,6 @@ class Hashes3:
         for _ in range(length):
             hashes3.append(Hash.unpack(unpacker))
         return cls(hashes3)
-
     def to_xdr_bytes(self) -> bytes:
         packer = Packer()
         self.pack(packer)
@@ -55,7 +49,6 @@ class Hashes3:
     def from_xdr(cls, xdr: str) -> "Hashes3":
         xdr_bytes = base64.b64decode(xdr.encode())
         return cls.from_xdr_bytes(xdr_bytes)
-
     def __eq__(self, other: object):
         if not isinstance(other, self.__class__):
             return NotImplemented

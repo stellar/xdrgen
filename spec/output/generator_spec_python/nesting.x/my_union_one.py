@@ -1,12 +1,13 @@
 # This is an automatically generated file.
 # DO NOT EDIT or your changes may be overwritten
 import base64
+from enum import IntEnum
+from typing import List, Optional
 from xdrlib import Packer, Unpacker
-from .base import Integer
+from .base import Integer, UnsignedInteger, Float, Double, Hyper, UnsignedHyper, Boolean, String, Opaque
+from .constants import *
 
-__all__ = ["MyUnionOne"]
-
-
+__all__ = ['MyUnionOne']
 class MyUnionOne:
     """
     XDR Source Code::
@@ -15,23 +16,19 @@ class MyUnionOne:
                     int someInt;
                 }
     """
-
     def __init__(
         self,
         some_int: int,
     ) -> None:
         self.some_int = some_int
-
     def pack(self, packer: Packer) -> None:
         Integer(self.some_int).pack(packer)
-
     @classmethod
     def unpack(cls, unpacker: Unpacker) -> "MyUnionOne":
         some_int = Integer.unpack(unpacker)
         return cls(
             some_int=some_int,
         )
-
     def to_xdr_bytes(self) -> bytes:
         packer = Packer()
         self.pack(packer)
@@ -50,14 +47,12 @@ class MyUnionOne:
     def from_xdr(cls, xdr: str) -> "MyUnionOne":
         xdr_bytes = base64.b64decode(xdr.encode())
         return cls.from_xdr_bytes(xdr_bytes)
-
     def __eq__(self, other: object):
         if not isinstance(other, self.__class__):
             return NotImplemented
-        return self.some_int == other.some_int
-
+        return self.some_int== other.some_int
     def __str__(self):
         out = [
-            f"some_int={self.some_int}",
+            f'some_int={self.some_int}',
         ]
         return f"<MyUnionOne [{', '.join(out)}]>"

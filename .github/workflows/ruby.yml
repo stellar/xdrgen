@@ -32,13 +32,5 @@ jobs:
       run: rm -fr spec/output
     - name: Run Rspec tests
       run: bundle exec rspec
-    - name: Format Python Output - Set up Python
-      uses: actions/setup-python@v3
-      with:
-        python-version: '3.9'
-    - name: Format Python Output - Install dependencies
-      run: pip install autoflake==1.4 black==22.3.0
-    - name: Format Python Output - Format
-      run: autoflake --in-place --ignore-init-module-imports --remove-all-unused-imports spec/output/generator_spec_python/*/*.py && black spec/output/generator_spec_python
     - name: Check test outputs contain no diffs
       run: git add spec/output && git status && git diff --staged --exit-code -- spec/output || (echo "Test outputs contain changes. Run 'make' locally and check that the changes are desired. If they're desired, commit them as part of the change." && exit 1)

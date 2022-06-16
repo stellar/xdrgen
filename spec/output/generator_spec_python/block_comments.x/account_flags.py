@@ -2,11 +2,12 @@
 # DO NOT EDIT or your changes may be overwritten
 import base64
 from enum import IntEnum
+from typing import List, Optional
 from xdrlib import Packer, Unpacker
+from .base import Integer, UnsignedInteger, Float, Double, Hyper, UnsignedHyper, Boolean, String, Opaque
+from .constants import *
 
-__all__ = ["AccountFlags"]
-
-
+__all__ = ['AccountFlags']
 class AccountFlags(IntEnum):
     """
     XDR Source Code::
@@ -16,9 +17,7 @@ class AccountFlags(IntEnum):
             AUTH_REQUIRED_FLAG = 0x1
         };
     """
-
     AUTH_REQUIRED_FLAG = 1
-
     def pack(self, packer: Packer) -> None:
         packer.pack_int(self.value)
 
@@ -26,7 +25,6 @@ class AccountFlags(IntEnum):
     def unpack(cls, unpacker: Unpacker) -> "AccountFlags":
         value = unpacker.unpack_int()
         return cls(value)
-
     def to_xdr_bytes(self) -> bytes:
         packer = Packer()
         self.pack(packer)

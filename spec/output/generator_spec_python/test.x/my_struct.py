@@ -1,16 +1,16 @@
 # This is an automatically generated file.
 # DO NOT EDIT or your changes may be overwritten
 import base64
+from enum import IntEnum
+from typing import List, Optional
 from xdrlib import Packer, Unpacker
-from .base import Boolean, Double, Float, UnsignedInteger
+from .base import Integer, UnsignedInteger, Float, Double, Hyper, UnsignedHyper, Boolean, String, Opaque
+from .constants import *
 
 from .uint512 import Uint512
 from .opt_hash1 import OptHash1
 from .int1 import Int1
-
-__all__ = ["MyStruct"]
-
-
+__all__ = ['MyStruct']
 class MyStruct:
     """
     XDR Source Code::
@@ -26,7 +26,6 @@ class MyStruct:
             bool field7;
         };
     """
-
     def __init__(
         self,
         field1: Uint512,
@@ -44,7 +43,6 @@ class MyStruct:
         self.field5 = field5
         self.field6 = field6
         self.field7 = field7
-
     def pack(self, packer: Packer) -> None:
         self.field1.pack(packer)
         self.field2.pack(packer)
@@ -53,7 +51,6 @@ class MyStruct:
         Float(self.field5).pack(packer)
         Double(self.field6).pack(packer)
         Boolean(self.field7).pack(packer)
-
     @classmethod
     def unpack(cls, unpacker: Unpacker) -> "MyStruct":
         field1 = Uint512.unpack(unpacker)
@@ -72,7 +69,6 @@ class MyStruct:
             field6=field6,
             field7=field7,
         )
-
     def to_xdr_bytes(self) -> bytes:
         packer = Packer()
         self.pack(packer)
@@ -91,28 +87,18 @@ class MyStruct:
     def from_xdr(cls, xdr: str) -> "MyStruct":
         xdr_bytes = base64.b64decode(xdr.encode())
         return cls.from_xdr_bytes(xdr_bytes)
-
     def __eq__(self, other: object):
         if not isinstance(other, self.__class__):
             return NotImplemented
-        return (
-            self.field1 == other.field1
-            and self.field2 == other.field2
-            and self.field3 == other.field3
-            and self.field4 == other.field4
-            and self.field5 == other.field5
-            and self.field6 == other.field6
-            and self.field7 == other.field7
-        )
-
+        return self.field1== other.field1 and self.field2== other.field2 and self.field3== other.field3 and self.field4== other.field4 and self.field5== other.field5 and self.field6== other.field6 and self.field7== other.field7
     def __str__(self):
         out = [
-            f"field1={self.field1}",
-            f"field2={self.field2}",
-            f"field3={self.field3}",
-            f"field4={self.field4}",
-            f"field5={self.field5}",
-            f"field6={self.field6}",
-            f"field7={self.field7}",
+            f'field1={self.field1}',
+            f'field2={self.field2}',
+            f'field3={self.field3}',
+            f'field4={self.field4}',
+            f'field5={self.field5}',
+            f'field6={self.field6}',
+            f'field7={self.field7}',
         ]
         return f"<MyStruct [{', '.join(out)}]>"

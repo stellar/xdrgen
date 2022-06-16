@@ -2,26 +2,25 @@
 # DO NOT EDIT or your changes may be overwritten
 import base64
 from enum import IntEnum
+from typing import List, Optional
 from xdrlib import Packer, Unpacker
+from .base import Integer, UnsignedInteger, Float, Double, Hyper, UnsignedHyper, Boolean, String, Opaque
+from .constants import *
 
-__all__ = ["Color2"]
-
-
+__all__ = ['Color2']
 class Color2(IntEnum):
     """
     XDR Source Code::
 
         enum Color2 {
-            RED2=RED,
-            GREEN2=1,
-            BLUE2=2
+            RED2=RED,  
+            GREEN2=1,  
+            BLUE2=2  
         };
     """
-
     RED2 = 0
     GREEN2 = 1
     BLUE2 = 2
-
     def pack(self, packer: Packer) -> None:
         packer.pack_int(self.value)
 
@@ -29,7 +28,6 @@ class Color2(IntEnum):
     def unpack(cls, unpacker: Unpacker) -> "Color2":
         value = unpacker.unpack_int()
         return cls(value)
-
     def to_xdr_bytes(self) -> bytes:
         packer = Packer()
         self.pack(packer)

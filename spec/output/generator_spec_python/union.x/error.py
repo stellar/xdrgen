@@ -1,30 +1,27 @@
 # This is an automatically generated file.
 # DO NOT EDIT or your changes may be overwritten
 import base64
+from enum import IntEnum
+from typing import List, Optional
 from xdrlib import Packer, Unpacker
-from .base import Integer
+from .base import Integer, UnsignedInteger, Float, Double, Hyper, UnsignedHyper, Boolean, String, Opaque
+from .constants import *
 
-__all__ = ["Error"]
-
-
+__all__ = ['Error']
 class Error:
     """
     XDR Source Code::
 
         typedef int Error;
     """
-
     def __init__(self, error: int) -> None:
         self.error = error
-
     def pack(self, packer: Packer) -> None:
         Integer(self.error).pack(packer)
-
     @classmethod
     def unpack(cls, unpacker: Unpacker) -> "Error":
         error = Integer.unpack(unpacker)
         return cls(error)
-
     def to_xdr_bytes(self) -> bytes:
         packer = Packer()
         self.pack(packer)
@@ -43,7 +40,6 @@ class Error:
     def from_xdr(cls, xdr: str) -> "Error":
         xdr_bytes = base64.b64decode(xdr.encode())
         return cls.from_xdr_bytes(xdr_bytes)
-
     def __eq__(self, other: object):
         if not isinstance(other, self.__class__):
             return NotImplemented

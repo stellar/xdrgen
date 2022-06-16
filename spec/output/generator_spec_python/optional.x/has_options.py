@@ -1,15 +1,14 @@
 # This is an automatically generated file.
 # DO NOT EDIT or your changes may be overwritten
 import base64
-from typing import Optional
+from enum import IntEnum
+from typing import List, Optional
 from xdrlib import Packer, Unpacker
-from .base import Integer
+from .base import Integer, UnsignedInteger, Float, Double, Hyper, UnsignedHyper, Boolean, String, Opaque
+from .constants import *
 
 from .arr import Arr
-
-__all__ = ["HasOptions"]
-
-
+__all__ = ['HasOptions']
 class HasOptions:
     """
     XDR Source Code::
@@ -21,7 +20,6 @@ class HasOptions:
           Arr *thirdOption;
         };
     """
-
     def __init__(
         self,
         first_option: Optional[int],
@@ -31,7 +29,6 @@ class HasOptions:
         self.first_option = first_option
         self.second_option = second_option
         self.third_option = third_option
-
     def pack(self, packer: Packer) -> None:
         if self.first_option is None:
             packer.pack_uint(0)
@@ -48,7 +45,6 @@ class HasOptions:
         else:
             packer.pack_uint(1)
             self.third_option.pack(packer)
-
     @classmethod
     def unpack(cls, unpacker: Unpacker) -> "HasOptions":
         first_option = Integer.unpack(unpacker) if unpacker.unpack_uint() else None
@@ -59,7 +55,6 @@ class HasOptions:
             second_option=second_option,
             third_option=third_option,
         )
-
     def to_xdr_bytes(self) -> bytes:
         packer = Packer()
         self.pack(packer)
@@ -78,20 +73,14 @@ class HasOptions:
     def from_xdr(cls, xdr: str) -> "HasOptions":
         xdr_bytes = base64.b64decode(xdr.encode())
         return cls.from_xdr_bytes(xdr_bytes)
-
     def __eq__(self, other: object):
         if not isinstance(other, self.__class__):
             return NotImplemented
-        return (
-            self.first_option == other.first_option
-            and self.second_option == other.second_option
-            and self.third_option == other.third_option
-        )
-
+        return self.first_option== other.first_option and self.second_option== other.second_option and self.third_option== other.third_option
     def __str__(self):
         out = [
-            f"first_option={self.first_option}",
-            f"second_option={self.second_option}",
-            f"third_option={self.third_option}",
+            f'first_option={self.first_option}',
+            f'second_option={self.second_option}',
+            f'third_option={self.third_option}',
         ]
         return f"<HasOptions [{', '.join(out)}]>"

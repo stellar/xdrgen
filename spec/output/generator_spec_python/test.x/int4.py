@@ -1,30 +1,27 @@
 # This is an automatically generated file.
 # DO NOT EDIT or your changes may be overwritten
 import base64
+from enum import IntEnum
+from typing import List, Optional
 from xdrlib import Packer, Unpacker
-from .base import UnsignedHyper
+from .base import Integer, UnsignedInteger, Float, Double, Hyper, UnsignedHyper, Boolean, String, Opaque
+from .constants import *
 
-__all__ = ["Int4"]
-
-
+__all__ = ['Int4']
 class Int4:
     """
     XDR Source Code::
 
         typedef unsigned hyper  int4;
     """
-
     def __init__(self, int4: int) -> None:
         self.int4 = int4
-
     def pack(self, packer: Packer) -> None:
         UnsignedHyper(self.int4).pack(packer)
-
     @classmethod
     def unpack(cls, unpacker: Unpacker) -> "Int4":
         int4 = UnsignedHyper.unpack(unpacker)
         return cls(int4)
-
     def to_xdr_bytes(self) -> bytes:
         packer = Packer()
         self.pack(packer)
@@ -43,7 +40,6 @@ class Int4:
     def from_xdr(cls, xdr: str) -> "Int4":
         xdr_bytes = base64.b64decode(xdr.encode())
         return cls.from_xdr_bytes(xdr_bytes)
-
     def __eq__(self, other: object):
         if not isinstance(other, self.__class__):
             return NotImplemented
