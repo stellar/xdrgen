@@ -963,7 +963,7 @@ impl WriteXdr for Hashes2 {
 }
 
 impl Deref for Hashes2 {
-  type Target = Vec<Hash>;
+  type Target = VecM::<Hash, 12>;
   fn deref(&self) -> &Self::Target {
       &self.0
   }
@@ -1079,7 +1079,7 @@ impl WriteXdr for Hashes3 {
 }
 
 impl Deref for Hashes3 {
-  type Target = Vec<Hash>;
+  type Target = VecM::<Hash>;
   fn deref(&self) -> &Self::Target {
       &self.0
   }
