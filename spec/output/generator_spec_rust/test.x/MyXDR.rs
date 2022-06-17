@@ -774,6 +774,78 @@ impl WriteXdr for Uint513 {
     }
 }
 
+impl Deref for Uint513 {
+  type Target = VecM::<u8, 64>;
+  fn deref(&self) -> &Self::Target {
+      &self.0
+  }
+}
+
+impl Uint513 {
+    #[must_use]
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
+
+    #[must_use]
+    pub fn to_vec(self) -> Vec<u8> {
+        self.into()
+    }
+
+    #[must_use]
+    pub fn as_vec(&self) -> &Vec<u8> {
+        self.as_ref()
+    }
+
+    #[must_use]
+    pub fn as_slice(&self) -> &[u8] {
+        self.as_ref()
+    }
+
+    pub fn iter(&self) -> Iter<'_, u8> {
+        self.0.iter()
+    }
+}
+
+impl From<Uint513> for Vec<u8> {
+    #[must_use]
+    fn from(x: Uint513) -> Self {
+        x.0.0
+    }
+}
+
+impl TryFrom<Vec<u8>> for Uint513 {
+    type Error = Error;
+    fn try_from(x: Vec<u8>) -> Result<Self> {
+        Ok(Uint513(x.try_into()?))
+    }
+}
+
+impl AsRef<Vec<u8>> for Uint513 {
+    #[must_use]
+    fn as_ref(&self) -> &Vec<u8> {
+        &self.0.0
+    }
+}
+
+impl AsRef<[u8]> for Uint513 {
+    #[cfg(feature = "alloc")]
+    #[must_use]
+    fn as_ref(&self) -> &[u8] {
+        &self.0.0
+    }
+    #[cfg(not(feature = "alloc"))]
+    #[must_use]
+    fn as_ref(&self) -> &[u8] {
+        self.0.0
+    }
+}
+
 // Uint514 is an XDR Typedef defines as:
 //
 //   typedef opaque uint514<>;
@@ -815,6 +887,78 @@ impl WriteXdr for Uint514 {
     #[cfg(feature = "std")]
     fn write_xdr(&self, w: &mut impl Write) -> Result<()> {
         self.0.write_xdr(w)
+    }
+}
+
+impl Deref for Uint514 {
+  type Target = VecM::<u8>;
+  fn deref(&self) -> &Self::Target {
+      &self.0
+  }
+}
+
+impl Uint514 {
+    #[must_use]
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
+
+    #[must_use]
+    pub fn to_vec(self) -> Vec<u8> {
+        self.into()
+    }
+
+    #[must_use]
+    pub fn as_vec(&self) -> &Vec<u8> {
+        self.as_ref()
+    }
+
+    #[must_use]
+    pub fn as_slice(&self) -> &[u8] {
+        self.as_ref()
+    }
+
+    pub fn iter(&self) -> Iter<'_, u8> {
+        self.0.iter()
+    }
+}
+
+impl From<Uint514> for Vec<u8> {
+    #[must_use]
+    fn from(x: Uint514) -> Self {
+        x.0.0
+    }
+}
+
+impl TryFrom<Vec<u8>> for Uint514 {
+    type Error = Error;
+    fn try_from(x: Vec<u8>) -> Result<Self> {
+        Ok(Uint514(x.try_into()?))
+    }
+}
+
+impl AsRef<Vec<u8>> for Uint514 {
+    #[must_use]
+    fn as_ref(&self) -> &Vec<u8> {
+        &self.0.0
+    }
+}
+
+impl AsRef<[u8]> for Uint514 {
+    #[cfg(feature = "alloc")]
+    #[must_use]
+    fn as_ref(&self) -> &[u8] {
+        &self.0.0
+    }
+    #[cfg(not(feature = "alloc"))]
+    #[must_use]
+    fn as_ref(&self) -> &[u8] {
+        self.0.0
     }
 }
 
