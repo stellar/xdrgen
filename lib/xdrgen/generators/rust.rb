@@ -360,37 +360,6 @@ module Xdrgen
               }
             }
 
-            impl #{name typedef} {
-                #[must_use]
-                pub fn len(&self) -> usize {
-                    self.0.len()
-                }
-
-                #[must_use]
-                pub fn is_empty(&self) -> bool {
-                    self.0.is_empty()
-                }
-
-                #[must_use]
-                pub fn to_vec(self) -> Vec<#{element_type_for_vec(typedef.type)}> {
-                    self.into()
-                }
-
-                #[must_use]
-                pub fn as_vec(&self) -> &Vec<#{element_type_for_vec(typedef.type)}> {
-                    self.as_ref()
-                }
-
-                #[must_use]
-                pub fn as_slice(&self) -> &[#{element_type_for_vec(typedef.type)}] {
-                    self.as_ref()
-                }
-
-                pub fn iter(&self) -> Iter<'_, #{element_type_for_vec(typedef.type)}> {
-                    self.0.iter()
-                }
-            }
-
             impl From<#{name typedef}> for Vec<#{element_type_for_vec(typedef.type)}> {
                 #[must_use]
                 fn from(x: #{name typedef}) -> Self {
