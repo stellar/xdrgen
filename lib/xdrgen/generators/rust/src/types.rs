@@ -102,6 +102,13 @@ where
     }
 
     #[cfg(feature = "std")]
+    fn from_xdr<B: AsRef<[u8]>>(bytes: B) -> Result<Self> {
+        let mut cursor = Cursor::new(bytes.as_ref());
+        let t = Self::read_xdr(&mut cursor)?;
+        Ok(t)
+    }
+
+    #[cfg(feature = "std")]
     fn from_xdr_base64(b64: String) -> Result<Self> {
         let mut b64_reader = Cursor::new(b64);
         let mut dec = base64::read::DecoderReader::new(&mut b64_reader, base64::STANDARD);
@@ -113,6 +120,14 @@ where
 pub trait WriteXdr {
     #[cfg(feature = "std")]
     fn write_xdr(&self, w: &mut impl Write) -> Result<()>;
+
+    #[cfg(feature = "std")]
+    fn to_xdr(&self) -> Result<Vec<u8>> {
+        let mut cursor = Cursor::new(vec![]);
+        self.write_xdr(&mut cursor)?;
+        let bytes = cursor.into_inner();
+        Ok(bytes)
+    }
 
     #[cfg(feature = "std")]
     fn to_xdr_base64(&self) -> Result<String> {
