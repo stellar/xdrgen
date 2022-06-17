@@ -415,8 +415,8 @@ module Xdrgen
       end
 
       def is_var_array_type(type)
-        (type == AST::Typespecs::Opaque && !type.fixed?) ||
-        (type == AST::Typespecs::String) ||
+        (AST::Typespecs::Opaque === type && !type.fixed?) ||
+        (AST::Typespecs::String === type) ||
         (type.sub_type == :var_array)
       end
 
