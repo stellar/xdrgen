@@ -3,7 +3,7 @@
 
 #![allow(clippy::missing_errors_doc, clippy::unreadable_literal)]
 
-use core::{fmt, fmt::Debug, ops::Deref, slice::Iter};
+use core::{fmt, fmt::Debug, ops::Deref};
 
 // When feature alloc is turned off use static lifetime Box and Vec types.
 #[cfg(not(feature = "alloc"))]
@@ -380,16 +380,6 @@ impl<T, const MAX: u32> VecM<T, MAX> {
     }
 
     #[must_use]
-    pub fn len(&self) -> usize {
-        self.0.len()
-    }
-
-    #[must_use]
-    pub fn is_empty(&self) -> bool {
-        self.0.is_empty()
-    }
-
-    #[must_use]
     pub fn to_vec(self) -> Vec<T> {
         self.into()
     }
@@ -397,15 +387,6 @@ impl<T, const MAX: u32> VecM<T, MAX> {
     #[must_use]
     pub fn as_vec(&self) -> &Vec<T> {
         self.as_ref()
-    }
-
-    #[must_use]
-    pub fn as_slice(&self) -> &[T] {
-        self.as_ref()
-    }
-
-    pub fn iter(&self) -> Iter<'_, T> {
-        self.0.iter()
     }
 }
 
@@ -977,37 +958,6 @@ impl Deref for Hashes2 {
   }
 }
 
-impl Hashes2 {
-    #[must_use]
-    pub fn len(&self) -> usize {
-        self.0.len()
-    }
-
-    #[must_use]
-    pub fn is_empty(&self) -> bool {
-        self.0.is_empty()
-    }
-
-    #[must_use]
-    pub fn to_vec(self) -> Vec<Hash> {
-        self.into()
-    }
-
-    #[must_use]
-    pub fn as_vec(&self) -> &Vec<Hash> {
-        self.as_ref()
-    }
-
-    #[must_use]
-    pub fn as_slice(&self) -> &[Hash] {
-        self.as_ref()
-    }
-
-    pub fn iter(&self) -> Iter<'_, Hash> {
-        self.0.iter()
-    }
-}
-
 impl From<Hashes2> for Vec<Hash> {
     #[must_use]
     fn from(x: Hashes2) -> Self {
@@ -1091,37 +1041,6 @@ impl Deref for Hashes3 {
   fn deref(&self) -> &Self::Target {
       &self.0
   }
-}
-
-impl Hashes3 {
-    #[must_use]
-    pub fn len(&self) -> usize {
-        self.0.len()
-    }
-
-    #[must_use]
-    pub fn is_empty(&self) -> bool {
-        self.0.is_empty()
-    }
-
-    #[must_use]
-    pub fn to_vec(self) -> Vec<Hash> {
-        self.into()
-    }
-
-    #[must_use]
-    pub fn as_vec(&self) -> &Vec<Hash> {
-        self.as_ref()
-    }
-
-    #[must_use]
-    pub fn as_slice(&self) -> &[Hash] {
-        self.as_ref()
-    }
-
-    pub fn iter(&self) -> Iter<'_, Hash> {
-        self.0.iter()
-    }
 }
 
 impl From<Hashes3> for Vec<Hash> {
