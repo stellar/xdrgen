@@ -371,6 +371,14 @@ impl<T, const MAX: u32> Deref for VecM<T, MAX> {
 }
 
 impl<T, const MAX: u32> VecM<T, MAX> {
+    pub const MAX_LEN: usize = { MAX as usize };
+
+    #[must_use]
+    #[allow(clippy::unused_self)]
+    pub fn max_len(&self) -> usize {
+        Self::MAX_LEN
+    }
+
     #[must_use]
     pub fn len(&self) -> usize {
         self.0.len()
