@@ -770,37 +770,6 @@ impl Deref for Uint513 {
   }
 }
 
-impl Uint513 {
-    #[must_use]
-    pub fn len(&self) -> usize {
-        self.0.len()
-    }
-
-    #[must_use]
-    pub fn is_empty(&self) -> bool {
-        self.0.is_empty()
-    }
-
-    #[must_use]
-    pub fn to_vec(self) -> Vec<u8> {
-        self.into()
-    }
-
-    #[must_use]
-    pub fn as_vec(&self) -> &Vec<u8> {
-        self.as_ref()
-    }
-
-    #[must_use]
-    pub fn as_slice(&self) -> &[u8] {
-        self.as_ref()
-    }
-
-    pub fn iter(&self) -> Iter<'_, u8> {
-        self.0.iter()
-    }
-}
-
 impl From<Uint513> for Vec<u8> {
     #[must_use]
     fn from(x: Uint513) -> Self {
@@ -884,37 +853,6 @@ impl Deref for Uint514 {
   fn deref(&self) -> &Self::Target {
       &self.0
   }
-}
-
-impl Uint514 {
-    #[must_use]
-    pub fn len(&self) -> usize {
-        self.0.len()
-    }
-
-    #[must_use]
-    pub fn is_empty(&self) -> bool {
-        self.0.is_empty()
-    }
-
-    #[must_use]
-    pub fn to_vec(self) -> Vec<u8> {
-        self.into()
-    }
-
-    #[must_use]
-    pub fn as_vec(&self) -> &Vec<u8> {
-        self.as_ref()
-    }
-
-    #[must_use]
-    pub fn as_slice(&self) -> &[u8] {
-        self.as_ref()
-    }
-
-    pub fn iter(&self) -> Iter<'_, u8> {
-        self.0.iter()
-    }
 }
 
 impl From<Uint514> for Vec<u8> {
