@@ -14,7 +14,7 @@ module Xdrgen
     end
 
     def relative_source_paths
-      @source_paths.map { |p| Pathname.new(p).expand_path.relative_path_from(Dir.pwd).to_s }
+      @source_paths.map { |p| Pathname.new(p).expand_path.relative_path_from(Dir.pwd).to_s }.sort
     end
 
     def relative_source_path_sha256_hashes

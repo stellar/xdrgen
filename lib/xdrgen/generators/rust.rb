@@ -62,10 +62,11 @@ module Xdrgen
         out.break
         out.puts "#![allow(clippy::missing_errors_doc, clippy::unreadable_literal)]"
         out.break
+        source_paths_sha256_hashes = @output.relative_source_path_sha256_hashes
         out.puts <<-EOS.strip_heredoc
           /// `XDR_FILES_SHA256` is a list of pairs of source files and their SHA256 hashes.
-          pub const XDR_FILES_SHA256: &[(&str, &str)] = &[
-            #{@output.relative_source_path_sha256_hashes.map(){ |path, hash| %{("#{path}", "#{hash}")} }.join(",\n")}
+          pub const XDR_FILES_SHA256: [(&str, &str); #{source_paths_sha256_hashes.count}] = [
+            #{source_paths_sha256_hashes.map(){ |path, hash| %{("#{path}", "#{hash}")} }.join(",\n")}
           ];
         EOS
         out.break
