@@ -3,9 +3,9 @@
 
 #![allow(clippy::missing_errors_doc, clippy::unreadable_literal)]
 
-/// `XDR_FILES_SHA256` is the SHA256 hashes of the source files.
-pub const XDR_FILES_SHA256: &[&str] = &[
-  /* spec/fixtures/generator/const.x */ "0bff3b37592fcc16cad2fe10b9a72f5d39d033a114917c24e86a9ebd9cda9c37"
+/// `XDR_FILES_SHA256` is a list of pairs of source files and their SHA256 hashes.
+pub const XDR_FILES_SHA256: &[(&str, &str)] = &[
+  ("spec/fixtures/generator/const.x", "0bff3b37592fcc16cad2fe10b9a72f5d39d033a114917c24e86a9ebd9cda9c37")
 ];
 
 #![allow(clippy::missing_errors_doc, clippy::unreadable_literal)]
