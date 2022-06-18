@@ -3,6 +3,11 @@
 
 #![allow(clippy::missing_errors_doc, clippy::unreadable_literal)]
 
+/// `XDR_FILES_SHA256` is a list of pairs of source files and their SHA256 hashes.
+pub const XDR_FILES_SHA256: [(&str, &str); 1] = [
+  ("spec/fixtures/generator/optional.x", "3241e832fcf00bca4315ecb6c259621dafb0e302a63a993f5504b0b5cebb6bd7")
+];
+
 use core::{fmt, fmt::Debug, ops::Deref};
 
 // When feature alloc is turned off use static lifetime Box and Vec types.
