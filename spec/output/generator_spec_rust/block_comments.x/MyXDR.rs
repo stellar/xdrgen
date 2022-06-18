@@ -8,8 +8,6 @@ pub const XDR_FILES_SHA256: &[(&str, &str)] = &[
   ("spec/fixtures/generator/block_comments.x", "e13131bc4134f38da17b9d5e9f67d2695a69ef98e3ef272833f4c18d0cc88a30")
 ];
 
-#![allow(clippy::missing_errors_doc, clippy::unreadable_literal)]
-
 use core::{fmt, fmt::Debug, ops::Deref};
 
 // When feature alloc is turned off use static lifetime Box and Vec types.
