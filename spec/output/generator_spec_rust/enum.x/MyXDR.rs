@@ -8,6 +8,8 @@ pub const XDR_FILES_SHA256: &[&str] = &[
   /* spec/fixtures/generator/enum.x */ "35cf5e97e2057039640ed260e8b38bb2733a3c3ca8529c93877bdec02a999d7f"
 ];
 
+#![allow(clippy::missing_errors_doc, clippy::unreadable_literal)]
+
 use core::{fmt, fmt::Debug, ops::Deref};
 
 // When feature alloc is turned off use static lifetime Box and Vec types.

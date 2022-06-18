@@ -821,8 +821,8 @@ module Xdrgen
         out.break
         out.puts <<-EOS.strip_heredoc
         // XdrFilesSHA256 is the SHA256 hashes of source files.
-        var XdrFilesSHA256 = [...]string{
-          #{@output.relative_source_path_sha256_hashes.map(){ |path, hash| "/* #{path} */ \"#{hash}\"" }.join(",\n")}
+        var XdrFilesSHA256 = map[string]string{
+          #{@output.relative_source_path_sha256_hashes.map(){ |path, hash| %{"#{path}": "#{hash}"} }.join(",\n")}
         }
         EOS
         out.break
