@@ -1,5 +1,3 @@
-#![allow(clippy::missing_errors_doc, clippy::unreadable_literal)]
-
 use core::{fmt, fmt::Debug, ops::Deref};
 
 // When feature alloc is turned off use static lifetime Box and Vec types.
