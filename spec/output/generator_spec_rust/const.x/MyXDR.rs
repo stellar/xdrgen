@@ -430,11 +430,21 @@ impl<T: Clone, const MAX: u32> VecM<T, MAX> {
     pub fn to_vec(&self) -> Vec<T> {
         self.into()
     }
+
+    #[must_use]
+    pub fn into_vec(self) -> Vec<T> {
+        self.into()
+    }
 }
 
 impl<const MAX: u32> VecM<u8, MAX> {
     #[cfg(feature = "alloc")]
     pub fn to_string(&self) -> Result<String> {
+        self.try_into()
+    }
+
+    #[cfg(feature = "alloc")]
+    pub fn into_string(self) -> Result<String> {
         self.try_into()
     }
 }
