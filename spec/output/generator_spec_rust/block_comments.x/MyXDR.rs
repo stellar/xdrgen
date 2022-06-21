@@ -843,6 +843,22 @@ pub enum AccountFlags {
   AuthRequiredFlag = 1,
 }
 
+impl AccountFlags {
+    #[must_use]
+    pub fn name(&self) -> &str {
+        #[allow(clippy::match_same_arms)]
+        match self {
+            Self::AuthRequiredFlag => "AuthRequiredFlag",
+        }
+    }
+}
+
+impl fmt::Display for AccountFlags {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.name())
+    }
+}
+
 impl TryFrom<i32> for AccountFlags {
     type Error = Error;
 

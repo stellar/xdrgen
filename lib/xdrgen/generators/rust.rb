@@ -180,6 +180,24 @@ module Xdrgen
         out.puts '}'
         out.puts ""
         out.puts <<-EOS.strip_heredoc
+        impl #{name enum} {
+            #[must_use]
+            pub fn name(&self) -> &str {
+                #[allow(clippy::match_same_arms)]
+                match self {
+                    #{enum.members.map do |m|
+                      "Self::#{name m} => \"#{name m}\","
+                    end.join("\n")}
+                }
+            }
+        }
+
+        impl fmt::Display for #{name enum} {
+            fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+                f.write_str(self.name())
+            }
+        }
+
         impl TryFrom<i32> for #{name enum} {
             type Error = Error;
 
@@ -259,6 +277,16 @@ module Xdrgen
         out.puts ""
         out.puts <<-EOS.strip_heredoc
         impl #{name union} {
+            #[must_use]
+            pub fn name(&self) -> &str {
+                #[allow(clippy::match_same_arms)]
+                match self {
+                    #{union_cases(union) do |case_name, arm|
+                      "Self::#{case_name}#{"(_)" unless arm.void?} => \"#{case_name}\","
+                    end.join("\n")}
+                }
+            }
+
             #[must_use]
             pub fn discriminant(&self) -> #{discriminant_type} {
                 #[allow(clippy::match_same_arms)]
