@@ -192,6 +192,12 @@ module Xdrgen
             }
         }
 
+        impl Display for #{name enum} {
+            fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+                f.write_str(self.name())
+            }
+        }
+
         impl TryFrom<i32> for #{name enum} {
             type Error = Error;
 
@@ -293,6 +299,12 @@ module Xdrgen
                       },"
                     end.join("\n")}
                 }
+            }
+        }
+
+        impl Display for #{name union} {
+            fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+                f.write_str(self.name())
             }
         }
 

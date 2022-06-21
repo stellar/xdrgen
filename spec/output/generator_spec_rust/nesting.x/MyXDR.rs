@@ -8,7 +8,7 @@ pub const XDR_FILES_SHA256: [(&str, &str); 1] = [
   ("spec/fixtures/generator/nesting.x", "5537949272c11f1bd09cf613a3751668b5018d686a1c2aaa3baa91183ca18f6a")
 ];
 
-use core::{fmt, fmt::Debug, ops::Deref};
+use core::{fmt, fmt::Debug, fmt::Display, fmt::Formatter, ops::Deref};
 
 // When feature alloc is turned off use static lifetime Box and Vec types.
 #[cfg(not(feature = "alloc"))]
@@ -858,6 +858,12 @@ Self::Offer => "Offer",
             }
         }
 
+        impl Display for UnionKey {
+            fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+                f.write_str(self.name())
+            }
+        }
+
         impl TryFrom<i32> for UnionKey {
             type Error = Error;
 
@@ -1009,6 +1015,12 @@ Self::Offer => "Offer",
 Self::Two(_) => UnionKey::Two,
 Self::Offer => UnionKey::Offer,
                 }
+            }
+        }
+
+        impl Display for MyUnion {
+            fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+                f.write_str(self.name())
             }
         }
 

@@ -8,7 +8,7 @@ pub const XDR_FILES_SHA256: [(&str, &str); 1] = [
   ("spec/fixtures/generator/test.x", "d29a98a6a3b9bf533a3e6712d928e0bed655e0f462ac4dae810c65d52ca9af41")
 ];
 
-use core::{fmt, fmt::Debug, ops::Deref};
+use core::{fmt, fmt::Debug, fmt::Display, fmt::Formatter, ops::Deref};
 
 // When feature alloc is turned off use static lifetime Box and Vec types.
 #[cfg(not(feature = "alloc"))]
@@ -1565,6 +1565,12 @@ Self::Green => "Green",
             }
         }
 
+        impl Display for Color {
+            fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+                f.write_str(self.name())
+            }
+        }
+
         impl TryFrom<i32> for Color {
             type Error = Error;
 
@@ -1639,6 +1645,12 @@ pub enum NesterNestedEnum {
                     Self::1 => "1",
 Self::2 => "2",
                 }
+            }
+        }
+
+        impl Display for NesterNestedEnum {
+            fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+                f.write_str(self.name())
             }
         }
 
@@ -1738,6 +1750,12 @@ impl NesterNestedUnion {
         match self {
             Self::Red => Color::Red,
         }
+    }
+}
+
+impl Display for NesterNestedUnion {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        f.write_str(self.name())
     }
 }
 

@@ -8,7 +8,7 @@ pub const XDR_FILES_SHA256: [(&str, &str); 1] = [
   ("spec/fixtures/generator/union.x", "c251258d967223b341ebcf2d5bb0718e9a039b46232cb743865d9acd0c4bbe41")
 ];
 
-use core::{fmt, fmt::Debug, ops::Deref};
+use core::{fmt, fmt::Debug, fmt::Display, fmt::Formatter, ops::Deref};
 
 // When feature alloc is turned off use static lifetime Box and Vec types.
 #[cfg(not(feature = "alloc"))]
@@ -867,6 +867,12 @@ Self::Multi => "Multi",
             }
         }
 
+        impl Display for UnionKey {
+            fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+                f.write_str(self.name())
+            }
+        }
+
         impl TryFrom<i32> for UnionKey {
             type Error = Error;
 
@@ -944,6 +950,12 @@ Self::Multi(_) => UnionKey::Multi,
             }
         }
 
+        impl Display for MyUnion {
+            fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+                f.write_str(self.name())
+            }
+        }
+
         impl ReadXdr for MyUnion {
             #[cfg(feature = "std")]
             fn read_xdr(r: &mut impl Read) -> Result<Self> {
@@ -1007,6 +1019,12 @@ Self::V1(_) => "V1",
                     Self::V0(_) => 0,
 Self::V1(_) => 1,
                 }
+            }
+        }
+
+        impl Display for IntUnion {
+            fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+                f.write_str(self.name())
             }
         }
 
