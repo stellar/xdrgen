@@ -192,8 +192,8 @@ module Xdrgen
             }
         }
 
-        impl Display for #{name enum} {
-            fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        impl fmt::Display for #{name enum} {
+            fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
                 f.write_str(self.name())
             }
         }

@@ -8,7 +8,7 @@ pub const XDR_FILES_SHA256: [(&str, &str); 1] = [
   ("spec/fixtures/generator/enum.x", "35cf5e97e2057039640ed260e8b38bb2733a3c3ca8529c93877bdec02a999d7f")
 ];
 
-use core::{fmt, fmt::Debug, fmt::Display, fmt::Formatter, ops::Deref};
+use core::{fmt, fmt::Debug, ops::Deref};
 
 // When feature alloc is turned off use static lifetime Box and Vec types.
 #[cfg(not(feature = "alloc"))]
@@ -898,8 +898,8 @@ Self::FbaMessage => "FbaMessage",
             }
         }
 
-        impl Display for MessageType {
-            fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        impl fmt::Display for MessageType {
+            fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
                 f.write_str(self.name())
             }
         }
@@ -983,8 +983,8 @@ Self::Blue => "Blue",
             }
         }
 
-        impl Display for Color {
-            fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        impl fmt::Display for Color {
+            fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
                 f.write_str(self.name())
             }
         }
@@ -1057,8 +1057,8 @@ Self::Blue2 => "Blue2",
             }
         }
 
-        impl Display for Color2 {
-            fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        impl fmt::Display for Color2 {
+            fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
                 f.write_str(self.name())
             }
         }
