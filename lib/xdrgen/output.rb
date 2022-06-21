@@ -1,4 +1,5 @@
 require 'fileutils'
+require 'digest'
 
 module Xdrgen
   class Output
@@ -13,7 +14,11 @@ module Xdrgen
     end
 
     def relative_source_paths
-      @source_paths.map { |p| Pathname.new(p).expand_path.relative_path_from(Dir.pwd) }
+      @source_paths.map { |p| Pathname.new(p).expand_path.relative_path_from(Dir.pwd).to_s }.sort
+    end
+
+    def relative_source_path_sha256_hashes
+      relative_source_paths.map { |p| [p, Digest::SHA256.file(p).hexdigest] }.to_h
     end
 
     def open(child_path)

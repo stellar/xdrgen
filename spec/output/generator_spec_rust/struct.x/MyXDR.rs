@@ -3,6 +3,11 @@
 
 #![allow(clippy::missing_errors_doc, clippy::unreadable_literal)]
 
+/// `XDR_FILES_SHA256` is a list of pairs of source files and their SHA256 hashes.
+pub const XDR_FILES_SHA256: [(&str, &str); 1] = [
+  ("spec/fixtures/generator/struct.x", "c6911a83390e3b499c078fd0c579132eacce88a4a0538d3b8b5e57747a58db4a")
+];
+
 use core::{fmt, fmt::Debug, ops::Deref};
 
 // When feature alloc is turned off use static lifetime Box and Vec types.
@@ -419,13 +424,33 @@ impl<T, const MAX: u32> VecM<T, MAX> {
     }
 
     #[must_use]
-    pub fn to_vec(self) -> Vec<T> {
+    pub fn as_vec(&self) -> &Vec<T> {
+        self.as_ref()
+    }
+}
+
+impl<T: Clone, const MAX: u32> VecM<T, MAX> {
+    #[must_use]
+    #[cfg(feature = "alloc")]
+    pub fn to_vec(&self) -> Vec<T> {
         self.into()
     }
 
     #[must_use]
-    pub fn as_vec(&self) -> &Vec<T> {
-        self.as_ref()
+    pub fn into_vec(self) -> Vec<T> {
+        self.into()
+    }
+}
+
+impl<const MAX: u32> VecM<u8, MAX> {
+    #[cfg(feature = "alloc")]
+    pub fn to_string(&self) -> Result<String> {
+        self.try_into()
+    }
+
+    #[cfg(feature = "alloc")]
+    pub fn into_string(self) -> Result<String> {
+        self.try_into()
     }
 }
 
@@ -446,6 +471,14 @@ impl<T, const MAX: u32> From<VecM<T, MAX>> for Vec<T> {
     #[must_use]
     fn from(v: VecM<T, MAX>) -> Self {
         v.0
+    }
+}
+
+#[cfg(feature = "alloc")]
+impl<T: Clone, const MAX: u32> From<&VecM<T, MAX>> for Vec<T> {
+    #[must_use]
+    fn from(v: &VecM<T, MAX>) -> Self {
+        v.0.clone()
     }
 }
 
