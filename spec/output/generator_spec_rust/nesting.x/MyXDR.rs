@@ -1018,12 +1018,6 @@ Self::Offer => UnionKey::Offer,
             }
         }
 
-        impl Display for MyUnion {
-            fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-                f.write_str(self.name())
-            }
-        }
-
         impl ReadXdr for MyUnion {
             #[cfg(feature = "std")]
             fn read_xdr(r: &mut impl Read) -> Result<Self> {

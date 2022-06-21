@@ -302,12 +302,6 @@ module Xdrgen
             }
         }
 
-        impl Display for #{name union} {
-            fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-                f.write_str(self.name())
-            }
-        }
-
         impl ReadXdr for #{name union} {
             #[cfg(feature = "std")]
             fn read_xdr(r: &mut impl Read) -> Result<Self> {

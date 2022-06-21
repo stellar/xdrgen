@@ -950,12 +950,6 @@ Self::Multi(_) => UnionKey::Multi,
             }
         }
 
-        impl Display for MyUnion {
-            fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-                f.write_str(self.name())
-            }
-        }
-
         impl ReadXdr for MyUnion {
             #[cfg(feature = "std")]
             fn read_xdr(r: &mut impl Read) -> Result<Self> {
@@ -1019,12 +1013,6 @@ Self::V1(_) => "V1",
                     Self::V0(_) => 0,
 Self::V1(_) => 1,
                 }
-            }
-        }
-
-        impl Display for IntUnion {
-            fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-                f.write_str(self.name())
             }
         }
 
