@@ -875,6 +875,35 @@ pub enum MessageType {
   FbaMessage = 13,
 }
 
+        impl MessageType {
+            #[must_use]
+            pub fn name(&self) -> &str {
+                #[allow(clippy::match_same_arms)]
+                match self {
+                    Self::ErrorMsg => "ErrorMsg",
+Self::Hello => "Hello",
+Self::DontHave => "DontHave",
+Self::GetPeers => "GetPeers",
+Self::Peers => "Peers",
+Self::GetTxSet => "GetTxSet",
+Self::TxSet => "TxSet",
+Self::GetValidations => "GetValidations",
+Self::Validations => "Validations",
+Self::Transaction => "Transaction",
+Self::JsonTransaction => "JsonTransaction",
+Self::GetFbaQuorumset => "GetFbaQuorumset",
+Self::FbaQuorumset => "FbaQuorumset",
+Self::FbaMessage => "FbaMessage",
+                }
+            }
+        }
+
+        impl fmt::Display for MessageType {
+            fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+                f.write_str(self.name())
+            }
+        }
+
         impl TryFrom<i32> for MessageType {
             type Error = Error;
 
@@ -942,6 +971,24 @@ pub enum Color {
   Blue = 2,
 }
 
+        impl Color {
+            #[must_use]
+            pub fn name(&self) -> &str {
+                #[allow(clippy::match_same_arms)]
+                match self {
+                    Self::Red => "Red",
+Self::Green => "Green",
+Self::Blue => "Blue",
+                }
+            }
+        }
+
+        impl fmt::Display for Color {
+            fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+                f.write_str(self.name())
+            }
+        }
+
         impl TryFrom<i32> for Color {
             type Error = Error;
 
@@ -997,6 +1044,24 @@ pub enum Color2 {
   Green2 = 1,
   Blue2 = 2,
 }
+
+        impl Color2 {
+            #[must_use]
+            pub fn name(&self) -> &str {
+                #[allow(clippy::match_same_arms)]
+                match self {
+                    Self::Red2 => "Red2",
+Self::Green2 => "Green2",
+Self::Blue2 => "Blue2",
+                }
+            }
+        }
+
+        impl fmt::Display for Color2 {
+            fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+                f.write_str(self.name())
+            }
+        }
 
         impl TryFrom<i32> for Color2 {
             type Error = Error;
