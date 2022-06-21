@@ -53,7 +53,7 @@ pub enum Error {
     NonZeroPadding,
     Utf8Error(core::str::Utf8Error),
     #[cfg(feature = "std")]
-    IO(io::Error),
+    Io(io::Error),
 }
 
 #[cfg(feature = "std")]
@@ -61,7 +61,7 @@ impl error::Error for Error {
     #[must_use]
     fn source(&self) -> Option<&(dyn error::Error + 'static)> {
         match self {
-            Self::IO(e) => Some(e),
+            Self::Io(e) => Some(e),
             _ => None,
         }
     }
@@ -76,7 +76,7 @@ impl fmt::Display for Error {
             Error::NonZeroPadding => write!(f, "xdr padding contains non-zero bytes"),
             Error::Utf8Error(e) => write!(f, "{}", e),
             #[cfg(feature = "std")]
-            Error::IO(e) => write!(f, "{}", e),
+            Error::Io(e) => write!(f, "{}", e),
         }
     }
 }
@@ -100,7 +100,7 @@ impl From<FromUtf8Error> for Error {
 impl From<io::Error> for Error {
     #[must_use]
     fn from(e: io::Error) -> Self {
-        Error::IO(e)
+        Error::Io(e)
     }
 }
 
@@ -747,7 +747,7 @@ mod tests {
         let mut buf = Cursor::new(vec![0, 0, 0, 1, 2, 0, 0]);
         let res = VecM::<u8, 8>::read_xdr(&mut buf);
         match res {
-            Err(Error::IO(_)) => (),
+            Err(Error::Io(_)) => (),
             _ => panic!("expected IO error got {:?}", res),
         }
     }
@@ -797,7 +797,7 @@ mod tests {
         let mut buf = Cursor::new(vec![2, 0, 0]);
         let res = <[u8; 1]>::read_xdr(&mut buf);
         match res {
-            Err(Error::IO(_)) => (),
+            Err(Error::Io(_)) => (),
             _ => panic!("expected IO error got {:?}", res),
         }
     }
