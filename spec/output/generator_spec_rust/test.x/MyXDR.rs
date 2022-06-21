@@ -1553,6 +1553,18 @@ pub enum Color {
   Green = 6,
 }
 
+        impl Color {
+            #[must_use]
+            pub fn name(&self) -> &str {
+                #[allow(clippy::match_same_arms)]
+                match self {
+                    Self::Red => "Red",
+Self::Blue => "Blue",
+Self::Green => "Green",
+                }
+            }
+        }
+
         impl TryFrom<i32> for Color {
             type Error = Error;
 
@@ -1618,6 +1630,17 @@ pub enum NesterNestedEnum {
   1 = 0,
   2 = 1,
 }
+
+        impl NesterNestedEnum {
+            #[must_use]
+            pub fn name(&self) -> &str {
+                #[allow(clippy::match_same_arms)]
+                match self {
+                    Self::1 => "1",
+Self::2 => "2",
+                }
+            }
+        }
 
         impl TryFrom<i32> for NesterNestedEnum {
             type Error = Error;
@@ -1701,6 +1724,14 @@ pub enum NesterNestedUnion {
 }
 
 impl NesterNestedUnion {
+    #[must_use]
+    pub fn name(&self) -> &str {
+        #[allow(clippy::match_same_arms)]
+        match self {
+            Self::Red => "Red",
+        }
+    }
+
     #[must_use]
     pub fn discriminant(&self) -> Color {
         #[allow(clippy::match_same_arms)]

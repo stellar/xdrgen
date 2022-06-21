@@ -846,6 +846,18 @@ pub enum UnionKey {
   Offer = 3,
 }
 
+        impl UnionKey {
+            #[must_use]
+            pub fn name(&self) -> &str {
+                #[allow(clippy::match_same_arms)]
+                match self {
+                    Self::One => "One",
+Self::Two => "Two",
+Self::Offer => "Offer",
+                }
+            }
+        }
+
         impl TryFrom<i32> for UnionKey {
             type Error = Error;
 
@@ -979,6 +991,16 @@ pub enum MyUnion {
 }
 
         impl MyUnion {
+            #[must_use]
+            pub fn name(&self) -> &str {
+                #[allow(clippy::match_same_arms)]
+                match self {
+                    Self::One(_) => "One",
+Self::Two(_) => "Two",
+Self::Offer => "Offer",
+                }
+            }
+
             #[must_use]
             pub fn discriminant(&self) -> UnionKey {
                 #[allow(clippy::match_same_arms)]
