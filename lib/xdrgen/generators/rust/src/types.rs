@@ -124,7 +124,7 @@ impl<'r, R: Read, S: ReadXdr> ReadXdrIter<'r, R, S> {
 impl<'r, R: Read, S: ReadXdr> Iterator for ReadXdrIter<'r, R, S> {
     type Item = Result<S>;
 
-    // Next reads the internal reader and XDR decoded it into the Self type. If
+    // Next reads the internal reader and XDR decodes it into the Self type. If
     // the EOF is reached without reading any new bytes `None` is returned. If
     // EOF is reached after reading some bytes a truncated entry is assumed an
     // an `Error::Io` containing an `UnexpectedEof`. If any other IO error
