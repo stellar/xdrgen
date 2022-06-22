@@ -135,7 +135,7 @@ impl<'r, R: Read, S: ReadXdr> Iterator for ReadXdrIter<'r, R, S> {
         match S::read_xdr(&mut self.r) {
             Ok(s) => Some(Ok(s)),
             // TODO: Distinguish between EOF and EOF-with-a-partial-fill. An EOF
-            // that occurs at teh end of an item indicates the end of a stream
+            // that occurs at the end of an item indicates the end of a stream
             // and should end iteration. An EOF that occurs whilst reading an
             // item indicates a corrupt stream and should cause an error. The
             // xdr types use the `std::io::Read::read_exact` method that
