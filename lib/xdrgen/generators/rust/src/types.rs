@@ -1,5 +1,8 @@
 use core::{fmt, fmt::Debug, ops::Deref};
 
+#[cfg(feature = "std")]
+use core::marker::PhantomData;
+
 // When feature alloc is turned off use static lifetime Box and Vec types.
 #[cfg(not(feature = "alloc"))]
 mod noalloc {
@@ -101,6 +104,39 @@ impl From<Error> for () {
 #[allow(dead_code)]
 type Result<T> = core::result::Result<T, Error>;
 
+#[cfg(feature = "std")]
+pub struct ReadXdrIter<'r, R: Read, S: ReadXdr> {
+    r: &'r mut R,
+    _s: PhantomData<S>,
+}
+
+#[cfg(feature = "std")]
+impl<'r, R: Read, S: ReadXdr> ReadXdrIter<'r, R, S> {
+    fn new(r: &'r mut R) -> Self {
+        Self { r, _s: PhantomData }
+    }
+}
+
+#[cfg(feature = "std")]
+impl<'r, R: Read, S: ReadXdr> Iterator for ReadXdrIter<'r, R, S> {
+    type Item = Result<S>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        match S::read_xdr(&mut self.r) {
+            Ok(s) => Some(Ok(s)),
+            // TODO: Distinguish between EOF and EOF-with-a-partial-fill. An EOF
+            // that occurs at teh end of an item indicates the end of a stream
+            // and should end iteration. An EOF that occurs whilst reading an
+            // item indicates a corrupt stream and should cause an error. The
+            // xdr types use the `std::io::Read::read_exact` method that
+            // unfortunately doesn't distinguish between these two extremely
+            // different events.
+            Err(Error::Io(e)) if e.kind() == io::ErrorKind::UnexpectedEof => None,
+            Err(e) => Some(Err(e)),
+        }
+    }
+}
+
 pub trait ReadXdr
 where
     Self: Sized,
@@ -112,6 +148,11 @@ where
     fn read_xdr_into(&mut self, r: &mut impl Read) -> Result<()> {
         *self = Self::read_xdr(r)?;
         Ok(())
+    }
+
+    #[cfg(feature = "std")]
+    fn read_xdr_iter<R: Read>(r: &mut R) -> ReadXdrIter<R, Self> {
+        ReadXdrIter::new(r)
     }
 
     #[cfg(feature = "std")]
