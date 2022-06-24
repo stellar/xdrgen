@@ -183,7 +183,6 @@ module Xdrgen
         impl #{name enum} {
             #[must_use]
             pub fn name(&self) -> &str {
-                #[allow(clippy::match_same_arms)]
                 match self {
                     #{enum.members.map do |m|
                       "Self::#{name m} => \"#{name m}\","
@@ -279,7 +278,6 @@ module Xdrgen
         impl #{name union} {
             #[must_use]
             pub fn name(&self) -> &str {
-                #[allow(clippy::match_same_arms)]
                 match self {
                     #{union_cases(union) do |case_name, arm|
                       "Self::#{case_name}#{"(_)" unless arm.void?} => \"#{case_name}\","

@@ -905,7 +905,6 @@ pub enum AccountFlags {
 impl AccountFlags {
     #[must_use]
     pub fn name(&self) -> &str {
-        #[allow(clippy::match_same_arms)]
         match self {
             Self::AuthRequiredFlag => "AuthRequiredFlag",
         }

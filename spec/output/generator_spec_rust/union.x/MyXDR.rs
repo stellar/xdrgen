@@ -918,7 +918,6 @@ pub enum UnionKey {
         impl UnionKey {
             #[must_use]
             pub fn name(&self) -> &str {
-                #[allow(clippy::match_same_arms)]
                 match self {
                     Self::Error => "Error",
 Self::Multi => "Multi",
@@ -992,7 +991,6 @@ pub enum MyUnion {
         impl MyUnion {
             #[must_use]
             pub fn name(&self) -> &str {
-                #[allow(clippy::match_same_arms)]
                 match self {
                     Self::Error(_) => "Error",
 Self::Multi(_) => "Multi",
@@ -1058,7 +1056,6 @@ pub enum IntUnion {
         impl IntUnion {
             #[must_use]
             pub fn name(&self) -> &str {
-                #[allow(clippy::match_same_arms)]
                 match self {
                     Self::V0(_) => "V0",
 Self::V1(_) => "V1",
