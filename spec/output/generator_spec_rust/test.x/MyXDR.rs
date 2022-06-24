@@ -473,6 +473,12 @@ impl<T, const MAX: u32> Deref for VecM<T, MAX> {
     }
 }
 
+impl<T, const MAX: u32> Default for VecM<T, MAX> {
+    fn default() -> Self {
+        Self(Vec::default())
+    }
+}
+
 impl<T, const MAX: u32> VecM<T, MAX> {
     pub const MAX_LEN: usize = { MAX as usize };
 
@@ -937,6 +943,7 @@ impl WriteXdr for Uint512 {
 //   typedef opaque uint513<64>;
 //
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Default)]
 pub struct Uint513(pub VecM::<u8, 64>);
 
 impl From<Uint513> for VecM::<u8, 64> {
@@ -1022,6 +1029,7 @@ impl AsRef<[u8]> for Uint513 {
 //   typedef opaque uint514<>;
 //
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Default)]
 pub struct Uint514(pub VecM::<u8>);
 
 impl From<Uint514> for VecM::<u8> {
@@ -1207,6 +1215,7 @@ impl WriteXdr for Hashes1 {
 //   typedef Hash Hashes2<12>;
 //
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Default)]
 pub struct Hashes2(pub VecM::<Hash, 12>);
 
 impl From<Hashes2> for VecM::<Hash, 12> {
@@ -1292,6 +1301,7 @@ impl AsRef<[Hash]> for Hashes2 {
 //   typedef Hash Hashes3<>;
 //
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Default)]
 pub struct Hashes3(pub VecM::<Hash>);
 
 impl From<Hashes3> for VecM::<Hash> {

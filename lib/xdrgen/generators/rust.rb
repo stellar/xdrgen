@@ -148,7 +148,7 @@ module Xdrgen
             fn read_xdr(r: &mut impl Read) -> Result<Self> {
                 Ok(Self{
                   #{struct.members.map do |m|
-                    "#{field_name(m)}: #{reference_to_call(struct, m.declaration.type, :read)}::read_xdr(r)?,"
+                    "#{field_name(m)}: #{reference_to_call(struct, m.declaration.type)}::read_xdr(r)?,"
                   end.join("\n")}
                 })
             }
@@ -310,7 +310,7 @@ module Xdrgen
                       "#{
                         value.nil? ? "#{discriminant_type}::#{case_name}" : "#{value}"
                       } => #{
-                        arm.void? ? "Self::#{case_name}" : "Self::#{case_name}(#{reference_to_call(union, arm.type, :read)}::read_xdr(r)?)"
+                        arm.void? ? "Self::#{case_name}" : "Self::#{case_name}(#{reference_to_call(union, arm.type)}::read_xdr(r)?)"
                       },"
                     end.join("\n")}
                     #[allow(unreachable_patterns)]
@@ -346,6 +346,7 @@ module Xdrgen
           out.puts "pub type #{name typedef} = #{reference(typedef, typedef.type)};"
         else
           out.puts "#[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]"
+          out.puts "#[derive(Default)]" if is_var_array_type(typedef.type)
           out.puts "pub struct #{name typedef}(pub #{reference(typedef, typedef.type)});"
           out.puts ""
           out.puts <<-EOS.strip_heredoc
@@ -373,7 +374,7 @@ module Xdrgen
           impl ReadXdr for #{name typedef} {
               #[cfg(feature = "std")]
               fn read_xdr(r: &mut impl Read) -> Result<Self> {
-                  let i = #{reference_to_call(typedef, typedef.type, :read)}::read_xdr(r)?;
+                  let i = #{reference_to_call(typedef, typedef.type)}::read_xdr(r)?;
                   let v = #{name typedef}(i);
                   Ok(v)
               }
@@ -552,7 +553,7 @@ module Xdrgen
         end
       end
 
-      def base_reference_to_call(type, op)
+      def base_reference_to_call(type)
         case type
         when AST::Typespecs::String
           if !type.decl.resolved_size.nil?
@@ -570,7 +571,7 @@ module Xdrgen
           end
         when AST::Typespecs::Simple, AST::Definitions::Base, AST::Concerns::NestedDefinition
           if type.respond_to?(:resolved_type) && AST::Definitions::Typedef === type.resolved_type && is_builtin_type(type.resolved_type.type)
-            base_reference_to_call(type.resolved_type.type, op)
+            base_reference_to_call(type.resolved_type.type)
           else
             base_reference(type)
           end
@@ -579,8 +580,8 @@ module Xdrgen
         end
       end
 
-      def reference_to_call(parent, type, op)
-        base_ref = base_reference_to_call(type, op)
+      def reference_to_call(parent, type)
+        base_ref = base_reference_to_call(type)
 
         parent_name = name(parent) if parent
         cyclic = is_type_in_type_field_types(base_ref, parent_name)

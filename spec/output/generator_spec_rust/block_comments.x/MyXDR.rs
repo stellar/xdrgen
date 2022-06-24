@@ -473,6 +473,12 @@ impl<T, const MAX: u32> Deref for VecM<T, MAX> {
     }
 }
 
+impl<T, const MAX: u32> Default for VecM<T, MAX> {
+    fn default() -> Self {
+        Self(Vec::default())
+    }
+}
+
 impl<T, const MAX: u32> VecM<T, MAX> {
     pub const MAX_LEN: usize = { MAX as usize };
 
