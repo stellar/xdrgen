@@ -348,6 +348,7 @@ module Xdrgen
           out.puts "pub type #{name typedef} = #{reference(typedef, typedef.type)};"
         else
           out.puts "#[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]"
+          out.puts "#[derive(Default)]" if is_var_array_type(typedef.type)
           out.puts "pub struct #{name typedef}(pub #{reference(typedef, typedef.type)});"
           out.puts ""
           out.puts <<-EOS.strip_heredoc
@@ -395,12 +396,6 @@ module Xdrgen
               type Target = #{reference(typedef, typedef.type)};
               fn deref(&self) -> &Self::Target {
                   &self.0
-              }
-            }
-
-            impl Default for #{name typedef} {
-              fn default() -> Self {
-                  Self(#{reference_to_call(typedef, typedef.type)}::default())
               }
             }
 
