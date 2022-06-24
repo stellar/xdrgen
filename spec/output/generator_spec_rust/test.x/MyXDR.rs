@@ -473,6 +473,12 @@ impl<T, const MAX: u32> Deref for VecM<T, MAX> {
     }
 }
 
+impl<T, const MAX: u32> Default for VecM<T, MAX> {
+    fn default() -> Self {
+        Self(Vec::default())
+    }
+}
+
 impl<T, const MAX: u32> VecM<T, MAX> {
     pub const MAX_LEN: usize = { MAX as usize };
 
@@ -983,6 +989,12 @@ impl Deref for Uint513 {
   }
 }
 
+impl Default for Uint513 {
+  fn default() -> Self {
+      Self(VecM::<u8, 64>::default())
+  }
+}
+
 impl From<Uint513> for Vec<u8> {
     #[must_use]
     fn from(x: Uint513) -> Self {
@@ -1065,6 +1077,12 @@ impl Deref for Uint514 {
   type Target = VecM::<u8>;
   fn deref(&self) -> &Self::Target {
       &self.0
+  }
+}
+
+impl Default for Uint514 {
+  fn default() -> Self {
+      Self(VecM::<u8>::default())
   }
 }
 
@@ -1253,6 +1271,12 @@ impl Deref for Hashes2 {
   }
 }
 
+impl Default for Hashes2 {
+  fn default() -> Self {
+      Self(VecM::<Hash, 12>::default())
+  }
+}
+
 impl From<Hashes2> for Vec<Hash> {
     #[must_use]
     fn from(x: Hashes2) -> Self {
@@ -1335,6 +1359,12 @@ impl Deref for Hashes3 {
   type Target = VecM::<Hash>;
   fn deref(&self) -> &Self::Target {
       &self.0
+  }
+}
+
+impl Default for Hashes3 {
+  fn default() -> Self {
+      Self(VecM::<Hash>::default())
   }
 }
 
