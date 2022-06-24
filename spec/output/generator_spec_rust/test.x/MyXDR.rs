@@ -1625,7 +1625,6 @@ pub enum Color {
         impl Color {
             #[must_use]
             pub fn name(&self) -> &str {
-                #[allow(clippy::match_same_arms)]
                 match self {
                     Self::Red => "Red",
 Self::Blue => "Blue",
@@ -1709,7 +1708,6 @@ pub enum NesterNestedEnum {
         impl NesterNestedEnum {
             #[must_use]
             pub fn name(&self) -> &str {
-                #[allow(clippy::match_same_arms)]
                 match self {
                     Self::1 => "1",
 Self::2 => "2",
@@ -1807,7 +1805,6 @@ pub enum NesterNestedUnion {
 impl NesterNestedUnion {
     #[must_use]
     pub fn name(&self) -> &str {
-        #[allow(clippy::match_same_arms)]
         match self {
             Self::Red => "Red",
         }

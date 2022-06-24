@@ -914,7 +914,6 @@ pub enum UnionKey {
         impl UnionKey {
             #[must_use]
             pub fn name(&self) -> &str {
-                #[allow(clippy::match_same_arms)]
                 match self {
                     Self::One => "One",
 Self::Two => "Two",
@@ -1064,7 +1063,6 @@ pub enum MyUnion {
         impl MyUnion {
             #[must_use]
             pub fn name(&self) -> &str {
-                #[allow(clippy::match_same_arms)]
                 match self {
                     Self::One(_) => "One",
 Self::Two(_) => "Two",
