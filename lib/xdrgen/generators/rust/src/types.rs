@@ -610,10 +610,7 @@ impl<T: Clone, const N: usize, const MAX: u32> TryFrom<&[T; N]> for VecM<T, MAX>
 }
 
 #[cfg(not(feature = "alloc"))]
-impl<T: Clone, const N: usize, const MAX: u32> TryFrom<&'static [T; N]> for VecM<T, MAX>
-where
-    T: 'static,
-{
+impl<T: Clone, const N: usize, const MAX: u32> TryFrom<&'static [T; N]> for VecM<T, MAX> {
     type Error = Error;
 
     fn try_from(v: &'static [T; N]) -> Result<Self> {
