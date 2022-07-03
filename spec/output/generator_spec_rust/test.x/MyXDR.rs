@@ -114,6 +114,15 @@ impl From<Error> for () {
 #[allow(dead_code)]
 type Result<T> = core::result::Result<T, Error>;
 
+pub trait Enum {
+    fn name(&self) -> &'static str;
+}
+
+pub trait Union<D> {
+    fn name(&self) -> &'static str;
+    fn discriminant(&self) -> D;
+}
+
 #[cfg(feature = "std")]
 pub struct ReadXdrIter<'r, R: Read, S: ReadXdr> {
     reader: BufReader<&'r mut R>,
@@ -1630,6 +1639,13 @@ Self::Green => "Green",
             }
         }
 
+        impl Enum for Color {
+            #[must_use]
+            fn name(&self) -> &'static str {
+                Self::name(self)
+            }
+        }
+
         impl fmt::Display for Color {
             fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
                 f.write_str(self.name())
@@ -1709,6 +1725,13 @@ pub enum NesterNestedEnum {
                     Self::1 => "1",
 Self::2 => "2",
                 }
+            }
+        }
+
+        impl Enum for NesterNestedEnum {
+            #[must_use]
+            fn name(&self) -> &'static str {
+                Self::name(self)
             }
         }
 
@@ -1813,6 +1836,18 @@ impl NesterNestedUnion {
         match self {
             Self::Red => Color::Red,
         }
+    }
+}
+
+impl Union<Color> for NesterNestedUnion {
+    #[must_use]
+    fn name(&self) -> &'static str {
+        Self::name(self)
+    }
+
+    #[must_use]
+    fn discriminant(&self) -> Color {
+        Self::discriminant(self)
     }
 }
 

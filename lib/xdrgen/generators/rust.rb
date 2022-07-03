@@ -191,6 +191,13 @@ module Xdrgen
             }
         }
 
+        impl Enum for #{name enum} {
+            #[must_use]
+            fn name(&self) -> &'static str {
+                Self::name(self)
+            }
+        }
+
         impl fmt::Display for #{name enum} {
             fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
                 f.write_str(self.name())
@@ -297,6 +304,18 @@ module Xdrgen
                       },"
                     end.join("\n")}
                 }
+            }
+        }
+
+        impl Union<#{discriminant_type}> for #{name union} {
+            #[must_use]
+            fn name(&self) -> &'static str {
+                Self::name(self)
+            }
+
+            #[must_use]
+            fn discriminant(&self) -> #{discriminant_type} {
+                Self::discriminant(self)
             }
         }
 

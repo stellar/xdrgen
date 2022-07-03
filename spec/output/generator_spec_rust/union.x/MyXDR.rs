@@ -114,6 +114,15 @@ impl From<Error> for () {
 #[allow(dead_code)]
 type Result<T> = core::result::Result<T, Error>;
 
+pub trait Enum {
+    fn name(&self) -> &'static str;
+}
+
+pub trait Union<D> {
+    fn name(&self) -> &'static str;
+    fn discriminant(&self) -> D;
+}
+
 #[cfg(feature = "std")]
 pub struct ReadXdrIter<'r, R: Read, S: ReadXdr> {
     reader: BufReader<&'r mut R>,
@@ -928,6 +937,13 @@ Self::Multi => "Multi",
             }
         }
 
+        impl Enum for UnionKey {
+            #[must_use]
+            fn name(&self) -> &'static str {
+                Self::name(self)
+            }
+        }
+
         impl fmt::Display for UnionKey {
             fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
                 f.write_str(self.name())
@@ -1010,6 +1026,18 @@ Self::Multi(_) => UnionKey::Multi,
             }
         }
 
+        impl Union<UnionKey> for MyUnion {
+            #[must_use]
+            fn name(&self) -> &'static str {
+                Self::name(self)
+            }
+
+            #[must_use]
+            fn discriminant(&self) -> UnionKey {
+                Self::discriminant(self)
+            }
+        }
+
         impl ReadXdr for MyUnion {
             #[cfg(feature = "std")]
             fn read_xdr(r: &mut impl Read) -> Result<Self> {
@@ -1072,6 +1100,18 @@ Self::V1(_) => "V1",
                     Self::V0(_) => 0,
 Self::V1(_) => 1,
                 }
+            }
+        }
+
+        impl Union<i32> for IntUnion {
+            #[must_use]
+            fn name(&self) -> &'static str {
+                Self::name(self)
+            }
+
+            #[must_use]
+            fn discriminant(&self) -> i32 {
+                Self::discriminant(self)
             }
         }
 

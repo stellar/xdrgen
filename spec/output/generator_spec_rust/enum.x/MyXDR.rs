@@ -114,6 +114,15 @@ impl From<Error> for () {
 #[allow(dead_code)]
 type Result<T> = core::result::Result<T, Error>;
 
+pub trait Enum {
+    fn name(&self) -> &'static str;
+}
+
+pub trait Union<D> {
+    fn name(&self) -> &'static str;
+    fn discriminant(&self) -> D;
+}
+
 #[cfg(feature = "std")]
 pub struct ReadXdrIter<'r, R: Read, S: ReadXdr> {
     reader: BufReader<&'r mut R>,
@@ -959,6 +968,13 @@ Self::FbaMessage => "FbaMessage",
             }
         }
 
+        impl Enum for MessageType {
+            #[must_use]
+            fn name(&self) -> &'static str {
+                Self::name(self)
+            }
+        }
+
         impl fmt::Display for MessageType {
             fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
                 f.write_str(self.name())
@@ -1043,6 +1059,13 @@ Self::Blue => "Blue",
             }
         }
 
+        impl Enum for Color {
+            #[must_use]
+            fn name(&self) -> &'static str {
+                Self::name(self)
+            }
+        }
+
         impl fmt::Display for Color {
             fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
                 f.write_str(self.name())
@@ -1113,6 +1136,13 @@ pub enum Color2 {
 Self::Green2 => "Green2",
 Self::Blue2 => "Blue2",
                 }
+            }
+        }
+
+        impl Enum for Color2 {
+            #[must_use]
+            fn name(&self) -> &'static str {
+                Self::name(self)
             }
         }
 

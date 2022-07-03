@@ -114,6 +114,15 @@ impl From<Error> for () {
 #[allow(dead_code)]
 type Result<T> = core::result::Result<T, Error>;
 
+pub trait Enum {
+    fn name(&self) -> &'static str;
+}
+
+pub trait Union<D> {
+    fn name(&self) -> &'static str;
+    fn discriminant(&self) -> D;
+}
+
 #[cfg(feature = "std")]
 pub struct ReadXdrIter<'r, R: Read, S: ReadXdr> {
     reader: BufReader<&'r mut R>,
@@ -919,6 +928,13 @@ Self::Offer => "Offer",
             }
         }
 
+        impl Enum for UnionKey {
+            #[must_use]
+            fn name(&self) -> &'static str {
+                Self::name(self)
+            }
+        }
+
         impl fmt::Display for UnionKey {
             fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
                 f.write_str(self.name())
@@ -1075,6 +1091,18 @@ Self::Offer => "Offer",
 Self::Two(_) => UnionKey::Two,
 Self::Offer => UnionKey::Offer,
                 }
+            }
+        }
+
+        impl Union<UnionKey> for MyUnion {
+            #[must_use]
+            fn name(&self) -> &'static str {
+                Self::name(self)
+            }
+
+            #[must_use]
+            fn discriminant(&self) -> UnionKey {
+                Self::discriminant(self)
             }
         }
 

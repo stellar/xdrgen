@@ -104,6 +104,15 @@ impl From<Error> for () {
 #[allow(dead_code)]
 type Result<T> = core::result::Result<T, Error>;
 
+pub trait Enum {
+    fn name(&self) -> &'static str;
+}
+
+pub trait Union<D> {
+    fn name(&self) -> &'static str;
+    fn discriminant(&self) -> D;
+}
+
 #[cfg(feature = "std")]
 pub struct ReadXdrIter<'r, R: Read, S: ReadXdr> {
     reader: BufReader<&'r mut R>,
