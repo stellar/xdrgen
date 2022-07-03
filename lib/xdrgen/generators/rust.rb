@@ -182,7 +182,7 @@ module Xdrgen
         out.puts <<-EOS.strip_heredoc
         impl #{name enum} {
             #[must_use]
-            pub fn name(&self) -> &str {
+            pub const fn name(&self) -> &str {
                 match self {
                     #{enum.members.map do |m|
                       "Self::#{name m} => \"#{name m}\","
@@ -277,7 +277,7 @@ module Xdrgen
         out.puts <<-EOS.strip_heredoc
         impl #{name union} {
             #[must_use]
-            pub fn name(&self) -> &str {
+            pub const fn name(&self) -> &str {
                 match self {
                     #{union_cases(union) do |case_name, arm|
                       "Self::#{case_name}#{"(_)" unless arm.void?} => \"#{case_name}\","
@@ -286,7 +286,7 @@ module Xdrgen
             }
 
             #[must_use]
-            pub fn discriminant(&self) -> #{discriminant_type} {
+            pub const fn discriminant(&self) -> #{discriminant_type} {
                 #[allow(clippy::match_same_arms)]
                 match self {
                     #{union_cases(union) do |case_name, arm, value|

@@ -907,7 +907,7 @@ pub enum AccountFlags {
 
 impl AccountFlags {
     #[must_use]
-    pub fn name(&self) -> &str {
+    pub const fn name(&self) -> &str {
         match self {
             Self::AuthRequiredFlag => "AuthRequiredFlag",
         }

@@ -939,7 +939,7 @@ pub enum MessageType {
 
         impl MessageType {
             #[must_use]
-            pub fn name(&self) -> &str {
+            pub const fn name(&self) -> &str {
                 match self {
                     Self::ErrorMsg => "ErrorMsg",
 Self::Hello => "Hello",
@@ -1034,7 +1034,7 @@ pub enum Color {
 
         impl Color {
             #[must_use]
-            pub fn name(&self) -> &str {
+            pub const fn name(&self) -> &str {
                 match self {
                     Self::Red => "Red",
 Self::Green => "Green",
@@ -1107,7 +1107,7 @@ pub enum Color2 {
 
         impl Color2 {
             #[must_use]
-            pub fn name(&self) -> &str {
+            pub const fn name(&self) -> &str {
                 match self {
                     Self::Red2 => "Red2",
 Self::Green2 => "Green2",

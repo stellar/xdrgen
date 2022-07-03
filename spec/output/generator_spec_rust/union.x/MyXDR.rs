@@ -920,7 +920,7 @@ pub enum UnionKey {
 
         impl UnionKey {
             #[must_use]
-            pub fn name(&self) -> &str {
+            pub const fn name(&self) -> &str {
                 match self {
                     Self::Error => "Error",
 Self::Multi => "Multi",
@@ -993,7 +993,7 @@ pub enum MyUnion {
 
         impl MyUnion {
             #[must_use]
-            pub fn name(&self) -> &str {
+            pub const fn name(&self) -> &str {
                 match self {
                     Self::Error(_) => "Error",
 Self::Multi(_) => "Multi",
@@ -1001,7 +1001,7 @@ Self::Multi(_) => "Multi",
             }
 
             #[must_use]
-            pub fn discriminant(&self) -> UnionKey {
+            pub const fn discriminant(&self) -> UnionKey {
                 #[allow(clippy::match_same_arms)]
                 match self {
                     Self::Error(_) => UnionKey::Error,
@@ -1058,7 +1058,7 @@ pub enum IntUnion {
 
         impl IntUnion {
             #[must_use]
-            pub fn name(&self) -> &str {
+            pub const fn name(&self) -> &str {
                 match self {
                     Self::V0(_) => "V0",
 Self::V1(_) => "V1",
@@ -1066,7 +1066,7 @@ Self::V1(_) => "V1",
             }
 
             #[must_use]
-            pub fn discriminant(&self) -> i32 {
+            pub const fn discriminant(&self) -> i32 {
                 #[allow(clippy::match_same_arms)]
                 match self {
                     Self::V0(_) => 0,

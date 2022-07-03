@@ -910,7 +910,7 @@ pub enum UnionKey {
 
         impl UnionKey {
             #[must_use]
-            pub fn name(&self) -> &str {
+            pub const fn name(&self) -> &str {
                 match self {
                     Self::One => "One",
 Self::Two => "Two",
@@ -1059,7 +1059,7 @@ pub enum MyUnion {
 
         impl MyUnion {
             #[must_use]
-            pub fn name(&self) -> &str {
+            pub const fn name(&self) -> &str {
                 match self {
                     Self::One(_) => "One",
 Self::Two(_) => "Two",
@@ -1068,7 +1068,7 @@ Self::Offer => "Offer",
             }
 
             #[must_use]
-            pub fn discriminant(&self) -> UnionKey {
+            pub const fn discriminant(&self) -> UnionKey {
                 #[allow(clippy::match_same_arms)]
                 match self {
                     Self::One(_) => UnionKey::One,
