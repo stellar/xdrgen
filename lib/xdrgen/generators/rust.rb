@@ -182,7 +182,7 @@ module Xdrgen
         out.puts <<-EOS.strip_heredoc
         impl #{name enum} {
             #[must_use]
-            pub const fn name(&self) -> &str {
+            pub const fn name(&self) -> &'static str {
                 match self {
                     #{enum.members.map do |m|
                       "Self::#{name m} => \"#{name m}\","
@@ -277,7 +277,7 @@ module Xdrgen
         out.puts <<-EOS.strip_heredoc
         impl #{name union} {
             #[must_use]
-            pub const fn name(&self) -> &str {
+            pub const fn name(&self) -> &'static str {
                 match self {
                     #{union_cases(union) do |case_name, arm|
                       "Self::#{case_name}#{"(_)" unless arm.void?} => \"#{case_name}\","

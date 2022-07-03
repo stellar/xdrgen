@@ -910,7 +910,7 @@ pub enum UnionKey {
 
         impl UnionKey {
             #[must_use]
-            pub const fn name(&self) -> &str {
+            pub const fn name(&self) -> &'static str {
                 match self {
                     Self::One => "One",
 Self::Two => "Two",
@@ -1059,7 +1059,7 @@ pub enum MyUnion {
 
         impl MyUnion {
             #[must_use]
-            pub const fn name(&self) -> &str {
+            pub const fn name(&self) -> &'static str {
                 match self {
                     Self::One(_) => "One",
 Self::Two(_) => "Two",
