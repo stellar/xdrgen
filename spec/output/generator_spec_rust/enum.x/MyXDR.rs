@@ -114,14 +114,25 @@ impl From<Error> for () {
 #[allow(dead_code)]
 type Result<T> = core::result::Result<T, Error>;
 
-pub trait Enum {
+/// Name defines types that assign a static name to their value, such as the
+/// name given to an identifier in an XDR enum, or the name given to the case in
+/// a union.
+pub trait Name {
     fn name(&self) -> &'static str;
 }
 
-pub trait Union<D> {
-    fn name(&self) -> &'static str;
+/// Discriminant defines types that may contain a one-of value determined
+/// according to the discriminant, and exposes the value of the discriminant for
+/// that type, such as in an XDR union.
+pub trait Discriminant<D> {
     fn discriminant(&self) -> D;
 }
+
+// Enum defines a type that is represented as an XDR enumeration when encoded.
+pub trait Enum: Name {}
+
+// Union defines a type that is represented as an XDR union when encoded.
+pub trait Union<D>: Name + Discriminant<D> {}
 
 #[cfg(feature = "std")]
 pub struct ReadXdrIter<'r, R: Read, S: ReadXdr> {
@@ -968,12 +979,14 @@ Self::FbaMessage => "FbaMessage",
             }
         }
 
-        impl Enum for MessageType {
+        impl Name for MessageType {
             #[must_use]
             fn name(&self) -> &'static str {
                 Self::name(self)
             }
         }
+
+        impl Enum for MessageType {}
 
         impl fmt::Display for MessageType {
             fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -1059,12 +1072,14 @@ Self::Blue => "Blue",
             }
         }
 
-        impl Enum for Color {
+        impl Name for Color {
             #[must_use]
             fn name(&self) -> &'static str {
                 Self::name(self)
             }
         }
+
+        impl Enum for Color {}
 
         impl fmt::Display for Color {
             fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -1139,12 +1154,14 @@ Self::Blue2 => "Blue2",
             }
         }
 
-        impl Enum for Color2 {
+        impl Name for Color2 {
             #[must_use]
             fn name(&self) -> &'static str {
                 Self::name(self)
             }
         }
+
+        impl Enum for Color2 {}
 
         impl fmt::Display for Color2 {
             fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

@@ -191,12 +191,14 @@ module Xdrgen
             }
         }
 
-        impl Enum for #{name enum} {
+        impl Name for #{name enum} {
             #[must_use]
             fn name(&self) -> &'static str {
                 Self::name(self)
             }
         }
+
+        impl Enum for #{name enum} {}
 
         impl fmt::Display for #{name enum} {
             fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -307,17 +309,21 @@ module Xdrgen
             }
         }
 
-        impl Union<#{discriminant_type}> for #{name union} {
+        impl Name for #{name union} {
             #[must_use]
             fn name(&self) -> &'static str {
                 Self::name(self)
             }
+        }
 
+        impl Discriminant<#{discriminant_type}> for #{name union} {
             #[must_use]
             fn discriminant(&self) -> #{discriminant_type} {
                 Self::discriminant(self)
             }
         }
+
+        impl Union<#{discriminant_type}> for #{name union} {}
 
         impl ReadXdr for #{name union} {
             #[cfg(feature = "std")]

@@ -114,14 +114,25 @@ impl From<Error> for () {
 #[allow(dead_code)]
 type Result<T> = core::result::Result<T, Error>;
 
-pub trait Enum {
+/// Name defines types that assign a static name to their value, such as the
+/// name given to an identifier in an XDR enum, or the name given to the case in
+/// a union.
+pub trait Name {
     fn name(&self) -> &'static str;
 }
 
-pub trait Union<D> {
-    fn name(&self) -> &'static str;
+/// Discriminant defines types that may contain a one-of value determined
+/// according to the discriminant, and exposes the value of the discriminant for
+/// that type, such as in an XDR union.
+pub trait Discriminant<D> {
     fn discriminant(&self) -> D;
 }
+
+// Enum defines a type that is represented as an XDR enumeration when encoded.
+pub trait Enum: Name {}
+
+// Union defines a type that is represented as an XDR union when encoded.
+pub trait Union<D>: Name + Discriminant<D> {}
 
 #[cfg(feature = "std")]
 pub struct ReadXdrIter<'r, R: Read, S: ReadXdr> {
@@ -928,12 +939,14 @@ Self::Offer => "Offer",
             }
         }
 
-        impl Enum for UnionKey {
+        impl Name for UnionKey {
             #[must_use]
             fn name(&self) -> &'static str {
                 Self::name(self)
             }
         }
+
+        impl Enum for UnionKey {}
 
         impl fmt::Display for UnionKey {
             fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -1094,17 +1107,21 @@ Self::Offer => UnionKey::Offer,
             }
         }
 
-        impl Union<UnionKey> for MyUnion {
+        impl Name for MyUnion {
             #[must_use]
             fn name(&self) -> &'static str {
                 Self::name(self)
             }
+        }
 
+        impl Discriminant<UnionKey> for MyUnion {
             #[must_use]
             fn discriminant(&self) -> UnionKey {
                 Self::discriminant(self)
             }
         }
+
+        impl Union<UnionKey> for MyUnion {}
 
         impl ReadXdr for MyUnion {
             #[cfg(feature = "std")]
