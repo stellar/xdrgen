@@ -114,6 +114,26 @@ impl From<Error> for () {
 #[allow(dead_code)]
 type Result<T> = core::result::Result<T, Error>;
 
+/// Name defines types that assign a static name to their value, such as the
+/// name given to an identifier in an XDR enum, or the name given to the case in
+/// a union.
+pub trait Name {
+    fn name(&self) -> &'static str;
+}
+
+/// Discriminant defines types that may contain a one-of value determined
+/// according to the discriminant, and exposes the value of the discriminant for
+/// that type, such as in an XDR union.
+pub trait Discriminant<D> {
+    fn discriminant(&self) -> D;
+}
+
+// Enum defines a type that is represented as an XDR enumeration when encoded.
+pub trait Enum: Name {}
+
+// Union defines a type that is represented as an XDR union when encoded.
+pub trait Union<D>: Name + Discriminant<D> {}
+
 #[cfg(feature = "std")]
 pub struct ReadXdrIter<'r, R: Read, S: ReadXdr> {
     reader: BufReader<&'r mut R>,
@@ -620,10 +640,7 @@ impl<T: Clone, const N: usize, const MAX: u32> TryFrom<&[T; N]> for VecM<T, MAX>
 }
 
 #[cfg(not(feature = "alloc"))]
-impl<T: Clone, const N: usize, const MAX: u32> TryFrom<&'static [T; N]> for VecM<T, MAX>
-where
-    T: 'static,
-{
+impl<T: Clone, const N: usize, const MAX: u32> TryFrom<&'static [T; N]> for VecM<T, MAX> {
     type Error = Error;
 
     fn try_from(v: &'static [T; N]) -> Result<Self> {
@@ -1624,7 +1641,7 @@ pub enum Color {
 
         impl Color {
             #[must_use]
-            pub fn name(&self) -> &str {
+            pub const fn name(&self) -> &'static str {
                 match self {
                     Self::Red => "Red",
 Self::Blue => "Blue",
@@ -1632,6 +1649,15 @@ Self::Green => "Green",
                 }
             }
         }
+
+        impl Name for Color {
+            #[must_use]
+            fn name(&self) -> &'static str {
+                Self::name(self)
+            }
+        }
+
+        impl Enum for Color {}
 
         impl fmt::Display for Color {
             fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -1707,13 +1733,22 @@ pub enum NesterNestedEnum {
 
         impl NesterNestedEnum {
             #[must_use]
-            pub fn name(&self) -> &str {
+            pub const fn name(&self) -> &'static str {
                 match self {
                     Self::1 => "1",
 Self::2 => "2",
                 }
             }
         }
+
+        impl Name for NesterNestedEnum {
+            #[must_use]
+            fn name(&self) -> &'static str {
+                Self::name(self)
+            }
+        }
+
+        impl Enum for NesterNestedEnum {}
 
         impl fmt::Display for NesterNestedEnum {
             fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -1804,20 +1839,36 @@ pub enum NesterNestedUnion {
 
 impl NesterNestedUnion {
     #[must_use]
-    pub fn name(&self) -> &str {
+    pub const fn name(&self) -> &'static str {
         match self {
             Self::Red => "Red",
         }
     }
 
     #[must_use]
-    pub fn discriminant(&self) -> Color {
+    pub const fn discriminant(&self) -> Color {
         #[allow(clippy::match_same_arms)]
         match self {
             Self::Red => Color::Red,
         }
     }
 }
+
+impl Name for NesterNestedUnion {
+    #[must_use]
+    fn name(&self) -> &'static str {
+        Self::name(self)
+    }
+}
+
+impl Discriminant<Color> for NesterNestedUnion {
+    #[must_use]
+    fn discriminant(&self) -> Color {
+        Self::discriminant(self)
+    }
+}
+
+impl Union<Color> for NesterNestedUnion {}
 
 impl ReadXdr for NesterNestedUnion {
     #[cfg(feature = "std")]

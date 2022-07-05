@@ -114,6 +114,26 @@ impl From<Error> for () {
 #[allow(dead_code)]
 type Result<T> = core::result::Result<T, Error>;
 
+/// Name defines types that assign a static name to their value, such as the
+/// name given to an identifier in an XDR enum, or the name given to the case in
+/// a union.
+pub trait Name {
+    fn name(&self) -> &'static str;
+}
+
+/// Discriminant defines types that may contain a one-of value determined
+/// according to the discriminant, and exposes the value of the discriminant for
+/// that type, such as in an XDR union.
+pub trait Discriminant<D> {
+    fn discriminant(&self) -> D;
+}
+
+// Enum defines a type that is represented as an XDR enumeration when encoded.
+pub trait Enum: Name {}
+
+// Union defines a type that is represented as an XDR union when encoded.
+pub trait Union<D>: Name + Discriminant<D> {}
+
 #[cfg(feature = "std")]
 pub struct ReadXdrIter<'r, R: Read, S: ReadXdr> {
     reader: BufReader<&'r mut R>,
@@ -620,10 +640,7 @@ impl<T: Clone, const N: usize, const MAX: u32> TryFrom<&[T; N]> for VecM<T, MAX>
 }
 
 #[cfg(not(feature = "alloc"))]
-impl<T: Clone, const N: usize, const MAX: u32> TryFrom<&'static [T; N]> for VecM<T, MAX>
-where
-    T: 'static,
-{
+impl<T: Clone, const N: usize, const MAX: u32> TryFrom<&'static [T; N]> for VecM<T, MAX> {
     type Error = Error;
 
     fn try_from(v: &'static [T; N]) -> Result<Self> {
@@ -923,13 +940,22 @@ pub enum UnionKey {
 
         impl UnionKey {
             #[must_use]
-            pub fn name(&self) -> &str {
+            pub const fn name(&self) -> &'static str {
                 match self {
                     Self::Error => "Error",
 Self::Multi => "Multi",
                 }
             }
         }
+
+        impl Name for UnionKey {
+            #[must_use]
+            fn name(&self) -> &'static str {
+                Self::name(self)
+            }
+        }
+
+        impl Enum for UnionKey {}
 
         impl fmt::Display for UnionKey {
             fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -996,7 +1022,7 @@ pub enum MyUnion {
 
         impl MyUnion {
             #[must_use]
-            pub fn name(&self) -> &str {
+            pub const fn name(&self) -> &'static str {
                 match self {
                     Self::Error(_) => "Error",
 Self::Multi(_) => "Multi",
@@ -1004,7 +1030,7 @@ Self::Multi(_) => "Multi",
             }
 
             #[must_use]
-            pub fn discriminant(&self) -> UnionKey {
+            pub const fn discriminant(&self) -> UnionKey {
                 #[allow(clippy::match_same_arms)]
                 match self {
                     Self::Error(_) => UnionKey::Error,
@@ -1012,6 +1038,22 @@ Self::Multi(_) => UnionKey::Multi,
                 }
             }
         }
+
+        impl Name for MyUnion {
+            #[must_use]
+            fn name(&self) -> &'static str {
+                Self::name(self)
+            }
+        }
+
+        impl Discriminant<UnionKey> for MyUnion {
+            #[must_use]
+            fn discriminant(&self) -> UnionKey {
+                Self::discriminant(self)
+            }
+        }
+
+        impl Union<UnionKey> for MyUnion {}
 
         impl ReadXdr for MyUnion {
             #[cfg(feature = "std")]
@@ -1061,7 +1103,7 @@ pub enum IntUnion {
 
         impl IntUnion {
             #[must_use]
-            pub fn name(&self) -> &str {
+            pub const fn name(&self) -> &'static str {
                 match self {
                     Self::V0(_) => "V0",
 Self::V1(_) => "V1",
@@ -1069,7 +1111,7 @@ Self::V1(_) => "V1",
             }
 
             #[must_use]
-            pub fn discriminant(&self) -> i32 {
+            pub const fn discriminant(&self) -> i32 {
                 #[allow(clippy::match_same_arms)]
                 match self {
                     Self::V0(_) => 0,
@@ -1077,6 +1119,22 @@ Self::V1(_) => 1,
                 }
             }
         }
+
+        impl Name for IntUnion {
+            #[must_use]
+            fn name(&self) -> &'static str {
+                Self::name(self)
+            }
+        }
+
+        impl Discriminant<i32> for IntUnion {
+            #[must_use]
+            fn discriminant(&self) -> i32 {
+                Self::discriminant(self)
+            }
+        }
+
+        impl Union<i32> for IntUnion {}
 
         impl ReadXdr for IntUnion {
             #[cfg(feature = "std")]

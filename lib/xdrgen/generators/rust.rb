@@ -182,7 +182,7 @@ module Xdrgen
         out.puts <<-EOS.strip_heredoc
         impl #{name enum} {
             #[must_use]
-            pub fn name(&self) -> &str {
+            pub const fn name(&self) -> &'static str {
                 match self {
                     #{enum.members.map do |m|
                       "Self::#{name m} => \"#{name m}\","
@@ -190,6 +190,15 @@ module Xdrgen
                 }
             }
         }
+
+        impl Name for #{name enum} {
+            #[must_use]
+            fn name(&self) -> &'static str {
+                Self::name(self)
+            }
+        }
+
+        impl Enum for #{name enum} {}
 
         impl fmt::Display for #{name enum} {
             fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -277,7 +286,7 @@ module Xdrgen
         out.puts <<-EOS.strip_heredoc
         impl #{name union} {
             #[must_use]
-            pub fn name(&self) -> &str {
+            pub const fn name(&self) -> &'static str {
                 match self {
                     #{union_cases(union) do |case_name, arm|
                       "Self::#{case_name}#{"(_)" unless arm.void?} => \"#{case_name}\","
@@ -286,7 +295,7 @@ module Xdrgen
             }
 
             #[must_use]
-            pub fn discriminant(&self) -> #{discriminant_type} {
+            pub const fn discriminant(&self) -> #{discriminant_type} {
                 #[allow(clippy::match_same_arms)]
                 match self {
                     #{union_cases(union) do |case_name, arm, value|
@@ -299,6 +308,22 @@ module Xdrgen
                 }
             }
         }
+
+        impl Name for #{name union} {
+            #[must_use]
+            fn name(&self) -> &'static str {
+                Self::name(self)
+            }
+        }
+
+        impl Discriminant<#{discriminant_type}> for #{name union} {
+            #[must_use]
+            fn discriminant(&self) -> #{discriminant_type} {
+                Self::discriminant(self)
+            }
+        }
+
+        impl Union<#{discriminant_type}> for #{name union} {}
 
         impl ReadXdr for #{name union} {
             #[cfg(feature = "std")]
