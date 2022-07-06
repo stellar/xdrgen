@@ -970,6 +970,13 @@ impl WriteXdr for Uint512 {
     }
 }
 
+impl Uint512 {
+    #[must_use]
+    pub fn as_slice(&self) -> &[u8] {
+        &self.0
+    }
+}
+
 #[cfg(feature = "alloc")]
 impl TryFrom<Vec<u8>> for Uint512 {
     type Error = Error;
@@ -1244,6 +1251,13 @@ impl WriteXdr for Hash {
     }
 }
 
+impl Hash {
+    #[must_use]
+    pub fn as_slice(&self) -> &[u8] {
+        &self.0
+    }
+}
+
 #[cfg(feature = "alloc")]
 impl TryFrom<Vec<u8>> for Hash {
     type Error = Error;
@@ -1315,6 +1329,13 @@ impl WriteXdr for Hashes1 {
     #[cfg(feature = "std")]
     fn write_xdr(&self, w: &mut impl Write) -> Result<()> {
         self.0.write_xdr(w)
+    }
+}
+
+impl Hashes1 {
+    #[must_use]
+    pub fn as_slice(&self) -> &[Hash] {
+        &self.0
     }
 }
 
