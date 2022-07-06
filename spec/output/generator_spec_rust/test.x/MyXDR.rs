@@ -8,7 +8,7 @@ pub const XDR_FILES_SHA256: [(&str, &str); 1] = [
   ("spec/fixtures/generator/test.x", "d29a98a6a3b9bf533a3e6712d928e0bed655e0f462ac4dae810c65d52ca9af41")
 ];
 
-use core::{fmt, fmt::Debug, ops::Deref};
+use core::{array::TryFromSliceError, fmt, fmt::Debug, ops::Deref};
 
 #[cfg(feature = "std")]
 use core::marker::PhantomData;
@@ -81,6 +81,12 @@ impl fmt::Display for Error {
             #[cfg(feature = "std")]
             Error::Io(e) => write!(f, "{}", e),
         }
+    }
+}
+
+impl From<TryFromSliceError> for Error {
+    fn from(_: TryFromSliceError) -> Error {
+        Error::LengthMismatch
     }
 }
 
@@ -575,6 +581,15 @@ impl<T, const MAX: u32> AsRef<Vec<T>> for VecM<T, MAX> {
 }
 
 #[cfg(feature = "alloc")]
+impl<T: Clone, const MAX: u32> TryFrom<&Vec<T>> for VecM<T, MAX> {
+    type Error = Error;
+
+    fn try_from(v: &Vec<T>) -> Result<Self> {
+        v.as_slice().try_into()
+    }
+}
+
+#[cfg(feature = "alloc")]
 impl<T: Clone, const MAX: u32> TryFrom<&[T]> for VecM<T, MAX> {
     type Error = Error;
 
@@ -955,6 +970,36 @@ impl WriteXdr for Uint512 {
     }
 }
 
+#[cfg(feature = "alloc")]
+impl TryFrom<Vec<u8>> for Uint512 {
+    type Error = Error;
+    fn try_from(x: Vec<u8>) -> Result<Self> {
+        x.as_slice().try_into()
+    }
+}
+
+#[cfg(feature = "alloc")]
+impl TryFrom<&Vec<u8>> for Uint512 {
+    type Error = Error;
+    fn try_from(x: &Vec<u8>) -> Result<Self> {
+        x.as_slice().try_into()
+    }
+}
+
+impl TryFrom<&[u8]> for Uint512 {
+    type Error = Error;
+    fn try_from(x: &[u8]) -> Result<Self> {
+        Ok(Uint512(x.try_into()?))
+    }
+}
+
+impl AsRef<[u8]> for Uint512 {
+    #[must_use]
+    fn as_ref(&self) -> &[u8] {
+        &self.0
+    }
+}
+
 // Uint513 is an XDR Typedef defines as:
 //
 //   typedef opaque uint513<64>;
@@ -1017,6 +1062,14 @@ impl From<Uint513> for Vec<u8> {
 impl TryFrom<Vec<u8>> for Uint513 {
     type Error = Error;
     fn try_from(x: Vec<u8>) -> Result<Self> {
+        Ok(Uint513(x.try_into()?))
+    }
+}
+
+#[cfg(feature = "alloc")]
+impl TryFrom<&Vec<u8>> for Uint513 {
+    type Error = Error;
+    fn try_from(x: &Vec<u8>) -> Result<Self> {
         Ok(Uint513(x.try_into()?))
     }
 }
@@ -1107,6 +1160,14 @@ impl TryFrom<Vec<u8>> for Uint514 {
     }
 }
 
+#[cfg(feature = "alloc")]
+impl TryFrom<&Vec<u8>> for Uint514 {
+    type Error = Error;
+    fn try_from(x: &Vec<u8>) -> Result<Self> {
+        Ok(Uint514(x.try_into()?))
+    }
+}
+
 impl AsRef<Vec<u8>> for Uint514 {
     #[must_use]
     fn as_ref(&self) -> &Vec<u8> {
@@ -1183,6 +1244,36 @@ impl WriteXdr for Hash {
     }
 }
 
+#[cfg(feature = "alloc")]
+impl TryFrom<Vec<u8>> for Hash {
+    type Error = Error;
+    fn try_from(x: Vec<u8>) -> Result<Self> {
+        x.as_slice().try_into()
+    }
+}
+
+#[cfg(feature = "alloc")]
+impl TryFrom<&Vec<u8>> for Hash {
+    type Error = Error;
+    fn try_from(x: &Vec<u8>) -> Result<Self> {
+        x.as_slice().try_into()
+    }
+}
+
+impl TryFrom<&[u8]> for Hash {
+    type Error = Error;
+    fn try_from(x: &[u8]) -> Result<Self> {
+        Ok(Hash(x.try_into()?))
+    }
+}
+
+impl AsRef<[u8]> for Hash {
+    #[must_use]
+    fn as_ref(&self) -> &[u8] {
+        &self.0
+    }
+}
+
 // Hashes1 is an XDR Typedef defines as:
 //
 //   typedef Hash Hashes1[12];
@@ -1224,6 +1315,36 @@ impl WriteXdr for Hashes1 {
     #[cfg(feature = "std")]
     fn write_xdr(&self, w: &mut impl Write) -> Result<()> {
         self.0.write_xdr(w)
+    }
+}
+
+#[cfg(feature = "alloc")]
+impl TryFrom<Vec<Hash>> for Hashes1 {
+    type Error = Error;
+    fn try_from(x: Vec<Hash>) -> Result<Self> {
+        x.as_slice().try_into()
+    }
+}
+
+#[cfg(feature = "alloc")]
+impl TryFrom<&Vec<Hash>> for Hashes1 {
+    type Error = Error;
+    fn try_from(x: &Vec<Hash>) -> Result<Self> {
+        x.as_slice().try_into()
+    }
+}
+
+impl TryFrom<&[Hash]> for Hashes1 {
+    type Error = Error;
+    fn try_from(x: &[Hash]) -> Result<Self> {
+        Ok(Hashes1(x.try_into()?))
+    }
+}
+
+impl AsRef<[Hash]> for Hashes1 {
+    #[must_use]
+    fn as_ref(&self) -> &[Hash] {
+        &self.0
     }
 }
 
@@ -1289,6 +1410,14 @@ impl From<Hashes2> for Vec<Hash> {
 impl TryFrom<Vec<Hash>> for Hashes2 {
     type Error = Error;
     fn try_from(x: Vec<Hash>) -> Result<Self> {
+        Ok(Hashes2(x.try_into()?))
+    }
+}
+
+#[cfg(feature = "alloc")]
+impl TryFrom<&Vec<Hash>> for Hashes2 {
+    type Error = Error;
+    fn try_from(x: &Vec<Hash>) -> Result<Self> {
         Ok(Hashes2(x.try_into()?))
     }
 }
@@ -1375,6 +1504,14 @@ impl From<Hashes3> for Vec<Hash> {
 impl TryFrom<Vec<Hash>> for Hashes3 {
     type Error = Error;
     fn try_from(x: Vec<Hash>) -> Result<Self> {
+        Ok(Hashes3(x.try_into()?))
+    }
+}
+
+#[cfg(feature = "alloc")]
+impl TryFrom<&Vec<Hash>> for Hashes3 {
+    type Error = Error;
+    fn try_from(x: &Vec<Hash>) -> Result<Self> {
         Ok(Hashes3(x.try_into()?))
     }
 }

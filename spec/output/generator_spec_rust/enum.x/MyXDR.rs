@@ -8,7 +8,7 @@ pub const XDR_FILES_SHA256: [(&str, &str); 1] = [
   ("spec/fixtures/generator/enum.x", "35cf5e97e2057039640ed260e8b38bb2733a3c3ca8529c93877bdec02a999d7f")
 ];
 
-use core::{fmt, fmt::Debug, ops::Deref};
+use core::{array::TryFromSliceError, fmt, fmt::Debug, ops::Deref};
 
 #[cfg(feature = "std")]
 use core::marker::PhantomData;
@@ -81,6 +81,12 @@ impl fmt::Display for Error {
             #[cfg(feature = "std")]
             Error::Io(e) => write!(f, "{}", e),
         }
+    }
+}
+
+impl From<TryFromSliceError> for Error {
+    fn from(_: TryFromSliceError) -> Error {
+        Error::LengthMismatch
     }
 }
 
@@ -571,6 +577,15 @@ impl<T, const MAX: u32> AsRef<Vec<T>> for VecM<T, MAX> {
     #[must_use]
     fn as_ref(&self) -> &Vec<T> {
         &self.0
+    }
+}
+
+#[cfg(feature = "alloc")]
+impl<T: Clone, const MAX: u32> TryFrom<&Vec<T>> for VecM<T, MAX> {
+    type Error = Error;
+
+    fn try_from(v: &Vec<T>) -> Result<Self> {
+        v.as_slice().try_into()
     }
 }
 

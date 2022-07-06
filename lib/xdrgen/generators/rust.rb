@@ -412,6 +412,40 @@ module Xdrgen
               }
           }
           EOS
+          if is_fixed_array_type(typedef.type)
+            out.break
+            out.puts <<-EOS.strip_heredoc
+            #[cfg(feature = "alloc")]
+            impl TryFrom<Vec<#{element_type_for_vec(typedef.type)}>> for #{name typedef} {
+                type Error = Error;
+                fn try_from(x: Vec<#{element_type_for_vec(typedef.type)}>) -> Result<Self> {
+                    x.as_slice().try_into()
+                }
+            }
+
+            #[cfg(feature = "alloc")]
+            impl TryFrom<&Vec<#{element_type_for_vec(typedef.type)}>> for #{name typedef} {
+                type Error = Error;
+                fn try_from(x: &Vec<#{element_type_for_vec(typedef.type)}>) -> Result<Self> {
+                    x.as_slice().try_into()
+                }
+            }
+
+            impl TryFrom<&[#{element_type_for_vec(typedef.type)}]> for #{name typedef} {
+                type Error = Error;
+                fn try_from(x: &[#{element_type_for_vec(typedef.type)}]) -> Result<Self> {
+                    Ok(#{name typedef}(x.try_into()?))
+                }
+            }
+
+            impl AsRef<[#{element_type_for_vec(typedef.type)}]> for #{name typedef} {
+                #[must_use]
+                fn as_ref(&self) -> &[#{element_type_for_vec(typedef.type)}] {
+                    &self.0
+                }
+            }
+            EOS
+          end
           if is_var_array_type(typedef.type)
             out.break
             out.puts <<-EOS.strip_heredoc
@@ -432,6 +466,14 @@ module Xdrgen
             impl TryFrom<Vec<#{element_type_for_vec(typedef.type)}>> for #{name typedef} {
                 type Error = Error;
                 fn try_from(x: Vec<#{element_type_for_vec(typedef.type)}>) -> Result<Self> {
+                    Ok(#{name typedef}(x.try_into()?))
+                }
+            }
+
+            #[cfg(feature = "alloc")]
+            impl TryFrom<&Vec<#{element_type_for_vec(typedef.type)}>> for #{name typedef} {
+                type Error = Error;
+                fn try_from(x: &Vec<#{element_type_for_vec(typedef.type)}>) -> Result<Self> {
                     Ok(#{name typedef}(x.try_into()?))
                 }
             }
@@ -474,6 +516,11 @@ module Xdrgen
           AST::Typespecs::Hyper, AST::Typespecs::Int,
           AST::Typespecs::String,
         ].any? { |t| t === type }
+      end
+
+      def is_fixed_array_type(type)
+        (AST::Typespecs::Opaque === type && type.fixed?) ||
+        (type.sub_type == :array)
       end
 
       def is_var_array_type(type)
