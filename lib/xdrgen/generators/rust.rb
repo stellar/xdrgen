@@ -415,6 +415,13 @@ module Xdrgen
           if is_fixed_array_type(typedef.type)
             out.break
             out.puts <<-EOS.strip_heredoc
+            impl #{name typedef} {
+                #[must_use]
+                pub fn as_slice(&self) -> &[#{element_type_for_vec(typedef.type)}] {
+                    &self.0
+                }
+            }
+
             #[cfg(feature = "alloc")]
             impl TryFrom<Vec<#{element_type_for_vec(typedef.type)}>> for #{name typedef} {
                 type Error = Error;
