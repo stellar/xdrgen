@@ -1030,6 +1030,7 @@ Self::Multi => "Multi",
 //
 // union with discriminant UnionKey
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[allow(clippy::large_enum_variant)]
 pub enum MyUnion {
   Error(i32),
   Multi(VecM::<i32>),
@@ -1111,6 +1112,7 @@ Self::Multi(v) => v.write_xdr(w)?,
 //
 // union with discriminant i32
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[allow(clippy::large_enum_variant)]
 pub enum IntUnion {
   V0(i32),
   V1(VecM::<i32>),
