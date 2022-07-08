@@ -1095,6 +1095,7 @@ self.foo.write_xdr(w)?;
 //
 // union with discriminant UnionKey
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[allow(clippy::large_enum_variant)]
 pub enum MyUnion {
   One(MyUnionOne),
   Two(MyUnionTwo),

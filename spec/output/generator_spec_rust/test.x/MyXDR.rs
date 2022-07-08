@@ -1991,6 +1991,7 @@ impl WriteXdr for NesterNestedStruct {
 //
 // union with discriminant Color
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[allow(clippy::large_enum_variant)]
 pub enum NesterNestedUnion {
   Red,
 }

@@ -275,6 +275,7 @@ module Xdrgen
         discriminant_type_builtin = is_builtin_type(union.discriminant.type) || (is_builtin_type(union.discriminant.type.resolved_type.type) if union.discriminant.type.respond_to?(:resolved_type) && AST::Definitions::Typedef === union.discriminant.type.resolved_type)
         out.puts "// union with discriminant #{discriminant_type}"
         out.puts "#[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]"
+        out.puts "#[allow(clippy::large_enum_variant)]"
         out.puts "pub enum #{name union} {"
         out.indent do
           union_cases(union) do |case_name, arm|
