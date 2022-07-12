@@ -9,6 +9,7 @@ pub const XDR_FILES_SHA256: [(&str, &str); 1] = [
 ];
 
 use core::{array::TryFromSliceError, fmt, fmt::Debug, ops::Deref};
+use serde::{Deserialize, Serialize};
 
 #[cfg(feature = "std")]
 use core::marker::PhantomData;
@@ -17,7 +18,18 @@ use core::marker::PhantomData;
 #[cfg(not(feature = "alloc"))]
 mod noalloc {
     pub mod boxed {
-        pub type Box<T> = &'static T;
+        use serde::{Deserialize, Deserializer, Serialize};
+        #[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize)]
+        pub struct Box<T: 'static>(&'static T);
+
+        impl<'de, T> Deserialize<'de> for Box<T> {
+            fn deserialize<D>(_deserializer: D) -> core::result::Result<Self, D::Error>
+            where
+                D: Deserializer<'de>,
+            {
+                todo!();
+            }
+        }
     }
     pub mod vec {
         pub type Vec<T> = &'static [T];
@@ -482,14 +494,26 @@ impl<T: WriteXdr, const N: usize> WriteXdr for [T; N] {
 }
 
 #[cfg(feature = "alloc")]
-#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct VecM<T, const MAX: u32 = { u32::MAX }>(Vec<T>);
 
 #[cfg(not(feature = "alloc"))]
-#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize)]
 pub struct VecM<T, const MAX: u32 = { u32::MAX }>(Vec<T>)
 where
     T: 'static;
+
+#[cfg(not(feature = "alloc"))]
+use serde::Deserializer;
+#[cfg(not(feature = "alloc"))]
+impl<'de, T, const MAX: u32> Deserialize<'de> for VecM<T, MAX> {
+    fn deserialize<D>(_deserializer: D) -> core::result::Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        todo!();
+    }
+}
 
 impl<T, const MAX: u32> Deref for VecM<T, MAX> {
     type Target = Vec<T>;
@@ -943,7 +967,8 @@ pub type Int64 = i64;
 //        string maxString<100>;
 //    };
 //
-#[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct MyStruct {
   pub some_int: i32,
   pub a_big_int: i64,
