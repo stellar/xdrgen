@@ -134,7 +134,7 @@ module Xdrgen
 
       def render_struct(out, struct)
         out.puts "#[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]"
-        out.puts "#[cfg_attr(all(feature = \"serde\", feature = \"alloc\"), derive(Serialize, Deserialize), serde(rename_all = \"camelCase\"))]"
+        out.puts %{#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "camelCase"))]}
         out.puts "pub struct #{name struct} {"
         out.indent do
           struct.members.each do |m|
@@ -171,7 +171,7 @@ module Xdrgen
       def render_enum(out, enum)
         out.puts "// enum"
         out.puts "#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]"
-        out.puts "#[cfg_attr(feature = \"serde\", derive(Serialize, Deserialize), serde(rename_all = \"camelCase\"))]"
+        out.puts %{#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "camelCase"))]}
         out.puts "#[repr(i32)]"
         out.puts "pub enum #{name enum} {"
         out.indent do
@@ -277,7 +277,7 @@ module Xdrgen
         discriminant_type_builtin = is_builtin_type(union.discriminant.type) || (is_builtin_type(union.discriminant.type.resolved_type.type) if union.discriminant.type.respond_to?(:resolved_type) && AST::Definitions::Typedef === union.discriminant.type.resolved_type)
         out.puts "// union with discriminant #{discriminant_type}"
         out.puts "#[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]"
-        out.puts "#[cfg_attr(feature = \"serde\", derive(Serialize, Deserialize), serde(rename_all = \"camelCase\"))]"
+        out.puts %{#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "camelCase"))]}
         out.puts "#[allow(clippy::large_enum_variant)]"
         out.puts "pub enum #{name union} {"
         out.indent do
@@ -376,7 +376,7 @@ module Xdrgen
         else
           out.puts "#[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]"
           out.puts "#[derive(Default)]" if is_var_array_type(typedef.type)
-          out.puts "#[cfg_attr(feature = \"serde\", derive(Serialize, Deserialize), serde(rename_all = \"camelCase\"))]"
+          out.puts %{#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "camelCase"))]}
           out.puts "pub struct #{name typedef}(pub #{reference(typedef, typedef.type)});"
           out.puts ""
           out.puts <<-EOS.strip_heredoc
