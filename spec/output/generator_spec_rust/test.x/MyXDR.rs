@@ -483,6 +483,7 @@ impl<T: WriteXdr, const N: usize> WriteXdr for [T; N] {
 
 #[cfg(feature = "alloc")]
 #[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct VecM<T, const MAX: u32 = { u32::MAX }>(Vec<T>);
 
 #[cfg(not(feature = "alloc"))]
@@ -931,6 +932,7 @@ mod tests {
 //   typedef opaque uint512[64];
 //
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "camelCase"))]
 pub struct Uint512(pub [u8; 64]);
 
 impl From<Uint512> for [u8; 64] {
@@ -1013,6 +1015,7 @@ impl AsRef<[u8]> for Uint512 {
 //
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[derive(Default)]
+#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "camelCase"))]
 pub struct Uint513(pub VecM::<u8, 64>);
 
 impl From<Uint513> for VecM::<u8, 64> {
@@ -1107,6 +1110,7 @@ impl AsRef<[u8]> for Uint513 {
 //
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[derive(Default)]
+#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "camelCase"))]
 pub struct Uint514(pub VecM::<u8>);
 
 impl From<Uint514> for VecM::<u8> {
@@ -1212,6 +1216,7 @@ pub type Str2 = VecM::<u8>;
 //   typedef opaque Hash[32];
 //
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "camelCase"))]
 pub struct Hash(pub [u8; 32]);
 
 impl From<Hash> for [u8; 32] {
@@ -1293,6 +1298,7 @@ impl AsRef<[u8]> for Hash {
 //   typedef Hash Hashes1[12];
 //
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "camelCase"))]
 pub struct Hashes1(pub [Hash; 12]);
 
 impl From<Hashes1> for [Hash; 12] {
@@ -1375,6 +1381,7 @@ impl AsRef<[Hash]> for Hashes1 {
 //
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[derive(Default)]
+#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "camelCase"))]
 pub struct Hashes2(pub VecM::<Hash, 12>);
 
 impl From<Hashes2> for VecM::<Hash, 12> {
@@ -1469,6 +1476,7 @@ impl AsRef<[Hash]> for Hashes2 {
 //
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[derive(Default)]
+#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "camelCase"))]
 pub struct Hashes3(pub VecM::<Hash>);
 
 impl From<Hashes3> for VecM::<Hash> {
@@ -1562,6 +1570,7 @@ impl AsRef<[Hash]> for Hashes3 {
 //   typedef Hash *optHash1;
 //
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "camelCase"))]
 pub struct OptHash1(pub Option<Hash>);
 
 impl From<OptHash1> for Option<Hash> {
@@ -1606,6 +1615,7 @@ impl WriteXdr for OptHash1 {
 //   typedef Hash* optHash2;
 //
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "camelCase"))]
 pub struct OptHash2(pub Option<Hash>);
 
 impl From<OptHash2> for Option<Hash> {
@@ -1683,6 +1693,7 @@ pub type Int4 = u64;
 //    };
 //
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "camelCase"))]
 pub struct MyStruct {
   pub field1: Uint512,
   pub field2: OptHash1,
@@ -1730,6 +1741,7 @@ self.field7.write_xdr(w)?;
 //    };
 //
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "camelCase"))]
 pub struct LotsOfMyStructs {
   pub members: VecM::<MyStruct>,
 }
@@ -1759,6 +1771,7 @@ impl WriteXdr for LotsOfMyStructs {
 //    };
 //
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "camelCase"))]
 pub struct HasStuff {
   pub data: LotsOfMyStructs,
 }
@@ -1790,6 +1803,7 @@ impl WriteXdr for HasStuff {
 //
 // enum
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "camelCase"))]
 #[repr(i32)]
 pub enum Color {
   Red = 0,
@@ -1883,6 +1897,7 @@ pub const BAR: u64 = FOO;
 //
 // enum
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "camelCase"))]
 #[repr(i32)]
 pub enum NesterNestedEnum {
   1 = 0,
@@ -1959,6 +1974,7 @@ Self::2 => "2",
 //      }
 //
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "camelCase"))]
 pub struct NesterNestedStruct {
   pub blah: i32,
 }
@@ -1991,6 +2007,7 @@ impl WriteXdr for NesterNestedStruct {
 //
 // union with discriminant Color
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "camelCase"))]
 #[allow(clippy::large_enum_variant)]
 pub enum NesterNestedUnion {
   Red,
@@ -2079,6 +2096,7 @@ impl WriteXdr for NesterNestedUnion {
 //    };
 //
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "camelCase"))]
 pub struct Nester {
   pub nested_enum: NesterNestedEnum,
   pub nested_struct: NesterNestedStruct,

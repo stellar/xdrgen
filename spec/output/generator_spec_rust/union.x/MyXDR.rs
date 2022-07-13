@@ -483,6 +483,7 @@ impl<T: WriteXdr, const N: usize> WriteXdr for [T; N] {
 
 #[cfg(feature = "alloc")]
 #[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct VecM<T, const MAX: u32 = { u32::MAX }>(Vec<T>);
 
 #[cfg(not(feature = "alloc"))]
@@ -947,6 +948,7 @@ pub type Multi = i32;
 //
 // enum
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "camelCase"))]
 #[repr(i32)]
 pub enum UnionKey {
   Error = 0,
@@ -1030,6 +1032,7 @@ Self::Multi => "Multi",
 //
 // union with discriminant UnionKey
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "camelCase"))]
 #[allow(clippy::large_enum_variant)]
 pub enum MyUnion {
   Error(i32),
@@ -1112,6 +1115,7 @@ Self::Multi(v) => v.write_xdr(w)?,
 //
 // union with discriminant i32
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "camelCase"))]
 #[allow(clippy::large_enum_variant)]
 pub enum IntUnion {
   V0(i32),
@@ -1186,6 +1190,7 @@ Self::V1(v) => v.write_xdr(w)?,
 //   typedef IntUnion IntUnion2;
 //
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "camelCase"))]
 pub struct IntUnion2(pub IntUnion);
 
 impl From<IntUnion2> for IntUnion {
