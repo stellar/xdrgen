@@ -134,7 +134,7 @@ module Xdrgen
 
       def render_struct(out, struct)
         out.puts "#[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]"
-        out.puts "#[cfg_attr(feature = \"serde\", derive(Serialize, Deserialize), serde(rename_all = \"camelCase\"))]"
+        out.puts "#[cfg_attr(all(feature = \"serde\", feature = \"alloc\"), derive(Serialize, Deserialize), serde(rename_all = \"camelCase\"))]"
         out.puts "pub struct #{name struct} {"
         out.indent do
           struct.members.each do |m|
