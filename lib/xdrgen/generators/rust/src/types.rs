@@ -128,7 +128,7 @@ pub trait Discriminant<D> {
 pub trait Variants {
     fn variants() -> slice::Iter<'static, Self>
     where
-        Self: marker::Sized;
+        Self: Sized;
 }
 
 // Enum defines a type that is represented as an XDR enumeration when encoded.
