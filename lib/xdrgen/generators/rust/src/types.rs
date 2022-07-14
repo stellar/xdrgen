@@ -132,7 +132,7 @@ pub trait Variants<V> {
 }
 
 // Enum defines a type that is represented as an XDR enumeration when encoded.
-pub trait Enum: Name + Variants {}
+pub trait Enum: Name + Variants<Self> + Sized {}
 
 // Union defines a type that is represented as an XDR union when encoded.
 pub trait Union<D>: Name + Discriminant<D> {}
