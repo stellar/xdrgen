@@ -8,7 +8,7 @@ pub const XDR_FILES_SHA256: [(&str, &str); 1] = [
   ("spec/fixtures/generator/test.x", "d29a98a6a3b9bf533a3e6712d928e0bed655e0f462ac4dae810c65d52ca9af41")
 ];
 
-use core::{array::TryFromSliceError, fmt, fmt::Debug, ops::Deref};
+use core::{array::TryFromSliceError, fmt, fmt::Debug, marker::Sized, ops::Deref, slice};
 
 #[cfg(feature = "std")]
 use core::marker::PhantomData;
@@ -136,7 +136,9 @@ pub trait Discriminant<D> {
 
 /// Iter defines types that have variants that can be iterated.
 pub trait Variants {
-    fn variants() -> std::slice::Iter<'static, Self>;
+    fn variants() -> slice::Iter<'static, Self>
+    where
+        Self: Sized;
 }
 
 // Enum defines a type that is represented as an XDR enumeration when encoded.
@@ -1825,21 +1827,23 @@ Self::Blue => "Blue",
 Self::Green => "Green",
                 }
             }
-
-            fn variants() -> std::slice::Iter<'static, Self> {
-                const VARIANTS: [Self; 3] = [
-                    Self::Red,
-Self::Blue,
-Self::Green,
-                ];
-                VARIANTS.iter()
-            }
         }
 
         impl Name for Color {
             #[must_use]
             fn name(&self) -> &'static str {
                 Self::name(self)
+            }
+        }
+
+        impl Variants for Color {
+            fn variants() -> slice::Iter<'static, Self> {
+                const VARIANTS: [Color; 3] = [
+                    Color::Red,
+Color::Blue,
+Color::Green,
+                ];
+                VARIANTS.iter()
             }
         }
 
@@ -1926,20 +1930,22 @@ pub enum NesterNestedEnum {
 Self::2 => "2",
                 }
             }
-
-            fn variants() -> std::slice::Iter<'static, Self> {
-                const VARIANTS: [Self; 2] = [
-                    Self::1,
-Self::2,
-                ];
-                VARIANTS.iter()
-            }
         }
 
         impl Name for NesterNestedEnum {
             #[must_use]
             fn name(&self) -> &'static str {
                 Self::name(self)
+            }
+        }
+
+        impl Variants for NesterNestedEnum {
+            fn variants() -> slice::Iter<'static, Self> {
+                const VARIANTS: [NesterNestedEnum; 2] = [
+                    NesterNestedEnum::1,
+NesterNestedEnum::2,
+                ];
+                VARIANTS.iter()
             }
         }
 

@@ -8,7 +8,7 @@ pub const XDR_FILES_SHA256: [(&str, &str); 1] = [
   ("spec/fixtures/generator/const.x", "0bff3b37592fcc16cad2fe10b9a72f5d39d033a114917c24e86a9ebd9cda9c37")
 ];
 
-use core::{array::TryFromSliceError, fmt, fmt::Debug, ops::Deref};
+use core::{array::TryFromSliceError, fmt, fmt::Debug, marker::Sized, ops::Deref, slice};
 
 #[cfg(feature = "std")]
 use core::marker::PhantomData;
@@ -136,7 +136,9 @@ pub trait Discriminant<D> {
 
 /// Iter defines types that have variants that can be iterated.
 pub trait Variants {
-    fn variants() -> std::slice::Iter<'static, Self>;
+    fn variants() -> slice::Iter<'static, Self>
+    where
+        Self: Sized;
 }
 
 // Enum defines a type that is represented as an XDR enumeration when encoded.

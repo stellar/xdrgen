@@ -8,7 +8,7 @@ pub const XDR_FILES_SHA256: [(&str, &str); 1] = [
   ("spec/fixtures/generator/enum.x", "35cf5e97e2057039640ed260e8b38bb2733a3c3ca8529c93877bdec02a999d7f")
 ];
 
-use core::{array::TryFromSliceError, fmt, fmt::Debug, ops::Deref};
+use core::{array::TryFromSliceError, fmt, fmt::Debug, marker::Sized, ops::Deref, slice};
 
 #[cfg(feature = "std")]
 use core::marker::PhantomData;
@@ -136,7 +136,9 @@ pub trait Discriminant<D> {
 
 /// Iter defines types that have variants that can be iterated.
 pub trait Variants {
-    fn variants() -> std::slice::Iter<'static, Self>;
+    fn variants() -> slice::Iter<'static, Self>
+    where
+        Self: Sized;
 }
 
 // Enum defines a type that is represented as an XDR enumeration when encoded.
@@ -999,32 +1001,34 @@ Self::FbaQuorumset => "FbaQuorumset",
 Self::FbaMessage => "FbaMessage",
                 }
             }
-
-            fn variants() -> std::slice::Iter<'static, Self> {
-                const VARIANTS: [Self; 14] = [
-                    Self::ErrorMsg,
-Self::Hello,
-Self::DontHave,
-Self::GetPeers,
-Self::Peers,
-Self::GetTxSet,
-Self::TxSet,
-Self::GetValidations,
-Self::Validations,
-Self::Transaction,
-Self::JsonTransaction,
-Self::GetFbaQuorumset,
-Self::FbaQuorumset,
-Self::FbaMessage,
-                ];
-                VARIANTS.iter()
-            }
         }
 
         impl Name for MessageType {
             #[must_use]
             fn name(&self) -> &'static str {
                 Self::name(self)
+            }
+        }
+
+        impl Variants for MessageType {
+            fn variants() -> slice::Iter<'static, Self> {
+                const VARIANTS: [MessageType; 14] = [
+                    MessageType::ErrorMsg,
+MessageType::Hello,
+MessageType::DontHave,
+MessageType::GetPeers,
+MessageType::Peers,
+MessageType::GetTxSet,
+MessageType::TxSet,
+MessageType::GetValidations,
+MessageType::Validations,
+MessageType::Transaction,
+MessageType::JsonTransaction,
+MessageType::GetFbaQuorumset,
+MessageType::FbaQuorumset,
+MessageType::FbaMessage,
+                ];
+                VARIANTS.iter()
             }
         }
 
@@ -1113,21 +1117,23 @@ Self::Green => "Green",
 Self::Blue => "Blue",
                 }
             }
-
-            fn variants() -> std::slice::Iter<'static, Self> {
-                const VARIANTS: [Self; 3] = [
-                    Self::Red,
-Self::Green,
-Self::Blue,
-                ];
-                VARIANTS.iter()
-            }
         }
 
         impl Name for Color {
             #[must_use]
             fn name(&self) -> &'static str {
                 Self::name(self)
+            }
+        }
+
+        impl Variants for Color {
+            fn variants() -> slice::Iter<'static, Self> {
+                const VARIANTS: [Color; 3] = [
+                    Color::Red,
+Color::Green,
+Color::Blue,
+                ];
+                VARIANTS.iter()
             }
         }
 
@@ -1205,21 +1211,23 @@ Self::Green2 => "Green2",
 Self::Blue2 => "Blue2",
                 }
             }
-
-            fn variants() -> std::slice::Iter<'static, Self> {
-                const VARIANTS: [Self; 3] = [
-                    Self::Red2,
-Self::Green2,
-Self::Blue2,
-                ];
-                VARIANTS.iter()
-            }
         }
 
         impl Name for Color2 {
             #[must_use]
             fn name(&self) -> &'static str {
                 Self::name(self)
+            }
+        }
+
+        impl Variants for Color2 {
+            fn variants() -> slice::Iter<'static, Self> {
+                const VARIANTS: [Color2; 3] = [
+                    Color2::Red2,
+Color2::Green2,
+Color2::Blue2,
+                ];
+                VARIANTS.iter()
             }
         }
 

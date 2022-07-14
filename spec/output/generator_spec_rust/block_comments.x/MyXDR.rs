@@ -8,7 +8,7 @@ pub const XDR_FILES_SHA256: [(&str, &str); 1] = [
   ("spec/fixtures/generator/block_comments.x", "e13131bc4134f38da17b9d5e9f67d2695a69ef98e3ef272833f4c18d0cc88a30")
 ];
 
-use core::{array::TryFromSliceError, fmt, fmt::Debug, ops::Deref};
+use core::{array::TryFromSliceError, fmt, fmt::Debug, marker::Sized, ops::Deref, slice};
 
 #[cfg(feature = "std")]
 use core::marker::PhantomData;
@@ -136,7 +136,9 @@ pub trait Discriminant<D> {
 
 /// Iter defines types that have variants that can be iterated.
 pub trait Variants {
-    fn variants() -> std::slice::Iter<'static, Self>;
+    fn variants() -> slice::Iter<'static, Self>
+    where
+        Self: Sized;
 }
 
 // Enum defines a type that is represented as an XDR enumeration when encoded.
@@ -954,19 +956,21 @@ impl AccountFlags {
             Self::AuthRequiredFlag => "AuthRequiredFlag",
         }
     }
-
-    fn variants() -> std::slice::Iter<'static, Self> {
-        const VARIANTS: [Self; 1] = [
-            Self::AuthRequiredFlag,
-        ];
-        VARIANTS.iter()
-    }
 }
 
 impl Name for AccountFlags {
     #[must_use]
     fn name(&self) -> &'static str {
         Self::name(self)
+    }
+}
+
+impl Variants for AccountFlags {
+    fn variants() -> slice::Iter<'static, Self> {
+        const VARIANTS: [AccountFlags; 1] = [
+            AccountFlags::AuthRequiredFlag,
+        ];
+        VARIANTS.iter()
     }
 }
 

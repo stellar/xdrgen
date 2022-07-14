@@ -8,7 +8,7 @@ pub const XDR_FILES_SHA256: [(&str, &str); 1] = [
   ("spec/fixtures/generator/union.x", "c251258d967223b341ebcf2d5bb0718e9a039b46232cb743865d9acd0c4bbe41")
 ];
 
-use core::{array::TryFromSliceError, fmt, fmt::Debug, ops::Deref};
+use core::{array::TryFromSliceError, fmt, fmt::Debug, marker::Sized, ops::Deref, slice};
 
 #[cfg(feature = "std")]
 use core::marker::PhantomData;
@@ -136,7 +136,9 @@ pub trait Discriminant<D> {
 
 /// Iter defines types that have variants that can be iterated.
 pub trait Variants {
-    fn variants() -> std::slice::Iter<'static, Self>;
+    fn variants() -> slice::Iter<'static, Self>
+    where
+        Self: Sized;
 }
 
 // Enum defines a type that is represented as an XDR enumeration when encoded.
@@ -968,20 +970,22 @@ pub enum UnionKey {
 Self::Multi => "Multi",
                 }
             }
-
-            fn variants() -> std::slice::Iter<'static, Self> {
-                const VARIANTS: [Self; 2] = [
-                    Self::Error,
-Self::Multi,
-                ];
-                VARIANTS.iter()
-            }
         }
 
         impl Name for UnionKey {
             #[must_use]
             fn name(&self) -> &'static str {
                 Self::name(self)
+            }
+        }
+
+        impl Variants for UnionKey {
+            fn variants() -> slice::Iter<'static, Self> {
+                const VARIANTS: [UnionKey; 2] = [
+                    UnionKey::Error,
+UnionKey::Multi,
+                ];
+                VARIANTS.iter()
             }
         }
 
