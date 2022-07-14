@@ -212,7 +212,8 @@ module Xdrgen
 
         impl Variants<#{name enum}> for #{name enum} {
             fn variants() -> slice::Iter<'static, #{name enum}> {
-                Self::variants().iter()
+                const VARIANTS: [#{name enum}; #{enum.members.count}] = Self::variants();
+                VARIANTS.iter()
             }
         }
 
