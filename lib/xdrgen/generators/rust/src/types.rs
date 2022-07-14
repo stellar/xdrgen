@@ -1,4 +1,4 @@
-use core::{array::TryFromSliceError, fmt, fmt::Debug, ops::Deref, slice};
+use core::{array::TryFromSliceError, fmt, fmt::Debug, marker::Sized, ops::Deref, slice};
 
 #[cfg(feature = "std")]
 use core::marker::PhantomData;
@@ -126,7 +126,9 @@ pub trait Discriminant<D> {
 
 /// Iter defines types that have variants that can be iterated.
 pub trait Variants {
-    fn variants() -> slice::Iter<'static, Self>;
+    fn variants() -> slice::Iter<'static, Self>
+    where
+        Self: marker::Sized;
 }
 
 // Enum defines a type that is represented as an XDR enumeration when encoded.
