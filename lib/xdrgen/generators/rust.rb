@@ -191,6 +191,16 @@ module Xdrgen
                     end.join("\n")}
                 }
             }
+
+            #[must_use]
+            pub const fn variants() -> [#{name enum}; #{enum.members.count}] {
+                const VARIANTS: [#{name enum}; #{enum.members.count}] = [
+                    #{enum.members.map do |m|
+                      "#{name enum}::#{name m},"
+                    end.join("\n")}
+                ];
+                VARIANTS
+            }
         }
 
         impl Name for #{name enum} {
@@ -202,12 +212,7 @@ module Xdrgen
 
         impl Variants<#{name enum}> for #{name enum} {
             fn variants() -> slice::Iter<'static, #{name enum}> {
-                const VARIANTS: [#{name enum}; #{enum.members.count}] = [
-                    #{enum.members.map do |m|
-                      "#{name enum}::#{name m},"
-                    end.join("\n")}
-                ];
-                VARIANTS.iter()
+                Self::name(self).iter()
             }
         }
 
