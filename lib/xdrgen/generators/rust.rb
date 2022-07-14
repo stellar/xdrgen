@@ -332,8 +332,8 @@ module Xdrgen
             }
 
             #[must_use]
-            pub const fn variants() -> [#{discriminant_type}; #{union_cases_count}] {
-                const VARIANTS: [#{discriminant_type}; #{union_cases_count}] = [
+            pub const fn variants() -> [#{discriminant_type}; #{union_case_count}] {
+                const VARIANTS: [#{discriminant_type}; #{union_case_count}] = [
                     #{union_cases(union) do |case_name, arm, value|
                       value.nil?                ? "#{discriminant_type}::#{case_name}," :
                       discriminant_type_builtin ? "#{value}," :
