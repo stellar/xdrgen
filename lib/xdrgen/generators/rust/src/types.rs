@@ -135,7 +135,11 @@ pub trait Variants<V> {
 pub trait Enum: Name + Variants<Self> + Sized {}
 
 // Union defines a type that is represented as an XDR union when encoded.
-pub trait Union<D>: Name + Discriminant<D> {}
+pub trait Union<D>: Name + Discriminant<D> + Variants<D>
+where
+    D: Sized,
+{
+}
 
 #[cfg(feature = "std")]
 pub struct ReadXdrIter<'r, R: Read, S: ReadXdr> {
