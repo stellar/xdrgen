@@ -191,6 +191,15 @@ module Xdrgen
                     end.join("\n")}
                 }
             }
+
+            fn variants() -> std::slice::Iter<'static, Self> {
+                const VARIANTS: [Self; #{enum.members.count}] = [
+                    #{enum.members.map do |m|
+                      "Self::#{name m},"
+                    end.join("\n")}
+                ];
+                VARIANTS.iter()
+            }
         }
 
         impl Name for #{name enum} {

@@ -134,8 +134,13 @@ pub trait Discriminant<D> {
     fn discriminant(&self) -> D;
 }
 
+/// Iter defines types that have variants that can be iterated.
+pub trait Variants {
+    fn variants() -> std::slice::Iter<'static, Self>;
+}
+
 // Enum defines a type that is represented as an XDR enumeration when encoded.
-pub trait Enum: Name {}
+pub trait Enum: Name + Variants {}
 
 // Union defines a type that is represented as an XDR union when encoded.
 pub trait Union<D>: Name + Discriminant<D> {}
@@ -1820,6 +1825,15 @@ Self::Blue => "Blue",
 Self::Green => "Green",
                 }
             }
+
+            fn variants() -> std::slice::Iter<'static, Self> {
+                const VARIANTS: [Self; 3] = [
+                    Self::Red,
+Self::Blue,
+Self::Green,
+                ];
+                VARIANTS.iter()
+            }
         }
 
         impl Name for Color {
@@ -1911,6 +1925,14 @@ pub enum NesterNestedEnum {
                     Self::1 => "1",
 Self::2 => "2",
                 }
+            }
+
+            fn variants() -> std::slice::Iter<'static, Self> {
+                const VARIANTS: [Self; 2] = [
+                    Self::1,
+Self::2,
+                ];
+                VARIANTS.iter()
             }
         }
 
