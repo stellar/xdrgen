@@ -135,17 +135,21 @@ pub trait Discriminant<D> {
 }
 
 /// Iter defines types that have variants that can be iterated.
-pub trait Variants {
-    fn variants() -> slice::Iter<'static, Self>
+pub trait Variants<V> {
+    fn variants() -> slice::Iter<'static, V>
     where
-        Self: Sized;
+        V: Sized;
 }
 
 // Enum defines a type that is represented as an XDR enumeration when encoded.
-pub trait Enum: Name + Variants {}
+pub trait Enum: Name + Variants<Self> + Sized {}
 
 // Union defines a type that is represented as an XDR union when encoded.
-pub trait Union<D>: Name + Discriminant<D> {}
+pub trait Union<D>: Name + Discriminant<D> + Variants<D>
+where
+    D: Sized,
+{
+}
 
 #[cfg(feature = "std")]
 pub struct ReadXdrIter<'r, R: Read, S: ReadXdr> {
@@ -961,6 +965,16 @@ Self::Two => "Two",
 Self::Offer => "Offer",
                 }
             }
+
+            #[must_use]
+            pub const fn variants() -> [UnionKey; 3] {
+                const VARIANTS: [UnionKey; 3] = [
+                    UnionKey::One,
+UnionKey::Two,
+UnionKey::Offer,
+                ];
+                VARIANTS
+            }
         }
 
         impl Name for UnionKey {
@@ -970,13 +984,9 @@ Self::Offer => "Offer",
             }
         }
 
-        impl Variants for UnionKey {
-            fn variants() -> slice::Iter<'static, Self> {
-                const VARIANTS: [UnionKey; 3] = [
-                    UnionKey::One,
-UnionKey::Two,
-UnionKey::Offer,
-                ];
+        impl Variants<UnionKey> for UnionKey {
+            fn variants() -> slice::Iter<'static, UnionKey> {
+                const VARIANTS: [UnionKey; 3] = UnionKey::variants();
                 VARIANTS.iter()
             }
         }
@@ -1144,6 +1154,16 @@ Self::Two(_) => UnionKey::Two,
 Self::Offer => UnionKey::Offer,
                 }
             }
+
+            #[must_use]
+            pub const fn variants() -> [UnionKey; 3] {
+                const VARIANTS: [UnionKey; 3] = [
+                    UnionKey::One,
+UnionKey::Two,
+UnionKey::Offer,
+                ];
+                VARIANTS
+            }
         }
 
         impl Name for MyUnion {
@@ -1157,6 +1177,13 @@ Self::Offer => UnionKey::Offer,
             #[must_use]
             fn discriminant(&self) -> UnionKey {
                 Self::discriminant(self)
+            }
+        }
+
+        impl Variants<UnionKey> for MyUnion {
+            fn variants() -> slice::Iter<'static, UnionKey> {
+                const VARIANTS: [UnionKey; 3] = MyUnion::variants();
+                VARIANTS.iter()
             }
         }
 

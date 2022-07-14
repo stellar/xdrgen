@@ -135,17 +135,21 @@ pub trait Discriminant<D> {
 }
 
 /// Iter defines types that have variants that can be iterated.
-pub trait Variants {
-    fn variants() -> slice::Iter<'static, Self>
+pub trait Variants<V> {
+    fn variants() -> slice::Iter<'static, V>
     where
-        Self: Sized;
+        V: Sized;
 }
 
 // Enum defines a type that is represented as an XDR enumeration when encoded.
-pub trait Enum: Name + Variants {}
+pub trait Enum: Name + Variants<Self> + Sized {}
 
 // Union defines a type that is represented as an XDR union when encoded.
-pub trait Union<D>: Name + Discriminant<D> {}
+pub trait Union<D>: Name + Discriminant<D> + Variants<D>
+where
+    D: Sized,
+{
+}
 
 #[cfg(feature = "std")]
 pub struct ReadXdrIter<'r, R: Read, S: ReadXdr> {

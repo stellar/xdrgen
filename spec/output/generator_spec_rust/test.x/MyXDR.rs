@@ -135,17 +135,21 @@ pub trait Discriminant<D> {
 }
 
 /// Iter defines types that have variants that can be iterated.
-pub trait Variants {
-    fn variants() -> slice::Iter<'static, Self>
+pub trait Variants<V> {
+    fn variants() -> slice::Iter<'static, V>
     where
-        Self: Sized;
+        V: Sized;
 }
 
 // Enum defines a type that is represented as an XDR enumeration when encoded.
-pub trait Enum: Name + Variants {}
+pub trait Enum: Name + Variants<Self> + Sized {}
 
 // Union defines a type that is represented as an XDR union when encoded.
-pub trait Union<D>: Name + Discriminant<D> {}
+pub trait Union<D>: Name + Discriminant<D> + Variants<D>
+where
+    D: Sized,
+{
+}
 
 #[cfg(feature = "std")]
 pub struct ReadXdrIter<'r, R: Read, S: ReadXdr> {
@@ -1827,6 +1831,16 @@ Self::Blue => "Blue",
 Self::Green => "Green",
                 }
             }
+
+            #[must_use]
+            pub const fn variants() -> [Color; 3] {
+                const VARIANTS: [Color; 3] = [
+                    Color::Red,
+Color::Blue,
+Color::Green,
+                ];
+                VARIANTS
+            }
         }
 
         impl Name for Color {
@@ -1836,13 +1850,9 @@ Self::Green => "Green",
             }
         }
 
-        impl Variants for Color {
-            fn variants() -> slice::Iter<'static, Self> {
-                const VARIANTS: [Color; 3] = [
-                    Color::Red,
-Color::Blue,
-Color::Green,
-                ];
+        impl Variants<Color> for Color {
+            fn variants() -> slice::Iter<'static, Color> {
+                const VARIANTS: [Color; 3] = Color::variants();
                 VARIANTS.iter()
             }
         }
@@ -1930,6 +1940,15 @@ pub enum NesterNestedEnum {
 Self::2 => "2",
                 }
             }
+
+            #[must_use]
+            pub const fn variants() -> [NesterNestedEnum; 2] {
+                const VARIANTS: [NesterNestedEnum; 2] = [
+                    NesterNestedEnum::1,
+NesterNestedEnum::2,
+                ];
+                VARIANTS
+            }
         }
 
         impl Name for NesterNestedEnum {
@@ -1939,12 +1958,9 @@ Self::2 => "2",
             }
         }
 
-        impl Variants for NesterNestedEnum {
-            fn variants() -> slice::Iter<'static, Self> {
-                const VARIANTS: [NesterNestedEnum; 2] = [
-                    NesterNestedEnum::1,
-NesterNestedEnum::2,
-                ];
+        impl Variants<NesterNestedEnum> for NesterNestedEnum {
+            fn variants() -> slice::Iter<'static, NesterNestedEnum> {
+                const VARIANTS: [NesterNestedEnum; 2] = NesterNestedEnum::variants();
                 VARIANTS.iter()
             }
         }
@@ -2056,6 +2072,14 @@ impl NesterNestedUnion {
             Self::Red => Color::Red,
         }
     }
+
+    #[must_use]
+    pub const fn variants() -> [Color; 1] {
+        const VARIANTS: [Color; 1] = [
+            Color::Red,
+        ];
+        VARIANTS
+    }
 }
 
 impl Name for NesterNestedUnion {
@@ -2069,6 +2093,13 @@ impl Discriminant<Color> for NesterNestedUnion {
     #[must_use]
     fn discriminant(&self) -> Color {
         Self::discriminant(self)
+    }
+}
+
+impl Variants<Color> for NesterNestedUnion {
+    fn variants() -> slice::Iter<'static, Color> {
+        const VARIANTS: [Color; 1] = NesterNestedUnion::variants();
+        VARIANTS.iter()
     }
 }
 

@@ -135,17 +135,21 @@ pub trait Discriminant<D> {
 }
 
 /// Iter defines types that have variants that can be iterated.
-pub trait Variants {
-    fn variants() -> slice::Iter<'static, Self>
+pub trait Variants<V> {
+    fn variants() -> slice::Iter<'static, V>
     where
-        Self: Sized;
+        V: Sized;
 }
 
 // Enum defines a type that is represented as an XDR enumeration when encoded.
-pub trait Enum: Name + Variants {}
+pub trait Enum: Name + Variants<Self> + Sized {}
 
 // Union defines a type that is represented as an XDR union when encoded.
-pub trait Union<D>: Name + Discriminant<D> {}
+pub trait Union<D>: Name + Discriminant<D> + Variants<D>
+where
+    D: Sized,
+{
+}
 
 #[cfg(feature = "std")]
 pub struct ReadXdrIter<'r, R: Read, S: ReadXdr> {
@@ -956,6 +960,14 @@ impl AccountFlags {
             Self::AuthRequiredFlag => "AuthRequiredFlag",
         }
     }
+
+    #[must_use]
+    pub const fn variants() -> [AccountFlags; 1] {
+        const VARIANTS: [AccountFlags; 1] = [
+            AccountFlags::AuthRequiredFlag,
+        ];
+        VARIANTS
+    }
 }
 
 impl Name for AccountFlags {
@@ -965,11 +977,9 @@ impl Name for AccountFlags {
     }
 }
 
-impl Variants for AccountFlags {
-    fn variants() -> slice::Iter<'static, Self> {
-        const VARIANTS: [AccountFlags; 1] = [
-            AccountFlags::AuthRequiredFlag,
-        ];
+impl Variants<AccountFlags> for AccountFlags {
+    fn variants() -> slice::Iter<'static, AccountFlags> {
+        const VARIANTS: [AccountFlags; 1] = AccountFlags::variants();
         VARIANTS.iter()
     }
 }
