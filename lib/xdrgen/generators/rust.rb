@@ -202,9 +202,9 @@ module Xdrgen
 
         impl Variants for #{name enum} {
             fn variants() -> core::slice::Iter<'static, Self> {
-                const VARIANTS: [Self; #{enum.members.count}] = [
+                const VARIANTS: [#{name enum}; #{enum.members.count}] = [
                     #{enum.members.map do |m|
-                      "Self::#{name m},"
+                      "#{name enum}::#{name m},"
                     end.join("\n")}
                 ];
                 VARIANTS.iter()
