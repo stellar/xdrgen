@@ -191,12 +191,29 @@ module Xdrgen
                     end.join("\n")}
                 }
             }
+
+            #[must_use]
+            pub const fn variants() -> [#{name enum}; #{enum.members.count}] {
+                const VARIANTS: [#{name enum}; #{enum.members.count}] = [
+                    #{enum.members.map do |m|
+                      "#{name enum}::#{name m},"
+                    end.join("\n")}
+                ];
+                VARIANTS
+            }
         }
 
         impl Name for #{name enum} {
             #[must_use]
             fn name(&self) -> &'static str {
                 Self::name(self)
+            }
+        }
+
+        impl Variants<#{name enum}> for #{name enum} {
+            fn variants() -> slice::Iter<'static, #{name enum}> {
+                const VARIANTS: [#{name enum}; #{enum.members.count}] = #{name enum}::variants();
+                VARIANTS.iter()
             }
         }
 
@@ -280,8 +297,10 @@ module Xdrgen
         out.puts %{#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "camelCase"))]}
         out.puts "#[allow(clippy::large_enum_variant)]"
         out.puts "pub enum #{name union} {"
+        union_case_count = 0
         out.indent do
           union_cases(union) do |case_name, arm|
+            union_case_count += 1
             out.puts arm.void? ? "#{case_name}#{"(())" unless arm.void?}," : "#{case_name}(#{reference(union, arm.type)}),"
           end
         end
@@ -311,6 +330,18 @@ module Xdrgen
                     end.join("\n")}
                 }
             }
+
+            #[must_use]
+            pub const fn variants() -> [#{discriminant_type}; #{union_case_count}] {
+                const VARIANTS: [#{discriminant_type}; #{union_case_count}] = [
+                    #{union_cases(union) do |case_name, arm, value|
+                      value.nil?                ? "#{discriminant_type}::#{case_name}," :
+                      discriminant_type_builtin ? "#{value}," :
+                                                  "#{discriminant_type}(#{value}),"
+                    end.join("\n")}
+                ];
+                VARIANTS
+            }
         }
 
         impl Name for #{name union} {
@@ -324,6 +355,13 @@ module Xdrgen
             #[must_use]
             fn discriminant(&self) -> #{discriminant_type} {
                 Self::discriminant(self)
+            }
+        }
+
+        impl Variants<#{discriminant_type}> for #{name union} {
+            fn variants() -> slice::Iter<'static, #{discriminant_type}> {
+                const VARIANTS: [#{discriminant_type}; #{union_case_count}] = #{name union}::variants();
+                VARIANTS.iter()
             }
         }
 

@@ -8,7 +8,7 @@ pub const XDR_FILES_SHA256: [(&str, &str); 1] = [
   ("spec/fixtures/generator/enum.x", "35cf5e97e2057039640ed260e8b38bb2733a3c3ca8529c93877bdec02a999d7f")
 ];
 
-use core::{array::TryFromSliceError, fmt, fmt::Debug, ops::Deref};
+use core::{array::TryFromSliceError, fmt, fmt::Debug, marker::Sized, ops::Deref, slice};
 
 #[cfg(feature = "std")]
 use core::marker::PhantomData;
@@ -134,11 +134,22 @@ pub trait Discriminant<D> {
     fn discriminant(&self) -> D;
 }
 
+/// Iter defines types that have variants that can be iterated.
+pub trait Variants<V> {
+    fn variants() -> slice::Iter<'static, V>
+    where
+        V: Sized;
+}
+
 // Enum defines a type that is represented as an XDR enumeration when encoded.
-pub trait Enum: Name {}
+pub trait Enum: Name + Variants<Self> + Sized {}
 
 // Union defines a type that is represented as an XDR union when encoded.
-pub trait Union<D>: Name + Discriminant<D> {}
+pub trait Union<D>: Name + Discriminant<D> + Variants<D>
+where
+    D: Sized,
+{
+}
 
 #[cfg(feature = "std")]
 pub struct ReadXdrIter<'r, R: Read, S: ReadXdr> {
@@ -994,12 +1005,40 @@ Self::FbaQuorumset => "FbaQuorumset",
 Self::FbaMessage => "FbaMessage",
                 }
             }
+
+            #[must_use]
+            pub const fn variants() -> [MessageType; 14] {
+                const VARIANTS: [MessageType; 14] = [
+                    MessageType::ErrorMsg,
+MessageType::Hello,
+MessageType::DontHave,
+MessageType::GetPeers,
+MessageType::Peers,
+MessageType::GetTxSet,
+MessageType::TxSet,
+MessageType::GetValidations,
+MessageType::Validations,
+MessageType::Transaction,
+MessageType::JsonTransaction,
+MessageType::GetFbaQuorumset,
+MessageType::FbaQuorumset,
+MessageType::FbaMessage,
+                ];
+                VARIANTS
+            }
         }
 
         impl Name for MessageType {
             #[must_use]
             fn name(&self) -> &'static str {
                 Self::name(self)
+            }
+        }
+
+        impl Variants<MessageType> for MessageType {
+            fn variants() -> slice::Iter<'static, MessageType> {
+                const VARIANTS: [MessageType; 14] = MessageType::variants();
+                VARIANTS.iter()
             }
         }
 
@@ -1088,12 +1127,29 @@ Self::Green => "Green",
 Self::Blue => "Blue",
                 }
             }
+
+            #[must_use]
+            pub const fn variants() -> [Color; 3] {
+                const VARIANTS: [Color; 3] = [
+                    Color::Red,
+Color::Green,
+Color::Blue,
+                ];
+                VARIANTS
+            }
         }
 
         impl Name for Color {
             #[must_use]
             fn name(&self) -> &'static str {
                 Self::name(self)
+            }
+        }
+
+        impl Variants<Color> for Color {
+            fn variants() -> slice::Iter<'static, Color> {
+                const VARIANTS: [Color; 3] = Color::variants();
+                VARIANTS.iter()
             }
         }
 
@@ -1171,12 +1227,29 @@ Self::Green2 => "Green2",
 Self::Blue2 => "Blue2",
                 }
             }
+
+            #[must_use]
+            pub const fn variants() -> [Color2; 3] {
+                const VARIANTS: [Color2; 3] = [
+                    Color2::Red2,
+Color2::Green2,
+Color2::Blue2,
+                ];
+                VARIANTS
+            }
         }
 
         impl Name for Color2 {
             #[must_use]
             fn name(&self) -> &'static str {
                 Self::name(self)
+            }
+        }
+
+        impl Variants<Color2> for Color2 {
+            fn variants() -> slice::Iter<'static, Color2> {
+                const VARIANTS: [Color2; 3] = Color2::variants();
+                VARIANTS.iter()
             }
         }
 

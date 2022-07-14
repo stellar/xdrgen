@@ -8,7 +8,7 @@ pub const XDR_FILES_SHA256: [(&str, &str); 1] = [
   ("spec/fixtures/generator/union.x", "c251258d967223b341ebcf2d5bb0718e9a039b46232cb743865d9acd0c4bbe41")
 ];
 
-use core::{array::TryFromSliceError, fmt, fmt::Debug, ops::Deref};
+use core::{array::TryFromSliceError, fmt, fmt::Debug, marker::Sized, ops::Deref, slice};
 
 #[cfg(feature = "std")]
 use core::marker::PhantomData;
@@ -134,11 +134,22 @@ pub trait Discriminant<D> {
     fn discriminant(&self) -> D;
 }
 
+/// Iter defines types that have variants that can be iterated.
+pub trait Variants<V> {
+    fn variants() -> slice::Iter<'static, V>
+    where
+        V: Sized;
+}
+
 // Enum defines a type that is represented as an XDR enumeration when encoded.
-pub trait Enum: Name {}
+pub trait Enum: Name + Variants<Self> + Sized {}
 
 // Union defines a type that is represented as an XDR union when encoded.
-pub trait Union<D>: Name + Discriminant<D> {}
+pub trait Union<D>: Name + Discriminant<D> + Variants<D>
+where
+    D: Sized,
+{
+}
 
 #[cfg(feature = "std")]
 pub struct ReadXdrIter<'r, R: Read, S: ReadXdr> {
@@ -963,12 +974,28 @@ pub enum UnionKey {
 Self::Multi => "Multi",
                 }
             }
+
+            #[must_use]
+            pub const fn variants() -> [UnionKey; 2] {
+                const VARIANTS: [UnionKey; 2] = [
+                    UnionKey::Error,
+UnionKey::Multi,
+                ];
+                VARIANTS
+            }
         }
 
         impl Name for UnionKey {
             #[must_use]
             fn name(&self) -> &'static str {
                 Self::name(self)
+            }
+        }
+
+        impl Variants<UnionKey> for UnionKey {
+            fn variants() -> slice::Iter<'static, UnionKey> {
+                const VARIANTS: [UnionKey; 2] = UnionKey::variants();
+                VARIANTS.iter()
             }
         }
 
@@ -1056,6 +1083,15 @@ Self::Multi(_) => "Multi",
 Self::Multi(_) => UnionKey::Multi,
                 }
             }
+
+            #[must_use]
+            pub const fn variants() -> [UnionKey; 2] {
+                const VARIANTS: [UnionKey; 2] = [
+                    UnionKey::Error,
+UnionKey::Multi,
+                ];
+                VARIANTS
+            }
         }
 
         impl Name for MyUnion {
@@ -1069,6 +1105,13 @@ Self::Multi(_) => UnionKey::Multi,
             #[must_use]
             fn discriminant(&self) -> UnionKey {
                 Self::discriminant(self)
+            }
+        }
+
+        impl Variants<UnionKey> for MyUnion {
+            fn variants() -> slice::Iter<'static, UnionKey> {
+                const VARIANTS: [UnionKey; 2] = MyUnion::variants();
+                VARIANTS.iter()
             }
         }
 
@@ -1139,6 +1182,15 @@ Self::V1(_) => "V1",
 Self::V1(_) => 1,
                 }
             }
+
+            #[must_use]
+            pub const fn variants() -> [i32; 2] {
+                const VARIANTS: [i32; 2] = [
+                    0,
+1,
+                ];
+                VARIANTS
+            }
         }
 
         impl Name for IntUnion {
@@ -1152,6 +1204,13 @@ Self::V1(_) => 1,
             #[must_use]
             fn discriminant(&self) -> i32 {
                 Self::discriminant(self)
+            }
+        }
+
+        impl Variants<i32> for IntUnion {
+            fn variants() -> slice::Iter<'static, i32> {
+                const VARIANTS: [i32; 2] = IntUnion::variants();
+                VARIANTS.iter()
             }
         }
 
