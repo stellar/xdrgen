@@ -200,8 +200,8 @@ module Xdrgen
             }
         }
 
-        impl Variants for #{name enum} {
-            fn variants() -> slice::Iter<'static, Self> {
+        impl Variants<#{name enum}> for #{name enum} {
+            fn variants() -> slice::Iter<'static, #{name enum}> {
                 const VARIANTS: [#{name enum}; #{enum.members.count}] = [
                     #{enum.members.map do |m|
                       "#{name enum}::#{name m},"

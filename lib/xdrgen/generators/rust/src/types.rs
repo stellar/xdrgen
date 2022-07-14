@@ -125,10 +125,10 @@ pub trait Discriminant<D> {
 }
 
 /// Iter defines types that have variants that can be iterated.
-pub trait Variants {
-    fn variants() -> slice::Iter<'static, Self>
+pub trait Variants<V> {
+    fn variants() -> slice::Iter<'static, V>
     where
-        Self: Sized;
+        V: Sized;
 }
 
 // Enum defines a type that is represented as an XDR enumeration when encoded.
