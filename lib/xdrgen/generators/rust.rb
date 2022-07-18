@@ -521,10 +521,15 @@ module Xdrgen
             }
 
             #[cfg(feature = "alloc")]
-            impl TryFrom<&Vec<#{element_type_for_vec(typedef.type)}>> for #{name typedef} {
+            impl<T> TryFrom<&Vec<T>> for #{name typedef} {
+            where
+                for<'a> &'a T: Into<#{element_type_for_vec(typedef.type)}>,
                 type Error = Error;
-                fn try_from(x: &Vec<#{element_type_for_vec(typedef.type)}>) -> Result<Self> {
-                    Ok(#{name typedef}(x.try_into()?))
+                fn try_from(v: &Vec<T>) -> Result<Self> {
+                    v.iter()
+                        .map(|t| <_ as Into<#{element_type_for_vec(typedef.type)}>>::into(t))
+                        .collect::<Vec<_>>()
+                        .try_into()
                 }
             }
 

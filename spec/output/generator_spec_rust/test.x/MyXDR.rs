@@ -593,11 +593,15 @@ impl<T, const MAX: u32> AsRef<Vec<T>> for VecM<T, MAX> {
 }
 
 #[cfg(feature = "alloc")]
-impl<T: Clone, const MAX: u32> TryFrom<&Vec<T>> for VecM<T, MAX> {
+impl<I, T> TryFrom<&Vec<I>> for VecM<T, MAX> {
+where
+    for<'a> &'a I: Into<T>,
     type Error = Error;
-
-    fn try_from(v: &Vec<T>) -> Result<Self> {
-        v.as_slice().try_into()
+    fn try_from(v: &Vec<I>) -> Result<Self> {
+        v.iter()
+            .map(|i| <_ as Into<T>>::into(i))
+            .collect::<Vec<_>>()
+            .try_into()
     }
 }
 
@@ -1088,10 +1092,15 @@ impl TryFrom<Vec<u8>> for Uint513 {
 }
 
 #[cfg(feature = "alloc")]
-impl TryFrom<&Vec<u8>> for Uint513 {
+impl<T> TryFrom<&Vec<T>> for Uint513 {
+where
+    for<'a> &'a T: Into<u8>,
     type Error = Error;
-    fn try_from(x: &Vec<u8>) -> Result<Self> {
-        Ok(Uint513(x.try_into()?))
+    fn try_from(v: &Vec<T>) -> Result<Self> {
+        v.iter()
+            .map(|t| <_ as Into<u8>>::into(t))
+            .collect::<Vec<_>>()
+            .try_into()
     }
 }
 
@@ -1183,10 +1192,15 @@ impl TryFrom<Vec<u8>> for Uint514 {
 }
 
 #[cfg(feature = "alloc")]
-impl TryFrom<&Vec<u8>> for Uint514 {
+impl<T> TryFrom<&Vec<T>> for Uint514 {
+where
+    for<'a> &'a T: Into<u8>,
     type Error = Error;
-    fn try_from(x: &Vec<u8>) -> Result<Self> {
-        Ok(Uint514(x.try_into()?))
+    fn try_from(v: &Vec<T>) -> Result<Self> {
+        v.iter()
+            .map(|t| <_ as Into<u8>>::into(t))
+            .collect::<Vec<_>>()
+            .try_into()
     }
 }
 
@@ -1454,10 +1468,15 @@ impl TryFrom<Vec<Hash>> for Hashes2 {
 }
 
 #[cfg(feature = "alloc")]
-impl TryFrom<&Vec<Hash>> for Hashes2 {
+impl<T> TryFrom<&Vec<T>> for Hashes2 {
+where
+    for<'a> &'a T: Into<Hash>,
     type Error = Error;
-    fn try_from(x: &Vec<Hash>) -> Result<Self> {
-        Ok(Hashes2(x.try_into()?))
+    fn try_from(v: &Vec<T>) -> Result<Self> {
+        v.iter()
+            .map(|t| <_ as Into<Hash>>::into(t))
+            .collect::<Vec<_>>()
+            .try_into()
     }
 }
 
@@ -1549,10 +1568,15 @@ impl TryFrom<Vec<Hash>> for Hashes3 {
 }
 
 #[cfg(feature = "alloc")]
-impl TryFrom<&Vec<Hash>> for Hashes3 {
+impl<T> TryFrom<&Vec<T>> for Hashes3 {
+where
+    for<'a> &'a T: Into<Hash>,
     type Error = Error;
-    fn try_from(x: &Vec<Hash>) -> Result<Self> {
-        Ok(Hashes3(x.try_into()?))
+    fn try_from(v: &Vec<T>) -> Result<Self> {
+        v.iter()
+            .map(|t| <_ as Into<Hash>>::into(t))
+            .collect::<Vec<_>>()
+            .try_into()
     }
 }
 

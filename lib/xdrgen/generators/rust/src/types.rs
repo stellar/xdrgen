@@ -583,11 +583,15 @@ impl<T, const MAX: u32> AsRef<Vec<T>> for VecM<T, MAX> {
 }
 
 #[cfg(feature = "alloc")]
-impl<T: Clone, const MAX: u32> TryFrom<&Vec<T>> for VecM<T, MAX> {
+impl<I, T> TryFrom<&Vec<I>> for VecM<T, MAX> {
+where
+    for<'a> &'a I: Into<T>,
     type Error = Error;
-
-    fn try_from(v: &Vec<T>) -> Result<Self> {
-        v.as_slice().try_into()
+    fn try_from(v: &Vec<I>) -> Result<Self> {
+        v.iter()
+            .map(|i| <_ as Into<T>>::into(i))
+            .collect::<Vec<_>>()
+            .try_into()
     }
 }
 
