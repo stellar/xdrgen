@@ -583,9 +583,10 @@ impl<T, const MAX: u32> AsRef<Vec<T>> for VecM<T, MAX> {
 }
 
 #[cfg(feature = "alloc")]
-impl<I, T> TryFrom<&Vec<I>> for VecM<T, MAX> {
-where
+impl<I, T> TryFrom<&Vec<I>> for VecM<T, MAX>
+whe
     for<'a> &'a I: Into<T>,
+{
     type Error = Error;
     fn try_from(v: &Vec<I>) -> Result<Self> {
         v.iter()

@@ -521,9 +521,10 @@ module Xdrgen
             }
 
             #[cfg(feature = "alloc")]
-            impl<T> TryFrom<&Vec<T>> for #{name typedef} {
+            impl<T> TryFrom<&Vec<T>> for #{name typedef}
             where
                 for<'a> &'a T: Into<#{element_type_for_vec(typedef.type)}>,
+            {
                 type Error = Error;
                 fn try_from(v: &Vec<T>) -> Result<Self> {
                     v.iter()
