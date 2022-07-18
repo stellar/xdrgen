@@ -528,7 +528,7 @@ module Xdrgen
                 type Error = Error;
                 fn try_from(v: &Vec<T>) -> Result<Self> {
                     v.iter()
-                        .map(|t| <_ as Into<#{element_type_for_vec(typedef.type)}>>::into(t))
+                        .map(<_ as Into<#{element_type_for_vec(typedef.type)}>>::into)
                         .collect::<Vec<_>>()
                         .try_into()
                 }

@@ -590,7 +590,7 @@ where
     type Error = Error;
     fn try_from(v: &Vec<I>) -> Result<Self> {
         v.iter()
-            .map(|i| <_ as Into<T>>::into(i))
+            .map(<_ as Into<T>>::into)
             .collect::<Vec<_>>()
             .try_into()
     }
