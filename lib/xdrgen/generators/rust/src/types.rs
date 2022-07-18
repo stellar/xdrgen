@@ -583,7 +583,7 @@ impl<T, const MAX: u32> AsRef<Vec<T>> for VecM<T, MAX> {
 }
 
 #[cfg(feature = "alloc")]
-impl<I, T> TryFrom<&Vec<I>> for VecM<T, MAX>
+impl<I, T, const MAX: u32> TryFrom<&Vec<I>> for VecM<T, MAX>
 where
     for<'a> &'a I: Into<T>,
 {
