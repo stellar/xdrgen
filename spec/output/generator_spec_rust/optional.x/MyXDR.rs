@@ -227,7 +227,7 @@ where
         Ok(t)
     }
 
-    #[cfg(feature = "std")]
+    #[cfg(feature = "base64")]
     fn from_xdr_base64(b64: String) -> Result<Self> {
         let mut b64_reader = Cursor::new(b64);
         let mut dec = base64::read::DecoderReader::new(&mut b64_reader, base64::STANDARD);
@@ -248,7 +248,7 @@ pub trait WriteXdr {
         Ok(bytes)
     }
 
-    #[cfg(feature = "std")]
+    #[cfg(feature = "base64")]
     fn to_xdr_base64(&self) -> Result<String> {
         let mut enc = base64::write::EncoderStringWriter::new(base64::STANDARD);
         self.write_xdr(&mut enc)?;
