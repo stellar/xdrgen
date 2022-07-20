@@ -49,8 +49,8 @@ use std::{
 };
 
 /// Error contains all errors returned by functions in this crate. It can be
-/// compared via PartialEq, however any contained IO errors will only be
-/// compared on their ErrorKind.
+/// compared via `PartialEq`, however any contained IO errors will only be
+/// compared on their `ErrorKind`.
 #[derive(Debug)]
 pub enum Error {
     Invalid,
