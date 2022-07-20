@@ -48,6 +48,9 @@ use std::{
     io::{BufRead, BufReader, Cursor, Read, Write},
 };
 
+/// Error contains all errors returned by functions in this crate. It can be
+/// compared via PartialEq, however any contained IO errors will only be
+/// compared on their ErrorKind.
 #[derive(Debug)]
 pub enum Error {
     Invalid,
@@ -57,6 +60,22 @@ pub enum Error {
     Utf8Error(core::str::Utf8Error),
     #[cfg(feature = "std")]
     Io(io::Error),
+}
+
+impl PartialEq for Error {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Self::Utf8Error(l), Self::Utf8Error(r)) => l == r,
+            // IO errors cannot be compared, but in the absence of any more
+            // meaningful way to compare the errors we compare the kind of error
+            // and ignore the embedded source error or OS error. The main use
+            // case for comparing errors outputted by the XDR library is for
+            // error case testing, and a lack of the ability to compare has a
+            // detrimental affect on failure testing, so this is a tradeoff.
+            (Self::Io(l), Self::Io(r)) => l.kind() == r.kind(),
+            _ => core::mem::discriminant(self) == core::mem::discriminant(other),
+        }
+    }
 }
 
 #[cfg(feature = "std")]
