@@ -62,6 +62,7 @@ impl PartialEq for Error {
             // case for comparing errors outputted by the XDR library is for
             // error case testing, and a lack of the ability to compare has a
             // detrimental affect on failure testing, so this is a tradeoff.
+            #[cfg(feature = "std")]
             (Self::Io(l), Self::Io(r)) => l.kind() == r.kind(),
             _ => core::mem::discriminant(self) == core::mem::discriminant(other),
         }
