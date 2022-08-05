@@ -133,7 +133,7 @@ module Xdrgen
       end
 
       def render_struct(out, struct)
-        out.puts "#[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]"
+        out.puts "#[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord, Arbitrary)]"
         out.puts %{#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "camelCase"))]}
         out.puts "pub struct #{name struct} {"
         out.indent do
@@ -170,7 +170,7 @@ module Xdrgen
 
       def render_enum(out, enum)
         out.puts "// enum"
-        out.puts "#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]"
+        out.puts "#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord, Arbitrary)]"
         out.puts %{#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "camelCase"))]}
         out.puts "#[repr(i32)]"
         out.puts "pub enum #{name enum} {"
@@ -412,7 +412,7 @@ module Xdrgen
         if is_builtin_type(typedef.type)
           out.puts "pub type #{name typedef} = #{reference(typedef, typedef.type)};"
         else
-          out.puts "#[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]"
+          out.puts "#[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord, Arbitrary)]"
           out.puts "#[derive(Default)]" if is_var_array_type(typedef.type)
           out.puts %{#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "camelCase"))]}
           out.puts "pub struct #{name typedef}(pub #{reference(typedef, typedef.type)});"
