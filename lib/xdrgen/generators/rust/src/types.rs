@@ -1,4 +1,3 @@
-use arbitrary::Arbitrary;
 use core::{array::TryFromSliceError, fmt, fmt::Debug, marker::Sized, ops::Deref, slice};
 
 #[cfg(feature = "std")]
@@ -30,6 +29,9 @@ use alloc::{
 };
 #[cfg(all(feature = "std"))]
 use std::string::FromUtf8Error;
+
+#[cfg(feature = "arbitrary")]
+use arbitrary::Arbitrary;
 
 // TODO: Add support for read/write xdr fns when std not available.
 
@@ -504,12 +506,14 @@ impl<T: WriteXdr, const N: usize> WriteXdr for [T; N] {
 }
 
 #[cfg(feature = "alloc")]
-#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord, Arbitrary)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 pub struct VecM<T, const MAX: u32 = { u32::MAX }>(Vec<T>);
 
 #[cfg(not(feature = "alloc"))]
-#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord, Arbitrary)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 pub struct VecM<T, const MAX: u32 = { u32::MAX }>(Vec<T>)
 where
     T: 'static;
