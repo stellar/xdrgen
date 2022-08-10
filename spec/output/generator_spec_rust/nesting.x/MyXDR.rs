@@ -40,6 +40,9 @@ use alloc::{
 #[cfg(all(feature = "std"))]
 use std::string::FromUtf8Error;
 
+#[cfg(feature = "arbitrary")]
+use arbitrary::Arbitrary;
+
 // TODO: Add support for read/write xdr fns when std not available.
 
 #[cfg(feature = "std")]
@@ -515,10 +518,12 @@ impl<T: WriteXdr, const N: usize> WriteXdr for [T; N] {
 #[cfg(feature = "alloc")]
 #[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 pub struct VecM<T, const MAX: u32 = { u32::MAX }>(Vec<T>);
 
 #[cfg(not(feature = "alloc"))]
 #[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 pub struct VecM<T, const MAX: u32 = { u32::MAX }>(Vec<T>)
 where
     T: 'static;
@@ -968,6 +973,7 @@ mod tests {
 //
 // enum
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "camelCase"))]
 #[repr(i32)]
 pub enum UnionKey {
@@ -1071,6 +1077,7 @@ pub type Foo = i32;
 //            }
 //
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "camelCase"))]
 pub struct MyUnionOne {
   pub some_int: i32,
@@ -1101,6 +1108,7 @@ impl WriteXdr for MyUnionOne {
 //            }
 //
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "camelCase"))]
 pub struct MyUnionTwo {
   pub some_int: i32,
@@ -1147,6 +1155,7 @@ self.foo.write_xdr(w)?;
 //
 // union with discriminant UnionKey
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "camelCase"))]
 #[allow(clippy::large_enum_variant)]
 pub enum MyUnion {

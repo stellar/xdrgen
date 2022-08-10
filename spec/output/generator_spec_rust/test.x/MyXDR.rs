@@ -40,6 +40,9 @@ use alloc::{
 #[cfg(all(feature = "std"))]
 use std::string::FromUtf8Error;
 
+#[cfg(feature = "arbitrary")]
+use arbitrary::Arbitrary;
+
 // TODO: Add support for read/write xdr fns when std not available.
 
 #[cfg(feature = "std")]
@@ -515,10 +518,12 @@ impl<T: WriteXdr, const N: usize> WriteXdr for [T; N] {
 #[cfg(feature = "alloc")]
 #[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 pub struct VecM<T, const MAX: u32 = { u32::MAX }>(Vec<T>);
 
 #[cfg(not(feature = "alloc"))]
 #[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 pub struct VecM<T, const MAX: u32 = { u32::MAX }>(Vec<T>)
 where
     T: 'static;
@@ -963,6 +968,7 @@ mod tests {
 //   typedef opaque uint512[64];
 //
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "camelCase"))]
 pub struct Uint512(pub [u8; 64]);
 
@@ -1045,6 +1051,7 @@ impl AsRef<[u8]> for Uint512 {
 //   typedef opaque uint513<64>;
 //
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[derive(Default)]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "camelCase"))]
 pub struct Uint513(pub VecM::<u8, 64>);
@@ -1140,6 +1147,7 @@ impl AsRef<[u8]> for Uint513 {
 //   typedef opaque uint514<>;
 //
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[derive(Default)]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "camelCase"))]
 pub struct Uint514(pub VecM::<u8>);
@@ -1247,6 +1255,7 @@ pub type Str2 = VecM::<u8>;
 //   typedef opaque Hash[32];
 //
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "camelCase"))]
 pub struct Hash(pub [u8; 32]);
 
@@ -1329,6 +1338,7 @@ impl AsRef<[u8]> for Hash {
 //   typedef Hash Hashes1[12];
 //
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "camelCase"))]
 pub struct Hashes1(pub [Hash; 12]);
 
@@ -1411,6 +1421,7 @@ impl AsRef<[Hash]> for Hashes1 {
 //   typedef Hash Hashes2<12>;
 //
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[derive(Default)]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "camelCase"))]
 pub struct Hashes2(pub VecM::<Hash, 12>);
@@ -1506,6 +1517,7 @@ impl AsRef<[Hash]> for Hashes2 {
 //   typedef Hash Hashes3<>;
 //
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[derive(Default)]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "camelCase"))]
 pub struct Hashes3(pub VecM::<Hash>);
@@ -1601,6 +1613,7 @@ impl AsRef<[Hash]> for Hashes3 {
 //   typedef Hash *optHash1;
 //
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "camelCase"))]
 pub struct OptHash1(pub Option<Hash>);
 
@@ -1646,6 +1659,7 @@ impl WriteXdr for OptHash1 {
 //   typedef Hash* optHash2;
 //
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "camelCase"))]
 pub struct OptHash2(pub Option<Hash>);
 
@@ -1724,6 +1738,7 @@ pub type Int4 = u64;
 //    };
 //
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "camelCase"))]
 pub struct MyStruct {
   pub field1: Uint512,
@@ -1772,6 +1787,7 @@ self.field7.write_xdr(w)?;
 //    };
 //
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "camelCase"))]
 pub struct LotsOfMyStructs {
   pub members: VecM::<MyStruct>,
@@ -1802,6 +1818,7 @@ impl WriteXdr for LotsOfMyStructs {
 //    };
 //
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "camelCase"))]
 pub struct HasStuff {
   pub data: LotsOfMyStructs,
@@ -1834,6 +1851,7 @@ impl WriteXdr for HasStuff {
 //
 // enum
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "camelCase"))]
 #[repr(i32)]
 pub enum Color {
@@ -1945,6 +1963,7 @@ pub const BAR: u64 = FOO;
 //
 // enum
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "camelCase"))]
 #[repr(i32)]
 pub enum NesterNestedEnum {
@@ -2038,6 +2057,7 @@ NesterNestedEnum::2,
 //      }
 //
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "camelCase"))]
 pub struct NesterNestedStruct {
   pub blah: i32,
@@ -2071,6 +2091,7 @@ impl WriteXdr for NesterNestedStruct {
 //
 // union with discriminant Color
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "camelCase"))]
 #[allow(clippy::large_enum_variant)]
 pub enum NesterNestedUnion {
@@ -2175,6 +2196,7 @@ impl WriteXdr for NesterNestedUnion {
 //    };
 //
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "camelCase"))]
 pub struct Nester {
   pub nested_enum: NesterNestedEnum,
