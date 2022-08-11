@@ -8,10 +8,12 @@ on:
 jobs:
 
   complete:
+    if: always()
     needs: [test]
     runs-on: ubuntu-latest
     steps:
-    - run: exit 0
+    - if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')
+      run: exit 1
 
   test:
     runs-on: ubuntu-latest
