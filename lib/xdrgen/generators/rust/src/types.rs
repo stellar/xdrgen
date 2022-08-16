@@ -572,6 +572,41 @@ impl<const MAX: u32> VecM<u8, MAX> {
     }
 }
 
+impl<T: Clone> VecM<T, 1> {
+    #[must_use]
+    pub fn to_option(&self) -> Option<T> {
+        if self.len() > 0 {
+            Some(self.0[0].clone())
+        } else {
+            None
+        }
+    }
+}
+
+#[cfg(not(feature = "alloc"))]
+impl<T: Clone> From<VecM<T, 1>> for Option<T> {
+    #[must_use]
+    fn from(v: VecM<T, 1>) -> Self {
+        v.to_option()
+    }
+}
+
+#[cfg(feature = "alloc")]
+impl<T> VecM<T, 1> {
+    #[must_use]
+    pub fn into_option(mut self) -> Option<T> {
+        self.0.drain(..).next()
+    }
+}
+
+#[cfg(feature = "alloc")]
+impl<T> From<VecM<T, 1>> for Option<T> {
+    #[must_use]
+    fn from(v: VecM<T, 1>) -> Self {
+        v.into_option()
+    }
+}
+
 impl<T, const MAX: u32> TryFrom<Vec<T>> for VecM<T, MAX> {
     type Error = Error;
 
@@ -950,5 +985,51 @@ mod tests {
         let mut buf = vec![];
         [2u8].write_xdr(&mut Cursor::new(&mut buf)).unwrap();
         assert_eq!(buf, vec![2, 0, 0, 0]);
+    }
+}
+
+#[cfg(all(test, feature = "std"))]
+mod test {
+    use crate::VecM;
+
+    #[test]
+    fn into_option_none() {
+        let v: VecM<u32, 1> = vec![].try_into().unwrap();
+        assert_eq!(v.into_option(), None);
+    }
+
+    #[test]
+    fn into_option_some() {
+        let v: VecM<_, 1> = vec![1].try_into().unwrap();
+        assert_eq!(v.into_option(), Some(1));
+    }
+
+    #[test]
+    fn to_option_none() {
+        let v: VecM<u32, 1> = vec![].try_into().unwrap();
+        assert_eq!(v.to_option(), None);
+    }
+
+    #[test]
+    fn to_option_some() {
+        let v: VecM<_, 1> = vec![1].try_into().unwrap();
+        assert_eq!(v.to_option(), Some(1));
+    }
+}
+
+#[cfg(all(test, not(feature = "alloc")))]
+mod test {
+    use crate::VecM;
+
+    #[test]
+    fn to_option_none() {
+        let v: VecM<u32, 1> = (&[]).try_into().unwrap();
+        assert_eq!(v.to_option(), None);
+    }
+
+    #[test]
+    fn to_option_some() {
+        let v: VecM<_, 1> = (&[1]).try_into().unwrap();
+        assert_eq!(v.to_option(), Some(1));
     }
 }
