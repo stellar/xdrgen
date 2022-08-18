@@ -80,6 +80,9 @@ GEM
 
 PLATFORMS
   aarch64-linux
+  arm-linux
+  universal-darwin-21
+  x86_64-linux
 
 DEPENDENCIES
   bundler (~> 2)
