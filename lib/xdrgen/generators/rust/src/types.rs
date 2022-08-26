@@ -572,11 +572,13 @@ impl<const MAX: u32> VecM<u8, MAX> {
     }
 
     #[cfg(feature = "alloc")]
+    #[must_use]
     pub fn to_string_lossy(&self) -> String {
         String::from_utf8_lossy(&self.0).into_owned()
     }
 
     #[cfg(feature = "alloc")]
+    #[must_use]
     pub fn into_string_lossy(self) -> String {
         String::from_utf8_lossy(&self.0).into_owned()
     }
