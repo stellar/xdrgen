@@ -570,6 +570,18 @@ impl<const MAX: u32> VecM<u8, MAX> {
     pub fn into_string(self) -> Result<String> {
         self.try_into()
     }
+
+    #[cfg(feature = "alloc")]
+    #[must_use]
+    pub fn to_string_lossy(&self) -> String {
+        String::from_utf8_lossy(&self.0).into_owned()
+    }
+
+    #[cfg(feature = "alloc")]
+    #[must_use]
+    pub fn into_string_lossy(self) -> String {
+        String::from_utf8_lossy(&self.0).into_owned()
+    }
 }
 
 impl<T: Clone> VecM<T, 1> {
