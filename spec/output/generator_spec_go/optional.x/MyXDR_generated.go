@@ -61,7 +61,7 @@ func Marshal(w io.Writer, v interface{}) (int, error) {
 //
 type Arr [2]int32
 // EncodeTo encodes this value using the Encoder.
-func (s Arr) EncodeTo(e *xdr.Encoder) error {
+func (s *Arr) EncodeTo(e *xdr.Encoder) error {
   var err error
 if _, err = e.EncodeInt(int32(s)); err != nil {
   return err

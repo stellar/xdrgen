@@ -411,7 +411,7 @@ var _ xdrType = (*Hash)(nil)
 //
 type Hashes1 [12]Hash
 // EncodeTo encodes this value using the Encoder.
-func (s Hashes1) EncodeTo(e *xdr.Encoder) error {
+func (s *Hashes1) EncodeTo(e *xdr.Encoder) error {
   var err error
   for i := 0; i < len(s); i++ {
 if err = s[i].EncodeTo(e); err != nil {

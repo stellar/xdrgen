@@ -67,7 +67,7 @@ const Foo = 1
 //
 type TestArray [Foo]int32
 // EncodeTo encodes this value using the Encoder.
-func (s TestArray) EncodeTo(e *xdr.Encoder) error {
+func (s *TestArray) EncodeTo(e *xdr.Encoder) error {
   var err error
 if _, err = e.EncodeInt(int32(s)); err != nil {
   return err
