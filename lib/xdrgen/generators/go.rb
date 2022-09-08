@@ -400,7 +400,7 @@ module Xdrgen
         EOS
       end
 
-      def results_in_go_array(type)
+      def is_fixed_array_type(type)
         (type.is_a?(AST::Typespecs::Opaque) && type.fixed?) || type.sub_type == :array
       end
 
@@ -408,8 +408,8 @@ module Xdrgen
         name = name(typedef)
         type = typedef.declaration.type
         out.puts "// EncodeTo encodes this value using the Encoder."
-        if results_in_go_array(type) ||
-            (type.is_a?(AST::Identifier) && type.sub_type == :simple && type.resolved_type.is_a?(AST::Definitions::Typedef) && results_in_go_array(type.resolved_type.declaration.type))
+        if is_fixed_array_type(type) ||
+            (type.is_a?(AST::Identifier) && type.sub_type == :simple && type.resolved_type.is_a?(AST::Definitions::Typedef) && is_fixed_array_type(type.resolved_type.declaration.type))
           # Implement EncodeTo by pointer in for Go array types
           # otherwise (if called by value), Go will make a heap allocation
           # for every by-value call since the copy required by the call
@@ -470,7 +470,7 @@ module Xdrgen
             end
             if self_encode
               newvar = "#{name type}(#{var})"
-              if type.resolved_type.is_a?(AST::Definitions::Typedef) && results_in_go_array(type.resolved_type.declaration.type)
+              if type.resolved_type.is_a?(AST::Definitions::Typedef) && is_fixed_array_type(type.resolved_type.declaration.type)
                 # Go array types implement EncodeTo by pointer
                 if type.is_a?(AST::Identifier)
                   # we are already calling by pointer, so we just need to cast
