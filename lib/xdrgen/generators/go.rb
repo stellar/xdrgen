@@ -410,7 +410,7 @@ module Xdrgen
         out.puts "// EncodeTo encodes this value using the Encoder."
         if is_fixed_array_type(type) ||
             (type.is_a?(AST::Identifier) && type.sub_type == :simple && type.resolved_type.is_a?(AST::Definitions::Typedef) && is_fixed_array_type(type.resolved_type.declaration.type))
-          # Implement EncodeTo by pointer in for Go array types
+          # Implement EncodeTo by pointer for Go array types
           # otherwise (if called by value), Go will make a heap allocation
           # for every by-value call since the copy required by the call
           # tends to escape the stack due to the large array sizes.
