@@ -19,7 +19,7 @@ import (
 
 // XdrFilesSHA256 is the SHA256 hashes of source files.
 var XdrFilesSHA256 = map[string]string{
-  "spec/fixtures/generator/test.x": "d29a98a6a3b9bf533a3e6712d928e0bed655e0f462ac4dae810c65d52ca9af41"
+  "spec/fixtures/generator/test.x": "d29a98a6a3b9bf533a3e6712d928e0bed655e0f462ac4dae810c65d52ca9af41",
 }
 
 type xdrType interface {
@@ -473,7 +473,7 @@ func (e Hashes2) XDRMaxSize() int {
   return 12
 }
 // EncodeTo encodes this value using the Encoder.
-func (s *Hashes2) EncodeTo(e *xdr.Encoder) error {
+func (s Hashes2) EncodeTo(e *xdr.Encoder) error {
   var err error
 if _, err = e.EncodeUint(uint32(len(s))); err != nil {
   return err
@@ -547,7 +547,7 @@ var _ xdrType = (*Hashes2)(nil)
 //
 type Hashes3 []Hash
 // EncodeTo encodes this value using the Encoder.
-func (s *Hashes3) EncodeTo(e *xdr.Encoder) error {
+func (s Hashes3) EncodeTo(e *xdr.Encoder) error {
   var err error
 if _, err = e.EncodeUint(uint32(len(s))); err != nil {
   return err
