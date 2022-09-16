@@ -5,7 +5,7 @@
 
 /// `XDR_FILES_SHA256` is a list of pairs of source files and their SHA256 hashes.
 pub const XDR_FILES_SHA256: [(&str, &str); 1] = [
-  ("spec/fixtures/generator/union.x", "c251258d967223b341ebcf2d5bb0718e9a039b46232cb743865d9acd0c4bbe41")
+  ("spec/fixtures/generator/union.x", "d6a5a0e0ce740ee4d7de5ef7a17ab255dc1a32596287124b65e147450a6fd6ce")
 ];
 
 use core::{array::TryFromSliceError, fmt, fmt::Debug, marker::Sized, ops::Deref, slice};

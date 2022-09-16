@@ -18,7 +18,7 @@ module Xdrgen
     end
 
     def relative_source_path_sha256_hashes
-      relative_source_paths.map { |p| [p, Digest::SHA256.file(p).hexdigest] }.to_h
+      relative_source_paths.map { |p| [p, Digest::SHA256.hexdigest(File.read(p).gsub(/[[:space:]]/,''))] }.to_h
     end
 
     def open(child_path)

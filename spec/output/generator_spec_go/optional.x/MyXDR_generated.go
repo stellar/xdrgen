@@ -19,7 +19,7 @@ import (
 
 // XdrFilesSHA256 is the SHA256 hashes of source files.
 var XdrFilesSHA256 = map[string]string{
-  "spec/fixtures/generator/optional.x": "3241e832fcf00bca4315ecb6c259621dafb0e302a63a993f5504b0b5cebb6bd7",
+  "spec/fixtures/generator/optional.x": "f2c1e2609316c93e4d866b0aca1d72b445d3dc9c06172d327e551401adc0791a",
 }
 
 type xdrType interface {
