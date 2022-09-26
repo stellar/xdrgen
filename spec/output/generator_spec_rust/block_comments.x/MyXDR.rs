@@ -1203,6 +1203,7 @@ impl Type {
         Ok(t)
     }
 
+    #[cfg(feature = "alloc")]
     #[must_use]
     #[allow(clippy::too_many_lines)]
     pub fn value(&self) -> &dyn core::any::Any {
