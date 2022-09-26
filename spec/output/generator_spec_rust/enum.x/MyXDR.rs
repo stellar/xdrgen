@@ -1484,10 +1484,9 @@ TypeVariant::Color2 => Ok(Self::Color2(Box::new(Color2::read_xdr(r)?))),
                 Ok(t)
             }
 
-            #[cfg(feature = "std")]
             #[must_use]
             #[allow(clippy::too_many_lines)]
-            pub fn value(&self) -> &dyn std::any::Any {
+            pub fn value(&self) -> &dyn core::any::Any {
                 match self {
                     Self::MessageType(ref v) => v.as_ref(),
 Self::Color(ref v) => v.as_ref(),

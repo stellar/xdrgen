@@ -1133,10 +1133,9 @@ TypeVariant::TestArray2 => Ok(Self::TestArray2(Box::new(TestArray2::read_xdr(r)?
                 Ok(t)
             }
 
-            #[cfg(feature = "std")]
             #[must_use]
             #[allow(clippy::too_many_lines)]
-            pub fn value(&self) -> &dyn std::any::Any {
+            pub fn value(&self) -> &dyn core::any::Any {
                 match self {
                     Self::TestArray(ref v) => v.as_ref(),
 Self::TestArray2(ref v) => v.as_ref(),

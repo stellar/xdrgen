@@ -1412,10 +1412,9 @@ TypeVariant::MyUnionTwo => Ok(Self::MyUnionTwo(Box::new(MyUnionTwo::read_xdr(r)?
                 Ok(t)
             }
 
-            #[cfg(feature = "std")]
             #[must_use]
             #[allow(clippy::too_many_lines)]
-            pub fn value(&self) -> &dyn std::any::Any {
+            pub fn value(&self) -> &dyn core::any::Any {
                 match self {
                     Self::UnionKey(ref v) => v.as_ref(),
 Self::Foo(ref v) => v.as_ref(),

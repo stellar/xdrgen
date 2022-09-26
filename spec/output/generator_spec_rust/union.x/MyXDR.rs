@@ -1486,10 +1486,9 @@ TypeVariant::IntUnion2 => Ok(Self::IntUnion2(Box::new(IntUnion2::read_xdr(r)?)))
                 Ok(t)
             }
 
-            #[cfg(feature = "std")]
             #[must_use]
             #[allow(clippy::too_many_lines)]
-            pub fn value(&self) -> &dyn std::any::Any {
+            pub fn value(&self) -> &dyn core::any::Any {
                 match self {
                     Self::SError(ref v) => v.as_ref(),
 Self::Multi(ref v) => v.as_ref(),
