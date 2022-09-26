@@ -151,10 +151,9 @@ module Xdrgen
                 Ok(t)
             }
 
-            #[cfg(feature = "std")]
             #[must_use]
             #[allow(clippy::too_many_lines)]
-            pub fn value(&self) -> &dyn std::any::Any {
+            pub fn value(&self) -> &dyn core::any::Any {
                 match self {
                     #{types.map { |t| "Self::#{t}(ref v) => v.as_ref()," }.join("\n")}
                 }
