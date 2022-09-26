@@ -1410,3 +1410,147 @@ impl WriteXdr for IntUnion2 {
         self.0.write_xdr(w)
     }
 }
+
+        #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+        #[cfg_attr(
+          all(feature = "serde", feature = "alloc"),
+          derive(serde::Serialize, serde::Deserialize),
+          serde(rename_all = "camelCase")
+        )]
+        pub enum TypeVariant {
+            SError,
+Multi,
+UnionKey,
+MyUnion,
+IntUnion,
+IntUnion2,
+        }
+
+        impl core::str::FromStr for TypeVariant {
+            type Err = Error;
+            #[allow(clippy::too_many_lines)]
+            fn from_str(s: &str) -> Result<Self> {
+                match s {
+                    "SError" => Ok(Self::SError),
+"Multi" => Ok(Self::Multi),
+"UnionKey" => Ok(Self::UnionKey),
+"MyUnion" => Ok(Self::MyUnion),
+"IntUnion" => Ok(Self::IntUnion),
+"IntUnion2" => Ok(Self::IntUnion2),
+                    _ => Err(Error::Invalid),
+                }
+            }
+        }
+
+        #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+        #[cfg_attr(
+          all(feature = "serde", feature = "alloc"),
+          derive(serde::Serialize, serde::Deserialize),
+          serde(rename_all = "camelCase")
+        )]
+        pub enum Type {
+            SError(Box<SError>),
+Multi(Box<Multi>),
+UnionKey(Box<UnionKey>),
+MyUnion(Box<MyUnion>),
+IntUnion(Box<IntUnion>),
+IntUnion2(Box<IntUnion2>),
+        }
+
+        impl Type {
+            #[cfg(feature = "std")]
+            #[allow(clippy::too_many_lines)]
+            pub fn read_xdr(v: TypeVariant, r: &mut impl Read) -> Result<Self> {
+                match v {
+                    TypeVariant::SError => Ok(Self::SError(Box::new(SError::read_xdr(r)?))),
+TypeVariant::Multi => Ok(Self::Multi(Box::new(Multi::read_xdr(r)?))),
+TypeVariant::UnionKey => Ok(Self::UnionKey(Box::new(UnionKey::read_xdr(r)?))),
+TypeVariant::MyUnion => Ok(Self::MyUnion(Box::new(MyUnion::read_xdr(r)?))),
+TypeVariant::IntUnion => Ok(Self::IntUnion(Box::new(IntUnion::read_xdr(r)?))),
+TypeVariant::IntUnion2 => Ok(Self::IntUnion2(Box::new(IntUnion2::read_xdr(r)?))),
+                }
+            }
+
+            #[cfg(feature = "std")]
+            pub fn from_xdr<B: AsRef<[u8]>>(v: TypeVariant, bytes: B) -> Result<Self> {
+                let mut cursor = Cursor::new(bytes.as_ref());
+                let t = Self::read_xdr(v, &mut cursor)?;
+                Ok(t)
+            }
+
+            #[cfg(feature = "base64")]
+            pub fn from_xdr_base64(v: TypeVariant, b64: String) -> Result<Self> {
+                let mut b64_reader = Cursor::new(b64);
+                let mut dec = base64::read::DecoderReader::new(&mut b64_reader, base64::STANDARD);
+                let t = Self::read_xdr(v, &mut dec)?;
+                Ok(t)
+            }
+
+            #[cfg(feature = "std")]
+            #[must_use]
+            #[allow(clippy::too_many_lines)]
+            pub fn value(&self) -> &dyn std::any::Any {
+                match self {
+                    Self::SError(ref v) => v.as_ref(),
+Self::Multi(ref v) => v.as_ref(),
+Self::UnionKey(ref v) => v.as_ref(),
+Self::MyUnion(ref v) => v.as_ref(),
+Self::IntUnion(ref v) => v.as_ref(),
+Self::IntUnion2(ref v) => v.as_ref(),
+                }
+            }
+
+            #[must_use]
+            #[allow(clippy::too_many_lines)]
+            pub const fn name(&self) -> &'static str {
+                match self {
+                    Self::SError(_) => "SError",
+Self::Multi(_) => "Multi",
+Self::UnionKey(_) => "UnionKey",
+Self::MyUnion(_) => "MyUnion",
+Self::IntUnion(_) => "IntUnion",
+Self::IntUnion2(_) => "IntUnion2",
+                }
+            }
+
+            #[must_use]
+            #[allow(clippy::too_many_lines)]
+            pub const fn variants() -> [TypeVariant; 6] {
+                const VARIANTS: [TypeVariant; 6] = [
+                    TypeVariant::SError,
+TypeVariant::Multi,
+TypeVariant::UnionKey,
+TypeVariant::MyUnion,
+TypeVariant::IntUnion,
+TypeVariant::IntUnion2,
+                ];
+                VARIANTS
+            }
+
+            #[must_use]
+            #[allow(clippy::too_many_lines)]
+            pub const fn variant(&self) -> TypeVariant {
+                match self {
+                    Self::SError(_) => TypeVariant::SError,
+Self::Multi(_) => TypeVariant::Multi,
+Self::UnionKey(_) => TypeVariant::UnionKey,
+Self::MyUnion(_) => TypeVariant::MyUnion,
+Self::IntUnion(_) => TypeVariant::IntUnion,
+Self::IntUnion2(_) => TypeVariant::IntUnion2,
+                }
+            }
+        }
+
+        impl Name for Type {
+            #[must_use]
+            fn name(&self) -> &'static str {
+                Self::name(self)
+            }
+        }
+
+        impl Variants<TypeVariant> for Type {
+            fn variants() -> slice::Iter<'static, TypeVariant> {
+                const VARIANTS: [TypeVariant; 6] = Type::variants();
+                VARIANTS.iter()
+            }
+        }

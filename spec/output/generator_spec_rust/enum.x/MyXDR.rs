@@ -1420,3 +1420,123 @@ Color2::Blue2,
                 i.write_xdr(w)
             }
         }
+
+        #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+        #[cfg_attr(
+          all(feature = "serde", feature = "alloc"),
+          derive(serde::Serialize, serde::Deserialize),
+          serde(rename_all = "camelCase")
+        )]
+        pub enum TypeVariant {
+            MessageType,
+Color,
+Color2,
+        }
+
+        impl core::str::FromStr for TypeVariant {
+            type Err = Error;
+            #[allow(clippy::too_many_lines)]
+            fn from_str(s: &str) -> Result<Self> {
+                match s {
+                    "MessageType" => Ok(Self::MessageType),
+"Color" => Ok(Self::Color),
+"Color2" => Ok(Self::Color2),
+                    _ => Err(Error::Invalid),
+                }
+            }
+        }
+
+        #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+        #[cfg_attr(
+          all(feature = "serde", feature = "alloc"),
+          derive(serde::Serialize, serde::Deserialize),
+          serde(rename_all = "camelCase")
+        )]
+        pub enum Type {
+            MessageType(Box<MessageType>),
+Color(Box<Color>),
+Color2(Box<Color2>),
+        }
+
+        impl Type {
+            #[cfg(feature = "std")]
+            #[allow(clippy::too_many_lines)]
+            pub fn read_xdr(v: TypeVariant, r: &mut impl Read) -> Result<Self> {
+                match v {
+                    TypeVariant::MessageType => Ok(Self::MessageType(Box::new(MessageType::read_xdr(r)?))),
+TypeVariant::Color => Ok(Self::Color(Box::new(Color::read_xdr(r)?))),
+TypeVariant::Color2 => Ok(Self::Color2(Box::new(Color2::read_xdr(r)?))),
+                }
+            }
+
+            #[cfg(feature = "std")]
+            pub fn from_xdr<B: AsRef<[u8]>>(v: TypeVariant, bytes: B) -> Result<Self> {
+                let mut cursor = Cursor::new(bytes.as_ref());
+                let t = Self::read_xdr(v, &mut cursor)?;
+                Ok(t)
+            }
+
+            #[cfg(feature = "base64")]
+            pub fn from_xdr_base64(v: TypeVariant, b64: String) -> Result<Self> {
+                let mut b64_reader = Cursor::new(b64);
+                let mut dec = base64::read::DecoderReader::new(&mut b64_reader, base64::STANDARD);
+                let t = Self::read_xdr(v, &mut dec)?;
+                Ok(t)
+            }
+
+            #[cfg(feature = "std")]
+            #[must_use]
+            #[allow(clippy::too_many_lines)]
+            pub fn value(&self) -> &dyn std::any::Any {
+                match self {
+                    Self::MessageType(ref v) => v.as_ref(),
+Self::Color(ref v) => v.as_ref(),
+Self::Color2(ref v) => v.as_ref(),
+                }
+            }
+
+            #[must_use]
+            #[allow(clippy::too_many_lines)]
+            pub const fn name(&self) -> &'static str {
+                match self {
+                    Self::MessageType(_) => "MessageType",
+Self::Color(_) => "Color",
+Self::Color2(_) => "Color2",
+                }
+            }
+
+            #[must_use]
+            #[allow(clippy::too_many_lines)]
+            pub const fn variants() -> [TypeVariant; 3] {
+                const VARIANTS: [TypeVariant; 3] = [
+                    TypeVariant::MessageType,
+TypeVariant::Color,
+TypeVariant::Color2,
+                ];
+                VARIANTS
+            }
+
+            #[must_use]
+            #[allow(clippy::too_many_lines)]
+            pub const fn variant(&self) -> TypeVariant {
+                match self {
+                    Self::MessageType(_) => TypeVariant::MessageType,
+Self::Color(_) => TypeVariant::Color,
+Self::Color2(_) => TypeVariant::Color2,
+                }
+            }
+        }
+
+        impl Name for Type {
+            #[must_use]
+            fn name(&self) -> &'static str {
+                Self::name(self)
+            }
+        }
+
+        impl Variants<TypeVariant> for Type {
+            fn variants() -> slice::Iter<'static, TypeVariant> {
+                const VARIANTS: [TypeVariant; 3] = Type::variants();
+                VARIANTS.iter()
+            }
+        }

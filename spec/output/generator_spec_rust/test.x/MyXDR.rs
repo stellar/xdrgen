@@ -2317,3 +2317,283 @@ self.nested_union.write_xdr(w)?;
                 Ok(())
             }
         }
+
+        #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+        #[cfg_attr(
+          all(feature = "serde", feature = "alloc"),
+          derive(serde::Serialize, serde::Deserialize),
+          serde(rename_all = "camelCase")
+        )]
+        pub enum TypeVariant {
+            Uint512,
+Uint513,
+Uint514,
+Str,
+Str2,
+Hash,
+Hashes1,
+Hashes2,
+Hashes3,
+OptHash1,
+OptHash2,
+Int1,
+Int2,
+Int3,
+Int4,
+MyStruct,
+LotsOfMyStructs,
+HasStuff,
+Color,
+Nester,
+NesterNestedEnum,
+NesterNestedStruct,
+NesterNestedUnion,
+        }
+
+        impl core::str::FromStr for TypeVariant {
+            type Err = Error;
+            #[allow(clippy::too_many_lines)]
+            fn from_str(s: &str) -> Result<Self> {
+                match s {
+                    "Uint512" => Ok(Self::Uint512),
+"Uint513" => Ok(Self::Uint513),
+"Uint514" => Ok(Self::Uint514),
+"Str" => Ok(Self::Str),
+"Str2" => Ok(Self::Str2),
+"Hash" => Ok(Self::Hash),
+"Hashes1" => Ok(Self::Hashes1),
+"Hashes2" => Ok(Self::Hashes2),
+"Hashes3" => Ok(Self::Hashes3),
+"OptHash1" => Ok(Self::OptHash1),
+"OptHash2" => Ok(Self::OptHash2),
+"Int1" => Ok(Self::Int1),
+"Int2" => Ok(Self::Int2),
+"Int3" => Ok(Self::Int3),
+"Int4" => Ok(Self::Int4),
+"MyStruct" => Ok(Self::MyStruct),
+"LotsOfMyStructs" => Ok(Self::LotsOfMyStructs),
+"HasStuff" => Ok(Self::HasStuff),
+"Color" => Ok(Self::Color),
+"Nester" => Ok(Self::Nester),
+"NesterNestedEnum" => Ok(Self::NesterNestedEnum),
+"NesterNestedStruct" => Ok(Self::NesterNestedStruct),
+"NesterNestedUnion" => Ok(Self::NesterNestedUnion),
+                    _ => Err(Error::Invalid),
+                }
+            }
+        }
+
+        #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+        #[cfg_attr(
+          all(feature = "serde", feature = "alloc"),
+          derive(serde::Serialize, serde::Deserialize),
+          serde(rename_all = "camelCase")
+        )]
+        pub enum Type {
+            Uint512(Box<Uint512>),
+Uint513(Box<Uint513>),
+Uint514(Box<Uint514>),
+Str(Box<Str>),
+Str2(Box<Str2>),
+Hash(Box<Hash>),
+Hashes1(Box<Hashes1>),
+Hashes2(Box<Hashes2>),
+Hashes3(Box<Hashes3>),
+OptHash1(Box<OptHash1>),
+OptHash2(Box<OptHash2>),
+Int1(Box<Int1>),
+Int2(Box<Int2>),
+Int3(Box<Int3>),
+Int4(Box<Int4>),
+MyStruct(Box<MyStruct>),
+LotsOfMyStructs(Box<LotsOfMyStructs>),
+HasStuff(Box<HasStuff>),
+Color(Box<Color>),
+Nester(Box<Nester>),
+NesterNestedEnum(Box<NesterNestedEnum>),
+NesterNestedStruct(Box<NesterNestedStruct>),
+NesterNestedUnion(Box<NesterNestedUnion>),
+        }
+
+        impl Type {
+            #[cfg(feature = "std")]
+            #[allow(clippy::too_many_lines)]
+            pub fn read_xdr(v: TypeVariant, r: &mut impl Read) -> Result<Self> {
+                match v {
+                    TypeVariant::Uint512 => Ok(Self::Uint512(Box::new(Uint512::read_xdr(r)?))),
+TypeVariant::Uint513 => Ok(Self::Uint513(Box::new(Uint513::read_xdr(r)?))),
+TypeVariant::Uint514 => Ok(Self::Uint514(Box::new(Uint514::read_xdr(r)?))),
+TypeVariant::Str => Ok(Self::Str(Box::new(Str::read_xdr(r)?))),
+TypeVariant::Str2 => Ok(Self::Str2(Box::new(Str2::read_xdr(r)?))),
+TypeVariant::Hash => Ok(Self::Hash(Box::new(Hash::read_xdr(r)?))),
+TypeVariant::Hashes1 => Ok(Self::Hashes1(Box::new(Hashes1::read_xdr(r)?))),
+TypeVariant::Hashes2 => Ok(Self::Hashes2(Box::new(Hashes2::read_xdr(r)?))),
+TypeVariant::Hashes3 => Ok(Self::Hashes3(Box::new(Hashes3::read_xdr(r)?))),
+TypeVariant::OptHash1 => Ok(Self::OptHash1(Box::new(OptHash1::read_xdr(r)?))),
+TypeVariant::OptHash2 => Ok(Self::OptHash2(Box::new(OptHash2::read_xdr(r)?))),
+TypeVariant::Int1 => Ok(Self::Int1(Box::new(Int1::read_xdr(r)?))),
+TypeVariant::Int2 => Ok(Self::Int2(Box::new(Int2::read_xdr(r)?))),
+TypeVariant::Int3 => Ok(Self::Int3(Box::new(Int3::read_xdr(r)?))),
+TypeVariant::Int4 => Ok(Self::Int4(Box::new(Int4::read_xdr(r)?))),
+TypeVariant::MyStruct => Ok(Self::MyStruct(Box::new(MyStruct::read_xdr(r)?))),
+TypeVariant::LotsOfMyStructs => Ok(Self::LotsOfMyStructs(Box::new(LotsOfMyStructs::read_xdr(r)?))),
+TypeVariant::HasStuff => Ok(Self::HasStuff(Box::new(HasStuff::read_xdr(r)?))),
+TypeVariant::Color => Ok(Self::Color(Box::new(Color::read_xdr(r)?))),
+TypeVariant::Nester => Ok(Self::Nester(Box::new(Nester::read_xdr(r)?))),
+TypeVariant::NesterNestedEnum => Ok(Self::NesterNestedEnum(Box::new(NesterNestedEnum::read_xdr(r)?))),
+TypeVariant::NesterNestedStruct => Ok(Self::NesterNestedStruct(Box::new(NesterNestedStruct::read_xdr(r)?))),
+TypeVariant::NesterNestedUnion => Ok(Self::NesterNestedUnion(Box::new(NesterNestedUnion::read_xdr(r)?))),
+                }
+            }
+
+            #[cfg(feature = "std")]
+            pub fn from_xdr<B: AsRef<[u8]>>(v: TypeVariant, bytes: B) -> Result<Self> {
+                let mut cursor = Cursor::new(bytes.as_ref());
+                let t = Self::read_xdr(v, &mut cursor)?;
+                Ok(t)
+            }
+
+            #[cfg(feature = "base64")]
+            pub fn from_xdr_base64(v: TypeVariant, b64: String) -> Result<Self> {
+                let mut b64_reader = Cursor::new(b64);
+                let mut dec = base64::read::DecoderReader::new(&mut b64_reader, base64::STANDARD);
+                let t = Self::read_xdr(v, &mut dec)?;
+                Ok(t)
+            }
+
+            #[cfg(feature = "std")]
+            #[must_use]
+            #[allow(clippy::too_many_lines)]
+            pub fn value(&self) -> &dyn std::any::Any {
+                match self {
+                    Self::Uint512(ref v) => v.as_ref(),
+Self::Uint513(ref v) => v.as_ref(),
+Self::Uint514(ref v) => v.as_ref(),
+Self::Str(ref v) => v.as_ref(),
+Self::Str2(ref v) => v.as_ref(),
+Self::Hash(ref v) => v.as_ref(),
+Self::Hashes1(ref v) => v.as_ref(),
+Self::Hashes2(ref v) => v.as_ref(),
+Self::Hashes3(ref v) => v.as_ref(),
+Self::OptHash1(ref v) => v.as_ref(),
+Self::OptHash2(ref v) => v.as_ref(),
+Self::Int1(ref v) => v.as_ref(),
+Self::Int2(ref v) => v.as_ref(),
+Self::Int3(ref v) => v.as_ref(),
+Self::Int4(ref v) => v.as_ref(),
+Self::MyStruct(ref v) => v.as_ref(),
+Self::LotsOfMyStructs(ref v) => v.as_ref(),
+Self::HasStuff(ref v) => v.as_ref(),
+Self::Color(ref v) => v.as_ref(),
+Self::Nester(ref v) => v.as_ref(),
+Self::NesterNestedEnum(ref v) => v.as_ref(),
+Self::NesterNestedStruct(ref v) => v.as_ref(),
+Self::NesterNestedUnion(ref v) => v.as_ref(),
+                }
+            }
+
+            #[must_use]
+            #[allow(clippy::too_many_lines)]
+            pub const fn name(&self) -> &'static str {
+                match self {
+                    Self::Uint512(_) => "Uint512",
+Self::Uint513(_) => "Uint513",
+Self::Uint514(_) => "Uint514",
+Self::Str(_) => "Str",
+Self::Str2(_) => "Str2",
+Self::Hash(_) => "Hash",
+Self::Hashes1(_) => "Hashes1",
+Self::Hashes2(_) => "Hashes2",
+Self::Hashes3(_) => "Hashes3",
+Self::OptHash1(_) => "OptHash1",
+Self::OptHash2(_) => "OptHash2",
+Self::Int1(_) => "Int1",
+Self::Int2(_) => "Int2",
+Self::Int3(_) => "Int3",
+Self::Int4(_) => "Int4",
+Self::MyStruct(_) => "MyStruct",
+Self::LotsOfMyStructs(_) => "LotsOfMyStructs",
+Self::HasStuff(_) => "HasStuff",
+Self::Color(_) => "Color",
+Self::Nester(_) => "Nester",
+Self::NesterNestedEnum(_) => "NesterNestedEnum",
+Self::NesterNestedStruct(_) => "NesterNestedStruct",
+Self::NesterNestedUnion(_) => "NesterNestedUnion",
+                }
+            }
+
+            #[must_use]
+            #[allow(clippy::too_many_lines)]
+            pub const fn variants() -> [TypeVariant; 23] {
+                const VARIANTS: [TypeVariant; 23] = [
+                    TypeVariant::Uint512,
+TypeVariant::Uint513,
+TypeVariant::Uint514,
+TypeVariant::Str,
+TypeVariant::Str2,
+TypeVariant::Hash,
+TypeVariant::Hashes1,
+TypeVariant::Hashes2,
+TypeVariant::Hashes3,
+TypeVariant::OptHash1,
+TypeVariant::OptHash2,
+TypeVariant::Int1,
+TypeVariant::Int2,
+TypeVariant::Int3,
+TypeVariant::Int4,
+TypeVariant::MyStruct,
+TypeVariant::LotsOfMyStructs,
+TypeVariant::HasStuff,
+TypeVariant::Color,
+TypeVariant::Nester,
+TypeVariant::NesterNestedEnum,
+TypeVariant::NesterNestedStruct,
+TypeVariant::NesterNestedUnion,
+                ];
+                VARIANTS
+            }
+
+            #[must_use]
+            #[allow(clippy::too_many_lines)]
+            pub const fn variant(&self) -> TypeVariant {
+                match self {
+                    Self::Uint512(_) => TypeVariant::Uint512,
+Self::Uint513(_) => TypeVariant::Uint513,
+Self::Uint514(_) => TypeVariant::Uint514,
+Self::Str(_) => TypeVariant::Str,
+Self::Str2(_) => TypeVariant::Str2,
+Self::Hash(_) => TypeVariant::Hash,
+Self::Hashes1(_) => TypeVariant::Hashes1,
+Self::Hashes2(_) => TypeVariant::Hashes2,
+Self::Hashes3(_) => TypeVariant::Hashes3,
+Self::OptHash1(_) => TypeVariant::OptHash1,
+Self::OptHash2(_) => TypeVariant::OptHash2,
+Self::Int1(_) => TypeVariant::Int1,
+Self::Int2(_) => TypeVariant::Int2,
+Self::Int3(_) => TypeVariant::Int3,
+Self::Int4(_) => TypeVariant::Int4,
+Self::MyStruct(_) => TypeVariant::MyStruct,
+Self::LotsOfMyStructs(_) => TypeVariant::LotsOfMyStructs,
+Self::HasStuff(_) => TypeVariant::HasStuff,
+Self::Color(_) => TypeVariant::Color,
+Self::Nester(_) => TypeVariant::Nester,
+Self::NesterNestedEnum(_) => TypeVariant::NesterNestedEnum,
+Self::NesterNestedStruct(_) => TypeVariant::NesterNestedStruct,
+Self::NesterNestedUnion(_) => TypeVariant::NesterNestedUnion,
+                }
+            }
+        }
+
+        impl Name for Type {
+            #[must_use]
+            fn name(&self) -> &'static str {
+                Self::name(self)
+            }
+        }
+
+        impl Variants<TypeVariant> for Type {
+            fn variants() -> slice::Iter<'static, TypeVariant> {
+                const VARIANTS: [TypeVariant; 23] = Type::variants();
+                VARIANTS.iter()
+            }
+        }
