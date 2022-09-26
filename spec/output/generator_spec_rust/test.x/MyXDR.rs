@@ -2461,10 +2461,9 @@ TypeVariant::NesterNestedUnion => Ok(Self::NesterNestedUnion(Box::new(NesterNest
                 Ok(t)
             }
 
-            #[cfg(feature = "std")]
             #[must_use]
             #[allow(clippy::too_many_lines)]
-            pub fn value(&self) -> &dyn std::any::Any {
+            pub fn value(&self) -> &dyn core::any::Any {
                 match self {
                     Self::Uint512(ref v) => v.as_ref(),
 Self::Uint513(ref v) => v.as_ref(),

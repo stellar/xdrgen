@@ -1160,10 +1160,9 @@ TypeVariant::HasOptions => Ok(Self::HasOptions(Box::new(HasOptions::read_xdr(r)?
                 Ok(t)
             }
 
-            #[cfg(feature = "std")]
             #[must_use]
             #[allow(clippy::too_many_lines)]
-            pub fn value(&self) -> &dyn std::any::Any {
+            pub fn value(&self) -> &dyn core::any::Any {
                 match self {
                     Self::Arr(ref v) => v.as_ref(),
 Self::HasOptions(ref v) => v.as_ref(),
