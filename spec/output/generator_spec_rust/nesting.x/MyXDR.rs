@@ -1340,3 +1340,139 @@ Self::Offer => ().write_xdr(w)?,
                 Ok(())
             }
         }
+
+        #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+        #[cfg_attr(
+          all(feature = "serde", feature = "alloc"),
+          derive(serde::Serialize, serde::Deserialize),
+          serde(rename_all = "camelCase")
+        )]
+        pub enum TypeVariant {
+            UnionKey,
+Foo,
+MyUnion,
+MyUnionOne,
+MyUnionTwo,
+        }
+
+        impl core::str::FromStr for TypeVariant {
+            type Err = Error;
+            #[allow(clippy::too_many_lines)]
+            fn from_str(s: &str) -> Result<Self> {
+                match s {
+                    "UnionKey" => Ok(Self::UnionKey),
+"Foo" => Ok(Self::Foo),
+"MyUnion" => Ok(Self::MyUnion),
+"MyUnionOne" => Ok(Self::MyUnionOne),
+"MyUnionTwo" => Ok(Self::MyUnionTwo),
+                    _ => Err(Error::Invalid),
+                }
+            }
+        }
+
+        #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+        #[cfg_attr(
+          all(feature = "serde", feature = "alloc"),
+          derive(serde::Serialize, serde::Deserialize),
+          serde(rename_all = "camelCase")
+        )]
+        pub enum Type {
+            UnionKey(Box<UnionKey>),
+Foo(Box<Foo>),
+MyUnion(Box<MyUnion>),
+MyUnionOne(Box<MyUnionOne>),
+MyUnionTwo(Box<MyUnionTwo>),
+        }
+
+        impl Type {
+            #[cfg(feature = "std")]
+            #[allow(clippy::too_many_lines)]
+            pub fn read_xdr(v: TypeVariant, r: &mut impl Read) -> Result<Self> {
+                match v {
+                    TypeVariant::UnionKey => Ok(Self::UnionKey(Box::new(UnionKey::read_xdr(r)?))),
+TypeVariant::Foo => Ok(Self::Foo(Box::new(Foo::read_xdr(r)?))),
+TypeVariant::MyUnion => Ok(Self::MyUnion(Box::new(MyUnion::read_xdr(r)?))),
+TypeVariant::MyUnionOne => Ok(Self::MyUnionOne(Box::new(MyUnionOne::read_xdr(r)?))),
+TypeVariant::MyUnionTwo => Ok(Self::MyUnionTwo(Box::new(MyUnionTwo::read_xdr(r)?))),
+                }
+            }
+
+            #[cfg(feature = "std")]
+            pub fn from_xdr<B: AsRef<[u8]>>(v: TypeVariant, bytes: B) -> Result<Self> {
+                let mut cursor = Cursor::new(bytes.as_ref());
+                let t = Self::read_xdr(v, &mut cursor)?;
+                Ok(t)
+            }
+
+            #[cfg(feature = "base64")]
+            pub fn from_xdr_base64(v: TypeVariant, b64: String) -> Result<Self> {
+                let mut b64_reader = Cursor::new(b64);
+                let mut dec = base64::read::DecoderReader::new(&mut b64_reader, base64::STANDARD);
+                let t = Self::read_xdr(v, &mut dec)?;
+                Ok(t)
+            }
+
+            #[cfg(feature = "std")]
+            #[must_use]
+            #[allow(clippy::too_many_lines)]
+            pub fn value(&self) -> &dyn std::any::Any {
+                match self {
+                    Self::UnionKey(ref v) => v.as_ref(),
+Self::Foo(ref v) => v.as_ref(),
+Self::MyUnion(ref v) => v.as_ref(),
+Self::MyUnionOne(ref v) => v.as_ref(),
+Self::MyUnionTwo(ref v) => v.as_ref(),
+                }
+            }
+
+            #[must_use]
+            #[allow(clippy::too_many_lines)]
+            pub const fn name(&self) -> &'static str {
+                match self {
+                    Self::UnionKey(_) => "UnionKey",
+Self::Foo(_) => "Foo",
+Self::MyUnion(_) => "MyUnion",
+Self::MyUnionOne(_) => "MyUnionOne",
+Self::MyUnionTwo(_) => "MyUnionTwo",
+                }
+            }
+
+            #[must_use]
+            #[allow(clippy::too_many_lines)]
+            pub const fn variants() -> [TypeVariant; 5] {
+                const VARIANTS: [TypeVariant; 5] = [
+                    TypeVariant::UnionKey,
+TypeVariant::Foo,
+TypeVariant::MyUnion,
+TypeVariant::MyUnionOne,
+TypeVariant::MyUnionTwo,
+                ];
+                VARIANTS
+            }
+
+            #[must_use]
+            #[allow(clippy::too_many_lines)]
+            pub const fn variant(&self) -> TypeVariant {
+                match self {
+                    Self::UnionKey(_) => TypeVariant::UnionKey,
+Self::Foo(_) => TypeVariant::Foo,
+Self::MyUnion(_) => TypeVariant::MyUnion,
+Self::MyUnionOne(_) => TypeVariant::MyUnionOne,
+Self::MyUnionTwo(_) => TypeVariant::MyUnionTwo,
+                }
+            }
+        }
+
+        impl Name for Type {
+            #[must_use]
+            fn name(&self) -> &'static str {
+                Self::name(self)
+            }
+        }
+
+        impl Variants<TypeVariant> for Type {
+            fn variants() -> slice::Iter<'static, TypeVariant> {
+                const VARIANTS: [TypeVariant; 5] = Type::variants();
+                VARIANTS.iter()
+            }
+        }

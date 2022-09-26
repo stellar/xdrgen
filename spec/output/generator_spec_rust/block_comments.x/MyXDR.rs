@@ -1147,3 +1147,107 @@ impl WriteXdr for AccountFlags {
         i.write_xdr(w)
     }
 }
+
+#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[cfg_attr(
+  all(feature = "serde", feature = "alloc"),
+  derive(serde::Serialize, serde::Deserialize),
+  serde(rename_all = "camelCase")
+)]
+pub enum TypeVariant {
+    AccountFlags,
+}
+
+impl core::str::FromStr for TypeVariant {
+    type Err = Error;
+    #[allow(clippy::too_many_lines)]
+    fn from_str(s: &str) -> Result<Self> {
+        match s {
+            "AccountFlags" => Ok(Self::AccountFlags),
+            _ => Err(Error::Invalid),
+        }
+    }
+}
+
+#[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[cfg_attr(
+  all(feature = "serde", feature = "alloc"),
+  derive(serde::Serialize, serde::Deserialize),
+  serde(rename_all = "camelCase")
+)]
+pub enum Type {
+    AccountFlags(Box<AccountFlags>),
+}
+
+impl Type {
+    #[cfg(feature = "std")]
+    #[allow(clippy::too_many_lines)]
+    pub fn read_xdr(v: TypeVariant, r: &mut impl Read) -> Result<Self> {
+        match v {
+            TypeVariant::AccountFlags => Ok(Self::AccountFlags(Box::new(AccountFlags::read_xdr(r)?))),
+        }
+    }
+
+    #[cfg(feature = "std")]
+    pub fn from_xdr<B: AsRef<[u8]>>(v: TypeVariant, bytes: B) -> Result<Self> {
+        let mut cursor = Cursor::new(bytes.as_ref());
+        let t = Self::read_xdr(v, &mut cursor)?;
+        Ok(t)
+    }
+
+    #[cfg(feature = "base64")]
+    pub fn from_xdr_base64(v: TypeVariant, b64: String) -> Result<Self> {
+        let mut b64_reader = Cursor::new(b64);
+        let mut dec = base64::read::DecoderReader::new(&mut b64_reader, base64::STANDARD);
+        let t = Self::read_xdr(v, &mut dec)?;
+        Ok(t)
+    }
+
+    #[cfg(feature = "std")]
+    #[must_use]
+    #[allow(clippy::too_many_lines)]
+    pub fn value(&self) -> &dyn std::any::Any {
+        match self {
+            Self::AccountFlags(ref v) => v.as_ref(),
+        }
+    }
+
+    #[must_use]
+    #[allow(clippy::too_many_lines)]
+    pub const fn name(&self) -> &'static str {
+        match self {
+            Self::AccountFlags(_) => "AccountFlags",
+        }
+    }
+
+    #[must_use]
+    #[allow(clippy::too_many_lines)]
+    pub const fn variants() -> [TypeVariant; 1] {
+        const VARIANTS: [TypeVariant; 1] = [
+            TypeVariant::AccountFlags,
+        ];
+        VARIANTS
+    }
+
+    #[must_use]
+    #[allow(clippy::too_many_lines)]
+    pub const fn variant(&self) -> TypeVariant {
+        match self {
+            Self::AccountFlags(_) => TypeVariant::AccountFlags,
+        }
+    }
+}
+
+impl Name for Type {
+    #[must_use]
+    fn name(&self) -> &'static str {
+        Self::name(self)
+    }
+}
+
+impl Variants<TypeVariant> for Type {
+    fn variants() -> slice::Iter<'static, TypeVariant> {
+        const VARIANTS: [TypeVariant; 1] = Type::variants();
+        VARIANTS.iter()
+    }
+}
