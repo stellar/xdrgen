@@ -1105,6 +1105,35 @@ pub enum MessageType {
 }
 
         impl MessageType {
+            pub const VARIANTS: [MessageType; 14] = [ MessageType::ErrorMsg,
+MessageType::Hello,
+MessageType::DontHave,
+MessageType::GetPeers,
+MessageType::Peers,
+MessageType::GetTxSet,
+MessageType::TxSet,
+MessageType::GetValidations,
+MessageType::Validations,
+MessageType::Transaction,
+MessageType::JsonTransaction,
+MessageType::GetFbaQuorumset,
+MessageType::FbaQuorumset,
+MessageType::FbaMessage, ];
+            pub const VARIANTS_STR: [&'static str; 14] = [ "ErrorMsg",
+"Hello",
+"DontHave",
+"GetPeers",
+"Peers",
+"GetTxSet",
+"TxSet",
+"GetValidations",
+"Validations",
+"Transaction",
+"JsonTransaction",
+"GetFbaQuorumset",
+"FbaQuorumset",
+"FbaMessage", ];
+
             #[must_use]
             pub const fn name(&self) -> &'static str {
                 match self {
@@ -1127,23 +1156,7 @@ Self::FbaMessage => "FbaMessage",
 
             #[must_use]
             pub const fn variants() -> [MessageType; 14] {
-                const VARIANTS: [MessageType; 14] = [
-                    MessageType::ErrorMsg,
-MessageType::Hello,
-MessageType::DontHave,
-MessageType::GetPeers,
-MessageType::Peers,
-MessageType::GetTxSet,
-MessageType::TxSet,
-MessageType::GetValidations,
-MessageType::Validations,
-MessageType::Transaction,
-MessageType::JsonTransaction,
-MessageType::GetFbaQuorumset,
-MessageType::FbaQuorumset,
-MessageType::FbaMessage,
-                ];
-                VARIANTS
+                Self::VARIANTS
             }
         }
 
@@ -1156,8 +1169,7 @@ MessageType::FbaMessage,
 
         impl Variants<MessageType> for MessageType {
             fn variants() -> slice::Iter<'static, MessageType> {
-                const VARIANTS: [MessageType; 14] = MessageType::variants();
-                VARIANTS.iter()
+                Self::VARIANTS.iter()
             }
         }
 
@@ -1239,6 +1251,13 @@ pub enum Color {
 }
 
         impl Color {
+            pub const VARIANTS: [Color; 3] = [ Color::Red,
+Color::Green,
+Color::Blue, ];
+            pub const VARIANTS_STR: [&'static str; 3] = [ "Red",
+"Green",
+"Blue", ];
+
             #[must_use]
             pub const fn name(&self) -> &'static str {
                 match self {
@@ -1250,12 +1269,7 @@ Self::Blue => "Blue",
 
             #[must_use]
             pub const fn variants() -> [Color; 3] {
-                const VARIANTS: [Color; 3] = [
-                    Color::Red,
-Color::Green,
-Color::Blue,
-                ];
-                VARIANTS
+                Self::VARIANTS
             }
         }
 
@@ -1268,8 +1282,7 @@ Color::Blue,
 
         impl Variants<Color> for Color {
             fn variants() -> slice::Iter<'static, Color> {
-                const VARIANTS: [Color; 3] = Color::variants();
-                VARIANTS.iter()
+                Self::VARIANTS.iter()
             }
         }
 
@@ -1340,6 +1353,13 @@ pub enum Color2 {
 }
 
         impl Color2 {
+            pub const VARIANTS: [Color2; 3] = [ Color2::Red2,
+Color2::Green2,
+Color2::Blue2, ];
+            pub const VARIANTS_STR: [&'static str; 3] = [ "Red2",
+"Green2",
+"Blue2", ];
+
             #[must_use]
             pub const fn name(&self) -> &'static str {
                 match self {
@@ -1351,12 +1371,7 @@ Self::Blue2 => "Blue2",
 
             #[must_use]
             pub const fn variants() -> [Color2; 3] {
-                const VARIANTS: [Color2; 3] = [
-                    Color2::Red2,
-Color2::Green2,
-Color2::Blue2,
-                ];
-                VARIANTS
+                Self::VARIANTS
             }
         }
 
@@ -1369,8 +1384,7 @@ Color2::Blue2,
 
         impl Variants<Color2> for Color2 {
             fn variants() -> slice::Iter<'static, Color2> {
-                const VARIANTS: [Color2; 3] = Color2::variants();
-                VARIANTS.iter()
+                Self::VARIANTS.iter()
             }
         }
 
@@ -1433,6 +1447,44 @@ Color,
 Color2,
         }
 
+        impl TypeVariant {
+            pub const VARIANTS: [TypeVariant; 3] = [ TypeVariant::MessageType,
+TypeVariant::Color,
+TypeVariant::Color2, ];
+            pub const VARIANTS_STR: [&'static str; 3] = [ "MessageType",
+"Color",
+"Color2", ];
+
+            #[must_use]
+            #[allow(clippy::too_many_lines)]
+            pub const fn name(&self) -> &'static str {
+                match self {
+                    Self::MessageType => "MessageType",
+Self::Color => "Color",
+Self::Color2 => "Color2",
+                }
+            }
+
+            #[must_use]
+            #[allow(clippy::too_many_lines)]
+            pub const fn variants() -> [TypeVariant; 3] {
+                Self::VARIANTS
+            }
+        }
+
+        impl Name for TypeVariant {
+            #[must_use]
+            fn name(&self) -> &'static str {
+                Self::name(self)
+            }
+        }
+
+        impl Variants<TypeVariant> for TypeVariant {
+            fn variants() -> slice::Iter<'static, TypeVariant> {
+                Self::VARIANTS.iter()
+            }
+        }
+
         impl core::str::FromStr for TypeVariant {
             type Err = Error;
             #[allow(clippy::too_many_lines)]
@@ -1459,6 +1511,13 @@ Color2(Box<Color2>),
         }
 
         impl Type {
+            pub const VARIANTS: [TypeVariant; 3] = [ TypeVariant::MessageType,
+TypeVariant::Color,
+TypeVariant::Color2, ];
+            pub const VARIANTS_STR: [&'static str; 3] = [ "MessageType",
+"Color",
+"Color2", ];
+
             #[cfg(feature = "std")]
             #[allow(clippy::too_many_lines)]
             pub fn read_xdr(v: TypeVariant, r: &mut impl Read) -> Result<Self> {
@@ -1508,12 +1567,7 @@ Self::Color2(_) => "Color2",
             #[must_use]
             #[allow(clippy::too_many_lines)]
             pub const fn variants() -> [TypeVariant; 3] {
-                const VARIANTS: [TypeVariant; 3] = [
-                    TypeVariant::MessageType,
-TypeVariant::Color,
-TypeVariant::Color2,
-                ];
-                VARIANTS
+                Self::VARIANTS
             }
 
             #[must_use]
@@ -1536,7 +1590,6 @@ Self::Color2(_) => TypeVariant::Color2,
 
         impl Variants<TypeVariant> for Type {
             fn variants() -> slice::Iter<'static, TypeVariant> {
-                const VARIANTS: [TypeVariant; 3] = Type::variants();
-                VARIANTS.iter()
+                Self::VARIANTS.iter()
             }
         }

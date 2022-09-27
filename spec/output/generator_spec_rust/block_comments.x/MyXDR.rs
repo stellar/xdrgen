@@ -1073,6 +1073,9 @@ pub enum AccountFlags {
 }
 
 impl AccountFlags {
+    pub const VARIANTS: [AccountFlags; 1] = [ AccountFlags::AuthRequiredFlag, ];
+    pub const VARIANTS_STR: [&'static str; 1] = [ "AuthRequiredFlag", ];
+
     #[must_use]
     pub const fn name(&self) -> &'static str {
         match self {
@@ -1082,10 +1085,7 @@ impl AccountFlags {
 
     #[must_use]
     pub const fn variants() -> [AccountFlags; 1] {
-        const VARIANTS: [AccountFlags; 1] = [
-            AccountFlags::AuthRequiredFlag,
-        ];
-        VARIANTS
+        Self::VARIANTS
     }
 }
 
@@ -1098,8 +1098,7 @@ impl Name for AccountFlags {
 
 impl Variants<AccountFlags> for AccountFlags {
     fn variants() -> slice::Iter<'static, AccountFlags> {
-        const VARIANTS: [AccountFlags; 1] = AccountFlags::variants();
-        VARIANTS.iter()
+        Self::VARIANTS.iter()
     }
 }
 
@@ -1158,6 +1157,38 @@ pub enum TypeVariant {
     AccountFlags,
 }
 
+impl TypeVariant {
+    pub const VARIANTS: [TypeVariant; 1] = [ TypeVariant::AccountFlags, ];
+    pub const VARIANTS_STR: [&'static str; 1] = [ "AccountFlags", ];
+
+    #[must_use]
+    #[allow(clippy::too_many_lines)]
+    pub const fn name(&self) -> &'static str {
+        match self {
+            Self::AccountFlags => "AccountFlags",
+        }
+    }
+
+    #[must_use]
+    #[allow(clippy::too_many_lines)]
+    pub const fn variants() -> [TypeVariant; 1] {
+        Self::VARIANTS
+    }
+}
+
+impl Name for TypeVariant {
+    #[must_use]
+    fn name(&self) -> &'static str {
+        Self::name(self)
+    }
+}
+
+impl Variants<TypeVariant> for TypeVariant {
+    fn variants() -> slice::Iter<'static, TypeVariant> {
+        Self::VARIANTS.iter()
+    }
+}
+
 impl core::str::FromStr for TypeVariant {
     type Err = Error;
     #[allow(clippy::too_many_lines)]
@@ -1180,6 +1211,9 @@ pub enum Type {
 }
 
 impl Type {
+    pub const VARIANTS: [TypeVariant; 1] = [ TypeVariant::AccountFlags, ];
+    pub const VARIANTS_STR: [&'static str; 1] = [ "AccountFlags", ];
+
     #[cfg(feature = "std")]
     #[allow(clippy::too_many_lines)]
     pub fn read_xdr(v: TypeVariant, r: &mut impl Read) -> Result<Self> {
@@ -1223,10 +1257,7 @@ impl Type {
     #[must_use]
     #[allow(clippy::too_many_lines)]
     pub const fn variants() -> [TypeVariant; 1] {
-        const VARIANTS: [TypeVariant; 1] = [
-            TypeVariant::AccountFlags,
-        ];
-        VARIANTS
+        Self::VARIANTS
     }
 
     #[must_use]
@@ -1247,7 +1278,6 @@ impl Name for Type {
 
 impl Variants<TypeVariant> for Type {
     fn variants() -> slice::Iter<'static, TypeVariant> {
-        const VARIANTS: [TypeVariant; 1] = Type::variants();
-        VARIANTS.iter()
+        Self::VARIANTS.iter()
     }
 }
