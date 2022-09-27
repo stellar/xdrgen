@@ -128,6 +128,9 @@ module Xdrgen
         }
 
         impl Type {
+            pub const VARIANTS: [TypeVariant; #{types.count}] = [ #{types.map { |t| "TypeVariant::#{t}," }.join("\n")} ];
+            pub const VARIANTS_STR: [&'static str; #{types.count}] = [ #{types.map { |t| "\"#{t}\"," }.join("\n")} ];
+
             #[cfg(feature = "std")]
             #[allow(clippy::too_many_lines)]
             pub fn read_xdr(v: TypeVariant, r: &mut impl Read) -> Result<Self> {
@@ -171,10 +174,7 @@ module Xdrgen
             #[must_use]
             #[allow(clippy::too_many_lines)]
             pub const fn variants() -> [TypeVariant; #{types.count}] {
-                const VARIANTS: [TypeVariant; #{types.count}] = [
-                    #{types.map { |t| "TypeVariant::#{t}," }.join("\n")}
-                ];
-                VARIANTS
+                Self::VARIANTS
             }
 
             #[must_use]
@@ -195,8 +195,7 @@ module Xdrgen
 
         impl Variants<TypeVariant> for Type {
             fn variants() -> slice::Iter<'static, TypeVariant> {
-                const VARIANTS: [TypeVariant; #{types.count}] = Type::variants();
-                VARIANTS.iter()
+                Self::VARIANTS.iter()
             }
         }
         EOS
@@ -310,6 +309,9 @@ module Xdrgen
         out.puts ""
         out.puts <<-EOS.strip_heredoc
         impl #{name enum} {
+            pub const VARIANTS: [#{name enum}; #{enum.members.count}] = [ #{enum.members.map { |m| "#{name enum}::#{name m}," }.join("\n")} ];
+            pub const VARIANTS_STR: [&'static str; #{enum.members.count}] = [ #{enum.members.map { |m| "\"#{name m}\"," }.join("\n")} ];
+
             #[must_use]
             pub const fn name(&self) -> &'static str {
                 match self {
@@ -321,12 +323,7 @@ module Xdrgen
 
             #[must_use]
             pub const fn variants() -> [#{name enum}; #{enum.members.count}] {
-                const VARIANTS: [#{name enum}; #{enum.members.count}] = [
-                    #{enum.members.map do |m|
-                      "#{name enum}::#{name m},"
-                    end.join("\n")}
-                ];
-                VARIANTS
+                Self::VARIANTS
             }
         }
 
@@ -339,8 +336,7 @@ module Xdrgen
 
         impl Variants<#{name enum}> for #{name enum} {
             fn variants() -> slice::Iter<'static, #{name enum}> {
-                const VARIANTS: [#{name enum}; #{enum.members.count}] = #{name enum}::variants();
-                VARIANTS.iter()
+                Self::VARIANTS.iter()
             }
         }
 
@@ -436,6 +432,19 @@ module Xdrgen
         out.puts ""
         out.puts <<-EOS.strip_heredoc
         impl #{name union} {
+            pub const VARIANTS: [#{discriminant_type}; #{union_case_count}] = [
+                #{union_cases(union) do |case_name, arm, value|
+                  value.nil?                ? "#{discriminant_type}::#{case_name}," :
+                  discriminant_type_builtin ? "#{value}," :
+                                              "#{discriminant_type}(#{value}),"
+                end.join("\n")}
+            ];
+            pub const VARIANTS_STR: [&'static str; #{union_case_count}] = [
+                #{union_cases(union) do |case_name, arm, value|
+                  "\"#{case_name}\","
+                end.join("\n")}
+            ];
+
             #[must_use]
             pub const fn name(&self) -> &'static str {
                 match self {
@@ -461,14 +470,7 @@ module Xdrgen
 
             #[must_use]
             pub const fn variants() -> [#{discriminant_type}; #{union_case_count}] {
-                const VARIANTS: [#{discriminant_type}; #{union_case_count}] = [
-                    #{union_cases(union) do |case_name, arm, value|
-                      value.nil?                ? "#{discriminant_type}::#{case_name}," :
-                      discriminant_type_builtin ? "#{value}," :
-                                                  "#{discriminant_type}(#{value}),"
-                    end.join("\n")}
-                ];
-                VARIANTS
+                Self::VARIANTS
             }
         }
 
@@ -488,8 +490,7 @@ module Xdrgen
 
         impl Variants<#{discriminant_type}> for #{name union} {
             fn variants() -> slice::Iter<'static, #{discriminant_type}> {
-                const VARIANTS: [#{discriminant_type}; #{union_case_count}] = #{name union}::variants();
-                VARIANTS.iter()
+                Self::VARIANTS.iter()
             }
         }
 
