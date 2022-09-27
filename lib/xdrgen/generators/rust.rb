@@ -106,6 +106,38 @@ module Xdrgen
             #{types.map { |t| "#{t}," }.join("\n")}
         }
 
+        impl TypeVariant {
+            pub const VARIANTS: [TypeVariant; #{types.count}] = [ #{types.map { |t| "TypeVariant::#{t}," }.join("\n")} ];
+            pub const VARIANTS_STR: [&'static str; #{types.count}] = [ #{types.map { |t| "\"#{t}\"," }.join("\n")} ];
+
+            #[must_use]
+            #[allow(clippy::too_many_lines)]
+            pub const fn name(&self) -> &'static str {
+                match self {
+                    #{types.map { |t| "Self::#{t} => \"#{t}\"," }.join("\n")}
+                }
+            }
+
+            #[must_use]
+            #[allow(clippy::too_many_lines)]
+            pub const fn variants() -> [TypeVariant; #{types.count}] {
+                Self::VARIANTS
+            }
+        }
+
+        impl Name for TypeVariant {
+            #[must_use]
+            fn name(&self) -> &'static str {
+                Self::name(self)
+            }
+        }
+
+        impl Variants<TypeVariant> for TypeVariant {
+            fn variants() -> slice::Iter<'static, TypeVariant> {
+                Self::VARIANTS.iter()
+            }
+        }
+
         impl core::str::FromStr for TypeVariant {
             type Err = Error;
             #[allow(clippy::too_many_lines)]
