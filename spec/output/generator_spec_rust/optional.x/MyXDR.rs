@@ -1112,6 +1112,41 @@ self.third_option.write_xdr(w)?;
 HasOptions,
         }
 
+        impl TypeVariant {
+            pub const VARIANTS: [TypeVariant; 2] = [ TypeVariant::Arr,
+TypeVariant::HasOptions, ];
+            pub const VARIANTS_STR: [&'static str; 2] = [ "Arr",
+"HasOptions", ];
+
+            #[must_use]
+            #[allow(clippy::too_many_lines)]
+            pub const fn name(&self) -> &'static str {
+                match self {
+                    Self::Arr => "Arr",
+Self::HasOptions => "HasOptions",
+                }
+            }
+
+            #[must_use]
+            #[allow(clippy::too_many_lines)]
+            pub const fn variants() -> [TypeVariant; 2] {
+                Self::VARIANTS
+            }
+        }
+
+        impl Name for TypeVariant {
+            #[must_use]
+            fn name(&self) -> &'static str {
+                Self::name(self)
+            }
+        }
+
+        impl Variants<TypeVariant> for TypeVariant {
+            fn variants() -> slice::Iter<'static, TypeVariant> {
+                Self::VARIANTS.iter()
+            }
+        }
+
         impl core::str::FromStr for TypeVariant {
             type Err = Error;
             #[allow(clippy::too_many_lines)]
@@ -1136,6 +1171,11 @@ HasOptions(Box<HasOptions>),
         }
 
         impl Type {
+            pub const VARIANTS: [TypeVariant; 2] = [ TypeVariant::Arr,
+TypeVariant::HasOptions, ];
+            pub const VARIANTS_STR: [&'static str; 2] = [ "Arr",
+"HasOptions", ];
+
             #[cfg(feature = "std")]
             #[allow(clippy::too_many_lines)]
             pub fn read_xdr(v: TypeVariant, r: &mut impl Read) -> Result<Self> {
@@ -1182,11 +1222,7 @@ Self::HasOptions(_) => "HasOptions",
             #[must_use]
             #[allow(clippy::too_many_lines)]
             pub const fn variants() -> [TypeVariant; 2] {
-                const VARIANTS: [TypeVariant; 2] = [
-                    TypeVariant::Arr,
-TypeVariant::HasOptions,
-                ];
-                VARIANTS
+                Self::VARIANTS
             }
 
             #[must_use]
@@ -1208,7 +1244,6 @@ Self::HasOptions(_) => TypeVariant::HasOptions,
 
         impl Variants<TypeVariant> for Type {
             fn variants() -> slice::Iter<'static, TypeVariant> {
-                const VARIANTS: [TypeVariant; 2] = Type::variants();
-                VARIANTS.iter()
+                Self::VARIANTS.iter()
             }
         }

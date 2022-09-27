@@ -1086,6 +1086,11 @@ pub enum UnionKey {
 }
 
         impl UnionKey {
+            pub const VARIANTS: [UnionKey; 2] = [ UnionKey::Error,
+UnionKey::Multi, ];
+            pub const VARIANTS_STR: [&'static str; 2] = [ "Error",
+"Multi", ];
+
             #[must_use]
             pub const fn name(&self) -> &'static str {
                 match self {
@@ -1096,11 +1101,7 @@ Self::Multi => "Multi",
 
             #[must_use]
             pub const fn variants() -> [UnionKey; 2] {
-                const VARIANTS: [UnionKey; 2] = [
-                    UnionKey::Error,
-UnionKey::Multi,
-                ];
-                VARIANTS
+                Self::VARIANTS
             }
         }
 
@@ -1113,8 +1114,7 @@ UnionKey::Multi,
 
         impl Variants<UnionKey> for UnionKey {
             fn variants() -> slice::Iter<'static, UnionKey> {
-                const VARIANTS: [UnionKey; 2] = UnionKey::variants();
-                VARIANTS.iter()
+                Self::VARIANTS.iter()
             }
         }
 
@@ -1187,6 +1187,15 @@ pub enum MyUnion {
 }
 
         impl MyUnion {
+            pub const VARIANTS: [UnionKey; 2] = [
+                UnionKey::Error,
+UnionKey::Multi,
+            ];
+            pub const VARIANTS_STR: [&'static str; 2] = [
+                "Error",
+"Multi",
+            ];
+
             #[must_use]
             pub const fn name(&self) -> &'static str {
                 match self {
@@ -1206,11 +1215,7 @@ Self::Multi(_) => UnionKey::Multi,
 
             #[must_use]
             pub const fn variants() -> [UnionKey; 2] {
-                const VARIANTS: [UnionKey; 2] = [
-                    UnionKey::Error,
-UnionKey::Multi,
-                ];
-                VARIANTS
+                Self::VARIANTS
             }
         }
 
@@ -1230,8 +1235,7 @@ UnionKey::Multi,
 
         impl Variants<UnionKey> for MyUnion {
             fn variants() -> slice::Iter<'static, UnionKey> {
-                const VARIANTS: [UnionKey; 2] = MyUnion::variants();
-                VARIANTS.iter()
+                Self::VARIANTS.iter()
             }
         }
 
@@ -1287,6 +1291,15 @@ pub enum IntUnion {
 }
 
         impl IntUnion {
+            pub const VARIANTS: [i32; 2] = [
+                0,
+1,
+            ];
+            pub const VARIANTS_STR: [&'static str; 2] = [
+                "V0",
+"V1",
+            ];
+
             #[must_use]
             pub const fn name(&self) -> &'static str {
                 match self {
@@ -1306,11 +1319,7 @@ Self::V1(_) => 1,
 
             #[must_use]
             pub const fn variants() -> [i32; 2] {
-                const VARIANTS: [i32; 2] = [
-                    0,
-1,
-                ];
-                VARIANTS
+                Self::VARIANTS
             }
         }
 
@@ -1330,8 +1339,7 @@ Self::V1(_) => 1,
 
         impl Variants<i32> for IntUnion {
             fn variants() -> slice::Iter<'static, i32> {
-                const VARIANTS: [i32; 2] = IntUnion::variants();
-                VARIANTS.iter()
+                Self::VARIANTS.iter()
             }
         }
 
@@ -1426,6 +1434,53 @@ IntUnion,
 IntUnion2,
         }
 
+        impl TypeVariant {
+            pub const VARIANTS: [TypeVariant; 6] = [ TypeVariant::SError,
+TypeVariant::Multi,
+TypeVariant::UnionKey,
+TypeVariant::MyUnion,
+TypeVariant::IntUnion,
+TypeVariant::IntUnion2, ];
+            pub const VARIANTS_STR: [&'static str; 6] = [ "SError",
+"Multi",
+"UnionKey",
+"MyUnion",
+"IntUnion",
+"IntUnion2", ];
+
+            #[must_use]
+            #[allow(clippy::too_many_lines)]
+            pub const fn name(&self) -> &'static str {
+                match self {
+                    Self::SError => "SError",
+Self::Multi => "Multi",
+Self::UnionKey => "UnionKey",
+Self::MyUnion => "MyUnion",
+Self::IntUnion => "IntUnion",
+Self::IntUnion2 => "IntUnion2",
+                }
+            }
+
+            #[must_use]
+            #[allow(clippy::too_many_lines)]
+            pub const fn variants() -> [TypeVariant; 6] {
+                Self::VARIANTS
+            }
+        }
+
+        impl Name for TypeVariant {
+            #[must_use]
+            fn name(&self) -> &'static str {
+                Self::name(self)
+            }
+        }
+
+        impl Variants<TypeVariant> for TypeVariant {
+            fn variants() -> slice::Iter<'static, TypeVariant> {
+                Self::VARIANTS.iter()
+            }
+        }
+
         impl core::str::FromStr for TypeVariant {
             type Err = Error;
             #[allow(clippy::too_many_lines)]
@@ -1458,6 +1513,19 @@ IntUnion2(Box<IntUnion2>),
         }
 
         impl Type {
+            pub const VARIANTS: [TypeVariant; 6] = [ TypeVariant::SError,
+TypeVariant::Multi,
+TypeVariant::UnionKey,
+TypeVariant::MyUnion,
+TypeVariant::IntUnion,
+TypeVariant::IntUnion2, ];
+            pub const VARIANTS_STR: [&'static str; 6] = [ "SError",
+"Multi",
+"UnionKey",
+"MyUnion",
+"IntUnion",
+"IntUnion2", ];
+
             #[cfg(feature = "std")]
             #[allow(clippy::too_many_lines)]
             pub fn read_xdr(v: TypeVariant, r: &mut impl Read) -> Result<Self> {
@@ -1516,15 +1584,7 @@ Self::IntUnion2(_) => "IntUnion2",
             #[must_use]
             #[allow(clippy::too_many_lines)]
             pub const fn variants() -> [TypeVariant; 6] {
-                const VARIANTS: [TypeVariant; 6] = [
-                    TypeVariant::SError,
-TypeVariant::Multi,
-TypeVariant::UnionKey,
-TypeVariant::MyUnion,
-TypeVariant::IntUnion,
-TypeVariant::IntUnion2,
-                ];
-                VARIANTS
+                Self::VARIANTS
             }
 
             #[must_use]
@@ -1550,7 +1610,6 @@ Self::IntUnion2(_) => TypeVariant::IntUnion2,
 
         impl Variants<TypeVariant> for Type {
             fn variants() -> slice::Iter<'static, TypeVariant> {
-                const VARIANTS: [TypeVariant; 6] = Type::variants();
-                VARIANTS.iter()
+                Self::VARIANTS.iter()
             }
         }

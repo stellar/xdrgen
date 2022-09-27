@@ -1954,6 +1954,13 @@ pub enum Color {
 }
 
         impl Color {
+            pub const VARIANTS: [Color; 3] = [ Color::Red,
+Color::Blue,
+Color::Green, ];
+            pub const VARIANTS_STR: [&'static str; 3] = [ "Red",
+"Blue",
+"Green", ];
+
             #[must_use]
             pub const fn name(&self) -> &'static str {
                 match self {
@@ -1965,12 +1972,7 @@ Self::Green => "Green",
 
             #[must_use]
             pub const fn variants() -> [Color; 3] {
-                const VARIANTS: [Color; 3] = [
-                    Color::Red,
-Color::Blue,
-Color::Green,
-                ];
-                VARIANTS
+                Self::VARIANTS
             }
         }
 
@@ -1983,8 +1985,7 @@ Color::Green,
 
         impl Variants<Color> for Color {
             fn variants() -> slice::Iter<'static, Color> {
-                const VARIANTS: [Color; 3] = Color::variants();
-                VARIANTS.iter()
+                Self::VARIANTS.iter()
             }
         }
 
@@ -2065,6 +2066,11 @@ pub enum NesterNestedEnum {
 }
 
         impl NesterNestedEnum {
+            pub const VARIANTS: [NesterNestedEnum; 2] = [ NesterNestedEnum::1,
+NesterNestedEnum::2, ];
+            pub const VARIANTS_STR: [&'static str; 2] = [ "1",
+"2", ];
+
             #[must_use]
             pub const fn name(&self) -> &'static str {
                 match self {
@@ -2075,11 +2081,7 @@ Self::2 => "2",
 
             #[must_use]
             pub const fn variants() -> [NesterNestedEnum; 2] {
-                const VARIANTS: [NesterNestedEnum; 2] = [
-                    NesterNestedEnum::1,
-NesterNestedEnum::2,
-                ];
-                VARIANTS
+                Self::VARIANTS
             }
         }
 
@@ -2092,8 +2094,7 @@ NesterNestedEnum::2,
 
         impl Variants<NesterNestedEnum> for NesterNestedEnum {
             fn variants() -> slice::Iter<'static, NesterNestedEnum> {
-                const VARIANTS: [NesterNestedEnum; 2] = NesterNestedEnum::variants();
-                VARIANTS.iter()
+                Self::VARIANTS.iter()
             }
         }
 
@@ -2192,6 +2193,13 @@ pub enum NesterNestedUnion {
 }
 
 impl NesterNestedUnion {
+    pub const VARIANTS: [Color; 1] = [
+        Color::Red,
+    ];
+    pub const VARIANTS_STR: [&'static str; 1] = [
+        "Red",
+    ];
+
     #[must_use]
     pub const fn name(&self) -> &'static str {
         match self {
@@ -2209,10 +2217,7 @@ impl NesterNestedUnion {
 
     #[must_use]
     pub const fn variants() -> [Color; 1] {
-        const VARIANTS: [Color; 1] = [
-            Color::Red,
-        ];
-        VARIANTS
+        Self::VARIANTS
     }
 }
 
@@ -2232,8 +2237,7 @@ impl Discriminant<Color> for NesterNestedUnion {
 
 impl Variants<Color> for NesterNestedUnion {
     fn variants() -> slice::Iter<'static, Color> {
-        const VARIANTS: [Color; 1] = NesterNestedUnion::variants();
-        VARIANTS.iter()
+        Self::VARIANTS.iter()
     }
 }
 
@@ -2350,6 +2354,104 @@ NesterNestedStruct,
 NesterNestedUnion,
         }
 
+        impl TypeVariant {
+            pub const VARIANTS: [TypeVariant; 23] = [ TypeVariant::Uint512,
+TypeVariant::Uint513,
+TypeVariant::Uint514,
+TypeVariant::Str,
+TypeVariant::Str2,
+TypeVariant::Hash,
+TypeVariant::Hashes1,
+TypeVariant::Hashes2,
+TypeVariant::Hashes3,
+TypeVariant::OptHash1,
+TypeVariant::OptHash2,
+TypeVariant::Int1,
+TypeVariant::Int2,
+TypeVariant::Int3,
+TypeVariant::Int4,
+TypeVariant::MyStruct,
+TypeVariant::LotsOfMyStructs,
+TypeVariant::HasStuff,
+TypeVariant::Color,
+TypeVariant::Nester,
+TypeVariant::NesterNestedEnum,
+TypeVariant::NesterNestedStruct,
+TypeVariant::NesterNestedUnion, ];
+            pub const VARIANTS_STR: [&'static str; 23] = [ "Uint512",
+"Uint513",
+"Uint514",
+"Str",
+"Str2",
+"Hash",
+"Hashes1",
+"Hashes2",
+"Hashes3",
+"OptHash1",
+"OptHash2",
+"Int1",
+"Int2",
+"Int3",
+"Int4",
+"MyStruct",
+"LotsOfMyStructs",
+"HasStuff",
+"Color",
+"Nester",
+"NesterNestedEnum",
+"NesterNestedStruct",
+"NesterNestedUnion", ];
+
+            #[must_use]
+            #[allow(clippy::too_many_lines)]
+            pub const fn name(&self) -> &'static str {
+                match self {
+                    Self::Uint512 => "Uint512",
+Self::Uint513 => "Uint513",
+Self::Uint514 => "Uint514",
+Self::Str => "Str",
+Self::Str2 => "Str2",
+Self::Hash => "Hash",
+Self::Hashes1 => "Hashes1",
+Self::Hashes2 => "Hashes2",
+Self::Hashes3 => "Hashes3",
+Self::OptHash1 => "OptHash1",
+Self::OptHash2 => "OptHash2",
+Self::Int1 => "Int1",
+Self::Int2 => "Int2",
+Self::Int3 => "Int3",
+Self::Int4 => "Int4",
+Self::MyStruct => "MyStruct",
+Self::LotsOfMyStructs => "LotsOfMyStructs",
+Self::HasStuff => "HasStuff",
+Self::Color => "Color",
+Self::Nester => "Nester",
+Self::NesterNestedEnum => "NesterNestedEnum",
+Self::NesterNestedStruct => "NesterNestedStruct",
+Self::NesterNestedUnion => "NesterNestedUnion",
+                }
+            }
+
+            #[must_use]
+            #[allow(clippy::too_many_lines)]
+            pub const fn variants() -> [TypeVariant; 23] {
+                Self::VARIANTS
+            }
+        }
+
+        impl Name for TypeVariant {
+            #[must_use]
+            fn name(&self) -> &'static str {
+                Self::name(self)
+            }
+        }
+
+        impl Variants<TypeVariant> for TypeVariant {
+            fn variants() -> slice::Iter<'static, TypeVariant> {
+                Self::VARIANTS.iter()
+            }
+        }
+
         impl core::str::FromStr for TypeVariant {
             type Err = Error;
             #[allow(clippy::too_many_lines)]
@@ -2416,6 +2518,53 @@ NesterNestedUnion(Box<NesterNestedUnion>),
         }
 
         impl Type {
+            pub const VARIANTS: [TypeVariant; 23] = [ TypeVariant::Uint512,
+TypeVariant::Uint513,
+TypeVariant::Uint514,
+TypeVariant::Str,
+TypeVariant::Str2,
+TypeVariant::Hash,
+TypeVariant::Hashes1,
+TypeVariant::Hashes2,
+TypeVariant::Hashes3,
+TypeVariant::OptHash1,
+TypeVariant::OptHash2,
+TypeVariant::Int1,
+TypeVariant::Int2,
+TypeVariant::Int3,
+TypeVariant::Int4,
+TypeVariant::MyStruct,
+TypeVariant::LotsOfMyStructs,
+TypeVariant::HasStuff,
+TypeVariant::Color,
+TypeVariant::Nester,
+TypeVariant::NesterNestedEnum,
+TypeVariant::NesterNestedStruct,
+TypeVariant::NesterNestedUnion, ];
+            pub const VARIANTS_STR: [&'static str; 23] = [ "Uint512",
+"Uint513",
+"Uint514",
+"Str",
+"Str2",
+"Hash",
+"Hashes1",
+"Hashes2",
+"Hashes3",
+"OptHash1",
+"OptHash2",
+"Int1",
+"Int2",
+"Int3",
+"Int4",
+"MyStruct",
+"LotsOfMyStructs",
+"HasStuff",
+"Color",
+"Nester",
+"NesterNestedEnum",
+"NesterNestedStruct",
+"NesterNestedUnion", ];
+
             #[cfg(feature = "std")]
             #[allow(clippy::too_many_lines)]
             pub fn read_xdr(v: TypeVariant, r: &mut impl Read) -> Result<Self> {
@@ -2525,32 +2674,7 @@ Self::NesterNestedUnion(_) => "NesterNestedUnion",
             #[must_use]
             #[allow(clippy::too_many_lines)]
             pub const fn variants() -> [TypeVariant; 23] {
-                const VARIANTS: [TypeVariant; 23] = [
-                    TypeVariant::Uint512,
-TypeVariant::Uint513,
-TypeVariant::Uint514,
-TypeVariant::Str,
-TypeVariant::Str2,
-TypeVariant::Hash,
-TypeVariant::Hashes1,
-TypeVariant::Hashes2,
-TypeVariant::Hashes3,
-TypeVariant::OptHash1,
-TypeVariant::OptHash2,
-TypeVariant::Int1,
-TypeVariant::Int2,
-TypeVariant::Int3,
-TypeVariant::Int4,
-TypeVariant::MyStruct,
-TypeVariant::LotsOfMyStructs,
-TypeVariant::HasStuff,
-TypeVariant::Color,
-TypeVariant::Nester,
-TypeVariant::NesterNestedEnum,
-TypeVariant::NesterNestedStruct,
-TypeVariant::NesterNestedUnion,
-                ];
-                VARIANTS
+                Self::VARIANTS
             }
 
             #[must_use]
@@ -2593,7 +2717,6 @@ Self::NesterNestedUnion(_) => TypeVariant::NesterNestedUnion,
 
         impl Variants<TypeVariant> for Type {
             fn variants() -> slice::Iter<'static, TypeVariant> {
-                const VARIANTS: [TypeVariant; 23] = Type::variants();
-                VARIANTS.iter()
+                Self::VARIANTS.iter()
             }
         }
