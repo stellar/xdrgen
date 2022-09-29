@@ -228,6 +228,9 @@ where
     /// Just enough bytes are read from the read implementation to construct the
     /// type. Any residual bytes remain in the read implementation.
     ///
+    /// All implementations should continue if the read implementation returns
+    /// [`ErrorKind::Interrupted`](std::io::ErrorKind::Interrupted).
+    ///
     /// Use [`ReadXdr::read_xdr_to_end`] when the intent is for all bytes in the
     /// read implementation to be consumed by the read.
     #[cfg(feature = "std")]
@@ -248,6 +251,9 @@ where
     /// may not be exhaustively read if there are residual bytes, and it is
     /// considered undefined how many residual bytes or how much of the residual
     /// buffer are consumed in this case.
+    ///
+    /// All implementations should continue if the read implementation returns
+    /// [`ErrorKind::Interrupted`](std::io::ErrorKind::Interrupted).
     #[cfg(feature = "std")]
     fn read_xdr_to_end(r: &mut impl Read) -> Result<Self> {
         let s = Self::read_xdr(r)?;
@@ -268,6 +274,9 @@ where
     ///
     /// Just enough bytes are read from the read implementation to construct the
     /// type. Any residual bytes remain in the read implementation.
+    ///
+    /// All implementations should continue if the read implementation returns
+    /// [`ErrorKind::Interrupted`](std::io::ErrorKind::Interrupted).
     ///
     /// Use [`ReadXdr::read_xdr_into_to_end`] when the intent is for all bytes
     /// in the read implementation to be consumed by the read.
@@ -292,6 +301,9 @@ where
     /// may not be exhaustively read if there are residual bytes, and it is
     /// considered undefined how many residual bytes or how much of the residual
     /// buffer are consumed in this case.
+    ///
+    /// All implementations should continue if the read implementation returns
+    /// [`ErrorKind::Interrupted`](std::io::ErrorKind::Interrupted).
     #[cfg(feature = "std")]
     fn read_xdr_into_to_end(&mut self, r: &mut impl Read) -> Result<()> {
         Self::read_xdr_into(self, r)?;
@@ -319,6 +331,9 @@ where
     /// may not be exhaustively read if there are residual bytes, and it is
     /// considered undefined how many residual bytes or how much of the residual
     /// buffer are consumed in this case.
+    ///
+    /// All implementations should continue if the read implementation returns
+    /// [`ErrorKind::Interrupted`](std::io::ErrorKind::Interrupted).
     #[cfg(feature = "std")]
     fn read_xdr_iter<R: Read>(r: &mut R) -> ReadXdrIter<R, Self> {
         ReadXdrIter::new(r)
