@@ -253,9 +253,6 @@ where
     }
 
     #[cfg(feature = "std")]
-    fn read_xdr_into_to_end(&mut self, r: &mut impl Read) -> Result<Self>;
-
-    #[cfg(feature = "std")]
     fn read_xdr_iter<R: Read>(r: &mut R) -> ReadXdrIter<R, Self> {
         ReadXdrIter::new(r)
     }
