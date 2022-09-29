@@ -258,14 +258,14 @@ where
     }
 
     #[cfg(feature = "std")]
-    fn from_xdr<B: AsRef<[u8]>>(bytes: B) -> Result<Self> {
+    fn from_xdr(bytes: impl AsRef<[u8]>) -> Result<Self> {
         let mut cursor = Cursor::new(bytes.as_ref());
         let t = Self::read_xdr_to_end(&mut cursor)?;
         Ok(t)
     }
 
     #[cfg(feature = "base64")]
-    fn from_xdr_base64(b64: String) -> Result<Self> {
+    fn from_xdr_base64(b64: impl AsRef<str>) -> Result<Self> {
         let mut b64_reader = Cursor::new(b64);
         let mut dec = base64::read::DecoderReader::new(&mut b64_reader, base64::STANDARD);
         let t = Self::read_xdr_to_end(&mut dec)?;
