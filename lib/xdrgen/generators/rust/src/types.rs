@@ -234,7 +234,7 @@ where
     fn read_xdr(r: &mut impl Read) -> Result<Self>;
 
     /// Read the XDR and construct the type, and considering it an error if the
-    /// read does not completely consumed.
+    /// read does not completely consume the read implementation.
     ///
     /// Read bytes from the given read implementation, decoding the bytes as
     /// XDR, and construct the type implementing this interface from those
