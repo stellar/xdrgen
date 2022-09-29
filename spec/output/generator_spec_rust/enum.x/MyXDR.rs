@@ -229,32 +229,146 @@ pub trait ReadXdr
 where
     Self: Sized,
 {
+    /// Read the XDR and construct the type.
+    ///
+    /// Read bytes from the given read implementation, decoding the bytes as
+    /// XDR, and construct the type implementing this interface from those
+    /// bytes.
+    ///
+    /// Just enough bytes are read from the read implementation to construct the
+    /// type. Any residual bytes remain in the read implementation.
+    ///
+    /// All implementations should continue if the read implementation returns
+    /// [`ErrorKind::Interrupted`](std::io::ErrorKind::Interrupted).
+    ///
+    /// Use [`ReadXdr::read_xdr_to_end`] when the intent is for all bytes in the
+    /// read implementation to be consumed by the read.
     #[cfg(feature = "std")]
     fn read_xdr(r: &mut impl Read) -> Result<Self>;
 
+    /// Read the XDR and construct the type, and consider it an error if the
+    /// read does not completely consume the read implementation.
+    ///
+    /// Read bytes from the given read implementation, decoding the bytes as
+    /// XDR, and construct the type implementing this interface from those
+    /// bytes.
+    ///
+    /// Just enough bytes are read from the read implementation to construct the
+    /// type, and then confirm that no further bytes remain. To confirm no
+    /// further bytes remain additional bytes are attempted to be read from the
+    /// read implementation. If it is possible to read any residual bytes from
+    /// the read implementation an error is returned. The read implementation
+    /// may not be exhaustively read if there are residual bytes, and it is
+    /// considered undefined how many residual bytes or how much of the residual
+    /// buffer are consumed in this case.
+    ///
+    /// All implementations should continue if the read implementation returns
+    /// [`ErrorKind::Interrupted`](std::io::ErrorKind::Interrupted).
+    #[cfg(feature = "std")]
+    fn read_xdr_to_end(r: &mut impl Read) -> Result<Self> {
+        let s = Self::read_xdr(r)?;
+        // Check that any further reads, such as this read of one byte, read no
+        // data, indicating EOF. If a byte is read the data is invalid.
+        if r.read(&mut [0u8; 1])? == 0 {
+            Ok(s)
+        } else {
+            Err(Error::Invalid)
+        }
+    }
+
+    /// Read the XDR and construct the type.
+    ///
+    /// Read bytes from the given read implementation, decoding the bytes as
+    /// XDR, and construct the type implementing this interface from those
+    /// bytes.
+    ///
+    /// Just enough bytes are read from the read implementation to construct the
+    /// type. Any residual bytes remain in the read implementation.
+    ///
+    /// All implementations should continue if the read implementation returns
+    /// [`ErrorKind::Interrupted`](std::io::ErrorKind::Interrupted).
+    ///
+    /// Use [`ReadXdr::read_xdr_into_to_end`] when the intent is for all bytes
+    /// in the read implementation to be consumed by the read.
     #[cfg(feature = "std")]
     fn read_xdr_into(&mut self, r: &mut impl Read) -> Result<()> {
         *self = Self::read_xdr(r)?;
         Ok(())
     }
 
+    /// Read the XDR into the existing value, and consider it an error if the
+    /// read does not completely consume the read implementation.
+    ///
+    /// Read bytes from the given read implementation, decoding the bytes as
+    /// XDR, and construct the type implementing this interface from those
+    /// bytes.
+    ///
+    /// Just enough bytes are read from the read implementation to construct the
+    /// type, and then confirm that no further bytes remain. To confirm no
+    /// further bytes remain additional bytes are attempted to be read from the
+    /// read implementation. If it is possible to read any residual bytes from
+    /// the read implementation an error is returned. The read implementation
+    /// may not be exhaustively read if there are residual bytes, and it is
+    /// considered undefined how many residual bytes or how much of the residual
+    /// buffer are consumed in this case.
+    ///
+    /// All implementations should continue if the read implementation returns
+    /// [`ErrorKind::Interrupted`](std::io::ErrorKind::Interrupted).
+    #[cfg(feature = "std")]
+    fn read_xdr_into_to_end(&mut self, r: &mut impl Read) -> Result<()> {
+        Self::read_xdr_into(self, r)?;
+        // Check that any further reads, such as this read of one byte, read no
+        // data, indicating EOF. If a byte is read the data is invalid.
+        if r.read(&mut [0u8; 1])? == 0 {
+            Ok(())
+        } else {
+            Err(Error::Invalid)
+        }
+    }
+
+    /// Create an iterator that reads the read implementation as a stream of
+    /// values that are read into the implementing type.
+    ///
+    /// Read bytes from the given read implementation, decoding the bytes as
+    /// XDR, and construct the type implementing this interface from those
+    /// bytes.
+    ///
+    /// Just enough bytes are read from the read implementation to construct the
+    /// type, and then confirm that no further bytes remain. To confirm no
+    /// further bytes remain additional bytes are attempted to be read from the
+    /// read implementation. If it is possible to read any residual bytes from
+    /// the read implementation an error is returned. The read implementation
+    /// may not be exhaustively read if there are residual bytes, and it is
+    /// considered undefined how many residual bytes or how much of the residual
+    /// buffer are consumed in this case.
+    ///
+    /// All implementations should continue if the read implementation returns
+    /// [`ErrorKind::Interrupted`](std::io::ErrorKind::Interrupted).
     #[cfg(feature = "std")]
     fn read_xdr_iter<R: Read>(r: &mut R) -> ReadXdrIter<R, Self> {
         ReadXdrIter::new(r)
     }
 
+    /// Construct the type from the XDR bytes.
+    ///
+    /// An error is returned if the bytes are not completely consumed by the
+    /// deserialization.
     #[cfg(feature = "std")]
-    fn from_xdr<B: AsRef<[u8]>>(bytes: B) -> Result<Self> {
+    fn from_xdr(bytes: impl AsRef<[u8]>) -> Result<Self> {
         let mut cursor = Cursor::new(bytes.as_ref());
-        let t = Self::read_xdr(&mut cursor)?;
+        let t = Self::read_xdr_to_end(&mut cursor)?;
         Ok(t)
     }
 
+    /// Construct the type from the XDR bytes base64 encoded.
+    ///
+    /// An error is returned if the bytes are not completely consumed by the
+    /// deserialization.
     #[cfg(feature = "base64")]
-    fn from_xdr_base64(b64: String) -> Result<Self> {
+    fn from_xdr_base64(b64: impl AsRef<[u8]>) -> Result<Self> {
         let mut b64_reader = Cursor::new(b64);
         let mut dec = base64::read::DecoderReader::new(&mut b64_reader, base64::STANDARD);
-        let t = Self::read_xdr(&mut dec)?;
+        let t = Self::read_xdr_to_end(&mut dec)?;
         Ok(t)
     }
 }
