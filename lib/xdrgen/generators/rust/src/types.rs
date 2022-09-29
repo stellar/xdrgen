@@ -228,7 +228,7 @@ where
     /// Just enough bytes are read from the read implementation to construct the
     /// type. Any residual bytes remain in the read implementation.
     ///
-    /// Use [ReadXdr::read_xdr_to_end] when the intent is for all bytes in the
+    /// Use [`ReadXdr::read_xdr_to_end`] when the intent is for all bytes in the
     /// read implementation to be consumed by the read.
     #[cfg(feature = "std")]
     fn read_xdr(r: &mut impl Read) -> Result<Self>;
@@ -269,8 +269,8 @@ where
     /// Just enough bytes are read from the read implementation to construct the
     /// type. Any residual bytes remain in the read implementation.
     ///
-    /// Use [ReadXdr::read_xdr_to_end] when the intent is for all bytes in the
-    /// read implementation to be consumed by the read.
+    /// Use [`ReadXdr::read_xdr_into_to_end`] when the intent is for all bytes
+    /// in the read implementation to be consumed by the read.
     #[cfg(feature = "std")]
     fn read_xdr_into(&mut self, r: &mut impl Read) -> Result<()> {
         *self = Self::read_xdr(r)?;
