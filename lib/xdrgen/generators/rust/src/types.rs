@@ -233,8 +233,8 @@ where
     #[cfg(feature = "std")]
     fn read_xdr(r: &mut impl Read) -> Result<Self>;
 
-    /// Read the XDR and construct the type, requiring the read implementation
-    /// be completely consumed.
+    /// Read the XDR and construct the type, and considering it an error if the
+    /// read does not completely consumed.
     ///
     /// Read bytes from the given read implementation, decoding the bytes as
     /// XDR, and construct the type implementing this interface from those
