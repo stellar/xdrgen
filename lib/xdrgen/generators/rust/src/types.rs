@@ -219,9 +219,35 @@ pub trait ReadXdr
 where
     Self: Sized,
 {
+    /// Read the XDR and construct the type.
+    ///
+    /// Read bytes from the given read implementation, decoding the bytes as
+    /// XDR, and construct the type implementing this interface from those
+    /// bytes.
+    ///
+    /// Just enough bytes are read from the read implementation to construct the
+    /// type. Any residual bytes remain in the read implementation.
+    ///
+    /// Use [ReadXdr::read_xdr_to_end] when the intent is for all bytes in the
+    /// read implementation to be consumed by the read.
     #[cfg(feature = "std")]
     fn read_xdr(r: &mut impl Read) -> Result<Self>;
 
+    /// Read the XDR and construct the type, requiring the read implementation
+    /// be completely consumed.
+    ///
+    /// Read bytes from the given read implementation, decoding the bytes as
+    /// XDR, and construct the type implementing this interface from those
+    /// bytes.
+    ///
+    /// Just enough bytes are read from the read implementation to construct the
+    /// type, and then confirm that no further bytes remain. To confirm no
+    /// further bytes remain additional bytes are attempted to be read from the
+    /// read implementation. If it is possible to read any residual bytes from
+    /// the read implementation an error is returned. The read implementation
+    /// may not be exhaustively read if there are residual bytes, and it is
+    /// considered undefined how many residual bytes or how much of the residual
+    /// buffer are consumed in this case.
     #[cfg(feature = "std")]
     fn read_xdr_to_end(r: &mut impl Read) -> Result<Self> {
         let s = Self::read_xdr(r)?;
