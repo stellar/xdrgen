@@ -223,10 +223,37 @@ where
     fn read_xdr(r: &mut impl Read) -> Result<Self>;
 
     #[cfg(feature = "std")]
+    fn read_xdr_to_end(r: &mut impl Read) -> Result<Self> {
+        let s = Self::read_xdr(r)?;
+        // Check that any further reads, such as this read of one byte, read no
+        // data, indicating EOF. If a byte is read the data is invalid.
+        if r.read(&mut [0u8; 1])? == 0 {
+            Ok(s)
+        } else {
+            Err(Error::Invalid)
+        }
+    }
+
+    #[cfg(feature = "std")]
     fn read_xdr_into(&mut self, r: &mut impl Read) -> Result<()> {
         *self = Self::read_xdr(r)?;
         Ok(())
     }
+
+    #[cfg(feature = "std")]
+    fn read_xdr_into_to_end(&mut self, r: &mut impl Read) -> Result<()> {
+        Self::read_xdr_into(self, r)?;
+        // Check that any further reads, such as this read of one byte, read no
+        // data, indicating EOF. If a byte is read the data is invalid.
+        if r.read(&mut [0u8; 1])? == 0 {
+            Ok(())
+        } else {
+            Err(Error::Invalid)
+        }
+    }
+
+    #[cfg(feature = "std")]
+    fn read_xdr_into_to_end(&mut self, r: &mut impl Read) -> Result<Self>;
 
     #[cfg(feature = "std")]
     fn read_xdr_iter<R: Read>(r: &mut R) -> ReadXdrIter<R, Self> {
@@ -236,7 +263,7 @@ where
     #[cfg(feature = "std")]
     fn from_xdr<B: AsRef<[u8]>>(bytes: B) -> Result<Self> {
         let mut cursor = Cursor::new(bytes.as_ref());
-        let t = Self::read_xdr(&mut cursor)?;
+        let t = Self::read_xdr_to_end(&mut cursor)?;
         Ok(t)
     }
 
@@ -244,7 +271,7 @@ where
     fn from_xdr_base64(b64: String) -> Result<Self> {
         let mut b64_reader = Cursor::new(b64);
         let mut dec = base64::read::DecoderReader::new(&mut b64_reader, base64::STANDARD);
-        let t = Self::read_xdr(&mut dec)?;
+        let t = Self::read_xdr_to_end(&mut dec)?;
         Ok(t)
     }
 }
