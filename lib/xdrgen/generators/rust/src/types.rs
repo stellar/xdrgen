@@ -1561,7 +1561,7 @@ impl<const N: usize, const MAX: u32> TryFrom<&'static [u8; N]> for StringM<MAX> 
 }
 
 #[cfg(feature = "alloc")]
-impl<const MAX: u32> TryFrom<&String> for StringM<u8, MAX> {
+impl<const MAX: u32> TryFrom<&String> for StringM<MAX> {
     type Error = Error;
 
     fn try_from(v: &String) -> Result<Self> {
@@ -1575,7 +1575,7 @@ impl<const MAX: u32> TryFrom<&String> for StringM<u8, MAX> {
 }
 
 #[cfg(feature = "alloc")]
-impl<const MAX: u32> TryFrom<String> for StringM<u8, MAX> {
+impl<const MAX: u32> TryFrom<String> for StringM<MAX> {
     type Error = Error;
 
     fn try_from(v: String) -> Result<Self> {
@@ -1589,25 +1589,25 @@ impl<const MAX: u32> TryFrom<String> for StringM<u8, MAX> {
 }
 
 #[cfg(feature = "alloc")]
-impl<const MAX: u32> TryFrom<StringM<u8, MAX>> for String {
+impl<const MAX: u32> TryFrom<StringM<MAX>> for String {
     type Error = Error;
 
-    fn try_from(v: StringM<u8, MAX>) -> Result<Self> {
+    fn try_from(v: StringM<MAX>) -> Result<Self> {
         Ok(String::from_utf8(v.0)?)
     }
 }
 
 #[cfg(feature = "alloc")]
-impl<const MAX: u32> TryFrom<&StringM<u8, MAX>> for String {
+impl<const MAX: u32> TryFrom<&StringM<MAX>> for String {
     type Error = Error;
 
-    fn try_from(v: &StringM<u8, MAX>) -> Result<Self> {
+    fn try_from(v: &StringM<MAX>) -> Result<Self> {
         Ok(core::str::from_utf8(v.as_ref())?.to_owned())
     }
 }
 
 #[cfg(feature = "alloc")]
-impl<const MAX: u32> TryFrom<&str> for StringM<u8, MAX> {
+impl<const MAX: u32> TryFrom<&str> for StringM<MAX> {
     type Error = Error;
 
     fn try_from(v: &str) -> Result<Self> {
@@ -1621,7 +1621,7 @@ impl<const MAX: u32> TryFrom<&str> for StringM<u8, MAX> {
 }
 
 #[cfg(not(feature = "alloc"))]
-impl<const MAX: u32> TryFrom<&'static str> for StringM<u8, MAX> {
+impl<const MAX: u32> TryFrom<&'static str> for StringM<MAX> {
     type Error = Error;
 
     fn try_from(v: &'static str) -> Result<Self> {
@@ -1634,15 +1634,15 @@ impl<const MAX: u32> TryFrom<&'static str> for StringM<u8, MAX> {
     }
 }
 
-impl<'a, const MAX: u32> TryFrom<&'a StringM<u8, MAX>> for &'a str {
+impl<'a, const MAX: u32> TryFrom<&'a StringM<MAX>> for &'a str {
     type Error = Error;
 
-    fn try_from(v: &'a StringM<u8, MAX>) -> Result<Self> {
+    fn try_from(v: &'a StringM<MAX>) -> Result<Self> {
         Ok(core::str::from_utf8(v.as_ref())?)
     }
 }
 
-impl<const MAX: u32> ReadXdr for StringM<u8, MAX> {
+impl<const MAX: u32> ReadXdr for StringM<MAX> {
     #[cfg(feature = "std")]
     fn read_xdr(r: &mut impl Read) -> Result<Self> {
         let len: u32 = u32::read_xdr(r)?;
@@ -1663,7 +1663,7 @@ impl<const MAX: u32> ReadXdr for StringM<u8, MAX> {
     }
 }
 
-impl<const MAX: u32> WriteXdr for StringM<u8, MAX> {
+impl<const MAX: u32> WriteXdr for StringM<MAX> {
     #[cfg(feature = "std")]
     fn write_xdr(&self, w: &mut impl Write) -> Result<()> {
         let len: u32 = self.len().try_into().map_err(|_| Error::LengthExceedsMax)?;
