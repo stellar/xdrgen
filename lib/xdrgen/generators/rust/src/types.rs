@@ -1012,7 +1012,7 @@ impl<T: WriteXdr, const MAX: u32> WriteXdr for VecM<T, MAX> {
 // BytesM ------------------------------------------------------------------------
 
 #[cfg(feature = "alloc")]
-#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(
     feature = "serde",
     derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr)
@@ -1021,32 +1021,35 @@ impl<T: WriteXdr, const MAX: u32> WriteXdr for VecM<T, MAX> {
 pub struct BytesM<const MAX: u32 = { u32::MAX }>(Vec<u8>);
 
 #[cfg(not(feature = "alloc"))]
-#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 pub struct BytesM<const MAX: u32 = { u32::MAX }>(Vec<u8>);
 
-#[cfg(feature = "alloc")]
 impl<const MAX: u32> core::fmt::Display for BytesM<MAX> {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        use hex::ToHex;
         #[cfg(feature = "alloc")]
         let v = &self.0;
         #[cfg(not(feature = "alloc"))]
         let v = self.0;
-        let s = hex::encode(v);
-        write!(f, "{s}")?;
+        for c in v.encode_to_hex() {
+            write!(f, "{c}")?;
+        }
         Ok(())
     }
 }
 
-#[cfg(feature = "alloc")]
 impl<const MAX: u32> core::fmt::Debug for BytesM<MAX> {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         #[cfg(feature = "alloc")]
         let v = &self.0;
         #[cfg(not(feature = "alloc"))]
         let v = self.0;
-        let s = hex::encode(v);
-        write!(f, "BytesM({s})")?;
+        write!(f, "BytesM(")?;
+        for c in v.encode_to_hex() {
+            write!(f, "{c}")?;
+        }
+        write!(f, ")")?;
         Ok(())
     }
 }
