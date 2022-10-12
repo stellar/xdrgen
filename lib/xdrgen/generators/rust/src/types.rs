@@ -1407,6 +1407,7 @@ fn write_utf8_lossy<F>(f: &mut impl core::fmt::Write, mut input: &[u8]) -> core:
             }
         }
     }
+    Ok(())
 }
 
 impl<const MAX: u32> core::fmt::Display for StringM<MAX> {
