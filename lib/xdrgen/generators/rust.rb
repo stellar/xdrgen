@@ -579,7 +579,7 @@ module Xdrgen
           out.puts %{#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "camelCase"))]}
           out.puts <<-EOS.strip_heredoc
           pub struct #{name typedef}(
-              #[cfg_attr(all(feature = "serde", feature = "alloc"), serde(with = "hex"))]
+              // TODO: #[cfg_attr(all(feature = "serde", feature = "alloc"), serde(with = "hex"))]
               pub #{reference(typedef, typedef.type)}
           );
           EOS
