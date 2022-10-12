@@ -1396,7 +1396,7 @@ fn from_utf8_lossy<F>(mut input: &[u8], mut push: F) where F: FnMut(&str) -> cor
             }
             Err(error) => {
                 let (valid, after_valid) = input.split_at(error.valid_up_to());
-                push(core::str::from_utf8(valid).unwrap())
+                push(core::str::from_utf8(valid).unwrap());
                 push("\u{FFFD}");
 
                 if let Some(invalid_sequence_length) = error.error_len() {
