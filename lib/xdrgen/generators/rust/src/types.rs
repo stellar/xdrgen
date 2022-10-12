@@ -1427,7 +1427,9 @@ impl<const MAX: u32> core::fmt::Debug for StringM<MAX> {
         let v = &self.0;
         #[cfg(not(feature = "alloc"))]
         let v = self.0;
+        write!(f, "StringM(")?;
         write_utf8_lossy(f, v)?;
+        write!(f, ")")?;
         Ok(())
     }
 }
