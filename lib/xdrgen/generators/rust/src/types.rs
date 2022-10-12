@@ -1339,7 +1339,7 @@ pub struct StringM<const MAX: u32 = { u32::MAX }>(Vec<u8>);
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 pub struct StringM<const MAX: u32 = { u32::MAX }>(Vec<u8>);
 
-impl<const MAX: u32> Display for StringM<MAX> {
+impl<const MAX: u32> core::fmt::Display for StringM<MAX> {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         let s = str::from_utf8(&self.0).map_err(|_| core::fmt::Error)?;
         write!(f, "{s}")?;
@@ -1347,7 +1347,7 @@ impl<const MAX: u32> Display for StringM<MAX> {
     }
 }
 
-impl<const MAX: u32> Debug for StringM<MAX> {
+impl<const MAX: u32> core::fmt::Debug for StringM<MAX> {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         let s = str::from_utf8(&self.0).map_err(|_| core::fmt::Error)?;
         write!(f, "StringM({s})")?;
@@ -1356,7 +1356,7 @@ impl<const MAX: u32> Debug for StringM<MAX> {
 }
 
 #[cfg(feature = "alloc")]
-impl<const MAX: u32> FromStr for StringM<MAX> {
+impl<const MAX: u32> core::str::FromStr for StringM<MAX> {
     type Err = ();
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         s.try_into().map_err(|_| ())
