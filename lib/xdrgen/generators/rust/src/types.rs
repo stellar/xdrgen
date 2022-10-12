@@ -1387,7 +1387,7 @@ pub struct StringM<const MAX: u32 = { u32::MAX }>(Vec<u8>);
 
 /// `write_utf8_lossy` is a modified copy of the Rust stdlib docs examples here:
 /// <https://doc.rust-lang.org/stable/core/str/struct.Utf8Error.html#examples>
-fn write_utf8_lossy<F>(f: &mut impl core::fmt::Write, mut input: &[u8]) -> core::fmt::Result {
+fn write_utf8_lossy(f: &mut impl core::fmt::Write, mut input: &[u8]) -> core::fmt::Result {
     loop {
         match core::str::from_utf8(input) {
             Ok(valid) => {
