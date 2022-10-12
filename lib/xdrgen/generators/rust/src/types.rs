@@ -1416,7 +1416,7 @@ impl<const MAX: u32> core::fmt::Display for StringM<MAX> {
         let v = &self.0;
         #[cfg(not(feature = "alloc"))]
         let v = self.0;
-        write_utf8_lossy(f, v);
+        write_utf8_lossy(f, v)?;
         Ok(())
     }
 }
@@ -1427,7 +1427,7 @@ impl<const MAX: u32> core::fmt::Debug for StringM<MAX> {
         let v = &self.0;
         #[cfg(not(feature = "alloc"))]
         let v = self.0;
-        write_utf8_lossy(f, v);
+        write_utf8_lossy(f, v)?;
         Ok(())
     }
 }
