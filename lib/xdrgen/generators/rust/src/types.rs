@@ -1018,9 +1018,7 @@ pub struct BytesM<const MAX: u32 = { u32::MAX }>(Vec<u8>);
 #[cfg(not(feature = "alloc"))]
 #[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
-pub struct BytesM<const MAX: u32 = { u32::MAX }>(Vec<u8>)
-where
-    T: 'static;
+pub struct BytesM<const MAX: u32 = { u32::MAX }>(Vec<u8>);
 
 impl<const MAX: u32> Deref for BytesM<MAX> {
     type Target = Vec<u8>;
@@ -1371,9 +1369,7 @@ pub struct StringM<const MAX: u32 = { u32::MAX }>(Vec<u8>);
 #[cfg(not(feature = "alloc"))]
 #[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
-pub struct StringM<const MAX: u32 = { u32::MAX }>(Vec<u8>)
-where
-    T: 'static;
+pub struct StringM<const MAX: u32 = { u32::MAX }>(Vec<u8>);
 
 impl<const MAX: u32> Deref for StringM<MAX> {
     type Target = Vec<u8>;
