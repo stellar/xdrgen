@@ -1392,7 +1392,7 @@ impl<const MAX: u32> core::fmt::Display for StringM<MAX> {
         let v = &self.0;
         #[cfg(not(feature = "alloc"))]
         let v = self.0;
-        let s = str::from_utf8(v).map_err(|_| core::fmt::Error)?;
+        let s = str::from_utf8_lossy(v);
         write!(f, "{s}")?;
         Ok(())
     }
@@ -1405,7 +1405,7 @@ impl<const MAX: u32> core::fmt::Debug for StringM<MAX> {
         let v = &self.0;
         #[cfg(not(feature = "alloc"))]
         let v = self.0;
-        let s = str::from_utf8(v).map_err(|_| core::fmt::Error)?;
+        let s = str::from_utf8_lossy(v);
         write!(f, "StringM({s})")?;
         Ok(())
     }
