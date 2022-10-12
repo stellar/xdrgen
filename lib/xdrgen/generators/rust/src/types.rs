@@ -1176,7 +1176,7 @@ impl<const N: usize, const MAX: u32> TryFrom<BytesM<MAX>> for [u8; N] {
     type Error = BytesM<MAX>;
 
     fn try_from(v: BytesM<MAX>) -> core::result::Result<Self, Self::Error> {
-        let s: [u8; N] = v.0.try_into().map_err(|v: Vec<u8>| BytesM::<MAX>(v))?;
+        let s: [u8; N] = v.0.try_into().map_err(BytesM::<MAX>)?;
         Ok(s)
     }
 }
@@ -1495,7 +1495,7 @@ impl<const N: usize, const MAX: u32> TryFrom<StringM<MAX>> for [u8; N] {
     type Error = StringM<MAX>;
 
     fn try_from(v: StringM<MAX>) -> core::result::Result<Self, Self::Error> {
-        let s: [u8; N] = v.0.try_into().map_err(|v: Vec<u8>| StringM::<MAX>(v))?;
+        let s: [u8; N] = v.0.try_into().map_err(StringM::<MAX>)?;
         Ok(s)
     }
 }
