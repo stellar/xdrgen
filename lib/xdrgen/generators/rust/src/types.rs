@@ -93,6 +93,8 @@ impl fmt::Display for Error {
             Error::LengthMismatch => write!(f, "xdr value length does not match"),
             Error::NonZeroPadding => write!(f, "xdr padding contains non-zero bytes"),
             Error::Utf8Error(e) => write!(f, "{}", e),
+            #[cfg(feature = "alloc")]
+            Error::InvalidHex => write!(f, "hex invalid"),
             #[cfg(feature = "std")]
             Error::Io(e) => write!(f, "{}", e),
         }
