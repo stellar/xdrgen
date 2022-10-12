@@ -1385,24 +1385,24 @@ pub struct StringM<const MAX: u32 = { u32::MAX }>(Vec<u8>);
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 pub struct StringM<const MAX: u32 = { u32::MAX }>(Vec<u8>);
 
-/// from_utf8_lossy is copyed from the Rust stdlib docs examples here:
-/// https://doc.rust-lang.org/stable/core/str/struct.Utf8Error.html#examples
-fn from_utf8_lossy<F>(mut input: &[u8], mut push: F) where F: FnMut(&str) -> core::fmt::Result {
+/// `write_utf8_lossy` is a modified copy of the Rust stdlib docs examples here:
+/// <https://doc.rust-lang.org/stable/core/str/struct.Utf8Error.html#examples>
+fn write_utf8_lossy<F>(f: &mut impl core::fmt::Write, mut input: &[u8]) -> core::fmt::Result {
     loop {
         match core::str::from_utf8(input) {
             Ok(valid) => {
-                push(valid);
-                break
+                write!(f, valid)?;
+                break;
             }
             Err(error) => {
                 let (valid, after_valid) = input.split_at(error.valid_up_to());
-                push(core::str::from_utf8(valid).unwrap());
-                push("\u{FFFD}");
+                write!(f, core::str::from_utf8(valid).unwrap())?;
+                write!(f, "\u{FFFD}")?;
 
                 if let Some(invalid_sequence_length) = error.error_len() {
-                    input = &after_valid[invalid_sequence_length..]
+                    input = &after_valid[invalid_sequence_length..];
                 } else {
-                    break
+                    break;
                 }
             }
         }
@@ -1415,7 +1415,7 @@ impl<const MAX: u32> core::fmt::Display for StringM<MAX> {
         let v = &self.0;
         #[cfg(not(feature = "alloc"))]
         let v = self.0;
-        from_utf8_lossy(v, |s| write!(f, "{s}"));
+        write_utf8_lossy(f, v);
         Ok(())
     }
 }
@@ -1426,7 +1426,7 @@ impl<const MAX: u32> core::fmt::Debug for StringM<MAX> {
         let v = &self.0;
         #[cfg(not(feature = "alloc"))]
         let v = self.0;
-        from_utf8_lossy(v, |s| write!(f, "{s}"));
+        write_utf8_lossy(f, v);
         Ok(())
     }
 }
