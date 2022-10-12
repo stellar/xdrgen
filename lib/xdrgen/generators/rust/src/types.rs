@@ -1027,13 +1027,12 @@ pub struct BytesM<const MAX: u32 = { u32::MAX }>(Vec<u8>);
 
 impl<const MAX: u32> core::fmt::Display for BytesM<MAX> {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        use hex::ToHex;
         #[cfg(feature = "alloc")]
         let v = &self.0;
         #[cfg(not(feature = "alloc"))]
         let v = self.0;
-        for c in v.encode_to_hex() {
-            write!(f, "{c}")?;
+        for b in v {
+            write!(f, "{b:02x}")?;
         }
         Ok(())
     }
@@ -1046,8 +1045,8 @@ impl<const MAX: u32> core::fmt::Debug for BytesM<MAX> {
         #[cfg(not(feature = "alloc"))]
         let v = self.0;
         write!(f, "BytesM(")?;
-        for c in v.encode_to_hex() {
-            write!(f, "{c}")?;
+        for b in v {
+            write!(f, "{b:02x}")?;
         }
         write!(f, ")")?;
         Ok(())
