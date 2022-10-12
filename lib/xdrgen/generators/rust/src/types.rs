@@ -1397,7 +1397,7 @@ fn write_utf8_lossy<F>(f: &mut impl core::fmt::Write, mut input: &[u8]) -> core:
             Err(error) => {
                 let (valid, after_valid) = input.split_at(error.valid_up_to());
                 write!(f, "{}", core::str::from_utf8(valid).unwrap())?;
-                write!(f, "{}", "\u{FFFD}")?;
+                write!(f, "\u{FFFD}")?;
 
                 if let Some(invalid_sequence_length) = error.error_len() {
                     input = &after_valid[invalid_sequence_length..];
