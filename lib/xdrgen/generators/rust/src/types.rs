@@ -1342,9 +1342,10 @@ pub struct StringM<const MAX: u32 = { u32::MAX }>(Vec<u8>);
 impl<const MAX: u32> core::fmt::Display for StringM<MAX> {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         use core::str;
-        let s = str::from_utf8(if cfg!(feature = "alloc") {
+        let s = str::from_utf8({
+            #[cfg(feature = "alloc")]
             &self.0
-        } else {
+            #[cfg(not(feature = "alloc"))]
             self.0
         })
         .map_err(|_| core::fmt::Error)?;
@@ -1356,9 +1357,10 @@ impl<const MAX: u32> core::fmt::Display for StringM<MAX> {
 impl<const MAX: u32> core::fmt::Debug for StringM<MAX> {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         use core::str;
-        let s = str::from_utf8(if cfg!(feature = "alloc") {
+        let s = str::from_utf8({
+            #[cfg(feature = "alloc")]
             &self.0
-        } else {
+            #[cfg(not(feature = "alloc"))]
             self.0
         })
         .map_err(|_| core::fmt::Error)?;
