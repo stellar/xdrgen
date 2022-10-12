@@ -1385,9 +1385,10 @@ pub struct StringM<const MAX: u32 = { u32::MAX }>(Vec<u8>);
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 pub struct StringM<const MAX: u32 = { u32::MAX }>(Vec<u8>);
 
+#[cfg(feature = "alloc")]
 impl<const MAX: u32> core::fmt::Display for StringM<MAX> {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        use core::str;
+        use alloc::str;
         #[cfg(feature = "alloc")]
         let v = &self.0;
         #[cfg(not(feature = "alloc"))]
@@ -1398,9 +1399,10 @@ impl<const MAX: u32> core::fmt::Display for StringM<MAX> {
     }
 }
 
+#[cfg(feature = "alloc")]
 impl<const MAX: u32> core::fmt::Debug for StringM<MAX> {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        use core::str;
+        use alloc::str;
         #[cfg(feature = "alloc")]
         let v = &self.0;
         #[cfg(not(feature = "alloc"))]
