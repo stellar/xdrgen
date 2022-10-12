@@ -1385,30 +1385,50 @@ pub struct StringM<const MAX: u32 = { u32::MAX }>(Vec<u8>);
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 pub struct StringM<const MAX: u32 = { u32::MAX }>(Vec<u8>);
 
-#[cfg(feature = "alloc")]
+/// from_utf8_lossy is copyed from the Rust stdlib docs examples here:
+/// https://doc.rust-lang.org/stable/core/str/struct.Utf8Error.html#examples
+fn from_utf8_lossy<F>(mut input: &[u8], mut push: F) where F: FnMut(&str) -> core::fmt::Result {
+    loop {
+        match core::str::from_utf8(input) {
+            Ok(valid) => {
+                push(valid);
+                break
+            }
+            Err(error) => {
+                let (valid, after_valid) = input.split_at(error.valid_up_to());
+                unsafe {
+                    push(core::str::from_utf8_unchecked(valid))
+                }
+                push("\u{FFFD}");
+
+                if let Some(invalid_sequence_length) = error.error_len() {
+                    input = &after_valid[invalid_sequence_length..]
+                } else {
+                    break
+                }
+            }
+        }
+    }
+}
+
 impl<const MAX: u32> core::fmt::Display for StringM<MAX> {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        use alloc::str;
         #[cfg(feature = "alloc")]
         let v = &self.0;
         #[cfg(not(feature = "alloc"))]
         let v = self.0;
-        let s = str::from_utf8_lossy(v);
-        write!(f, "{s}")?;
+        from_utf8_lossy(v, |s| write!(f, "{s}"));
         Ok(())
     }
 }
 
-#[cfg(feature = "alloc")]
 impl<const MAX: u32> core::fmt::Debug for StringM<MAX> {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        use alloc::str;
         #[cfg(feature = "alloc")]
         let v = &self.0;
         #[cfg(not(feature = "alloc"))]
         let v = self.0;
-        let s = str::from_utf8_lossy(v);
-        write!(f, "StringM({s})")?;
+        from_utf8_lossy(v, |s| write!(f, "{s}"));
         Ok(())
     }
 }
