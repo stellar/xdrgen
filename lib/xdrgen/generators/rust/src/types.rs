@@ -51,6 +51,8 @@ pub enum Error {
     LengthMismatch,
     NonZeroPadding,
     Utf8Error(core::str::Utf8Error),
+    #[cfg(feature = "alloc")]
+    InvalidHex,
     #[cfg(feature = "std")]
     Io(io::Error),
 }
@@ -1053,8 +1055,7 @@ impl<const MAX: u32> core::fmt::Debug for BytesM<MAX> {
 impl<const MAX: u32> core::str::FromStr for BytesM<MAX> {
     type Err = Error;
     fn from_str(s: &str) -> core::result::Result<Self, Self::Err> {
-        let b = hex::decode(s)
-        s.try_into()
+        hex::decode(s).map_err(|_| Error::InvalidHex)?.try_into()
     }
 }
 
