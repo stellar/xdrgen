@@ -1392,7 +1392,7 @@ impl<const MAX: u32> core::fmt::Display for StringM<MAX> {
         let v = &self.0;
         #[cfg(not(feature = "alloc"))]
         let v = self.0;
-        let s = str::from_utf8_lossy(v);
+        let s = escape8259::escape(v);
         write!(f, "{s}")?;
         Ok(())
     }
@@ -1405,7 +1405,7 @@ impl<const MAX: u32> core::fmt::Debug for StringM<MAX> {
         let v = &self.0;
         #[cfg(not(feature = "alloc"))]
         let v = self.0;
-        let s = str::from_utf8_lossy(v);
+        let s = escape8259::escape(v);
         write!(f, "StringM({s})")?;
         Ok(())
     }
@@ -1415,7 +1415,7 @@ impl<const MAX: u32> core::fmt::Debug for StringM<MAX> {
 impl<const MAX: u32> core::str::FromStr for StringM<MAX> {
     type Err = Error;
     fn from_str(s: &str) -> core::result::Result<Self, Self::Err> {
-        s.try_into()
+        escape8259::unescape(s).try_into()
     }
 }
 
