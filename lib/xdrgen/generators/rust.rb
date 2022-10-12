@@ -763,17 +763,17 @@ module Xdrgen
           raise 'no quadruple support for rust'
         when AST::Typespecs::String
           if !type.decl.resolved_size.nil?
-            "VecM::<u8, #{type.decl.resolved_size}>"
+            "StringM::<#{type.decl.resolved_size}>"
           else
-            "VecM::<u8>"
+            "StringM"
           end
         when AST::Typespecs::Opaque
           if type.fixed?
             "[u8; #{type.size}]"
           elsif !type.decl.resolved_size.nil?
-            "VecM::<u8, #{type.decl.resolved_size}>"
+            "BytesM::<#{type.decl.resolved_size}>"
           else
-            "VecM::<u8>"
+            "BytesM"
           end
         when AST::Typespecs::Simple, AST::Definitions::Base, AST::Concerns::NestedDefinition
           if type.respond_to?(:resolved_type) && AST::Definitions::Typedef === type.resolved_type && is_builtin_type(type.resolved_type.type)
@@ -841,17 +841,17 @@ module Xdrgen
         case type
         when AST::Typespecs::String
           if !type.decl.resolved_size.nil?
-            "VecM::<u8, #{type.decl.resolved_size}>"
+            "StringM::<#{type.decl.resolved_size}>"
           else
-            "VecM::<u8>"
+            "StringM"
           end
         when AST::Typespecs::Opaque
           if type.fixed?
             "[u8; #{type.size}]"
           elsif !type.decl.resolved_size.nil?
-            "VecM::<u8, #{type.decl.resolved_size}>"
+            "BytesM::<#{type.decl.resolved_size}>"
           else
-            "VecM::<u8>"
+            "BytesM"
           end
         when AST::Typespecs::Simple, AST::Definitions::Base, AST::Concerns::NestedDefinition
           if type.respond_to?(:resolved_type) && AST::Definitions::Typedef === type.resolved_type && is_builtin_type(type.resolved_type.type)
