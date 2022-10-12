@@ -1326,7 +1326,7 @@ impl<const MAX: u32> WriteXdr for BytesM<MAX> {
     }
 }
 
-impl<T: ReadXdr, const MAX: u32> ReadXdr for BytesM<MAX> {
+impl<const MAX: u32> ReadXdr for BytesM<MAX> {
     #[cfg(feature = "std")]
     fn read_xdr(r: &mut impl Read) -> Result<Self> {
         let len = u32::read_xdr(r)?;
@@ -1344,7 +1344,7 @@ impl<T: ReadXdr, const MAX: u32> ReadXdr for BytesM<MAX> {
     }
 }
 
-impl<T: WriteXdr, const MAX: u32> WriteXdr for BytesM<MAX> {
+impl<const MAX: u32> WriteXdr for BytesM<MAX> {
     #[cfg(feature = "std")]
     fn write_xdr(&self, w: &mut impl Write) -> Result<()> {
         let len: u32 = self.len().try_into().map_err(|_| Error::LengthExceedsMax)?;
@@ -1677,7 +1677,7 @@ impl<const MAX: u32> WriteXdr for StringM<MAX> {
     }
 }
 
-impl<T: ReadXdr, const MAX: u32> ReadXdr for StringM<MAX> {
+impl<const MAX: u32> ReadXdr for StringM<MAX> {
     #[cfg(feature = "std")]
     fn read_xdr(r: &mut impl Read) -> Result<Self> {
         let len = u32::read_xdr(r)?;
@@ -1695,7 +1695,7 @@ impl<T: ReadXdr, const MAX: u32> ReadXdr for StringM<MAX> {
     }
 }
 
-impl<T: WriteXdr, const MAX: u32> WriteXdr for StringM<MAX> {
+impl<const MAX: u32> WriteXdr for StringM<MAX> {
     #[cfg(feature = "std")]
     fn write_xdr(&self, w: &mut impl Write) -> Result<()> {
         let len: u32 = self.len().try_into().map_err(|_| Error::LengthExceedsMax)?;
