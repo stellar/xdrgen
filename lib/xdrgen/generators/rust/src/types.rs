@@ -1011,7 +1011,10 @@ impl<T: WriteXdr, const MAX: u32> WriteXdr for VecM<T, MAX> {
 
 #[cfg(feature = "alloc")]
 #[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(
+    feature = "serde",
+    derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr)
+)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 pub struct BytesM<const MAX: u32 = { u32::MAX }>(Vec<u8>);
 
@@ -1019,6 +1022,41 @@ pub struct BytesM<const MAX: u32 = { u32::MAX }>(Vec<u8>);
 #[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 pub struct BytesM<const MAX: u32 = { u32::MAX }>(Vec<u8>);
+
+#[cfg(feature = "alloc")]
+impl<const MAX: u32> core::fmt::Display for BytesM<MAX> {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        #[cfg(feature = "alloc")]
+        let v = &self.0;
+        #[cfg(not(feature = "alloc"))]
+        let v = self.0;
+        let s = hex::encode(v);
+        write!(f, "{s}")?;
+        Ok(())
+    }
+}
+
+#[cfg(feature = "alloc")]
+impl<const MAX: u32> core::fmt::Debug for BytesM<MAX> {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        #[cfg(feature = "alloc")]
+        let v = &self.0;
+        #[cfg(not(feature = "alloc"))]
+        let v = self.0;
+        let s = hex::encode(v);
+        write!(f, "BytesM({s})")?;
+        Ok(())
+    }
+}
+
+#[cfg(feature = "alloc")]
+impl<const MAX: u32> core::str::FromStr for BytesM<MAX> {
+    type Err = Error;
+    fn from_str(s: &str) -> core::result::Result<Self, Self::Err> {
+        let b = hex::decode(s)
+        s.try_into()
+    }
+}
 
 impl<const MAX: u32> Deref for BytesM<MAX> {
     type Target = Vec<u8>;

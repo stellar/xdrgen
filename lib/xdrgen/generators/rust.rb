@@ -577,7 +577,12 @@ module Xdrgen
           out.puts %{#[cfg_attr(feature = "arbitrary", derive(Arbitrary))]}
           out.puts "#[derive(Default)]" if is_var_array_type(typedef.type)
           out.puts %{#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "camelCase"))]}
-          out.puts "pub struct #{name typedef}(pub #{reference(typedef, typedef.type)});"
+          out.puts <<-EOS.strip_heredoc
+          pub struct #{name typedef}(
+              #[cfg_attr(all(feature = "serde", feature = "alloc"), serde(with = "hex"))]
+              pub #{reference(typedef, typedef.type)}
+          );
+          EOS
           out.puts ""
           out.puts <<-EOS.strip_heredoc
           impl From<#{name typedef}> for #{reference(typedef, typedef.type)} {
