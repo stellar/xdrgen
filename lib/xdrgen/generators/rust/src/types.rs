@@ -1360,7 +1360,7 @@ impl<const MAX: u32> core::fmt::Debug for StringM<MAX> {
 #[cfg(feature = "alloc")]
 impl<const MAX: u32> core::str::FromStr for StringM<MAX> {
     type Err = ();
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
+    fn from_str(s: &str) -> core::result::Result<Self, Self::Err> {
         s.try_into().map_err(|_| ())
     }
 }
