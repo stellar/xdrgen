@@ -609,7 +609,7 @@ module Xdrgen
           }
 
           #[cfg(feature = "alloc")]
-          impl<const MAX: u32> core::str::FromStr for #{name typedef} {
+          impl core::str::FromStr for #{name typedef} {
             type Err = Error;
             fn from_str(s: &str) -> core::result::Result<Self, Self::Err> {
                 hex::decode(s).map_err(|_| Error::InvalidHex)?.try_into()
