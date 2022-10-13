@@ -573,12 +573,50 @@ module Xdrgen
         if is_builtin_type(typedef.type)
           out.puts "pub type #{name typedef} = #{reference(typedef, typedef.type)};"
         else
-          out.puts "#[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]"
+          out.puts "#[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]"
           out.puts %{#[cfg_attr(feature = "arbitrary", derive(Arbitrary))]}
           out.puts "#[derive(Default)]" if is_var_array_type(typedef.type)
+          if is_fixed_array_opaque(typedef.type)
+          out.puts %{#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr))]}
+          else
+          out.puts "#[derive(Debug)]"
           out.puts %{#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "camelCase"))]}
+          end
           out.puts "pub struct #{name typedef}(pub #{reference(typedef, typedef.type)});"
           out.puts ""
+          if is_fixed_array_opaque(typedef.type)
+          out.puts <<-EOS.strip_heredoc
+          impl core::fmt::Display for #{name typedef} {
+            fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+                let v = &self.0;
+                for b in v {
+                    write!(f, "{b:02x}")?;
+                }
+                Ok(())
+            }
+          }
+
+          impl core::fmt::Debug for #{name typedef} {
+            fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+                let v = &self.0;
+                write!(f, "#{name typedef}(")?;
+                for b in v {
+                    write!(f, "{b:02x}")?;
+                }
+                write!(f, ")")?;
+                Ok(())
+            }
+          }
+
+          #[cfg(feature = "alloc")]
+          impl core::str::FromStr for #{name typedef} {
+            type Err = Error;
+            fn from_str(s: &str) -> core::result::Result<Self, Self::Err> {
+                hex::decode(s).map_err(|_| Error::InvalidHex)?.try_into()
+            }
+          }
+          EOS
+          end
           out.puts <<-EOS.strip_heredoc
           impl From<#{name typedef}> for #{reference(typedef, typedef.type)} {
               #[must_use]
@@ -730,6 +768,10 @@ module Xdrgen
         ].any? { |t| t === type }
       end
 
+      def is_fixed_array_opaque(type)
+        (AST::Typespecs::Opaque === type && type.fixed?)
+      end
+
       def is_fixed_array_type(type)
         (AST::Typespecs::Opaque === type && type.fixed?) ||
         (type.sub_type == :array)
@@ -763,17 +805,17 @@ module Xdrgen
           raise 'no quadruple support for rust'
         when AST::Typespecs::String
           if !type.decl.resolved_size.nil?
-            "VecM::<u8, #{type.decl.resolved_size}>"
+            "StringM::<#{type.decl.resolved_size}>"
           else
-            "VecM::<u8>"
+            "StringM"
           end
         when AST::Typespecs::Opaque
           if type.fixed?
             "[u8; #{type.size}]"
           elsif !type.decl.resolved_size.nil?
-            "VecM::<u8, #{type.decl.resolved_size}>"
+            "BytesM::<#{type.decl.resolved_size}>"
           else
-            "VecM::<u8>"
+            "BytesM"
           end
         when AST::Typespecs::Simple, AST::Definitions::Base, AST::Concerns::NestedDefinition
           if type.respond_to?(:resolved_type) && AST::Definitions::Typedef === type.resolved_type && is_builtin_type(type.resolved_type.type)
@@ -841,17 +883,17 @@ module Xdrgen
         case type
         when AST::Typespecs::String
           if !type.decl.resolved_size.nil?
-            "VecM::<u8, #{type.decl.resolved_size}>"
+            "StringM::<#{type.decl.resolved_size}>"
           else
-            "VecM::<u8>"
+            "StringM"
           end
         when AST::Typespecs::Opaque
           if type.fixed?
             "[u8; #{type.size}]"
           elsif !type.decl.resolved_size.nil?
-            "VecM::<u8, #{type.decl.resolved_size}>"
+            "BytesM::<#{type.decl.resolved_size}>"
           else
-            "VecM::<u8>"
+            "BytesM"
           end
         when AST::Typespecs::Simple, AST::Definitions::Base, AST::Concerns::NestedDefinition
           if type.respond_to?(:resolved_type) && AST::Definitions::Typedef === type.resolved_type && is_builtin_type(type.resolved_type.type)
