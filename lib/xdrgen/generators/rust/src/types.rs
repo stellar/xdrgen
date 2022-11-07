@@ -511,7 +511,7 @@ impl ReadXdr for bool {
 impl WriteXdr for bool {
     #[cfg(feature = "std")]
     fn write_xdr(&self, w: &mut impl Write) -> Result<()> {
-        let i: u32 = if *self { 1 } else { 0 };
+        let i = u32::from(*self); // true = 1, false = 0
         i.write_xdr(w)?;
         Ok(())
     }
