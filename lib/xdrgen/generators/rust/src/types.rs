@@ -47,6 +47,7 @@ use std::{
 #[derive(Debug)]
 pub enum Error {
     Invalid,
+    Unsupported,
     LengthExceedsMax,
     LengthMismatch,
     NonZeroPadding,
@@ -89,6 +90,7 @@ impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Error::Invalid => write!(f, "xdr value invalid"),
+            Error::Unsupported => write!(f, "xdr value unsupported"),
             Error::LengthExceedsMax => write!(f, "xdr value max length exceeded"),
             Error::LengthMismatch => write!(f, "xdr value length does not match"),
             Error::NonZeroPadding => write!(f, "xdr padding contains non-zero bytes"),
@@ -169,14 +171,14 @@ where
 }
 
 #[cfg(feature = "std")]
-pub struct ReadXdrIter<'r, R: Read, S: ReadXdr> {
-    reader: BufReader<&'r mut R>,
+pub struct ReadXdrIter<R: Read, S: ReadXdr> {
+    reader: BufReader<R>,
     _s: PhantomData<S>,
 }
 
 #[cfg(feature = "std")]
-impl<'r, R: Read, S: ReadXdr> ReadXdrIter<'r, R, S> {
-    fn new(r: &'r mut R) -> Self {
+impl<R: Read, S: ReadXdr> ReadXdrIter<R, S> {
+    fn new(r: R) -> Self {
         Self {
             reader: BufReader::new(r),
             _s: PhantomData,
@@ -185,7 +187,7 @@ impl<'r, R: Read, S: ReadXdr> ReadXdrIter<'r, R, S> {
 }
 
 #[cfg(feature = "std")]
-impl<'r, R: Read, S: ReadXdr> Iterator for ReadXdrIter<'r, R, S> {
+impl<R: Read, S: ReadXdr> Iterator for ReadXdrIter<R, S> {
     type Item = Result<S>;
 
     // Next reads the internal reader and XDR decodes it into the Self type. If
@@ -240,6 +242,17 @@ where
     #[cfg(feature = "std")]
     fn read_xdr(r: &mut impl Read) -> Result<Self>;
 
+    /// Construct the type from the XDR bytes base64 encoded.
+    ///
+    /// An error is returned if the bytes are not completely consumed by the
+    /// deserialization.
+    #[cfg(feature = "base64")]
+    fn read_xdr_base64(r: &mut impl Read) -> Result<Self> {
+        let mut dec = base64::read::DecoderReader::new(r, base64::STANDARD);
+        let t = Self::read_xdr(&mut dec)?;
+        Ok(t)
+    }
+
     /// Read the XDR and construct the type, and consider it an error if the
     /// read does not completely consume the read implementation.
     ///
@@ -268,6 +281,17 @@ where
         } else {
             Err(Error::Invalid)
         }
+    }
+
+    /// Construct the type from the XDR bytes base64 encoded.
+    ///
+    /// An error is returned if the bytes are not completely consumed by the
+    /// deserialization.
+    #[cfg(feature = "base64")]
+    fn read_xdr_base64_to_end(r: &mut impl Read) -> Result<Self> {
+        let mut dec = base64::read::DecoderReader::new(r, base64::STANDARD);
+        let t = Self::read_xdr_to_end(&mut dec)?;
+        Ok(t)
     }
 
     /// Read the XDR and construct the type.
@@ -341,6 +365,16 @@ where
     #[cfg(feature = "std")]
     fn read_xdr_iter<R: Read>(r: &mut R) -> ReadXdrIter<R, Self> {
         ReadXdrIter::new(r)
+    }
+
+    /// Create an iterator that reads the read implementation as a stream of
+    /// values that are read into the implementing type.
+    #[cfg(feature = "base64")]
+    fn read_xdr_base64_iter<R: Read>(
+        r: &mut R,
+    ) -> ReadXdrIter<base64::read::DecoderReader<R>, Self> {
+        let dec = base64::read::DecoderReader::new(r, base64::STANDARD);
+        ReadXdrIter::new(dec)
     }
 
     /// Construct the type from the XDR bytes.
@@ -1745,6 +1779,42 @@ impl<const MAX: u32> WriteXdr for StringM<MAX> {
         w.write_all(&[0u8; 3][..pad_len(len as usize)])?;
 
         Ok(())
+    }
+}
+
+// Frame ------------------------------------------------------------------------
+
+#[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[cfg_attr(
+    all(feature = "serde", feature = "alloc"),
+    derive(serde::Serialize, serde::Deserialize),
+    serde(rename_all = "camelCase")
+)]
+pub struct Frame<T>(pub T)
+where
+    T: ReadXdr;
+
+impl<T> ReadXdr for Frame<T>
+where
+    T: ReadXdr,
+{
+    #[cfg(feature = "std")]
+    fn read_xdr(r: &mut impl Read) -> Result<Self> {
+        // Read the frame header value that contains 1 flag-bit and a 33-bit length.
+        //  - The 1 flag bit is 0 when there are more frames for the same record.
+        //  - The 31-bit length is the length of the bytes within the frame that
+        //  follow the frame header.
+        let header = u32::read_xdr(r)?;
+        // TODO: Use the length and cap the length we'll read from `r`.
+        let last_record = header >> 31 == 1;
+        if last_record {
+            // Read the record in the frame.
+            Ok(Self(T::read_xdr(r)?))
+        } else {
+            // TODO: Support reading those additional frames for the same
+            // record.
+            Err(Error::Unsupported)
+        }
     }
 }
 
