@@ -37,6 +37,12 @@ class MyUnion:
         self.type = type
         self.error = error
         self.things = things
+    @classmethod
+    def from_error(cls, error: Error) -> "MyUnion":
+        return cls(UnionKey.ERROR, error=error)
+    @classmethod
+    def from_multi(cls, things: List[Multi]) -> "MyUnion":
+        return cls(UnionKey.MULTI, things=things)
     def pack(self, packer: Packer) -> None:
         self.type.pack(packer)
         if self.type == UnionKey.ERROR:

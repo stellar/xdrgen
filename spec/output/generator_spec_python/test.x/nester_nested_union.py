@@ -27,6 +27,9 @@ class NesterNestedUnion:
     ) -> None:
         self.color = color
         self.blah2 = blah2
+    @classmethod
+    def from_red(cls) -> "NesterNestedUnion":
+        return cls(Color.RED)
     def pack(self, packer: Packer) -> None:
         self.color.pack(packer)
         if self.color == Color.RED:
