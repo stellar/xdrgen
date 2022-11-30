@@ -1822,9 +1822,7 @@ where
 mod tests {
     use std::io::Cursor;
 
-    use crate::WriteXdr;
-
-    use super::{Error, ReadXdr, VecM};
+    use super::{Error, ReadXdr, VecM, WriteXdr};
 
     #[test]
     pub fn vec_u8_read_without_padding() {
@@ -1929,7 +1927,7 @@ mod tests {
 
 #[cfg(all(test, feature = "std"))]
 mod test {
-    use crate::VecM;
+    use super::VecM;
 
     #[test]
     fn into_option_none() {
@@ -1958,7 +1956,7 @@ mod test {
 
 #[cfg(all(test, not(feature = "alloc")))]
 mod test {
-    use crate::VecM;
+    use super::VecM;
 
     #[test]
     fn to_option_none() {
