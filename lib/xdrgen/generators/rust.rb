@@ -100,7 +100,7 @@ module Xdrgen
         #[cfg_attr(
           all(feature = "serde", feature = "alloc"),
           derive(serde::Serialize, serde::Deserialize),
-          serde(rename_all = "camelCase")
+          serde(rename_all = "snake_case")
         )]
         pub enum TypeVariant {
             #{types.map { |t| "#{t}," }.join("\n")}
@@ -153,7 +153,7 @@ module Xdrgen
         #[cfg_attr(
           all(feature = "serde", feature = "alloc"),
           derive(serde::Serialize, serde::Deserialize),
-          serde(rename_all = "camelCase"),
+          serde(rename_all = "snake_case"),
           serde(untagged),
         )]
         pub enum Type {
@@ -343,7 +343,7 @@ module Xdrgen
       def render_struct(out, struct)
         out.puts "#[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]"
         out.puts %{#[cfg_attr(feature = "arbitrary", derive(Arbitrary))]}
-        out.puts %{#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "camelCase"))]}
+        out.puts %{#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]}
         out.puts "pub struct #{name struct} {"
         out.indent do
           struct.members.each do |m|
@@ -381,7 +381,7 @@ module Xdrgen
         out.puts "// enum"
         out.puts "#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]"
         out.puts %{#[cfg_attr(feature = "arbitrary", derive(Arbitrary))]}
-        out.puts %{#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "camelCase"))]}
+        out.puts %{#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]}
         out.puts "#[repr(i32)]"
         out.puts "pub enum #{name enum} {"
         out.indent do
@@ -502,7 +502,7 @@ module Xdrgen
         out.puts "// union with discriminant #{discriminant_type}"
         out.puts "#[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]"
         out.puts %{#[cfg_attr(feature = "arbitrary", derive(Arbitrary))]}
-        out.puts %{#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "camelCase"))]}
+        out.puts %{#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]}
         out.puts "#[allow(clippy::large_enum_variant)]"
         out.puts "pub enum #{name union} {"
         union_case_count = 0
@@ -632,7 +632,7 @@ module Xdrgen
           out.puts %{#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr))]}
           else
           out.puts "#[derive(Debug)]"
-          out.puts %{#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "camelCase"))]}
+          out.puts %{#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]}
           end
           out.puts "pub struct #{name typedef}(pub #{reference(typedef, typedef.type)});"
           out.puts ""

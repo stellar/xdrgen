@@ -1798,7 +1798,7 @@ impl<const MAX: u32> WriteXdr for StringM<MAX> {
 #[cfg_attr(
     all(feature = "serde", feature = "alloc"),
     derive(serde::Serialize, serde::Deserialize),
-    serde(rename_all = "camelCase")
+    serde(rename_all = "snake_case")
 )]
 pub struct Frame<T>(pub T)
 where
@@ -1994,7 +1994,7 @@ mod test {
 // enum
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
-#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "camelCase"))]
+#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
 #[repr(i32)]
 pub enum UnionKey {
   One = 1,
@@ -2099,7 +2099,7 @@ pub type Foo = i32;
 //
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
-#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "camelCase"))]
+#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
 pub struct MyUnionOne {
   pub some_int: i32,
 }
@@ -2130,7 +2130,7 @@ impl WriteXdr for MyUnionOne {
 //
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
-#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "camelCase"))]
+#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
 pub struct MyUnionTwo {
   pub some_int: i32,
   pub foo: i32,
@@ -2177,7 +2177,7 @@ self.foo.write_xdr(w)?;
 // union with discriminant UnionKey
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
-#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "camelCase"))]
+#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
 #[allow(clippy::large_enum_variant)]
 pub enum MyUnion {
   One(MyUnionOne),
@@ -2278,7 +2278,7 @@ Self::Offer => ().write_xdr(w)?,
         #[cfg_attr(
           all(feature = "serde", feature = "alloc"),
           derive(serde::Serialize, serde::Deserialize),
-          serde(rename_all = "camelCase")
+          serde(rename_all = "snake_case")
         )]
         pub enum TypeVariant {
             UnionKey,
@@ -2351,7 +2351,7 @@ Self::MyUnionTwo => "MyUnionTwo",
         #[cfg_attr(
           all(feature = "serde", feature = "alloc"),
           derive(serde::Serialize, serde::Deserialize),
-          serde(rename_all = "camelCase"),
+          serde(rename_all = "snake_case"),
           serde(untagged),
         )]
         pub enum Type {
