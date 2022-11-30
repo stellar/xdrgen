@@ -373,7 +373,7 @@ where
     /// All implementations should continue if the read implementation returns
     /// [`ErrorKind::Interrupted`](std::io::ErrorKind::Interrupted).
     #[cfg(feature = "std")]
-    fn read_xdr_iter<R: Read>(r: &mut R) -> ReadXdrIter<R, Self> {
+    fn read_xdr_iter<R: Read>(r: &mut R) -> ReadXdrIter<&mut R, Self> {
         ReadXdrIter::new(r)
     }
 
@@ -2507,6 +2507,19 @@ TypeVariant::IntUnion2 => Box::new(ReadXdrIter::<_, IntUnion2>::new(r).map(|r| r
                 }
             }
 
+            #[cfg(feature = "std")]
+            #[allow(clippy::too_many_lines)]
+            pub fn read_xdr_framed_iter<R: Read>(v: TypeVariant, r: &mut R) -> Box<dyn Iterator<Item=Result<Self>> + '_> {
+                match v {
+                    TypeVariant::SError => Box::new(ReadXdrIter::<_, Frame<SError>>::new(r).map(|r| r.map(|t| Self::SError(Box::new(t.0))))),
+TypeVariant::Multi => Box::new(ReadXdrIter::<_, Frame<Multi>>::new(r).map(|r| r.map(|t| Self::Multi(Box::new(t.0))))),
+TypeVariant::UnionKey => Box::new(ReadXdrIter::<_, Frame<UnionKey>>::new(r).map(|r| r.map(|t| Self::UnionKey(Box::new(t.0))))),
+TypeVariant::MyUnion => Box::new(ReadXdrIter::<_, Frame<MyUnion>>::new(r).map(|r| r.map(|t| Self::MyUnion(Box::new(t.0))))),
+TypeVariant::IntUnion => Box::new(ReadXdrIter::<_, Frame<IntUnion>>::new(r).map(|r| r.map(|t| Self::IntUnion(Box::new(t.0))))),
+TypeVariant::IntUnion2 => Box::new(ReadXdrIter::<_, Frame<IntUnion2>>::new(r).map(|r| r.map(|t| Self::IntUnion2(Box::new(t.0))))),
+                }
+            }
+
             #[cfg(feature = "base64")]
             #[allow(clippy::too_many_lines)]
             pub fn read_xdr_base64_iter<R: Read>(v: TypeVariant, r: &mut R) -> Box<dyn Iterator<Item=Result<Self>> + '_> {
@@ -2537,8 +2550,8 @@ TypeVariant::IntUnion2 => Box::new(ReadXdrIter::<_, IntUnion2>::new(dec).map(|r|
             }
 
             #[cfg(feature = "alloc")]
-            #[allow(clippy::too_many_lines)]
             #[must_use]
+            #[allow(clippy::too_many_lines)]
             pub fn value(&self) -> &dyn core::any::Any {
                 match self {
                     Self::SError(ref v) => v.as_ref(),

@@ -373,7 +373,7 @@ where
     /// All implementations should continue if the read implementation returns
     /// [`ErrorKind::Interrupted`](std::io::ErrorKind::Interrupted).
     #[cfg(feature = "std")]
-    fn read_xdr_iter<R: Read>(r: &mut R) -> ReadXdrIter<R, Self> {
+    fn read_xdr_iter<R: Read>(r: &mut R) -> ReadXdrIter<&mut R, Self> {
         ReadXdrIter::new(r)
     }
 
@@ -3644,6 +3644,36 @@ TypeVariant::NesterNestedUnion => Box::new(ReadXdrIter::<_, NesterNestedUnion>::
                 }
             }
 
+            #[cfg(feature = "std")]
+            #[allow(clippy::too_many_lines)]
+            pub fn read_xdr_framed_iter<R: Read>(v: TypeVariant, r: &mut R) -> Box<dyn Iterator<Item=Result<Self>> + '_> {
+                match v {
+                    TypeVariant::Uint512 => Box::new(ReadXdrIter::<_, Frame<Uint512>>::new(r).map(|r| r.map(|t| Self::Uint512(Box::new(t.0))))),
+TypeVariant::Uint513 => Box::new(ReadXdrIter::<_, Frame<Uint513>>::new(r).map(|r| r.map(|t| Self::Uint513(Box::new(t.0))))),
+TypeVariant::Uint514 => Box::new(ReadXdrIter::<_, Frame<Uint514>>::new(r).map(|r| r.map(|t| Self::Uint514(Box::new(t.0))))),
+TypeVariant::Str => Box::new(ReadXdrIter::<_, Frame<Str>>::new(r).map(|r| r.map(|t| Self::Str(Box::new(t.0))))),
+TypeVariant::Str2 => Box::new(ReadXdrIter::<_, Frame<Str2>>::new(r).map(|r| r.map(|t| Self::Str2(Box::new(t.0))))),
+TypeVariant::Hash => Box::new(ReadXdrIter::<_, Frame<Hash>>::new(r).map(|r| r.map(|t| Self::Hash(Box::new(t.0))))),
+TypeVariant::Hashes1 => Box::new(ReadXdrIter::<_, Frame<Hashes1>>::new(r).map(|r| r.map(|t| Self::Hashes1(Box::new(t.0))))),
+TypeVariant::Hashes2 => Box::new(ReadXdrIter::<_, Frame<Hashes2>>::new(r).map(|r| r.map(|t| Self::Hashes2(Box::new(t.0))))),
+TypeVariant::Hashes3 => Box::new(ReadXdrIter::<_, Frame<Hashes3>>::new(r).map(|r| r.map(|t| Self::Hashes3(Box::new(t.0))))),
+TypeVariant::OptHash1 => Box::new(ReadXdrIter::<_, Frame<OptHash1>>::new(r).map(|r| r.map(|t| Self::OptHash1(Box::new(t.0))))),
+TypeVariant::OptHash2 => Box::new(ReadXdrIter::<_, Frame<OptHash2>>::new(r).map(|r| r.map(|t| Self::OptHash2(Box::new(t.0))))),
+TypeVariant::Int1 => Box::new(ReadXdrIter::<_, Frame<Int1>>::new(r).map(|r| r.map(|t| Self::Int1(Box::new(t.0))))),
+TypeVariant::Int2 => Box::new(ReadXdrIter::<_, Frame<Int2>>::new(r).map(|r| r.map(|t| Self::Int2(Box::new(t.0))))),
+TypeVariant::Int3 => Box::new(ReadXdrIter::<_, Frame<Int3>>::new(r).map(|r| r.map(|t| Self::Int3(Box::new(t.0))))),
+TypeVariant::Int4 => Box::new(ReadXdrIter::<_, Frame<Int4>>::new(r).map(|r| r.map(|t| Self::Int4(Box::new(t.0))))),
+TypeVariant::MyStruct => Box::new(ReadXdrIter::<_, Frame<MyStruct>>::new(r).map(|r| r.map(|t| Self::MyStruct(Box::new(t.0))))),
+TypeVariant::LotsOfMyStructs => Box::new(ReadXdrIter::<_, Frame<LotsOfMyStructs>>::new(r).map(|r| r.map(|t| Self::LotsOfMyStructs(Box::new(t.0))))),
+TypeVariant::HasStuff => Box::new(ReadXdrIter::<_, Frame<HasStuff>>::new(r).map(|r| r.map(|t| Self::HasStuff(Box::new(t.0))))),
+TypeVariant::Color => Box::new(ReadXdrIter::<_, Frame<Color>>::new(r).map(|r| r.map(|t| Self::Color(Box::new(t.0))))),
+TypeVariant::Nester => Box::new(ReadXdrIter::<_, Frame<Nester>>::new(r).map(|r| r.map(|t| Self::Nester(Box::new(t.0))))),
+TypeVariant::NesterNestedEnum => Box::new(ReadXdrIter::<_, Frame<NesterNestedEnum>>::new(r).map(|r| r.map(|t| Self::NesterNestedEnum(Box::new(t.0))))),
+TypeVariant::NesterNestedStruct => Box::new(ReadXdrIter::<_, Frame<NesterNestedStruct>>::new(r).map(|r| r.map(|t| Self::NesterNestedStruct(Box::new(t.0))))),
+TypeVariant::NesterNestedUnion => Box::new(ReadXdrIter::<_, Frame<NesterNestedUnion>>::new(r).map(|r| r.map(|t| Self::NesterNestedUnion(Box::new(t.0))))),
+                }
+            }
+
             #[cfg(feature = "base64")]
             #[allow(clippy::too_many_lines)]
             pub fn read_xdr_base64_iter<R: Read>(v: TypeVariant, r: &mut R) -> Box<dyn Iterator<Item=Result<Self>> + '_> {
@@ -3691,8 +3721,8 @@ TypeVariant::NesterNestedUnion => Box::new(ReadXdrIter::<_, NesterNestedUnion>::
             }
 
             #[cfg(feature = "alloc")]
-            #[allow(clippy::too_many_lines)]
             #[must_use]
+            #[allow(clippy::too_many_lines)]
             pub fn value(&self) -> &dyn core::any::Any {
                 match self {
                     Self::Uint512(ref v) => v.as_ref(),

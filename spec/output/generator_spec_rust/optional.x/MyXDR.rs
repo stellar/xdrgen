@@ -373,7 +373,7 @@ where
     /// All implementations should continue if the read implementation returns
     /// [`ErrorKind::Interrupted`](std::io::ErrorKind::Interrupted).
     #[cfg(feature = "std")]
-    fn read_xdr_iter<R: Read>(r: &mut R) -> ReadXdrIter<R, Self> {
+    fn read_xdr_iter<R: Read>(r: &mut R) -> ReadXdrIter<&mut R, Self> {
         ReadXdrIter::new(r)
     }
 
@@ -2148,6 +2148,15 @@ TypeVariant::HasOptions => Box::new(ReadXdrIter::<_, HasOptions>::new(r).map(|r|
                 }
             }
 
+            #[cfg(feature = "std")]
+            #[allow(clippy::too_many_lines)]
+            pub fn read_xdr_framed_iter<R: Read>(v: TypeVariant, r: &mut R) -> Box<dyn Iterator<Item=Result<Self>> + '_> {
+                match v {
+                    TypeVariant::Arr => Box::new(ReadXdrIter::<_, Frame<Arr>>::new(r).map(|r| r.map(|t| Self::Arr(Box::new(t.0))))),
+TypeVariant::HasOptions => Box::new(ReadXdrIter::<_, Frame<HasOptions>>::new(r).map(|r| r.map(|t| Self::HasOptions(Box::new(t.0))))),
+                }
+            }
+
             #[cfg(feature = "base64")]
             #[allow(clippy::too_many_lines)]
             pub fn read_xdr_base64_iter<R: Read>(v: TypeVariant, r: &mut R) -> Box<dyn Iterator<Item=Result<Self>> + '_> {
@@ -2174,8 +2183,8 @@ TypeVariant::HasOptions => Box::new(ReadXdrIter::<_, HasOptions>::new(dec).map(|
             }
 
             #[cfg(feature = "alloc")]
-            #[allow(clippy::too_many_lines)]
             #[must_use]
+            #[allow(clippy::too_many_lines)]
             pub fn value(&self) -> &dyn core::any::Any {
                 match self {
                     Self::Arr(ref v) => v.as_ref(),
