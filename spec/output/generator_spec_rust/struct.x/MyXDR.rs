@@ -1798,7 +1798,7 @@ impl<const MAX: u32> WriteXdr for StringM<MAX> {
 #[cfg_attr(
     all(feature = "serde", feature = "alloc"),
     derive(serde::Serialize, serde::Deserialize),
-    serde(rename_all = "camelCase")
+    serde(rename_all = "snake_case")
 )]
 pub struct Frame<T>(pub T)
 where
@@ -2002,7 +2002,7 @@ pub type Int64 = i64;
 //
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
-#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "camelCase"))]
+#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
 pub struct MyStruct {
   pub some_int: i32,
   pub a_big_int: i64,
@@ -2040,7 +2040,7 @@ self.max_string.write_xdr(w)?;
         #[cfg_attr(
           all(feature = "serde", feature = "alloc"),
           derive(serde::Serialize, serde::Deserialize),
-          serde(rename_all = "camelCase")
+          serde(rename_all = "snake_case")
         )]
         pub enum TypeVariant {
             Int64,
@@ -2098,7 +2098,7 @@ Self::MyStruct => "MyStruct",
         #[cfg_attr(
           all(feature = "serde", feature = "alloc"),
           derive(serde::Serialize, serde::Deserialize),
-          serde(rename_all = "camelCase"),
+          serde(rename_all = "snake_case"),
           serde(untagged),
         )]
         pub enum Type {

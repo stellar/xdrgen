@@ -1798,7 +1798,7 @@ impl<const MAX: u32> WriteXdr for StringM<MAX> {
 #[cfg_attr(
     all(feature = "serde", feature = "alloc"),
     derive(serde::Serialize, serde::Deserialize),
-    serde(rename_all = "camelCase")
+    serde(rename_all = "snake_case")
 )]
 pub struct Frame<T>(pub T)
 where
@@ -1993,7 +1993,7 @@ mod test {
 // enum
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
-#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "camelCase"))]
+#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
 #[repr(i32)]
 pub enum AccountFlags {
   AuthRequiredFlag = 1,
@@ -2078,7 +2078,7 @@ impl WriteXdr for AccountFlags {
 #[cfg_attr(
   all(feature = "serde", feature = "alloc"),
   derive(serde::Serialize, serde::Deserialize),
-  serde(rename_all = "camelCase")
+  serde(rename_all = "snake_case")
 )]
 pub enum TypeVariant {
     AccountFlags,
@@ -2131,7 +2131,7 @@ impl core::str::FromStr for TypeVariant {
 #[cfg_attr(
   all(feature = "serde", feature = "alloc"),
   derive(serde::Serialize, serde::Deserialize),
-  serde(rename_all = "camelCase"),
+  serde(rename_all = "snake_case"),
   serde(untagged),
 )]
 pub enum Type {
