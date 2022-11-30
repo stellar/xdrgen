@@ -57,6 +57,7 @@ use std::{
 #[derive(Debug)]
 pub enum Error {
     Invalid,
+    Unsupported,
     LengthExceedsMax,
     LengthMismatch,
     NonZeroPadding,
@@ -99,6 +100,7 @@ impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Error::Invalid => write!(f, "xdr value invalid"),
+            Error::Unsupported => write!(f, "xdr value unsupported"),
             Error::LengthExceedsMax => write!(f, "xdr value max length exceeded"),
             Error::LengthMismatch => write!(f, "xdr value length does not match"),
             Error::NonZeroPadding => write!(f, "xdr padding contains non-zero bytes"),
@@ -179,14 +181,14 @@ where
 }
 
 #[cfg(feature = "std")]
-pub struct ReadXdrIter<'r, R: Read, S: ReadXdr> {
-    reader: BufReader<&'r mut R>,
+pub struct ReadXdrIter<R: Read, S: ReadXdr> {
+    reader: BufReader<R>,
     _s: PhantomData<S>,
 }
 
 #[cfg(feature = "std")]
-impl<'r, R: Read, S: ReadXdr> ReadXdrIter<'r, R, S> {
-    fn new(r: &'r mut R) -> Self {
+impl<R: Read, S: ReadXdr> ReadXdrIter<R, S> {
+    fn new(r: R) -> Self {
         Self {
             reader: BufReader::new(r),
             _s: PhantomData,
@@ -195,7 +197,7 @@ impl<'r, R: Read, S: ReadXdr> ReadXdrIter<'r, R, S> {
 }
 
 #[cfg(feature = "std")]
-impl<'r, R: Read, S: ReadXdr> Iterator for ReadXdrIter<'r, R, S> {
+impl<R: Read, S: ReadXdr> Iterator for ReadXdrIter<R, S> {
     type Item = Result<S>;
 
     // Next reads the internal reader and XDR decodes it into the Self type. If
@@ -250,6 +252,17 @@ where
     #[cfg(feature = "std")]
     fn read_xdr(r: &mut impl Read) -> Result<Self>;
 
+    /// Construct the type from the XDR bytes base64 encoded.
+    ///
+    /// An error is returned if the bytes are not completely consumed by the
+    /// deserialization.
+    #[cfg(feature = "base64")]
+    fn read_xdr_base64(r: &mut impl Read) -> Result<Self> {
+        let mut dec = base64::read::DecoderReader::new(r, base64::STANDARD);
+        let t = Self::read_xdr(&mut dec)?;
+        Ok(t)
+    }
+
     /// Read the XDR and construct the type, and consider it an error if the
     /// read does not completely consume the read implementation.
     ///
@@ -278,6 +291,17 @@ where
         } else {
             Err(Error::Invalid)
         }
+    }
+
+    /// Construct the type from the XDR bytes base64 encoded.
+    ///
+    /// An error is returned if the bytes are not completely consumed by the
+    /// deserialization.
+    #[cfg(feature = "base64")]
+    fn read_xdr_base64_to_end(r: &mut impl Read) -> Result<Self> {
+        let mut dec = base64::read::DecoderReader::new(r, base64::STANDARD);
+        let t = Self::read_xdr_to_end(&mut dec)?;
+        Ok(t)
     }
 
     /// Read the XDR and construct the type.
@@ -349,8 +373,18 @@ where
     /// All implementations should continue if the read implementation returns
     /// [`ErrorKind::Interrupted`](std::io::ErrorKind::Interrupted).
     #[cfg(feature = "std")]
-    fn read_xdr_iter<R: Read>(r: &mut R) -> ReadXdrIter<R, Self> {
+    fn read_xdr_iter<R: Read>(r: &mut R) -> ReadXdrIter<&mut R, Self> {
         ReadXdrIter::new(r)
+    }
+
+    /// Create an iterator that reads the read implementation as a stream of
+    /// values that are read into the implementing type.
+    #[cfg(feature = "base64")]
+    fn read_xdr_base64_iter<R: Read>(
+        r: &mut R,
+    ) -> ReadXdrIter<base64::read::DecoderReader<R>, Self> {
+        let dec = base64::read::DecoderReader::new(r, base64::STANDARD);
+        ReadXdrIter::new(dec)
     }
 
     /// Construct the type from the XDR bytes.
@@ -1755,6 +1789,42 @@ impl<const MAX: u32> WriteXdr for StringM<MAX> {
         w.write_all(&[0u8; 3][..pad_len(len as usize)])?;
 
         Ok(())
+    }
+}
+
+// Frame ------------------------------------------------------------------------
+
+#[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[cfg_attr(
+    all(feature = "serde", feature = "alloc"),
+    derive(serde::Serialize, serde::Deserialize),
+    serde(rename_all = "camelCase")
+)]
+pub struct Frame<T>(pub T)
+where
+    T: ReadXdr;
+
+impl<T> ReadXdr for Frame<T>
+where
+    T: ReadXdr,
+{
+    #[cfg(feature = "std")]
+    fn read_xdr(r: &mut impl Read) -> Result<Self> {
+        // Read the frame header value that contains 1 flag-bit and a 33-bit length.
+        //  - The 1 flag bit is 0 when there are more frames for the same record.
+        //  - The 31-bit length is the length of the bytes within the frame that
+        //  follow the frame header.
+        let header = u32::read_xdr(r)?;
+        // TODO: Use the length and cap the length we'll read from `r`.
+        let last_record = header >> 31 == 1;
+        if last_record {
+            // Read the record in the frame.
+            Ok(Self(T::read_xdr(r)?))
+        } else {
+            // TODO: Support reading those additional frames for the same
+            // record.
+            Err(Error::Unsupported)
+        }
     }
 }
 
@@ -3411,7 +3481,8 @@ Self::NesterNestedUnion => "NesterNestedUnion",
         #[cfg_attr(
           all(feature = "serde", feature = "alloc"),
           derive(serde::Serialize, serde::Deserialize),
-          serde(rename_all = "camelCase")
+          serde(rename_all = "camelCase"),
+          serde(untagged),
         )]
         pub enum Type {
             Uint512(Box<Uint512>),
@@ -3517,10 +3588,127 @@ TypeVariant::NesterNestedUnion => Ok(Self::NesterNestedUnion(Box::new(NesterNest
                 }
             }
 
+            #[cfg(feature = "base64")]
+            pub fn read_xdr_base64(v: TypeVariant, r: &mut impl Read) -> Result<Self> {
+                let mut dec = base64::read::DecoderReader::new(r, base64::STANDARD);
+                let t = Self::read_xdr(v, &mut dec)?;
+                Ok(t)
+            }
+
+            #[cfg(feature = "std")]
+            pub fn read_xdr_to_end(v: TypeVariant, r: &mut impl Read) -> Result<Self> {
+                let s = Self::read_xdr(v, r)?;
+                // Check that any further reads, such as this read of one byte, read no
+                // data, indicating EOF. If a byte is read the data is invalid.
+                if r.read(&mut [0u8; 1])? == 0 {
+                    Ok(s)
+                } else {
+                    Err(Error::Invalid)
+                }
+            }
+
+            #[cfg(feature = "base64")]
+            pub fn read_xdr_base64_to_end(v: TypeVariant, r: &mut impl Read) -> Result<Self> {
+                let mut dec = base64::read::DecoderReader::new(r, base64::STANDARD);
+                let t = Self::read_xdr_to_end(v, &mut dec)?;
+                Ok(t)
+            }
+
+            #[cfg(feature = "std")]
+            #[allow(clippy::too_many_lines)]
+            pub fn read_xdr_iter<R: Read>(v: TypeVariant, r: &mut R) -> Box<dyn Iterator<Item=Result<Self>> + '_> {
+                match v {
+                    TypeVariant::Uint512 => Box::new(ReadXdrIter::<_, Uint512>::new(r).map(|r| r.map(|t| Self::Uint512(Box::new(t))))),
+TypeVariant::Uint513 => Box::new(ReadXdrIter::<_, Uint513>::new(r).map(|r| r.map(|t| Self::Uint513(Box::new(t))))),
+TypeVariant::Uint514 => Box::new(ReadXdrIter::<_, Uint514>::new(r).map(|r| r.map(|t| Self::Uint514(Box::new(t))))),
+TypeVariant::Str => Box::new(ReadXdrIter::<_, Str>::new(r).map(|r| r.map(|t| Self::Str(Box::new(t))))),
+TypeVariant::Str2 => Box::new(ReadXdrIter::<_, Str2>::new(r).map(|r| r.map(|t| Self::Str2(Box::new(t))))),
+TypeVariant::Hash => Box::new(ReadXdrIter::<_, Hash>::new(r).map(|r| r.map(|t| Self::Hash(Box::new(t))))),
+TypeVariant::Hashes1 => Box::new(ReadXdrIter::<_, Hashes1>::new(r).map(|r| r.map(|t| Self::Hashes1(Box::new(t))))),
+TypeVariant::Hashes2 => Box::new(ReadXdrIter::<_, Hashes2>::new(r).map(|r| r.map(|t| Self::Hashes2(Box::new(t))))),
+TypeVariant::Hashes3 => Box::new(ReadXdrIter::<_, Hashes3>::new(r).map(|r| r.map(|t| Self::Hashes3(Box::new(t))))),
+TypeVariant::OptHash1 => Box::new(ReadXdrIter::<_, OptHash1>::new(r).map(|r| r.map(|t| Self::OptHash1(Box::new(t))))),
+TypeVariant::OptHash2 => Box::new(ReadXdrIter::<_, OptHash2>::new(r).map(|r| r.map(|t| Self::OptHash2(Box::new(t))))),
+TypeVariant::Int1 => Box::new(ReadXdrIter::<_, Int1>::new(r).map(|r| r.map(|t| Self::Int1(Box::new(t))))),
+TypeVariant::Int2 => Box::new(ReadXdrIter::<_, Int2>::new(r).map(|r| r.map(|t| Self::Int2(Box::new(t))))),
+TypeVariant::Int3 => Box::new(ReadXdrIter::<_, Int3>::new(r).map(|r| r.map(|t| Self::Int3(Box::new(t))))),
+TypeVariant::Int4 => Box::new(ReadXdrIter::<_, Int4>::new(r).map(|r| r.map(|t| Self::Int4(Box::new(t))))),
+TypeVariant::MyStruct => Box::new(ReadXdrIter::<_, MyStruct>::new(r).map(|r| r.map(|t| Self::MyStruct(Box::new(t))))),
+TypeVariant::LotsOfMyStructs => Box::new(ReadXdrIter::<_, LotsOfMyStructs>::new(r).map(|r| r.map(|t| Self::LotsOfMyStructs(Box::new(t))))),
+TypeVariant::HasStuff => Box::new(ReadXdrIter::<_, HasStuff>::new(r).map(|r| r.map(|t| Self::HasStuff(Box::new(t))))),
+TypeVariant::Color => Box::new(ReadXdrIter::<_, Color>::new(r).map(|r| r.map(|t| Self::Color(Box::new(t))))),
+TypeVariant::Nester => Box::new(ReadXdrIter::<_, Nester>::new(r).map(|r| r.map(|t| Self::Nester(Box::new(t))))),
+TypeVariant::NesterNestedEnum => Box::new(ReadXdrIter::<_, NesterNestedEnum>::new(r).map(|r| r.map(|t| Self::NesterNestedEnum(Box::new(t))))),
+TypeVariant::NesterNestedStruct => Box::new(ReadXdrIter::<_, NesterNestedStruct>::new(r).map(|r| r.map(|t| Self::NesterNestedStruct(Box::new(t))))),
+TypeVariant::NesterNestedUnion => Box::new(ReadXdrIter::<_, NesterNestedUnion>::new(r).map(|r| r.map(|t| Self::NesterNestedUnion(Box::new(t))))),
+                }
+            }
+
+            #[cfg(feature = "std")]
+            #[allow(clippy::too_many_lines)]
+            pub fn read_xdr_framed_iter<R: Read>(v: TypeVariant, r: &mut R) -> Box<dyn Iterator<Item=Result<Self>> + '_> {
+                match v {
+                    TypeVariant::Uint512 => Box::new(ReadXdrIter::<_, Frame<Uint512>>::new(r).map(|r| r.map(|t| Self::Uint512(Box::new(t.0))))),
+TypeVariant::Uint513 => Box::new(ReadXdrIter::<_, Frame<Uint513>>::new(r).map(|r| r.map(|t| Self::Uint513(Box::new(t.0))))),
+TypeVariant::Uint514 => Box::new(ReadXdrIter::<_, Frame<Uint514>>::new(r).map(|r| r.map(|t| Self::Uint514(Box::new(t.0))))),
+TypeVariant::Str => Box::new(ReadXdrIter::<_, Frame<Str>>::new(r).map(|r| r.map(|t| Self::Str(Box::new(t.0))))),
+TypeVariant::Str2 => Box::new(ReadXdrIter::<_, Frame<Str2>>::new(r).map(|r| r.map(|t| Self::Str2(Box::new(t.0))))),
+TypeVariant::Hash => Box::new(ReadXdrIter::<_, Frame<Hash>>::new(r).map(|r| r.map(|t| Self::Hash(Box::new(t.0))))),
+TypeVariant::Hashes1 => Box::new(ReadXdrIter::<_, Frame<Hashes1>>::new(r).map(|r| r.map(|t| Self::Hashes1(Box::new(t.0))))),
+TypeVariant::Hashes2 => Box::new(ReadXdrIter::<_, Frame<Hashes2>>::new(r).map(|r| r.map(|t| Self::Hashes2(Box::new(t.0))))),
+TypeVariant::Hashes3 => Box::new(ReadXdrIter::<_, Frame<Hashes3>>::new(r).map(|r| r.map(|t| Self::Hashes3(Box::new(t.0))))),
+TypeVariant::OptHash1 => Box::new(ReadXdrIter::<_, Frame<OptHash1>>::new(r).map(|r| r.map(|t| Self::OptHash1(Box::new(t.0))))),
+TypeVariant::OptHash2 => Box::new(ReadXdrIter::<_, Frame<OptHash2>>::new(r).map(|r| r.map(|t| Self::OptHash2(Box::new(t.0))))),
+TypeVariant::Int1 => Box::new(ReadXdrIter::<_, Frame<Int1>>::new(r).map(|r| r.map(|t| Self::Int1(Box::new(t.0))))),
+TypeVariant::Int2 => Box::new(ReadXdrIter::<_, Frame<Int2>>::new(r).map(|r| r.map(|t| Self::Int2(Box::new(t.0))))),
+TypeVariant::Int3 => Box::new(ReadXdrIter::<_, Frame<Int3>>::new(r).map(|r| r.map(|t| Self::Int3(Box::new(t.0))))),
+TypeVariant::Int4 => Box::new(ReadXdrIter::<_, Frame<Int4>>::new(r).map(|r| r.map(|t| Self::Int4(Box::new(t.0))))),
+TypeVariant::MyStruct => Box::new(ReadXdrIter::<_, Frame<MyStruct>>::new(r).map(|r| r.map(|t| Self::MyStruct(Box::new(t.0))))),
+TypeVariant::LotsOfMyStructs => Box::new(ReadXdrIter::<_, Frame<LotsOfMyStructs>>::new(r).map(|r| r.map(|t| Self::LotsOfMyStructs(Box::new(t.0))))),
+TypeVariant::HasStuff => Box::new(ReadXdrIter::<_, Frame<HasStuff>>::new(r).map(|r| r.map(|t| Self::HasStuff(Box::new(t.0))))),
+TypeVariant::Color => Box::new(ReadXdrIter::<_, Frame<Color>>::new(r).map(|r| r.map(|t| Self::Color(Box::new(t.0))))),
+TypeVariant::Nester => Box::new(ReadXdrIter::<_, Frame<Nester>>::new(r).map(|r| r.map(|t| Self::Nester(Box::new(t.0))))),
+TypeVariant::NesterNestedEnum => Box::new(ReadXdrIter::<_, Frame<NesterNestedEnum>>::new(r).map(|r| r.map(|t| Self::NesterNestedEnum(Box::new(t.0))))),
+TypeVariant::NesterNestedStruct => Box::new(ReadXdrIter::<_, Frame<NesterNestedStruct>>::new(r).map(|r| r.map(|t| Self::NesterNestedStruct(Box::new(t.0))))),
+TypeVariant::NesterNestedUnion => Box::new(ReadXdrIter::<_, Frame<NesterNestedUnion>>::new(r).map(|r| r.map(|t| Self::NesterNestedUnion(Box::new(t.0))))),
+                }
+            }
+
+            #[cfg(feature = "base64")]
+            #[allow(clippy::too_many_lines)]
+            pub fn read_xdr_base64_iter<R: Read>(v: TypeVariant, r: &mut R) -> Box<dyn Iterator<Item=Result<Self>> + '_> {
+                let dec = base64::read::DecoderReader::new(r, base64::STANDARD);
+                match v {
+                    TypeVariant::Uint512 => Box::new(ReadXdrIter::<_, Uint512>::new(dec).map(|r| r.map(|t| Self::Uint512(Box::new(t))))),
+TypeVariant::Uint513 => Box::new(ReadXdrIter::<_, Uint513>::new(dec).map(|r| r.map(|t| Self::Uint513(Box::new(t))))),
+TypeVariant::Uint514 => Box::new(ReadXdrIter::<_, Uint514>::new(dec).map(|r| r.map(|t| Self::Uint514(Box::new(t))))),
+TypeVariant::Str => Box::new(ReadXdrIter::<_, Str>::new(dec).map(|r| r.map(|t| Self::Str(Box::new(t))))),
+TypeVariant::Str2 => Box::new(ReadXdrIter::<_, Str2>::new(dec).map(|r| r.map(|t| Self::Str2(Box::new(t))))),
+TypeVariant::Hash => Box::new(ReadXdrIter::<_, Hash>::new(dec).map(|r| r.map(|t| Self::Hash(Box::new(t))))),
+TypeVariant::Hashes1 => Box::new(ReadXdrIter::<_, Hashes1>::new(dec).map(|r| r.map(|t| Self::Hashes1(Box::new(t))))),
+TypeVariant::Hashes2 => Box::new(ReadXdrIter::<_, Hashes2>::new(dec).map(|r| r.map(|t| Self::Hashes2(Box::new(t))))),
+TypeVariant::Hashes3 => Box::new(ReadXdrIter::<_, Hashes3>::new(dec).map(|r| r.map(|t| Self::Hashes3(Box::new(t))))),
+TypeVariant::OptHash1 => Box::new(ReadXdrIter::<_, OptHash1>::new(dec).map(|r| r.map(|t| Self::OptHash1(Box::new(t))))),
+TypeVariant::OptHash2 => Box::new(ReadXdrIter::<_, OptHash2>::new(dec).map(|r| r.map(|t| Self::OptHash2(Box::new(t))))),
+TypeVariant::Int1 => Box::new(ReadXdrIter::<_, Int1>::new(dec).map(|r| r.map(|t| Self::Int1(Box::new(t))))),
+TypeVariant::Int2 => Box::new(ReadXdrIter::<_, Int2>::new(dec).map(|r| r.map(|t| Self::Int2(Box::new(t))))),
+TypeVariant::Int3 => Box::new(ReadXdrIter::<_, Int3>::new(dec).map(|r| r.map(|t| Self::Int3(Box::new(t))))),
+TypeVariant::Int4 => Box::new(ReadXdrIter::<_, Int4>::new(dec).map(|r| r.map(|t| Self::Int4(Box::new(t))))),
+TypeVariant::MyStruct => Box::new(ReadXdrIter::<_, MyStruct>::new(dec).map(|r| r.map(|t| Self::MyStruct(Box::new(t))))),
+TypeVariant::LotsOfMyStructs => Box::new(ReadXdrIter::<_, LotsOfMyStructs>::new(dec).map(|r| r.map(|t| Self::LotsOfMyStructs(Box::new(t))))),
+TypeVariant::HasStuff => Box::new(ReadXdrIter::<_, HasStuff>::new(dec).map(|r| r.map(|t| Self::HasStuff(Box::new(t))))),
+TypeVariant::Color => Box::new(ReadXdrIter::<_, Color>::new(dec).map(|r| r.map(|t| Self::Color(Box::new(t))))),
+TypeVariant::Nester => Box::new(ReadXdrIter::<_, Nester>::new(dec).map(|r| r.map(|t| Self::Nester(Box::new(t))))),
+TypeVariant::NesterNestedEnum => Box::new(ReadXdrIter::<_, NesterNestedEnum>::new(dec).map(|r| r.map(|t| Self::NesterNestedEnum(Box::new(t))))),
+TypeVariant::NesterNestedStruct => Box::new(ReadXdrIter::<_, NesterNestedStruct>::new(dec).map(|r| r.map(|t| Self::NesterNestedStruct(Box::new(t))))),
+TypeVariant::NesterNestedUnion => Box::new(ReadXdrIter::<_, NesterNestedUnion>::new(dec).map(|r| r.map(|t| Self::NesterNestedUnion(Box::new(t))))),
+                }
+            }
+
             #[cfg(feature = "std")]
             pub fn from_xdr<B: AsRef<[u8]>>(v: TypeVariant, bytes: B) -> Result<Self> {
                 let mut cursor = Cursor::new(bytes.as_ref());
-                let t = Self::read_xdr(v, &mut cursor)?;
+                let t = Self::read_xdr_to_end(v, &mut cursor)?;
                 Ok(t)
             }
 
@@ -3528,7 +3716,7 @@ TypeVariant::NesterNestedUnion => Ok(Self::NesterNestedUnion(Box::new(NesterNest
             pub fn from_xdr_base64(v: TypeVariant, b64: String) -> Result<Self> {
                 let mut b64_reader = Cursor::new(b64);
                 let mut dec = base64::read::DecoderReader::new(&mut b64_reader, base64::STANDARD);
-                let t = Self::read_xdr(v, &mut dec)?;
+                let t = Self::read_xdr_to_end(v, &mut dec)?;
                 Ok(t)
             }
 

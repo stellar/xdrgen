@@ -57,6 +57,7 @@ use std::{
 #[derive(Debug)]
 pub enum Error {
     Invalid,
+    Unsupported,
     LengthExceedsMax,
     LengthMismatch,
     NonZeroPadding,
@@ -99,6 +100,7 @@ impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Error::Invalid => write!(f, "xdr value invalid"),
+            Error::Unsupported => write!(f, "xdr value unsupported"),
             Error::LengthExceedsMax => write!(f, "xdr value max length exceeded"),
             Error::LengthMismatch => write!(f, "xdr value length does not match"),
             Error::NonZeroPadding => write!(f, "xdr padding contains non-zero bytes"),
@@ -179,14 +181,14 @@ where
 }
 
 #[cfg(feature = "std")]
-pub struct ReadXdrIter<'r, R: Read, S: ReadXdr> {
-    reader: BufReader<&'r mut R>,
+pub struct ReadXdrIter<R: Read, S: ReadXdr> {
+    reader: BufReader<R>,
     _s: PhantomData<S>,
 }
 
 #[cfg(feature = "std")]
-impl<'r, R: Read, S: ReadXdr> ReadXdrIter<'r, R, S> {
-    fn new(r: &'r mut R) -> Self {
+impl<R: Read, S: ReadXdr> ReadXdrIter<R, S> {
+    fn new(r: R) -> Self {
         Self {
             reader: BufReader::new(r),
             _s: PhantomData,
@@ -195,7 +197,7 @@ impl<'r, R: Read, S: ReadXdr> ReadXdrIter<'r, R, S> {
 }
 
 #[cfg(feature = "std")]
-impl<'r, R: Read, S: ReadXdr> Iterator for ReadXdrIter<'r, R, S> {
+impl<R: Read, S: ReadXdr> Iterator for ReadXdrIter<R, S> {
     type Item = Result<S>;
 
     // Next reads the internal reader and XDR decodes it into the Self type. If
@@ -250,6 +252,17 @@ where
     #[cfg(feature = "std")]
     fn read_xdr(r: &mut impl Read) -> Result<Self>;
 
+    /// Construct the type from the XDR bytes base64 encoded.
+    ///
+    /// An error is returned if the bytes are not completely consumed by the
+    /// deserialization.
+    #[cfg(feature = "base64")]
+    fn read_xdr_base64(r: &mut impl Read) -> Result<Self> {
+        let mut dec = base64::read::DecoderReader::new(r, base64::STANDARD);
+        let t = Self::read_xdr(&mut dec)?;
+        Ok(t)
+    }
+
     /// Read the XDR and construct the type, and consider it an error if the
     /// read does not completely consume the read implementation.
     ///
@@ -278,6 +291,17 @@ where
         } else {
             Err(Error::Invalid)
         }
+    }
+
+    /// Construct the type from the XDR bytes base64 encoded.
+    ///
+    /// An error is returned if the bytes are not completely consumed by the
+    /// deserialization.
+    #[cfg(feature = "base64")]
+    fn read_xdr_base64_to_end(r: &mut impl Read) -> Result<Self> {
+        let mut dec = base64::read::DecoderReader::new(r, base64::STANDARD);
+        let t = Self::read_xdr_to_end(&mut dec)?;
+        Ok(t)
     }
 
     /// Read the XDR and construct the type.
@@ -349,8 +373,18 @@ where
     /// All implementations should continue if the read implementation returns
     /// [`ErrorKind::Interrupted`](std::io::ErrorKind::Interrupted).
     #[cfg(feature = "std")]
-    fn read_xdr_iter<R: Read>(r: &mut R) -> ReadXdrIter<R, Self> {
+    fn read_xdr_iter<R: Read>(r: &mut R) -> ReadXdrIter<&mut R, Self> {
         ReadXdrIter::new(r)
+    }
+
+    /// Create an iterator that reads the read implementation as a stream of
+    /// values that are read into the implementing type.
+    #[cfg(feature = "base64")]
+    fn read_xdr_base64_iter<R: Read>(
+        r: &mut R,
+    ) -> ReadXdrIter<base64::read::DecoderReader<R>, Self> {
+        let dec = base64::read::DecoderReader::new(r, base64::STANDARD);
+        ReadXdrIter::new(dec)
     }
 
     /// Construct the type from the XDR bytes.
@@ -1758,6 +1792,42 @@ impl<const MAX: u32> WriteXdr for StringM<MAX> {
     }
 }
 
+// Frame ------------------------------------------------------------------------
+
+#[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[cfg_attr(
+    all(feature = "serde", feature = "alloc"),
+    derive(serde::Serialize, serde::Deserialize),
+    serde(rename_all = "camelCase")
+)]
+pub struct Frame<T>(pub T)
+where
+    T: ReadXdr;
+
+impl<T> ReadXdr for Frame<T>
+where
+    T: ReadXdr,
+{
+    #[cfg(feature = "std")]
+    fn read_xdr(r: &mut impl Read) -> Result<Self> {
+        // Read the frame header value that contains 1 flag-bit and a 33-bit length.
+        //  - The 1 flag bit is 0 when there are more frames for the same record.
+        //  - The 31-bit length is the length of the bytes within the frame that
+        //  follow the frame header.
+        let header = u32::read_xdr(r)?;
+        // TODO: Use the length and cap the length we'll read from `r`.
+        let last_record = header >> 31 == 1;
+        if last_record {
+            // Read the record in the frame.
+            Ok(Self(T::read_xdr(r)?))
+        } else {
+            // TODO: Support reading those additional frames for the same
+            // record.
+            Err(Error::Unsupported)
+        }
+    }
+}
+
 #[cfg(all(test, feature = "std"))]
 mod tests {
     use std::io::Cursor;
@@ -2281,7 +2351,8 @@ Self::MyUnionTwo => "MyUnionTwo",
         #[cfg_attr(
           all(feature = "serde", feature = "alloc"),
           derive(serde::Serialize, serde::Deserialize),
-          serde(rename_all = "camelCase")
+          serde(rename_all = "camelCase"),
+          serde(untagged),
         )]
         pub enum Type {
             UnionKey(Box<UnionKey>),
@@ -2315,10 +2386,73 @@ TypeVariant::MyUnionTwo => Ok(Self::MyUnionTwo(Box::new(MyUnionTwo::read_xdr(r)?
                 }
             }
 
+            #[cfg(feature = "base64")]
+            pub fn read_xdr_base64(v: TypeVariant, r: &mut impl Read) -> Result<Self> {
+                let mut dec = base64::read::DecoderReader::new(r, base64::STANDARD);
+                let t = Self::read_xdr(v, &mut dec)?;
+                Ok(t)
+            }
+
+            #[cfg(feature = "std")]
+            pub fn read_xdr_to_end(v: TypeVariant, r: &mut impl Read) -> Result<Self> {
+                let s = Self::read_xdr(v, r)?;
+                // Check that any further reads, such as this read of one byte, read no
+                // data, indicating EOF. If a byte is read the data is invalid.
+                if r.read(&mut [0u8; 1])? == 0 {
+                    Ok(s)
+                } else {
+                    Err(Error::Invalid)
+                }
+            }
+
+            #[cfg(feature = "base64")]
+            pub fn read_xdr_base64_to_end(v: TypeVariant, r: &mut impl Read) -> Result<Self> {
+                let mut dec = base64::read::DecoderReader::new(r, base64::STANDARD);
+                let t = Self::read_xdr_to_end(v, &mut dec)?;
+                Ok(t)
+            }
+
+            #[cfg(feature = "std")]
+            #[allow(clippy::too_many_lines)]
+            pub fn read_xdr_iter<R: Read>(v: TypeVariant, r: &mut R) -> Box<dyn Iterator<Item=Result<Self>> + '_> {
+                match v {
+                    TypeVariant::UnionKey => Box::new(ReadXdrIter::<_, UnionKey>::new(r).map(|r| r.map(|t| Self::UnionKey(Box::new(t))))),
+TypeVariant::Foo => Box::new(ReadXdrIter::<_, Foo>::new(r).map(|r| r.map(|t| Self::Foo(Box::new(t))))),
+TypeVariant::MyUnion => Box::new(ReadXdrIter::<_, MyUnion>::new(r).map(|r| r.map(|t| Self::MyUnion(Box::new(t))))),
+TypeVariant::MyUnionOne => Box::new(ReadXdrIter::<_, MyUnionOne>::new(r).map(|r| r.map(|t| Self::MyUnionOne(Box::new(t))))),
+TypeVariant::MyUnionTwo => Box::new(ReadXdrIter::<_, MyUnionTwo>::new(r).map(|r| r.map(|t| Self::MyUnionTwo(Box::new(t))))),
+                }
+            }
+
+            #[cfg(feature = "std")]
+            #[allow(clippy::too_many_lines)]
+            pub fn read_xdr_framed_iter<R: Read>(v: TypeVariant, r: &mut R) -> Box<dyn Iterator<Item=Result<Self>> + '_> {
+                match v {
+                    TypeVariant::UnionKey => Box::new(ReadXdrIter::<_, Frame<UnionKey>>::new(r).map(|r| r.map(|t| Self::UnionKey(Box::new(t.0))))),
+TypeVariant::Foo => Box::new(ReadXdrIter::<_, Frame<Foo>>::new(r).map(|r| r.map(|t| Self::Foo(Box::new(t.0))))),
+TypeVariant::MyUnion => Box::new(ReadXdrIter::<_, Frame<MyUnion>>::new(r).map(|r| r.map(|t| Self::MyUnion(Box::new(t.0))))),
+TypeVariant::MyUnionOne => Box::new(ReadXdrIter::<_, Frame<MyUnionOne>>::new(r).map(|r| r.map(|t| Self::MyUnionOne(Box::new(t.0))))),
+TypeVariant::MyUnionTwo => Box::new(ReadXdrIter::<_, Frame<MyUnionTwo>>::new(r).map(|r| r.map(|t| Self::MyUnionTwo(Box::new(t.0))))),
+                }
+            }
+
+            #[cfg(feature = "base64")]
+            #[allow(clippy::too_many_lines)]
+            pub fn read_xdr_base64_iter<R: Read>(v: TypeVariant, r: &mut R) -> Box<dyn Iterator<Item=Result<Self>> + '_> {
+                let dec = base64::read::DecoderReader::new(r, base64::STANDARD);
+                match v {
+                    TypeVariant::UnionKey => Box::new(ReadXdrIter::<_, UnionKey>::new(dec).map(|r| r.map(|t| Self::UnionKey(Box::new(t))))),
+TypeVariant::Foo => Box::new(ReadXdrIter::<_, Foo>::new(dec).map(|r| r.map(|t| Self::Foo(Box::new(t))))),
+TypeVariant::MyUnion => Box::new(ReadXdrIter::<_, MyUnion>::new(dec).map(|r| r.map(|t| Self::MyUnion(Box::new(t))))),
+TypeVariant::MyUnionOne => Box::new(ReadXdrIter::<_, MyUnionOne>::new(dec).map(|r| r.map(|t| Self::MyUnionOne(Box::new(t))))),
+TypeVariant::MyUnionTwo => Box::new(ReadXdrIter::<_, MyUnionTwo>::new(dec).map(|r| r.map(|t| Self::MyUnionTwo(Box::new(t))))),
+                }
+            }
+
             #[cfg(feature = "std")]
             pub fn from_xdr<B: AsRef<[u8]>>(v: TypeVariant, bytes: B) -> Result<Self> {
                 let mut cursor = Cursor::new(bytes.as_ref());
-                let t = Self::read_xdr(v, &mut cursor)?;
+                let t = Self::read_xdr_to_end(v, &mut cursor)?;
                 Ok(t)
             }
 
@@ -2326,7 +2460,7 @@ TypeVariant::MyUnionTwo => Ok(Self::MyUnionTwo(Box::new(MyUnionTwo::read_xdr(r)?
             pub fn from_xdr_base64(v: TypeVariant, b64: String) -> Result<Self> {
                 let mut b64_reader = Cursor::new(b64);
                 let mut dec = base64::read::DecoderReader::new(&mut b64_reader, base64::STANDARD);
-                let t = Self::read_xdr(v, &mut dec)?;
+                let t = Self::read_xdr_to_end(v, &mut dec)?;
                 Ok(t)
             }
 

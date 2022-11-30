@@ -153,7 +153,8 @@ module Xdrgen
         #[cfg_attr(
           all(feature = "serde", feature = "alloc"),
           derive(serde::Serialize, serde::Deserialize),
-          serde(rename_all = "camelCase")
+          serde(rename_all = "camelCase"),
+          serde(untagged),
         )]
         pub enum Type {
             #{types.map { |t| "#{t}(Box<#{t}>)," }.join("\n")}
@@ -171,10 +172,61 @@ module Xdrgen
                 }
             }
 
+            #[cfg(feature = "base64")]
+            pub fn read_xdr_base64(v: TypeVariant, r: &mut impl Read) -> Result<Self> {
+                let mut dec = base64::read::DecoderReader::new(r, base64::STANDARD);
+                let t = Self::read_xdr(v, &mut dec)?;
+                Ok(t)
+            }
+
+            #[cfg(feature = "std")]
+            pub fn read_xdr_to_end(v: TypeVariant, r: &mut impl Read) -> Result<Self> {
+                let s = Self::read_xdr(v, r)?;
+                // Check that any further reads, such as this read of one byte, read no
+                // data, indicating EOF. If a byte is read the data is invalid.
+                if r.read(&mut [0u8; 1])? == 0 {
+                    Ok(s)
+                } else {
+                    Err(Error::Invalid)
+                }
+            }
+
+            #[cfg(feature = "base64")]
+            pub fn read_xdr_base64_to_end(v: TypeVariant, r: &mut impl Read) -> Result<Self> {
+                let mut dec = base64::read::DecoderReader::new(r, base64::STANDARD);
+                let t = Self::read_xdr_to_end(v, &mut dec)?;
+                Ok(t)
+            }
+
+            #[cfg(feature = "std")]
+            #[allow(clippy::too_many_lines)]
+            pub fn read_xdr_iter<R: Read>(v: TypeVariant, r: &mut R) -> Box<dyn Iterator<Item=Result<Self>> + '_> {
+                match v {
+                    #{types.map { |t| "TypeVariant::#{t} => Box::new(ReadXdrIter::<_, #{t}>::new(r).map(|r| r.map(|t| Self::#{t}(Box::new(t)))))," }.join("\n")}
+                }
+            }
+
+            #[cfg(feature = "std")]
+            #[allow(clippy::too_many_lines)]
+            pub fn read_xdr_framed_iter<R: Read>(v: TypeVariant, r: &mut R) -> Box<dyn Iterator<Item=Result<Self>> + '_> {
+                match v {
+                    #{types.map { |t| "TypeVariant::#{t} => Box::new(ReadXdrIter::<_, Frame<#{t}>>::new(r).map(|r| r.map(|t| Self::#{t}(Box::new(t.0)))))," }.join("\n")}
+                }
+            }
+
+            #[cfg(feature = "base64")]
+            #[allow(clippy::too_many_lines)]
+            pub fn read_xdr_base64_iter<R: Read>(v: TypeVariant, r: &mut R) -> Box<dyn Iterator<Item=Result<Self>> + '_> {
+                let dec = base64::read::DecoderReader::new(r, base64::STANDARD);
+                match v {
+                    #{types.map { |t| "TypeVariant::#{t} => Box::new(ReadXdrIter::<_, #{t}>::new(dec).map(|r| r.map(|t| Self::#{t}(Box::new(t)))))," }.join("\n")}
+                }
+            }
+
             #[cfg(feature = "std")]
             pub fn from_xdr<B: AsRef<[u8]>>(v: TypeVariant, bytes: B) -> Result<Self> {
                 let mut cursor = Cursor::new(bytes.as_ref());
-                let t = Self::read_xdr(v, &mut cursor)?;
+                let t = Self::read_xdr_to_end(v, &mut cursor)?;
                 Ok(t)
             }
 
@@ -182,7 +234,7 @@ module Xdrgen
             pub fn from_xdr_base64(v: TypeVariant, b64: String) -> Result<Self> {
                 let mut b64_reader = Cursor::new(b64);
                 let mut dec = base64::read::DecoderReader::new(&mut b64_reader, base64::STANDARD);
-                let t = Self::read_xdr(v, &mut dec)?;
+                let t = Self::read_xdr_to_end(v, &mut dec)?;
                 Ok(t)
             }
 
