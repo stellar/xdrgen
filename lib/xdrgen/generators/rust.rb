@@ -206,6 +206,14 @@ module Xdrgen
                 }
             }
 
+            #[cfg(feature = "std")]
+            #[allow(clippy::too_many_lines)]
+            pub fn read_xdr_framed_iter<R: Read>(v: TypeVariant, r: &mut R) -> Box<dyn Iterator<Item=Result<Self>> + '_> {
+                match v {
+                    #{types.map { |t| "TypeVariant::#{t} => Box::new(ReadXdrIter::<_, Frame<#{t}>>::new(r).map(|r| r.map(|t| Self::#{t}(Box::new(t.0)))))," }.join("\n")}
+                }
+            }
+
             #[cfg(feature = "base64")]
             #[allow(clippy::too_many_lines)]
             pub fn read_xdr_base64_iter<R: Read>(v: TypeVariant, r: &mut R) -> Box<dyn Iterator<Item=Result<Self>> + '_> {
