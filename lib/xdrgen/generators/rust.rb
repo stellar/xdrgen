@@ -231,8 +231,8 @@ module Xdrgen
             }
 
             #[cfg(feature = "alloc")]
-            #[allow(clippy::too_many_lines)]
             #[must_use]
+            #[allow(clippy::too_many_lines)]
             pub fn value(&self) -> &dyn core::any::Any {
                 match self {
                     #{types.map { |t| "Self::#{t}(ref v) => v.as_ref()," }.join("\n")}
