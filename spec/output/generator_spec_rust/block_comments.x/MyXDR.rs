@@ -1854,7 +1854,7 @@ mod tests {
         let res = VecM::<u8, 8>::read_xdr(&mut buf);
         match res {
             Err(Error::Io(_)) => (),
-            _ => panic!("expected IO error got {:?}", res),
+            _ => panic!("expected IO error got {res:?}"),
         }
     }
 
@@ -1864,7 +1864,7 @@ mod tests {
         let res = VecM::<u8, 8>::read_xdr(&mut buf);
         match res {
             Err(Error::NonZeroPadding) => (),
-            _ => panic!("expected NonZeroPadding got {:?}", res),
+            _ => panic!("expected NonZeroPadding got {res:?}"),
         }
     }
 
@@ -1904,7 +1904,7 @@ mod tests {
         let res = <[u8; 1]>::read_xdr(&mut buf);
         match res {
             Err(Error::Io(_)) => (),
-            _ => panic!("expected IO error got {:?}", res),
+            _ => panic!("expected IO error got {res:?}"),
         }
     }
 
@@ -1914,7 +1914,7 @@ mod tests {
         let res = <[u8; 1]>::read_xdr(&mut buf);
         match res {
             Err(Error::NonZeroPadding) => (),
-            _ => panic!("expected NonZeroPadding got {:?}", res),
+            _ => panic!("expected NonZeroPadding got {res:?}"),
         }
     }
 
