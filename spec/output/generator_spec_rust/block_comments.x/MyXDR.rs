@@ -104,11 +104,11 @@ impl fmt::Display for Error {
             Error::LengthExceedsMax => write!(f, "xdr value max length exceeded"),
             Error::LengthMismatch => write!(f, "xdr value length does not match"),
             Error::NonZeroPadding => write!(f, "xdr padding contains non-zero bytes"),
-            Error::Utf8Error(e) => write!(f, "{}", e),
+            Error::Utf8Error(e) => write!(f, "{e}"),
             #[cfg(feature = "alloc")]
             Error::InvalidHex => write!(f, "hex invalid"),
             #[cfg(feature = "std")]
-            Error::Io(e) => write!(f, "{}", e),
+            Error::Io(e) => write!(f, "{e}"),
         }
     }
 }
@@ -1435,7 +1435,7 @@ fn write_utf8_lossy(f: &mut impl core::fmt::Write, mut input: &[u8]) -> core::fm
     loop {
         match core::str::from_utf8(input) {
             Ok(valid) => {
-                write!(f, "{}", valid)?;
+                write!(f, "{valid}")?;
                 break;
             }
             Err(error) => {
