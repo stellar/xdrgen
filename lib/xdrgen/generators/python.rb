@@ -184,7 +184,7 @@ module Xdrgen
           out.indent(2) do
             union.arms.each do |arm|
               next if arm.void?
-              out.puts "#{arm.name.underscore}: #{type_hint_string arm.declaration, union_name} = None,"
+              out.puts "#{arm.name.underscore}: Optional[#{type_hint_string arm.declaration, union_name}] = None,"
             end
           end
 
