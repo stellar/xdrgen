@@ -871,11 +871,7 @@ module Xdrgen
             "BytesM"
           end
         when AST::Typespecs::Simple, AST::Definitions::Base, AST::Concerns::NestedDefinition
-          if type.respond_to?(:resolved_type) && AST::Definitions::Typedef === type.resolved_type && is_builtin_type(type.resolved_type.type)
-            base_reference(type.resolved_type.type)
-          else
-            name type
-          end
+          name type
         else
           raise "Unknown reference type: #{type.class.name}, #{type.class.ancestors}"
         end
@@ -922,11 +918,7 @@ module Xdrgen
         when AST::Typespecs::Opaque
           "u8"
         when AST::Typespecs::Simple, AST::Definitions::Base, AST::Concerns::NestedDefinition
-          if type.respond_to?(:resolved_type) && AST::Definitions::Typedef === type.resolved_type && is_builtin_type(type.resolved_type.type)
-            base_reference(type.resolved_type.type)
-          else
-            name type
-          end
+          name type
         else
           raise "Unknown element type for vec: #{type.class.name}, #{type.class.ancestors}"
         end
@@ -949,11 +941,7 @@ module Xdrgen
             "BytesM"
           end
         when AST::Typespecs::Simple, AST::Definitions::Base, AST::Concerns::NestedDefinition
-          if type.respond_to?(:resolved_type) && AST::Definitions::Typedef === type.resolved_type && is_builtin_type(type.resolved_type.type)
-            base_reference_to_call(type.resolved_type.type)
-          else
-            base_reference(type)
-          end
+          base_reference(type)
         else
           base_reference(type)
         end
