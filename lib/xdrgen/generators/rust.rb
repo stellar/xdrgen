@@ -819,7 +819,12 @@ module Xdrgen
           AST::Typespecs::Hyper, AST::Typespecs::Int,
           AST::Typespecs::String,
           AST::Typespecs::Opaque,
-        ].any? { |t| t === type }
+        ].any? { |t| t === type } || is_var_array_type(type)
+          # Fixed array types cannot be treated as a builtin everywhere, because
+          # we implement Display and FromStr on those types so as to provide
+          # alternative hex representation when encoded to JSON. That is not
+          # possible if we treat them as a builtin because the type disappears
+          # and we can't implement those traits on builtin Rust types.
       end
 
       def is_fixed_array_opaque(type)
