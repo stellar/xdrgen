@@ -3328,6 +3328,7 @@ TypeVariant::NesterNestedUnion => Box::new(ReadXdrIter::<_, NesterNestedUnion>::
             #[must_use]
             #[allow(clippy::too_many_lines)]
             pub fn value(&self) -> &dyn core::any::Any {
+                #[allow(clippy::match_same_arms)]
                 match self {
                     Self::Uint512(ref v) => v.as_ref(),
 Self::Uint513(ref v) => v.as_ref(),
