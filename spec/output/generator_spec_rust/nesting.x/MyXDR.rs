@@ -2131,7 +2131,7 @@ impl WriteXdr for MyUnionOne {
 #[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
 pub struct MyUnionTwo {
   pub some_int: i32,
-  pub foo: i32,
+  pub foo: Foo,
 }
 
         impl ReadXdr for MyUnionTwo {
@@ -2139,7 +2139,7 @@ pub struct MyUnionTwo {
             fn read_xdr(r: &mut impl Read) -> Result<Self> {
                 Ok(Self{
                   some_int: i32::read_xdr(r)?,
-foo: i32::read_xdr(r)?,
+foo: Foo::read_xdr(r)?,
                 })
             }
         }

@@ -2002,7 +2002,7 @@ pub type Arr = [i32; 2];
 pub struct HasOptions {
   pub first_option: Option<i32>,
   pub second_option: Option<i32>,
-  pub third_option: Option<i32>,
+  pub third_option: Option<Arr>,
 }
 
         impl ReadXdr for HasOptions {
@@ -2011,7 +2011,7 @@ pub struct HasOptions {
                 Ok(Self{
                   first_option: Option::<i32>::read_xdr(r)?,
 second_option: Option::<i32>::read_xdr(r)?,
-third_option: Option::<i32>::read_xdr(r)?,
+third_option: Option::<Arr>::read_xdr(r)?,
                 })
             }
         }

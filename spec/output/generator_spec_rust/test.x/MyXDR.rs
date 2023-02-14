@@ -2025,25 +2025,25 @@ pub type Hash = [u8; 32];
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[derive(Debug)]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
-pub struct Hashes1(pub [[u8; 32]; 12]);
+pub struct Hashes1(pub [Hash; 12]);
 
-impl From<Hashes1> for [[u8; 32]; 12] {
+impl From<Hashes1> for [Hash; 12] {
     #[must_use]
     fn from(x: Hashes1) -> Self {
         x.0
     }
 }
 
-impl From<[[u8; 32]; 12]> for Hashes1 {
+impl From<[Hash; 12]> for Hashes1 {
     #[must_use]
-    fn from(x: [[u8; 32]; 12]) -> Self {
+    fn from(x: [Hash; 12]) -> Self {
         Hashes1(x)
     }
 }
 
-impl AsRef<[[u8; 32]; 12]> for Hashes1 {
+impl AsRef<[Hash; 12]> for Hashes1 {
     #[must_use]
-    fn as_ref(&self) -> &[[u8; 32]; 12] {
+    fn as_ref(&self) -> &[Hash; 12] {
         &self.0
     }
 }
@@ -2051,7 +2051,7 @@ impl AsRef<[[u8; 32]; 12]> for Hashes1 {
 impl ReadXdr for Hashes1 {
     #[cfg(feature = "std")]
     fn read_xdr(r: &mut impl Read) -> Result<Self> {
-        let i = <[[u8; 32]; 12]>::read_xdr(r)?;
+        let i = <[Hash; 12]>::read_xdr(r)?;
         let v = Hashes1(i);
         Ok(v)
     }
@@ -2066,37 +2066,37 @@ impl WriteXdr for Hashes1 {
 
 impl Hashes1 {
     #[must_use]
-    pub fn as_slice(&self) -> &[[u8; 32]] {
+    pub fn as_slice(&self) -> &[Hash] {
         &self.0
     }
 }
 
 #[cfg(feature = "alloc")]
-impl TryFrom<Vec<[u8; 32]>> for Hashes1 {
+impl TryFrom<Vec<Hash>> for Hashes1 {
     type Error = Error;
-    fn try_from(x: Vec<[u8; 32]>) -> Result<Self> {
+    fn try_from(x: Vec<Hash>) -> Result<Self> {
         x.as_slice().try_into()
     }
 }
 
 #[cfg(feature = "alloc")]
-impl TryFrom<&Vec<[u8; 32]>> for Hashes1 {
+impl TryFrom<&Vec<Hash>> for Hashes1 {
     type Error = Error;
-    fn try_from(x: &Vec<[u8; 32]>) -> Result<Self> {
+    fn try_from(x: &Vec<Hash>) -> Result<Self> {
         x.as_slice().try_into()
     }
 }
 
-impl TryFrom<&[[u8; 32]]> for Hashes1 {
+impl TryFrom<&[Hash]> for Hashes1 {
     type Error = Error;
-    fn try_from(x: &[[u8; 32]]) -> Result<Self> {
+    fn try_from(x: &[Hash]) -> Result<Self> {
         Ok(Hashes1(x.try_into()?))
     }
 }
 
-impl AsRef<[[u8; 32]]> for Hashes1 {
+impl AsRef<[Hash]> for Hashes1 {
     #[must_use]
-    fn as_ref(&self) -> &[[u8; 32]] {
+    fn as_ref(&self) -> &[Hash] {
         &self.0
     }
 }
@@ -2110,25 +2110,25 @@ impl AsRef<[[u8; 32]]> for Hashes1 {
 #[derive(Default)]
 #[derive(Debug)]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
-pub struct Hashes2(pub VecM::<[u8; 32], 12>);
+pub struct Hashes2(pub VecM::<Hash, 12>);
 
-impl From<Hashes2> for VecM::<[u8; 32], 12> {
+impl From<Hashes2> for VecM::<Hash, 12> {
     #[must_use]
     fn from(x: Hashes2) -> Self {
         x.0
     }
 }
 
-impl From<VecM::<[u8; 32], 12>> for Hashes2 {
+impl From<VecM::<Hash, 12>> for Hashes2 {
     #[must_use]
-    fn from(x: VecM::<[u8; 32], 12>) -> Self {
+    fn from(x: VecM::<Hash, 12>) -> Self {
         Hashes2(x)
     }
 }
 
-impl AsRef<VecM::<[u8; 32], 12>> for Hashes2 {
+impl AsRef<VecM::<Hash, 12>> for Hashes2 {
     #[must_use]
-    fn as_ref(&self) -> &VecM::<[u8; 32], 12> {
+    fn as_ref(&self) -> &VecM::<Hash, 12> {
         &self.0
     }
 }
@@ -2136,7 +2136,7 @@ impl AsRef<VecM::<[u8; 32], 12>> for Hashes2 {
 impl ReadXdr for Hashes2 {
     #[cfg(feature = "std")]
     fn read_xdr(r: &mut impl Read) -> Result<Self> {
-        let i = VecM::<[u8; 32], 12>::read_xdr(r)?;
+        let i = VecM::<Hash, 12>::read_xdr(r)?;
         let v = Hashes2(i);
         Ok(v)
     }
@@ -2150,50 +2150,50 @@ impl WriteXdr for Hashes2 {
 }
 
 impl Deref for Hashes2 {
-  type Target = VecM::<[u8; 32], 12>;
+  type Target = VecM::<Hash, 12>;
   fn deref(&self) -> &Self::Target {
       &self.0
   }
 }
 
-impl From<Hashes2> for Vec<[u8; 32]> {
+impl From<Hashes2> for Vec<Hash> {
     #[must_use]
     fn from(x: Hashes2) -> Self {
         x.0.0
     }
 }
 
-impl TryFrom<Vec<[u8; 32]>> for Hashes2 {
+impl TryFrom<Vec<Hash>> for Hashes2 {
     type Error = Error;
-    fn try_from(x: Vec<[u8; 32]>) -> Result<Self> {
+    fn try_from(x: Vec<Hash>) -> Result<Self> {
         Ok(Hashes2(x.try_into()?))
     }
 }
 
 #[cfg(feature = "alloc")]
-impl TryFrom<&Vec<[u8; 32]>> for Hashes2 {
+impl TryFrom<&Vec<Hash>> for Hashes2 {
     type Error = Error;
-    fn try_from(x: &Vec<[u8; 32]>) -> Result<Self> {
+    fn try_from(x: &Vec<Hash>) -> Result<Self> {
         Ok(Hashes2(x.try_into()?))
     }
 }
 
-impl AsRef<Vec<[u8; 32]>> for Hashes2 {
+impl AsRef<Vec<Hash>> for Hashes2 {
     #[must_use]
-    fn as_ref(&self) -> &Vec<[u8; 32]> {
+    fn as_ref(&self) -> &Vec<Hash> {
         &self.0.0
     }
 }
 
-impl AsRef<[[u8; 32]]> for Hashes2 {
+impl AsRef<[Hash]> for Hashes2 {
     #[cfg(feature = "alloc")]
     #[must_use]
-    fn as_ref(&self) -> &[[u8; 32]] {
+    fn as_ref(&self) -> &[Hash] {
         &self.0.0
     }
     #[cfg(not(feature = "alloc"))]
     #[must_use]
-    fn as_ref(&self) -> &[[u8; 32]] {
+    fn as_ref(&self) -> &[Hash] {
         self.0.0
     }
 }
@@ -2207,25 +2207,25 @@ impl AsRef<[[u8; 32]]> for Hashes2 {
 #[derive(Default)]
 #[derive(Debug)]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
-pub struct Hashes3(pub VecM::<[u8; 32]>);
+pub struct Hashes3(pub VecM::<Hash>);
 
-impl From<Hashes3> for VecM::<[u8; 32]> {
+impl From<Hashes3> for VecM::<Hash> {
     #[must_use]
     fn from(x: Hashes3) -> Self {
         x.0
     }
 }
 
-impl From<VecM::<[u8; 32]>> for Hashes3 {
+impl From<VecM::<Hash>> for Hashes3 {
     #[must_use]
-    fn from(x: VecM::<[u8; 32]>) -> Self {
+    fn from(x: VecM::<Hash>) -> Self {
         Hashes3(x)
     }
 }
 
-impl AsRef<VecM::<[u8; 32]>> for Hashes3 {
+impl AsRef<VecM::<Hash>> for Hashes3 {
     #[must_use]
-    fn as_ref(&self) -> &VecM::<[u8; 32]> {
+    fn as_ref(&self) -> &VecM::<Hash> {
         &self.0
     }
 }
@@ -2233,7 +2233,7 @@ impl AsRef<VecM::<[u8; 32]>> for Hashes3 {
 impl ReadXdr for Hashes3 {
     #[cfg(feature = "std")]
     fn read_xdr(r: &mut impl Read) -> Result<Self> {
-        let i = VecM::<[u8; 32]>::read_xdr(r)?;
+        let i = VecM::<Hash>::read_xdr(r)?;
         let v = Hashes3(i);
         Ok(v)
     }
@@ -2247,50 +2247,50 @@ impl WriteXdr for Hashes3 {
 }
 
 impl Deref for Hashes3 {
-  type Target = VecM::<[u8; 32]>;
+  type Target = VecM::<Hash>;
   fn deref(&self) -> &Self::Target {
       &self.0
   }
 }
 
-impl From<Hashes3> for Vec<[u8; 32]> {
+impl From<Hashes3> for Vec<Hash> {
     #[must_use]
     fn from(x: Hashes3) -> Self {
         x.0.0
     }
 }
 
-impl TryFrom<Vec<[u8; 32]>> for Hashes3 {
+impl TryFrom<Vec<Hash>> for Hashes3 {
     type Error = Error;
-    fn try_from(x: Vec<[u8; 32]>) -> Result<Self> {
+    fn try_from(x: Vec<Hash>) -> Result<Self> {
         Ok(Hashes3(x.try_into()?))
     }
 }
 
 #[cfg(feature = "alloc")]
-impl TryFrom<&Vec<[u8; 32]>> for Hashes3 {
+impl TryFrom<&Vec<Hash>> for Hashes3 {
     type Error = Error;
-    fn try_from(x: &Vec<[u8; 32]>) -> Result<Self> {
+    fn try_from(x: &Vec<Hash>) -> Result<Self> {
         Ok(Hashes3(x.try_into()?))
     }
 }
 
-impl AsRef<Vec<[u8; 32]>> for Hashes3 {
+impl AsRef<Vec<Hash>> for Hashes3 {
     #[must_use]
-    fn as_ref(&self) -> &Vec<[u8; 32]> {
+    fn as_ref(&self) -> &Vec<Hash> {
         &self.0.0
     }
 }
 
-impl AsRef<[[u8; 32]]> for Hashes3 {
+impl AsRef<[Hash]> for Hashes3 {
     #[cfg(feature = "alloc")]
     #[must_use]
-    fn as_ref(&self) -> &[[u8; 32]] {
+    fn as_ref(&self) -> &[Hash] {
         &self.0.0
     }
     #[cfg(not(feature = "alloc"))]
     #[must_use]
-    fn as_ref(&self) -> &[[u8; 32]] {
+    fn as_ref(&self) -> &[Hash] {
         self.0.0
     }
 }
@@ -2303,25 +2303,25 @@ impl AsRef<[[u8; 32]]> for Hashes3 {
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[derive(Debug)]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
-pub struct OptHash1(pub Option<[u8; 32]>);
+pub struct OptHash1(pub Option<Hash>);
 
-impl From<OptHash1> for Option<[u8; 32]> {
+impl From<OptHash1> for Option<Hash> {
     #[must_use]
     fn from(x: OptHash1) -> Self {
         x.0
     }
 }
 
-impl From<Option<[u8; 32]>> for OptHash1 {
+impl From<Option<Hash>> for OptHash1 {
     #[must_use]
-    fn from(x: Option<[u8; 32]>) -> Self {
+    fn from(x: Option<Hash>) -> Self {
         OptHash1(x)
     }
 }
 
-impl AsRef<Option<[u8; 32]>> for OptHash1 {
+impl AsRef<Option<Hash>> for OptHash1 {
     #[must_use]
-    fn as_ref(&self) -> &Option<[u8; 32]> {
+    fn as_ref(&self) -> &Option<Hash> {
         &self.0
     }
 }
@@ -2329,7 +2329,7 @@ impl AsRef<Option<[u8; 32]>> for OptHash1 {
 impl ReadXdr for OptHash1 {
     #[cfg(feature = "std")]
     fn read_xdr(r: &mut impl Read) -> Result<Self> {
-        let i = Option::<[u8; 32]>::read_xdr(r)?;
+        let i = Option::<Hash>::read_xdr(r)?;
         let v = OptHash1(i);
         Ok(v)
     }
@@ -2350,25 +2350,25 @@ impl WriteXdr for OptHash1 {
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[derive(Debug)]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
-pub struct OptHash2(pub Option<[u8; 32]>);
+pub struct OptHash2(pub Option<Hash>);
 
-impl From<OptHash2> for Option<[u8; 32]> {
+impl From<OptHash2> for Option<Hash> {
     #[must_use]
     fn from(x: OptHash2) -> Self {
         x.0
     }
 }
 
-impl From<Option<[u8; 32]>> for OptHash2 {
+impl From<Option<Hash>> for OptHash2 {
     #[must_use]
-    fn from(x: Option<[u8; 32]>) -> Self {
+    fn from(x: Option<Hash>) -> Self {
         OptHash2(x)
     }
 }
 
-impl AsRef<Option<[u8; 32]>> for OptHash2 {
+impl AsRef<Option<Hash>> for OptHash2 {
     #[must_use]
-    fn as_ref(&self) -> &Option<[u8; 32]> {
+    fn as_ref(&self) -> &Option<Hash> {
         &self.0
     }
 }
@@ -2376,7 +2376,7 @@ impl AsRef<Option<[u8; 32]>> for OptHash2 {
 impl ReadXdr for OptHash2 {
     #[cfg(feature = "std")]
     fn read_xdr(r: &mut impl Read) -> Result<Self> {
-        let i = Option::<[u8; 32]>::read_xdr(r)?;
+        let i = Option::<Hash>::read_xdr(r)?;
         let v = OptHash2(i);
         Ok(v)
     }
@@ -2430,9 +2430,9 @@ pub type Int4 = u64;
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
 pub struct MyStruct {
-  pub field1: [u8; 64],
+  pub field1: Uint512,
   pub field2: OptHash1,
-  pub field3: i32,
+  pub field3: Int1,
   pub field4: u32,
   pub field5: f32,
   pub field6: f64,
@@ -2443,9 +2443,9 @@ pub struct MyStruct {
             #[cfg(feature = "std")]
             fn read_xdr(r: &mut impl Read) -> Result<Self> {
                 Ok(Self{
-                  field1: <[u8; 64]>::read_xdr(r)?,
+                  field1: Uint512::read_xdr(r)?,
 field2: OptHash1::read_xdr(r)?,
-field3: i32::read_xdr(r)?,
+field3: Int1::read_xdr(r)?,
 field4: u32::read_xdr(r)?,
 field5: f32::read_xdr(r)?,
 field6: f64::read_xdr(r)?,

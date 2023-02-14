@@ -2003,7 +2003,7 @@ pub type Int64 = i64;
 #[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
 pub struct MyStruct {
   pub some_int: i32,
-  pub a_big_int: i64,
+  pub a_big_int: Int64,
   pub some_opaque: [u8; 10],
   pub some_string: StringM,
   pub max_string: StringM::<100>,
@@ -2014,7 +2014,7 @@ pub struct MyStruct {
             fn read_xdr(r: &mut impl Read) -> Result<Self> {
                 Ok(Self{
                   some_int: i32::read_xdr(r)?,
-a_big_int: i64::read_xdr(r)?,
+a_big_int: Int64::read_xdr(r)?,
 some_opaque: <[u8; 10]>::read_xdr(r)?,
 some_string: StringM::read_xdr(r)?,
 max_string: StringM::<100>::read_xdr(r)?,
