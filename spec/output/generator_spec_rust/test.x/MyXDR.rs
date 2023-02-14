@@ -1985,7 +1985,113 @@ mod test {
 //
 //   typedef opaque uint512[64];
 //
-pub type Uint512 = [u8; 64];
+#[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
+#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr))]
+pub struct Uint512(pub [u8; 64]);
+
+impl core::fmt::Display for Uint512 {
+  fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+      let v = &self.0;
+      for b in v {
+          write!(f, "{b:02x}")?;
+      }
+      Ok(())
+  }
+}
+
+impl core::fmt::Debug for Uint512 {
+  fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+      let v = &self.0;
+      write!(f, "Uint512(")?;
+      for b in v {
+          write!(f, "{b:02x}")?;
+      }
+      write!(f, ")")?;
+      Ok(())
+  }
+}
+
+#[cfg(feature = "alloc")]
+impl core::str::FromStr for Uint512 {
+  type Err = Error;
+  fn from_str(s: &str) -> core::result::Result<Self, Self::Err> {
+      hex::decode(s).map_err(|_| Error::InvalidHex)?.try_into()
+  }
+}
+impl From<Uint512> for [u8; 64] {
+    #[must_use]
+    fn from(x: Uint512) -> Self {
+        x.0
+    }
+}
+
+impl From<[u8; 64]> for Uint512 {
+    #[must_use]
+    fn from(x: [u8; 64]) -> Self {
+        Uint512(x)
+    }
+}
+
+impl AsRef<[u8; 64]> for Uint512 {
+    #[must_use]
+    fn as_ref(&self) -> &[u8; 64] {
+        &self.0
+    }
+}
+
+impl ReadXdr for Uint512 {
+    #[cfg(feature = "std")]
+    fn read_xdr(r: &mut impl Read) -> Result<Self> {
+        let i = <[u8; 64]>::read_xdr(r)?;
+        let v = Uint512(i);
+        Ok(v)
+    }
+}
+
+impl WriteXdr for Uint512 {
+    #[cfg(feature = "std")]
+    fn write_xdr(&self, w: &mut impl Write) -> Result<()> {
+        self.0.write_xdr(w)
+    }
+}
+
+impl Uint512 {
+    #[must_use]
+    pub fn as_slice(&self) -> &[u8] {
+        &self.0
+    }
+}
+
+#[cfg(feature = "alloc")]
+impl TryFrom<Vec<u8>> for Uint512 {
+    type Error = Error;
+    fn try_from(x: Vec<u8>) -> Result<Self> {
+        x.as_slice().try_into()
+    }
+}
+
+#[cfg(feature = "alloc")]
+impl TryFrom<&Vec<u8>> for Uint512 {
+    type Error = Error;
+    fn try_from(x: &Vec<u8>) -> Result<Self> {
+        x.as_slice().try_into()
+    }
+}
+
+impl TryFrom<&[u8]> for Uint512 {
+    type Error = Error;
+    fn try_from(x: &[u8]) -> Result<Self> {
+        Ok(Uint512(x.try_into()?))
+    }
+}
+
+impl AsRef<[u8]> for Uint512 {
+    #[must_use]
+    fn as_ref(&self) -> &[u8] {
+        &self.0
+    }
+}
 
 // Uint513 is an XDR Typedef defines as:
 //
@@ -2015,7 +2121,113 @@ pub type Str2 = StringM;
 //
 //   typedef opaque Hash[32];
 //
-pub type Hash = [u8; 32];
+#[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
+#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr))]
+pub struct Hash(pub [u8; 32]);
+
+impl core::fmt::Display for Hash {
+  fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+      let v = &self.0;
+      for b in v {
+          write!(f, "{b:02x}")?;
+      }
+      Ok(())
+  }
+}
+
+impl core::fmt::Debug for Hash {
+  fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+      let v = &self.0;
+      write!(f, "Hash(")?;
+      for b in v {
+          write!(f, "{b:02x}")?;
+      }
+      write!(f, ")")?;
+      Ok(())
+  }
+}
+
+#[cfg(feature = "alloc")]
+impl core::str::FromStr for Hash {
+  type Err = Error;
+  fn from_str(s: &str) -> core::result::Result<Self, Self::Err> {
+      hex::decode(s).map_err(|_| Error::InvalidHex)?.try_into()
+  }
+}
+impl From<Hash> for [u8; 32] {
+    #[must_use]
+    fn from(x: Hash) -> Self {
+        x.0
+    }
+}
+
+impl From<[u8; 32]> for Hash {
+    #[must_use]
+    fn from(x: [u8; 32]) -> Self {
+        Hash(x)
+    }
+}
+
+impl AsRef<[u8; 32]> for Hash {
+    #[must_use]
+    fn as_ref(&self) -> &[u8; 32] {
+        &self.0
+    }
+}
+
+impl ReadXdr for Hash {
+    #[cfg(feature = "std")]
+    fn read_xdr(r: &mut impl Read) -> Result<Self> {
+        let i = <[u8; 32]>::read_xdr(r)?;
+        let v = Hash(i);
+        Ok(v)
+    }
+}
+
+impl WriteXdr for Hash {
+    #[cfg(feature = "std")]
+    fn write_xdr(&self, w: &mut impl Write) -> Result<()> {
+        self.0.write_xdr(w)
+    }
+}
+
+impl Hash {
+    #[must_use]
+    pub fn as_slice(&self) -> &[u8] {
+        &self.0
+    }
+}
+
+#[cfg(feature = "alloc")]
+impl TryFrom<Vec<u8>> for Hash {
+    type Error = Error;
+    fn try_from(x: Vec<u8>) -> Result<Self> {
+        x.as_slice().try_into()
+    }
+}
+
+#[cfg(feature = "alloc")]
+impl TryFrom<&Vec<u8>> for Hash {
+    type Error = Error;
+    fn try_from(x: &Vec<u8>) -> Result<Self> {
+        x.as_slice().try_into()
+    }
+}
+
+impl TryFrom<&[u8]> for Hash {
+    type Error = Error;
+    fn try_from(x: &[u8]) -> Result<Self> {
+        Ok(Hash(x.try_into()?))
+    }
+}
+
+impl AsRef<[u8]> for Hash {
+    #[must_use]
+    fn as_ref(&self) -> &[u8] {
+        &self.0
+    }
+}
 
 // Hashes1 is an XDR Typedef defines as:
 //
@@ -2105,13 +2317,195 @@ impl AsRef<[Hash]> for Hashes1 {
 //
 //   typedef Hash Hashes2<12>;
 //
-pub type Hashes2 = VecM::<Hash, 12>;
+#[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
+#[derive(Default)]
+#[derive(Debug)]
+#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
+pub struct Hashes2(pub VecM::<Hash, 12>);
+
+impl From<Hashes2> for VecM::<Hash, 12> {
+    #[must_use]
+    fn from(x: Hashes2) -> Self {
+        x.0
+    }
+}
+
+impl From<VecM::<Hash, 12>> for Hashes2 {
+    #[must_use]
+    fn from(x: VecM::<Hash, 12>) -> Self {
+        Hashes2(x)
+    }
+}
+
+impl AsRef<VecM::<Hash, 12>> for Hashes2 {
+    #[must_use]
+    fn as_ref(&self) -> &VecM::<Hash, 12> {
+        &self.0
+    }
+}
+
+impl ReadXdr for Hashes2 {
+    #[cfg(feature = "std")]
+    fn read_xdr(r: &mut impl Read) -> Result<Self> {
+        let i = VecM::<Hash, 12>::read_xdr(r)?;
+        let v = Hashes2(i);
+        Ok(v)
+    }
+}
+
+impl WriteXdr for Hashes2 {
+    #[cfg(feature = "std")]
+    fn write_xdr(&self, w: &mut impl Write) -> Result<()> {
+        self.0.write_xdr(w)
+    }
+}
+
+impl Deref for Hashes2 {
+  type Target = VecM::<Hash, 12>;
+  fn deref(&self) -> &Self::Target {
+      &self.0
+  }
+}
+
+impl From<Hashes2> for Vec<Hash> {
+    #[must_use]
+    fn from(x: Hashes2) -> Self {
+        x.0.0
+    }
+}
+
+impl TryFrom<Vec<Hash>> for Hashes2 {
+    type Error = Error;
+    fn try_from(x: Vec<Hash>) -> Result<Self> {
+        Ok(Hashes2(x.try_into()?))
+    }
+}
+
+#[cfg(feature = "alloc")]
+impl TryFrom<&Vec<Hash>> for Hashes2 {
+    type Error = Error;
+    fn try_from(x: &Vec<Hash>) -> Result<Self> {
+        Ok(Hashes2(x.try_into()?))
+    }
+}
+
+impl AsRef<Vec<Hash>> for Hashes2 {
+    #[must_use]
+    fn as_ref(&self) -> &Vec<Hash> {
+        &self.0.0
+    }
+}
+
+impl AsRef<[Hash]> for Hashes2 {
+    #[cfg(feature = "alloc")]
+    #[must_use]
+    fn as_ref(&self) -> &[Hash] {
+        &self.0.0
+    }
+    #[cfg(not(feature = "alloc"))]
+    #[must_use]
+    fn as_ref(&self) -> &[Hash] {
+        self.0.0
+    }
+}
 
 // Hashes3 is an XDR Typedef defines as:
 //
 //   typedef Hash Hashes3<>;
 //
-pub type Hashes3 = VecM::<Hash>;
+#[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
+#[derive(Default)]
+#[derive(Debug)]
+#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
+pub struct Hashes3(pub VecM::<Hash>);
+
+impl From<Hashes3> for VecM::<Hash> {
+    #[must_use]
+    fn from(x: Hashes3) -> Self {
+        x.0
+    }
+}
+
+impl From<VecM::<Hash>> for Hashes3 {
+    #[must_use]
+    fn from(x: VecM::<Hash>) -> Self {
+        Hashes3(x)
+    }
+}
+
+impl AsRef<VecM::<Hash>> for Hashes3 {
+    #[must_use]
+    fn as_ref(&self) -> &VecM::<Hash> {
+        &self.0
+    }
+}
+
+impl ReadXdr for Hashes3 {
+    #[cfg(feature = "std")]
+    fn read_xdr(r: &mut impl Read) -> Result<Self> {
+        let i = VecM::<Hash>::read_xdr(r)?;
+        let v = Hashes3(i);
+        Ok(v)
+    }
+}
+
+impl WriteXdr for Hashes3 {
+    #[cfg(feature = "std")]
+    fn write_xdr(&self, w: &mut impl Write) -> Result<()> {
+        self.0.write_xdr(w)
+    }
+}
+
+impl Deref for Hashes3 {
+  type Target = VecM::<Hash>;
+  fn deref(&self) -> &Self::Target {
+      &self.0
+  }
+}
+
+impl From<Hashes3> for Vec<Hash> {
+    #[must_use]
+    fn from(x: Hashes3) -> Self {
+        x.0.0
+    }
+}
+
+impl TryFrom<Vec<Hash>> for Hashes3 {
+    type Error = Error;
+    fn try_from(x: Vec<Hash>) -> Result<Self> {
+        Ok(Hashes3(x.try_into()?))
+    }
+}
+
+#[cfg(feature = "alloc")]
+impl TryFrom<&Vec<Hash>> for Hashes3 {
+    type Error = Error;
+    fn try_from(x: &Vec<Hash>) -> Result<Self> {
+        Ok(Hashes3(x.try_into()?))
+    }
+}
+
+impl AsRef<Vec<Hash>> for Hashes3 {
+    #[must_use]
+    fn as_ref(&self) -> &Vec<Hash> {
+        &self.0.0
+    }
+}
+
+impl AsRef<[Hash]> for Hashes3 {
+    #[cfg(feature = "alloc")]
+    #[must_use]
+    fn as_ref(&self) -> &[Hash] {
+        &self.0.0
+    }
+    #[cfg(not(feature = "alloc"))]
+    #[must_use]
+    fn as_ref(&self) -> &[Hash] {
+        self.0.0
+    }
+}
 
 // OptHash1 is an XDR Typedef defines as:
 //
