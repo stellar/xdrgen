@@ -242,6 +242,7 @@ module Xdrgen
             #[must_use]
             #[allow(clippy::too_many_lines)]
             pub fn value(&self) -> &dyn core::any::Any {
+                #[allow(clippy::match_same_arms)]
                 match self {
                     #{types.map { |t| "Self::#{t}(ref v) => v.as_ref()," }.join("\n")}
                 }
