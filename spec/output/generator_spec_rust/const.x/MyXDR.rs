@@ -2157,6 +2157,7 @@ TypeVariant::TestArray2 => Box::new(ReadXdrIter::<_, TestArray2>::new(dec).map(|
             #[must_use]
             #[allow(clippy::too_many_lines)]
             pub fn value(&self) -> &dyn core::any::Any {
+                #[allow(clippy::match_same_arms)]
                 match self {
                     Self::TestArray(ref v) => v.as_ref(),
 Self::TestArray2(ref v) => v.as_ref(),

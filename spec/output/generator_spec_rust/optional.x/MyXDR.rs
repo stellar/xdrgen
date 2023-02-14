@@ -2184,6 +2184,7 @@ TypeVariant::HasOptions => Box::new(ReadXdrIter::<_, HasOptions>::new(dec).map(|
             #[must_use]
             #[allow(clippy::too_many_lines)]
             pub fn value(&self) -> &dyn core::any::Any {
+                #[allow(clippy::match_same_arms)]
                 match self {
                     Self::Arr(ref v) => v.as_ref(),
 Self::HasOptions(ref v) => v.as_ref(),

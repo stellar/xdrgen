@@ -2530,6 +2530,7 @@ TypeVariant::Color2 => Box::new(ReadXdrIter::<_, Color2>::new(dec).map(|r| r.map
             #[must_use]
             #[allow(clippy::too_many_lines)]
             pub fn value(&self) -> &dyn core::any::Any {
+                #[allow(clippy::match_same_arms)]
                 match self {
                     Self::MessageType(ref v) => v.as_ref(),
 Self::Color(ref v) => v.as_ref(),
