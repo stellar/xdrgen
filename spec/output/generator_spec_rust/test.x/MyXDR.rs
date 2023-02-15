@@ -2097,25 +2097,389 @@ impl AsRef<[u8]> for Uint512 {
 //
 //   typedef opaque uint513<64>;
 //
-pub type Uint513 = BytesM::<64>;
+#[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
+#[derive(Default)]
+#[derive(Debug)]
+#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
+pub struct Uint513(pub BytesM::<64>);
+
+impl From<Uint513> for BytesM::<64> {
+    #[must_use]
+    fn from(x: Uint513) -> Self {
+        x.0
+    }
+}
+
+impl From<BytesM::<64>> for Uint513 {
+    #[must_use]
+    fn from(x: BytesM::<64>) -> Self {
+        Uint513(x)
+    }
+}
+
+impl AsRef<BytesM::<64>> for Uint513 {
+    #[must_use]
+    fn as_ref(&self) -> &BytesM::<64> {
+        &self.0
+    }
+}
+
+impl ReadXdr for Uint513 {
+    #[cfg(feature = "std")]
+    fn read_xdr(r: &mut impl Read) -> Result<Self> {
+        let i = BytesM::<64>::read_xdr(r)?;
+        let v = Uint513(i);
+        Ok(v)
+    }
+}
+
+impl WriteXdr for Uint513 {
+    #[cfg(feature = "std")]
+    fn write_xdr(&self, w: &mut impl Write) -> Result<()> {
+        self.0.write_xdr(w)
+    }
+}
+
+impl Deref for Uint513 {
+  type Target = BytesM::<64>;
+  fn deref(&self) -> &Self::Target {
+      &self.0
+  }
+}
+
+impl From<Uint513> for Vec<u8> {
+    #[must_use]
+    fn from(x: Uint513) -> Self {
+        x.0.0
+    }
+}
+
+impl TryFrom<Vec<u8>> for Uint513 {
+    type Error = Error;
+    fn try_from(x: Vec<u8>) -> Result<Self> {
+        Ok(Uint513(x.try_into()?))
+    }
+}
+
+#[cfg(feature = "alloc")]
+impl TryFrom<&Vec<u8>> for Uint513 {
+    type Error = Error;
+    fn try_from(x: &Vec<u8>) -> Result<Self> {
+        Ok(Uint513(x.try_into()?))
+    }
+}
+
+impl AsRef<Vec<u8>> for Uint513 {
+    #[must_use]
+    fn as_ref(&self) -> &Vec<u8> {
+        &self.0.0
+    }
+}
+
+impl AsRef<[u8]> for Uint513 {
+    #[cfg(feature = "alloc")]
+    #[must_use]
+    fn as_ref(&self) -> &[u8] {
+        &self.0.0
+    }
+    #[cfg(not(feature = "alloc"))]
+    #[must_use]
+    fn as_ref(&self) -> &[u8] {
+        self.0.0
+    }
+}
 
 // Uint514 is an XDR Typedef defines as:
 //
 //   typedef opaque uint514<>;
 //
-pub type Uint514 = BytesM;
+#[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
+#[derive(Default)]
+#[derive(Debug)]
+#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
+pub struct Uint514(pub BytesM);
+
+impl From<Uint514> for BytesM {
+    #[must_use]
+    fn from(x: Uint514) -> Self {
+        x.0
+    }
+}
+
+impl From<BytesM> for Uint514 {
+    #[must_use]
+    fn from(x: BytesM) -> Self {
+        Uint514(x)
+    }
+}
+
+impl AsRef<BytesM> for Uint514 {
+    #[must_use]
+    fn as_ref(&self) -> &BytesM {
+        &self.0
+    }
+}
+
+impl ReadXdr for Uint514 {
+    #[cfg(feature = "std")]
+    fn read_xdr(r: &mut impl Read) -> Result<Self> {
+        let i = BytesM::read_xdr(r)?;
+        let v = Uint514(i);
+        Ok(v)
+    }
+}
+
+impl WriteXdr for Uint514 {
+    #[cfg(feature = "std")]
+    fn write_xdr(&self, w: &mut impl Write) -> Result<()> {
+        self.0.write_xdr(w)
+    }
+}
+
+impl Deref for Uint514 {
+  type Target = BytesM;
+  fn deref(&self) -> &Self::Target {
+      &self.0
+  }
+}
+
+impl From<Uint514> for Vec<u8> {
+    #[must_use]
+    fn from(x: Uint514) -> Self {
+        x.0.0
+    }
+}
+
+impl TryFrom<Vec<u8>> for Uint514 {
+    type Error = Error;
+    fn try_from(x: Vec<u8>) -> Result<Self> {
+        Ok(Uint514(x.try_into()?))
+    }
+}
+
+#[cfg(feature = "alloc")]
+impl TryFrom<&Vec<u8>> for Uint514 {
+    type Error = Error;
+    fn try_from(x: &Vec<u8>) -> Result<Self> {
+        Ok(Uint514(x.try_into()?))
+    }
+}
+
+impl AsRef<Vec<u8>> for Uint514 {
+    #[must_use]
+    fn as_ref(&self) -> &Vec<u8> {
+        &self.0.0
+    }
+}
+
+impl AsRef<[u8]> for Uint514 {
+    #[cfg(feature = "alloc")]
+    #[must_use]
+    fn as_ref(&self) -> &[u8] {
+        &self.0.0
+    }
+    #[cfg(not(feature = "alloc"))]
+    #[must_use]
+    fn as_ref(&self) -> &[u8] {
+        self.0.0
+    }
+}
 
 // Str is an XDR Typedef defines as:
 //
 //   typedef string str<64>;
 //
-pub type Str = StringM::<64>;
+#[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
+#[derive(Default)]
+#[derive(Debug)]
+#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
+pub struct Str(pub StringM::<64>);
+
+impl From<Str> for StringM::<64> {
+    #[must_use]
+    fn from(x: Str) -> Self {
+        x.0
+    }
+}
+
+impl From<StringM::<64>> for Str {
+    #[must_use]
+    fn from(x: StringM::<64>) -> Self {
+        Str(x)
+    }
+}
+
+impl AsRef<StringM::<64>> for Str {
+    #[must_use]
+    fn as_ref(&self) -> &StringM::<64> {
+        &self.0
+    }
+}
+
+impl ReadXdr for Str {
+    #[cfg(feature = "std")]
+    fn read_xdr(r: &mut impl Read) -> Result<Self> {
+        let i = StringM::<64>::read_xdr(r)?;
+        let v = Str(i);
+        Ok(v)
+    }
+}
+
+impl WriteXdr for Str {
+    #[cfg(feature = "std")]
+    fn write_xdr(&self, w: &mut impl Write) -> Result<()> {
+        self.0.write_xdr(w)
+    }
+}
+
+impl Deref for Str {
+  type Target = StringM::<64>;
+  fn deref(&self) -> &Self::Target {
+      &self.0
+  }
+}
+
+impl From<Str> for Vec<u8> {
+    #[must_use]
+    fn from(x: Str) -> Self {
+        x.0.0
+    }
+}
+
+impl TryFrom<Vec<u8>> for Str {
+    type Error = Error;
+    fn try_from(x: Vec<u8>) -> Result<Self> {
+        Ok(Str(x.try_into()?))
+    }
+}
+
+#[cfg(feature = "alloc")]
+impl TryFrom<&Vec<u8>> for Str {
+    type Error = Error;
+    fn try_from(x: &Vec<u8>) -> Result<Self> {
+        Ok(Str(x.try_into()?))
+    }
+}
+
+impl AsRef<Vec<u8>> for Str {
+    #[must_use]
+    fn as_ref(&self) -> &Vec<u8> {
+        &self.0.0
+    }
+}
+
+impl AsRef<[u8]> for Str {
+    #[cfg(feature = "alloc")]
+    #[must_use]
+    fn as_ref(&self) -> &[u8] {
+        &self.0.0
+    }
+    #[cfg(not(feature = "alloc"))]
+    #[must_use]
+    fn as_ref(&self) -> &[u8] {
+        self.0.0
+    }
+}
 
 // Str2 is an XDR Typedef defines as:
 //
 //   typedef string str2<>;
 //
-pub type Str2 = StringM;
+#[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
+#[derive(Default)]
+#[derive(Debug)]
+#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
+pub struct Str2(pub StringM);
+
+impl From<Str2> for StringM {
+    #[must_use]
+    fn from(x: Str2) -> Self {
+        x.0
+    }
+}
+
+impl From<StringM> for Str2 {
+    #[must_use]
+    fn from(x: StringM) -> Self {
+        Str2(x)
+    }
+}
+
+impl AsRef<StringM> for Str2 {
+    #[must_use]
+    fn as_ref(&self) -> &StringM {
+        &self.0
+    }
+}
+
+impl ReadXdr for Str2 {
+    #[cfg(feature = "std")]
+    fn read_xdr(r: &mut impl Read) -> Result<Self> {
+        let i = StringM::read_xdr(r)?;
+        let v = Str2(i);
+        Ok(v)
+    }
+}
+
+impl WriteXdr for Str2 {
+    #[cfg(feature = "std")]
+    fn write_xdr(&self, w: &mut impl Write) -> Result<()> {
+        self.0.write_xdr(w)
+    }
+}
+
+impl Deref for Str2 {
+  type Target = StringM;
+  fn deref(&self) -> &Self::Target {
+      &self.0
+  }
+}
+
+impl From<Str2> for Vec<u8> {
+    #[must_use]
+    fn from(x: Str2) -> Self {
+        x.0.0
+    }
+}
+
+impl TryFrom<Vec<u8>> for Str2 {
+    type Error = Error;
+    fn try_from(x: Vec<u8>) -> Result<Self> {
+        Ok(Str2(x.try_into()?))
+    }
+}
+
+#[cfg(feature = "alloc")]
+impl TryFrom<&Vec<u8>> for Str2 {
+    type Error = Error;
+    fn try_from(x: &Vec<u8>) -> Result<Self> {
+        Ok(Str2(x.try_into()?))
+    }
+}
+
+impl AsRef<Vec<u8>> for Str2 {
+    #[must_use]
+    fn as_ref(&self) -> &Vec<u8> {
+        &self.0.0
+    }
+}
+
+impl AsRef<[u8]> for Str2 {
+    #[cfg(feature = "alloc")]
+    #[must_use]
+    fn as_ref(&self) -> &[u8] {
+        &self.0.0
+    }
+    #[cfg(not(feature = "alloc"))]
+    #[must_use]
+    fn as_ref(&self) -> &[u8] {
+        self.0.0
+    }
+}
 
 // Hash is an XDR Typedef defines as:
 //

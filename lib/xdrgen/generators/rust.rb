@@ -817,13 +817,7 @@ module Xdrgen
           AST::Typespecs::Double, AST::Typespecs::Float,
           AST::Typespecs::UnsignedHyper, AST::Typespecs::UnsignedInt,
           AST::Typespecs::Hyper, AST::Typespecs::Int,
-          AST::Typespecs::String,
-        ].any? { |t| t === type } || is_var_opaque_type(type)
-        # Fixed opaque types cannot be treated as a builtin everywhere, because
-        # we implement Display and FromStr on those types so as to provide
-        # alternative hex representation when encoded to JSON. That is not
-        # possible if we treat them as a builtin because the type disappears and
-        # we can't implement those traits on builtin Rust types.
+        ].any? { |t| t === type }
       end
 
       def is_fixed_array_opaque(type)
@@ -839,10 +833,6 @@ module Xdrgen
         (AST::Typespecs::Opaque === type && !type.fixed?) ||
         (AST::Typespecs::String === type) ||
         (type.sub_type == :var_array)
-      end
-
-      def is_var_opaque_type(type)
-        (AST::Typespecs::Opaque === type && !type.fixed?)
       end
 
       def base_reference(type)
