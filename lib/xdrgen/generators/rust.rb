@@ -817,7 +817,6 @@ module Xdrgen
           AST::Typespecs::Double, AST::Typespecs::Float,
           AST::Typespecs::UnsignedHyper, AST::Typespecs::UnsignedInt,
           AST::Typespecs::Hyper, AST::Typespecs::Int,
-          AST::Typespecs::String,
         ].any? { |t| t === type }
       end
 
