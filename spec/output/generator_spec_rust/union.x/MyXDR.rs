@@ -2107,8 +2107,8 @@ Self::Multi => "Multi",
 #[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
 #[allow(clippy::large_enum_variant)]
 pub enum MyUnion {
-  Error(SError),
-  Multi(VecM::<Multi>),
+  Error(i32),
+  Multi(VecM::<i32>),
 }
 
         impl MyUnion {
@@ -2172,8 +2172,8 @@ Self::Multi(_) => UnionKey::Multi,
                 let dv: UnionKey = <UnionKey as ReadXdr>::read_xdr(r)?;
                 #[allow(clippy::match_same_arms, clippy::match_wildcard_for_single_variants)]
                 let v = match dv {
-                    UnionKey::Error => Self::Error(SError::read_xdr(r)?),
-UnionKey::Multi => Self::Multi(VecM::<Multi>::read_xdr(r)?),
+                    UnionKey::Error => Self::Error(i32::read_xdr(r)?),
+UnionKey::Multi => Self::Multi(VecM::<i32>::read_xdr(r)?),
                     #[allow(unreachable_patterns)]
                     _ => return Err(Error::Invalid),
                 };
@@ -2211,8 +2211,8 @@ Self::Multi(v) => v.write_xdr(w)?,
 #[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
 #[allow(clippy::large_enum_variant)]
 pub enum IntUnion {
-  V0(SError),
-  V1(VecM::<Multi>),
+  V0(i32),
+  V1(VecM::<i32>),
 }
 
         impl IntUnion {
@@ -2276,8 +2276,8 @@ Self::V1(_) => 1,
                 let dv: i32 = <i32 as ReadXdr>::read_xdr(r)?;
                 #[allow(clippy::match_same_arms, clippy::match_wildcard_for_single_variants)]
                 let v = match dv {
-                    0 => Self::V0(SError::read_xdr(r)?),
-1 => Self::V1(VecM::<Multi>::read_xdr(r)?),
+                    0 => Self::V0(i32::read_xdr(r)?),
+1 => Self::V1(VecM::<i32>::read_xdr(r)?),
                     #[allow(unreachable_patterns)]
                     _ => return Err(Error::Invalid),
                 };

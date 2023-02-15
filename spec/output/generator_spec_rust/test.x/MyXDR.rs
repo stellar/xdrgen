@@ -3008,7 +3008,7 @@ pub type Int4 = u64;
 pub struct MyStruct {
   pub field1: Uint512,
   pub field2: OptHash1,
-  pub field3: Int1,
+  pub field3: i32,
   pub field4: u32,
   pub field5: f32,
   pub field6: f64,
@@ -3021,7 +3021,7 @@ pub struct MyStruct {
                 Ok(Self{
                   field1: Uint512::read_xdr(r)?,
 field2: OptHash1::read_xdr(r)?,
-field3: Int1::read_xdr(r)?,
+field3: i32::read_xdr(r)?,
 field4: u32::read_xdr(r)?,
 field5: f32::read_xdr(r)?,
 field6: f64::read_xdr(r)?,
