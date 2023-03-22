@@ -940,12 +940,12 @@ n += nTmp
 if err != nil {
   return n, fmt.Errorf("decoding Unsigned int: %s", err)
 }
-  nTmp, err = d.Decode(s.Field5)
+  nTmp, err = d.Decode(&s.Field5)
 n += nTmp
 if err != nil {
   return n, fmt.Errorf("decoding Float: %s", err)
 }
-  nTmp, err = d.Decode(s.Field6)
+  nTmp, err = d.Decode(&s.Field6)
 n += nTmp
 if err != nil {
   return n, fmt.Errorf("decoding Double: %s", err)
