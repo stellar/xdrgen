@@ -899,7 +899,7 @@ if _, err = e.Encode(s.Field5); err != nil {
 if _, err = e.Encode(s.Field6); err != nil {
   return err
 }
-if _, err = e.Encode(s.Field7); err != nil {
+if _, err = e.EncodeBool(bool(s.Field7)); err != nil {
   return err
 }
   return nil
@@ -940,17 +940,17 @@ n += nTmp
 if err != nil {
   return n, fmt.Errorf("decoding Unsigned int: %s", err)
 }
-  nTmp, err = d.Decode(s.Field5)
+  nTmp, err = d.Decode(&s.Field5)
 n += nTmp
 if err != nil {
   return n, fmt.Errorf("decoding Float: %s", err)
 }
-  nTmp, err = d.Decode(s.Field6)
+  nTmp, err = d.Decode(&s.Field6)
 n += nTmp
 if err != nil {
   return n, fmt.Errorf("decoding Double: %s", err)
 }
-  nTmp, err = d.Decode(s.Field7)
+  s.Field7, nTmp, err = d.DecodeBool()
 n += nTmp
 if err != nil {
   return n, fmt.Errorf("decoding Bool: %s", err)

@@ -451,6 +451,8 @@ module Xdrgen
           out.puts check_error "_, err = e.EncodeUint(uint32(#{var}))"
         when AST::Typespecs::Int
           out.puts (check_error "_, err = e.EncodeInt(int32(#{var}))")
+        when AST::Typespecs::Bool
+          out.puts (check_error "_, err = e.EncodeBool(bool(#{var}))")
         when AST::Typespecs::String
           out.puts check_error "_, err = e.EncodeString(string(#{var}))"
         when AST::Typespecs::Opaque
@@ -659,6 +661,9 @@ module Xdrgen
         when AST::Typespecs::Int
           out.puts "  #{var}, nTmp, err = d.DecodeInt()"
           out.puts tail
+        when AST::Typespecs::Bool
+          out.puts "  #{var}, nTmp, err = d.DecodeBool()"
+          out.puts tail
         when AST::Typespecs::String
           arg = "0"
           arg = type.decl.resolved_size unless type.decl.resolved_size.nil?
@@ -752,7 +757,7 @@ module Xdrgen
           end
           out.puts tail
         else
-          out.puts "  nTmp, err = d.Decode(#{var})"
+          out.puts "  nTmp, err = d.Decode(&#{var})"
           out.puts tail
         end
         if optional
