@@ -21,6 +21,7 @@ golang, and elixir:
 
 - ruby: complete support
 - javascript: complete support
+- typescript: support is experimental
 - java: complete support
 - golang: currently using a fork of go-xdr, but has complete support
 - rust: support is experimental. Default arms and floats are not supported.
