@@ -232,17 +232,58 @@ module Xdrgen
 
       def render_union(out, union)
         discriminant_type = reference(nil, union.discriminant.type)
-        discriminant_type_builtin = is_builtin_type(union.discriminant.type) || (is_builtin_type(union.discriminant.type.resolved_type.type) if union.discriminant.type.respond_to?(:resolved_type) && AST::Definitions::Typedef === union.discriminant.type.resolved_type)
         out.puts "// union with discriminant #{discriminant_type}"
-        out.puts "export type #{name union} = "
-        union_case_count = 0
+        out.puts "export class #{name union} {"
         out.indent do
+          out.puts <<-EOS.strip_heredoc
+            private _type: #{discriminant_type};
+            private _value: any;
+
+            switch(): #{discriminant_type} {
+              return this._type;
+            }
+          EOS
+          out.break
+          union_case_count = 0
+          constructors = []
           union_cases(union) do |case_name, arm|
+            union_case_discriminant_constructor = "#{discriminant_type}.#{case_name}"
             union_case_count += 1
-            out.puts arm.void? ? "| #{case_name}#{"(())" unless arm.void?}" : "| #{case_name}(#{reference(union, arm.type)})"
+            member = case_name.camelize(:lower)
+            if arm.void?
+              constructors.push "constructor(type: #{union_case_discriminant_constructor});"
+              out.puts <<-EOS.strip_heredoc
+                static #member(): #{name union} {
+                  return new #{name union}(#{union_case_discriminant_constructor});
+                }
+                #{member}() {}
+              EOS
+            else
+              constructors.push "constructor(type: #{union_case_discriminant_constructor}, value: #{reference(union, arm.declaration.type)});"
+              out.puts <<-EOS.strip_heredoc
+                static #{member}(value: #{reference(union, arm.type)}): #{name union} {
+                  return new #{name union}(#{union_case_discriminant_constructor}, value);
+                }
+                #{member}(value?: #{reference(union, arm.type)}): #{reference(union, arm.type)} {
+                  if (value !== undefined) {
+                    this._value = value;
+                  }
+                  return this._value as #{reference(union, arm.type)};
+                }
+              EOS
+            end
+            out.break
           end
+
+          out.puts constructors.join("\n")
+          out.puts <<-EOS.strip_heredoc
+            constructor(type: #{discriminant_type}, value: any) {
+              this._type = type;
+              this._value = value;
+            }
+          EOS
         end
-        out.puts ';'
+        out.puts '}'
         out.break
       end
 
@@ -334,6 +375,8 @@ module Xdrgen
 
         base = if named.respond_to?(:name)
           named.name
+        elsif named.is_a? String
+          named
         else
           named.text_value
         end
