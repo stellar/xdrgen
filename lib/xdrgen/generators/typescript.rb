@@ -164,29 +164,29 @@ module Xdrgen
         out.break
         out.indent do
           out.puts <<-EOS.strip_heredoc
-            static fromXDR(input: Buffer, format = 'raw'): Buffer {
+            static fromXDR(input: Buffer, format?: 'raw'): Buffer;
+            static fromXDR(input: string, format: 'hex' | 'base64'): Buffer;
+            static fromXDR(input: string | Buffer, format?: 'raw' | 'hex' | 'base64'): Buffer {
+              if (typeof input === 'string') {
+                return this.fromXDR(Buffer.from(input, format));
+              }
+              format = format ?? 'raw';
               throw new Error('not implemented');
-            }
-
-            static fromXDR(input: string, format: 'hex' | 'base64'): Buffer {
-              return this.fromXDR(Buffer.from(input, format));
             }
 
             static toXDR(value: #{name struct}): Buffer {
               throw new Error('not implemented');
             }
 
-            static validateXDR(input: Buffer, format = 'raw'): boolean {
+            static validateXDR(input: Buffer, format?: 'raw'): boolean;
+            static validateXDR(input: string, format: 'hex' | 'base64'): boolean;
+            static validateXDR(input: string | Buffer, format?: 'raw' | 'hex' | 'base64'): boolean {
               try {
                 this.fromXDR(input, format);
                 return true;
               } catch (e) {
                 return false;
               }
-            }
-
-            static validateXDR(input: string, format: 'hex' | 'base64'): boolean {
-              return this.validateXDR(Buffer.from(input, format));
             }
 
             toXDR(): Buffer {
