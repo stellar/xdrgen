@@ -196,45 +196,114 @@ module Xdrgen
       end
 
       def render_union(out, union)
-        out.puts "define_type(\"#{name union}\", Union,"
-        out.indent do
-          out.puts "switch_type: #{type_reference union.discriminant.type},"
-          out.puts "switch_name: :#{member_name union.discriminant},"
+        file_name = "#{union.name.underscore.downcase}.ex"
+        out = @output.open(file_name)
 
-          out.puts "switches: ["
+        render_define_block_enum_type(out, union.name) do 
           out.indent do
-            union.normal_arms.each do |arm|
-              arm_name = arm.void? ? "XDR.Type.Void" : ":#{member_name(arm)}"
+            out.puts "alias #{@namespace}.{\n"
+            out.indent do
+              out.puts "#{type_reference union.discriminant.type},"
+              union.normal_arms.each_with_index do |arm, i|
+                arm_name = arm.void? ? "Void" : "#{type_reference arm.type}"
 
-              arm.cases.each do |acase|
-                switch = if acase.value.is_a?(AST::Identifier)
-                  ":#{member_name(acase.value)}"
-                else
-                  acase.value.text_value
+                arm.cases.each do |acase|
+                  out.puts "#{arm_name}#{comma_unless_last(i, union.normal_arms)}"
                 end
-
-                out.puts "{#{switch}, #{arm_name}},"
               end
             end
-          end
-          out.puts "],"
+            out.puts "}\n\n"
 
-          out.puts "arms: ["
-          out.indent do
-            union.arms.each do |arm|
-              next if arm.void?
-              out.puts "#{member_name arm}: #{type_reference arm.type},"
+            out.puts "@arms ["
+            out.indent do
+              union.normal_arms.each_with_index do |arm, i|
+                arm_name = arm.void? ? "Void" : "#{type_reference arm.type}"
+
+                arm.cases.each do |acase|
+                  switch = if acase.value.is_a?(AST::Identifier)
+                    "#{member_name(acase.value)}"
+                  else
+                    acase.value.text_value
+                  end
+
+                  out.puts "#{switch}: #{arm_name}#{comma_unless_last(i, union.normal_arms)}"
+                end
+              end
             end
-          end
-          out.puts union.default_arm.present? ? "]," : "]"
+            out.puts "]\n\n"
 
-          if union.default_arm.present?
-            arm = union.default_arm
-            arm_name = arm.void? ? "XDR.Type.Void" : member_name(arm)
-            out.puts "default_arm: #{arm_name},"
+            out.puts "@type value ::"
+            out.indent(4) do
+              union.normal_arms.each_with_index do |arm, i|
+                next if arm.void?
+                if i == 0
+                  out.puts "#{type_reference arm.type}.t()"
+                else
+                  out.puts "| #{type_reference arm.type}.t()"
+                end
+              end
+            end
+            out.puts "\n"
+
+            out.puts "@type t :: %__MODULE__{value: value(), type: #{type_reference union.discriminant.type}.t()}\n\n"
+
+            out.puts "defstruct [:value, :type]\n\n"
+
+            out.puts "@spec new(value :: value(), type :: #{type_reference union.discriminant.type}.t()) :: t()\n"
+            out.puts "def new(value, %#{type_reference union.discriminant.type}{} = type), do: %__MODULE__{value: value, type: type}\n\n"
+
+            out.puts "@impl true"
+            out.puts "def encode_xdr(%__MODULE__{value: value, type: type}) do\n"
+            out.indent do
+              out.puts "type\n"
+              out.puts "|> XDR.Union.new(@arms, value)\n"
+              out.puts "|> XDR.Union.encode_xdr()\n"
+            end
+            out.puts "end\n\n"
+
+            out.puts "@impl true"
+            out.puts "def encode_xdr!(%__MODULE__{value: value, type: type}) do\n"
+            out.indent do
+              out.puts "type\n"
+              out.puts "|> XDR.Union.new(@arms, value)\n"
+              out.puts "|> XDR.Union.encode_xdr!()\n"
+            end
+            out.puts "end\n\n"
+
+            out.puts "@impl true"
+            out.puts "def decode_xdr(bytes, spec \\\\ union_spec())\n\n"
+
+            out.puts "def decode_xdr(bytes, spec) do\n"
+            out.indent do
+              out.puts "case XDR.Union.decode_xdr(bytes, spec) do\n"
+              out.indent do
+                out.puts "{:ok, {{type, value}, rest}} -> {:ok, {new(value, type), rest}}\n"
+                out.puts "error -> error\n"
+              end
+              out.puts "end\n"
+            end
+            out.puts "end\n\n"
+
+            out.puts "@impl true"
+            out.puts "def decode_xdr!(bytes, spec \\\\ union_spec())\n\n"
+
+            out.puts "def decode_xdr!(bytes, spec) do\n"
+            out.indent do
+              out.puts "{{type, value}, rest} = XDR.Union.decode_xdr!(bytes, spec)\n"
+              out.puts "{new(value, type), rest}\n"
+            end
+            out.puts "end\n\n"
+
+            out.puts "@spec union_spec() :: XDR.Union.t()"
+            out.puts "defp union_spec do"
+            out.indent do
+              out.puts "nil\n"
+              out.puts "|> #{type_reference union.discriminant.type}.new()\n"
+              out.puts "|> XDR.Union.new(@arms)\n"
+            end
+            out.puts "end\n"
           end
         end
-        out.puts ")"
       end
 
       private
@@ -265,7 +334,7 @@ module Xdrgen
       def type_reference(type)
         build_args = build_type_args(type)
 
-        build_args === "\"#{name type}\"" ? build_args : "build_type(#{build_args})"
+        build_args === "#{name type}" ? build_args : "build_type(#{build_args})"
       end
 
       def comma_unless_last(index, collection)
@@ -304,16 +373,16 @@ module Xdrgen
           when AST::Typespecs::UnsignedInt
             "UnsignedInt"
           when AST::Typespecs::Simple
-            "\"#{name type}\""
+            "#{name type}"
           when AST::Definitions::Base
-            "\"#{name type}\""
+            "#{name type}"
           when AST::Concerns::NestedDefinition
-            "\"#{name type}\""
+            "#{name type}"
           else
             raise "Unknown reference type: #{type.class.name}, #{type.class.ancestors}"
         end
 
-        base_type = base_ref === "\"#{name type}\"" ? base_ref : "buid_type(base_ref)"
+        base_type = base_ref === "#{name type}" ? base_ref : "buid_type(base_ref)"
 
         case type.sub_type
           when :simple

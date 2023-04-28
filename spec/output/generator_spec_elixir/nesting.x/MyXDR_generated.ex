@@ -48,7 +48,7 @@ defmodule MyXDR do
 
   define_type("MyUnionTwo", Struct,
     SOME_INT: build_type(Int),
-    FOO: "Foo"
+    FOO: Foo
   )
 
   comment ~S"""
@@ -72,18 +72,5 @@ defmodule MyXDR do
       };
   """
 
-  define_type("MyUnion", Union,
-    switch_type: "UnionKey",
-    switch_name: :TYPE,
-    switches: [
-      {:ONE, :ONE},
-      {:TWO, :TWO},
-      {:OFFER, XDR.Type.Void},
-    ],
-    arms: [
-      ONE: "MyUnionOne",
-      TWO: "MyUnionTwo",
-    ]
-  )
 
 end

@@ -29,7 +29,7 @@ defmodule MyXDR do
 
   define_type("MyStruct", Struct,
     SOME_INT: build_type(Int),
-    A_BIG_INT: "Int64",
+    A_BIG_INT: Int64,
     SOME_OPAQUE: build_type(Opaque, 10),
     SOME_STRING: build_type(XDR.Type.String, ),
     MAX_STRING: build_type(XDR.Type.String, 100)

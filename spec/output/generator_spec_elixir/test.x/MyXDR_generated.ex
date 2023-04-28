@@ -60,7 +60,7 @@ defmodule MyXDR do
       typedef Hash Hashes1[12];
   """
 
-  define_type("Hashes1", Array, length: 12, type: "Hash")
+  define_type("Hashes1", Array, length: 12, type: Hash)
 
   comment ~S"""
   XDR Source Code::
@@ -68,7 +68,7 @@ defmodule MyXDR do
       typedef Hash Hashes2<12>;
   """
 
-  define_type("Hashes2", VariableArray, max_length: 12, type: "Hash")
+  define_type("Hashes2", VariableArray, max_length: 12, type: Hash)
 
   comment ~S"""
   XDR Source Code::
@@ -76,7 +76,7 @@ defmodule MyXDR do
       typedef Hash Hashes3<>;
   """
 
-  define_type("Hashes3", VariableArray, max_length: 2147483647, type: "Hash")
+  define_type("Hashes3", VariableArray, max_length: 2147483647, type: Hash)
 
   comment ~S"""
   XDR Source Code::
@@ -84,7 +84,7 @@ defmodule MyXDR do
       typedef Hash *optHash1;
   """
 
-  define_type("OptHash1", Optional, "Hash")
+  define_type("OptHash1", Optional, Hash)
 
   comment ~S"""
   XDR Source Code::
@@ -92,7 +92,7 @@ defmodule MyXDR do
       typedef Hash* optHash2;
   """
 
-  define_type("OptHash2", Optional, "Hash")
+  define_type("OptHash2", Optional, Hash)
 
   comment ~S"""
   XDR Source Code::
@@ -142,9 +142,9 @@ defmodule MyXDR do
   """
 
   define_type("MyStruct", Struct,
-    FIELD1: "Uint512",
-    FIELD2: "OptHash1",
-    FIELD3: "Int1",
+    FIELD1: Uint512,
+    FIELD2: OptHash1,
+    FIELD3: Int1,
     FIELD4: build_type(UnsignedInt),
     FIELD5: build_type(Float),
     FIELD6: build_type(Double),
@@ -161,7 +161,7 @@ defmodule MyXDR do
   """
 
   define_type("LotsOfMyStructs", Struct,
-    MEMBERS: build_type(VariableArray, max_length: 2147483647, type: "MyStruct")
+    MEMBERS: build_type(VariableArray, max_length: 2147483647, type: MyStruct)
   )
 
   comment ~S"""
@@ -174,7 +174,7 @@ defmodule MyXDR do
   """
 
   define_type("HasStuff", Struct,
-    DATA: "LotsOfMyStructs"
+    DATA: LotsOfMyStructs
   )
 
   comment ~S"""
@@ -237,17 +237,6 @@ defmodule MyXDR do
         }
   """
 
-  define_type("NesterNestedUnion", Union,
-    switch_type: "Color",
-    switch_name: :COLOR,
-    switches: [
-      {:RED, XDR.Type.Void},
-    ],
-    arms: [
-      BLAH2: build_type(Int),
-    ],
-    default_arm: BLAH2,
-  )
 
   comment ~S"""
   XDR Source Code::
@@ -275,9 +264,9 @@ defmodule MyXDR do
   """
 
   define_type("Nester", Struct,
-    NESTED_ENUM: "NesterNestedEnum",
-    NESTED_STRUCT: "NesterNestedStruct",
-    NESTED_UNION: "NesterNestedUnion"
+    NESTED_ENUM: NesterNestedEnum,
+    NESTED_STRUCT: NesterNestedStruct,
+    NESTED_UNION: NesterNestedUnion
   )
 
 end

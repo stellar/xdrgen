@@ -46,18 +46,6 @@ defmodule MyXDR do
       };
   """
 
-  define_type("MyUnion", Union,
-    switch_type: "UnionKey",
-    switch_name: :TYPE,
-    switches: [
-      {:ERROR, :ERROR},
-      {:MULTI, :THINGS},
-    ],
-    arms: [
-      ERROR: "Error",
-      THINGS: build_type(VariableArray, max_length: 2147483647, type: "Multi"),
-    ]
-  )
 
   comment ~S"""
   XDR Source Code::
@@ -72,18 +60,6 @@ defmodule MyXDR do
       };
   """
 
-  define_type("IntUnion", Union,
-    switch_type: build_type(Int),
-    switch_name: :TYPE,
-    switches: [
-      {0, :ERROR},
-      {1, :THINGS},
-    ],
-    arms: [
-      ERROR: "Error",
-      THINGS: build_type(VariableArray, max_length: 2147483647, type: "Multi"),
-    ]
-  )
 
   comment ~S"""
   XDR Source Code::
@@ -91,6 +67,6 @@ defmodule MyXDR do
       typedef IntUnion IntUnion2;
   """
 
-  define_type("IntUnion2", "IntUnion")
+  define_type("IntUnion2", IntUnion)
 
 end

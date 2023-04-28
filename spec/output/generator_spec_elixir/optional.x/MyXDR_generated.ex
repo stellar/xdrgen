@@ -28,7 +28,7 @@ defmodule MyXDR do
   define_type("HasOptions", Struct,
     FIRST_OPTION: build_type(Optional, buid_type(base_ref)),
     SECOND_OPTION: build_type(Optional, buid_type(base_ref)),
-    THIRD_OPTION: build_type(Optional, "Arr")
+    THIRD_OPTION: build_type(Optional, Arr)
   )
 
 end
