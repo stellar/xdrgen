@@ -31,7 +31,7 @@ module Xdrgen
 
         case defn
         when AST::Definitions::Struct ;
-          render_struct out, defn
+          render_struct defn
         when AST::Definitions::Enum ;
           render_enum defn
         when AST::Definitions::Union ;
@@ -117,14 +117,159 @@ module Xdrgen
         out.puts "define_type(\"#{const_name const}\", Const, #{const.value});"
       end
 
-      def render_struct(out, struct)
-        out.puts "define_type(\"#{name struct}\", Struct,"
-        out.indent do
-          struct.members.each_with_index do |m, i|
-            out.puts "#{member_name m}: #{type_reference m.type}#{comma_unless_last(i, struct.members)}"
+      def render_struct(struct)
+        file_name = "#{struct.name.underscore.downcase}.ex"
+        out = @output.open(file_name)
+
+        render_define_block_enum_type(out, struct.name) do
+          out.indent do
+            alias_namespace = "alias #{@namespace}.{"
+            struct.members.each_with_index do |m, i|
+              alias_namespace += "#{type_reference m.type}#{comma_and_space_unless_last(i, struct.members)}"
+            end
+            alias_namespace += "} \n\n"
+            out.puts alias_namespace
+
+            out.puts "@struct_spec XDR.Struct.new("
+            out.indent do
+              struct.members.each_with_index do |m, i|
+                out.puts "#{m.name}: #{type_reference m.type}#{comma_unless_last(i, struct.members)}"
+              end
+            end
+            out.puts ")\n\n"
+
+            struct.members.each_with_index do |m, i|
+              out.puts "@type #{m.name} :: #{type_reference m.type}.t()"
+            end
+            out.puts "\n"
+
+            types = "@type t :: %__MODULE__{"
+            struct.members.each_with_index do |m, i|
+              types += "#{m.name}: #{m.name}()#{comma_and_space_unless_last(i, struct.members)}"
+            end
+            types += "}\n\n"
+            out.puts types
+
+            def_struct = "defstruct ["
+            struct.members.each_with_index do |m, i|
+              def_struct += ":#{m.name}#{comma_and_space_unless_last(i, struct.members)}"
+            end
+            def_struct += "]\n\n"
+            out.puts def_struct
+
+            spec = "@spec new("
+            struct.members.each_with_index do |m, i|
+              spec += "#{m.name} :: #{m.name}()#{comma_and_space_unless_last(i, struct.members)}"
+            end
+            spec += ") :: t()\n\n"
+            out.puts spec
+
+            out.puts "def new(\n"
+            out.indent do
+              struct.members.each_with_index do |m, i|
+                out.puts "%#{type_reference m.type}{} = #{m.name}#{comma_unless_last(i, struct.members)}"
+              end
+            end
+            out.puts "),\n"
+            function = "do: %__MODULE__{"
+            struct.members.each_with_index do |m, i|
+              function += "#{m.name}: #{m.name}#{comma_and_space_unless_last(i, struct.members)}"
+            end
+            function += "}\n\n"
+            out.puts function
+
+            out.puts "@impl true\n"
+            impl = "def encode_xdr(%__MODULE__{"
+            struct.members.each_with_index do |m, i|
+              impl += "#{m.name}: #{m.name}#{comma_and_space_unless_last(i, struct.members)}"
+            end
+            impl += "}) do \n"
+            out.puts impl
+            args = "["
+            out.indent do
+              struct.members.each_with_index do |m, i|
+                args += "#{m.name}: #{m.name}#{comma_and_space_unless_last(i, struct.members)}"
+              end
+              args += "]\n"
+              out.puts args
+
+              out.puts "|> XDR.Struct.new()"
+              out.puts "|> XDR.Struct.encode_xdr()"
+            end
+            out.puts "end \n\n"
+
+            out.puts "@impl true\n"
+            impl = "def encode_xdr!(%__MODULE__{"
+            struct.members.each_with_index do |m, i|
+              impl += "#{m.name}: #{m.name}#{comma_and_space_unless_last(i, struct.members)}"
+            end
+            impl += "}) do \n"
+            out.puts impl
+            args = "["
+            out.indent do
+              struct.members.each_with_index do |m, i|
+                args += "#{m.name}: #{m.name}#{comma_and_space_unless_last(i, struct.members)}"
+              end
+              args += "]\n"
+              out.puts args
+
+              out.puts "|> XDR.Struct.new()"
+              out.puts "|> XDR.Struct.encode_xdr!()"
+            end
+            out.puts "end \n\n"
+
+            out.puts "@impl true \n"
+            out.puts "def decode_xdr(bytes, struct \\\\ @struct_spec) \n\n"
+
+            out.puts "def decode_xdr(bytes, struct) do"
+            out.indent do
+              out.puts "case XDR.Struct.decode_xdr(bytes, struct) do"
+                out.indent do
+                  comp = "{:ok, {%XDR.Struct{components: ["
+                  struct.members.each_with_index do |m, i|
+                    comp += "#{m.name}: #{m.name}#{comma_and_space_unless_last(i, struct.members)}"
+                  end
+                  comp += "]}, rest}} -> \n"
+                  out.puts comp
+                  out.indent do
+                    new_comp = "{:ok, {new("
+                    struct.members.each_with_index do |m, i|
+                      new_comp += "#{m.name}#{comma_and_space_unless_last(i, struct.members)}"
+                    end
+                    new_comp += "), rest}}"
+                    out.puts new_comp
+                  end
+                  out.puts "error -> error"
+                end
+              out.puts "end"
+            end
+            out.puts "end \n\n"
+
+            out.puts "@impl true \n"
+            out.puts "def decode_xdr!(bytes, struct \\\\ @struct_spec) \n\n"
+
+            out.puts "def decode_xdr!(bytes, struct) do"
+            out.indent do
+              comp = "{%XDR.Struct{components: ["
+              struct.members.each_with_index do |m, i|
+                comp += "#{m.name}: #{m.name}#{comma_and_space_unless_last(i, struct.members)}"
+              end
+              comp += "]}, rest} = \n"
+              out.puts comp
+              out.indent do
+                out.puts "XDR.Struct.decode_xdr!(bytes, struct)"
+              end
+              new_comp = "{new("
+              struct.members.each_with_index do |m, i|
+                new_comp += "#{m.name}#{comma_and_space_unless_last(i, struct.members)}"
+              end
+              new_comp += "), rest}"
+              out.puts new_comp
+            end
+            out.puts "end"
           end
         end
-        out.puts ")"
+        out.close
       end
 
       def render_enum(enum)
@@ -342,6 +487,14 @@ module Xdrgen
           ""
         else
           ","
+        end
+      end
+
+      def comma_and_space_unless_last(index, collection)
+        if index + 1 >= collection.length
+          ""
+        else
+          ", "
         end
       end
 

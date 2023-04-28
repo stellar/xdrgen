@@ -33,9 +33,6 @@ defmodule MyXDR do
               }
   """
 
-  define_type("MyUnionOne", Struct,
-    SOME_INT: build_type(Int)
-  )
 
   comment ~S"""
   XDR Source Code::
@@ -46,10 +43,6 @@ defmodule MyXDR do
               }
   """
 
-  define_type("MyUnionTwo", Struct,
-    SOME_INT: build_type(Int),
-    FOO: Foo
-  )
 
   comment ~S"""
   XDR Source Code::

@@ -141,15 +141,6 @@ defmodule MyXDR do
       };
   """
 
-  define_type("MyStruct", Struct,
-    FIELD1: Uint512,
-    FIELD2: OptHash1,
-    FIELD3: Int1,
-    FIELD4: build_type(UnsignedInt),
-    FIELD5: build_type(Float),
-    FIELD6: build_type(Double),
-    FIELD7: build_type(Bool)
-  )
 
   comment ~S"""
   XDR Source Code::
@@ -160,9 +151,6 @@ defmodule MyXDR do
       };
   """
 
-  define_type("LotsOfMyStructs", Struct,
-    MEMBERS: build_type(VariableArray, max_length: 2147483647, type: MyStruct)
-  )
 
   comment ~S"""
   XDR Source Code::
@@ -173,9 +161,6 @@ defmodule MyXDR do
       };
   """
 
-  define_type("HasStuff", Struct,
-    DATA: LotsOfMyStructs
-  )
 
   comment ~S"""
   XDR Source Code::
@@ -222,9 +207,6 @@ defmodule MyXDR do
         }
   """
 
-  define_type("NesterNestedStruct", Struct,
-    BLAH: build_type(Int)
-  )
 
   comment ~S"""
   XDR Source Code::
@@ -263,10 +245,5 @@ defmodule MyXDR do
       };
   """
 
-  define_type("Nester", Struct,
-    NESTED_ENUM: NesterNestedEnum,
-    NESTED_STRUCT: NesterNestedStruct,
-    NESTED_UNION: NesterNestedUnion
-  )
 
 end
