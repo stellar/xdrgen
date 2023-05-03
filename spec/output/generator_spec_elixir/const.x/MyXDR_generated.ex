@@ -20,7 +20,6 @@ defmodule MyXDR do
       typedef int TestArray[FOO];
   """
 
-  define_type("TestArray", Array, length: "FOO", type: buid_type(base_ref))
 
   comment ~S"""
   XDR Source Code::
@@ -28,6 +27,5 @@ defmodule MyXDR do
       typedef int TestArray2<FOO>;
   """
 
-  define_type("TestArray2", VariableArray, max_length: "FOO", type: buid_type(base_ref))
 
 end

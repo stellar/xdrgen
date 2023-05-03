@@ -10,13 +10,13 @@ defmodule MyXDR.One do
 
   @behaviour XDR.Declaration
 
-  alias MyXDR.{build_type(Int)} 
+  alias MyXDR.{Int} 
 
   @struct_spec XDR.Struct.new(
-    someInt: build_type(Int)
+    someInt: Int
   )
 
-  @type someInt :: build_type(Int).t()
+  @type someInt :: Int.t()
 
   @type t :: %__MODULE__{someInt: someInt()}
 
@@ -25,7 +25,7 @@ defmodule MyXDR.One do
   @spec new(someInt :: someInt()) :: t()
 
   def new(
-    %build_type(Int){} = someInt
+    %Int{} = someInt
   ),
   do: %__MODULE__{someInt: someInt}
 

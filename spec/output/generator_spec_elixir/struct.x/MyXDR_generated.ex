@@ -12,7 +12,6 @@ defmodule MyXDR do
       typedef hyper int64;
   """
 
-  define_type("Int64", HyperInt)
 
   comment ~S"""
   XDR Source Code::

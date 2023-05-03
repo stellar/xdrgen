@@ -12,7 +12,6 @@ defmodule MyXDR do
       typedef int Error;
   """
 
-  define_type("Error", Int)
 
   comment ~S"""
   XDR Source Code::
@@ -20,7 +19,6 @@ defmodule MyXDR do
       typedef int Multi;
   """
 
-  define_type("Multi", Int)
 
   comment ~S"""
   XDR Source Code::
@@ -67,6 +65,5 @@ defmodule MyXDR do
       typedef IntUnion IntUnion2;
   """
 
-  define_type("IntUnion2", IntUnion)
 
 end

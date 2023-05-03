@@ -26,6 +26,7 @@ defmodule MyXDR.MyUnion do
   @type value ::
           MyUnionOne.t()
           | MyUnionTwo.t()
+          | Void.t()
 
   @type t :: %__MODULE__{value: value(), type: UnionKey.t()}
 

@@ -12,7 +12,6 @@ defmodule MyXDR do
       typedef opaque uint512[64];
   """
 
-  define_type("Uint512", Opaque, 64)
 
   comment ~S"""
   XDR Source Code::
@@ -20,7 +19,6 @@ defmodule MyXDR do
       typedef opaque uint513<64>;
   """
 
-  define_type("Uint513", VariableOpaque, 64)
 
   comment ~S"""
   XDR Source Code::
@@ -28,7 +26,6 @@ defmodule MyXDR do
       typedef opaque uint514<>;
   """
 
-  define_type("Uint514", VariableOpaque)
 
   comment ~S"""
   XDR Source Code::
@@ -36,7 +33,6 @@ defmodule MyXDR do
       typedef string str<64>;
   """
 
-  define_type("Str", XDR.Type.String, 64)
 
   comment ~S"""
   XDR Source Code::
@@ -44,7 +40,6 @@ defmodule MyXDR do
       typedef string str2<>;
   """
 
-  define_type("Str2", XDR.Type.String, )
 
   comment ~S"""
   XDR Source Code::
@@ -52,7 +47,6 @@ defmodule MyXDR do
       typedef opaque Hash[32];
   """
 
-  define_type("Hash", Opaque, 32)
 
   comment ~S"""
   XDR Source Code::
@@ -60,7 +54,6 @@ defmodule MyXDR do
       typedef Hash Hashes1[12];
   """
 
-  define_type("Hashes1", Array, length: 12, type: Hash)
 
   comment ~S"""
   XDR Source Code::
@@ -68,7 +61,6 @@ defmodule MyXDR do
       typedef Hash Hashes2<12>;
   """
 
-  define_type("Hashes2", VariableArray, max_length: 12, type: Hash)
 
   comment ~S"""
   XDR Source Code::
@@ -76,7 +68,6 @@ defmodule MyXDR do
       typedef Hash Hashes3<>;
   """
 
-  define_type("Hashes3", VariableArray, max_length: 2147483647, type: Hash)
 
   comment ~S"""
   XDR Source Code::
@@ -84,7 +75,6 @@ defmodule MyXDR do
       typedef Hash *optHash1;
   """
 
-  define_type("OptHash1", Optional, Hash)
 
   comment ~S"""
   XDR Source Code::
@@ -92,7 +82,6 @@ defmodule MyXDR do
       typedef Hash* optHash2;
   """
 
-  define_type("OptHash2", Optional, Hash)
 
   comment ~S"""
   XDR Source Code::
@@ -100,7 +89,6 @@ defmodule MyXDR do
       typedef int             int1;
   """
 
-  define_type("Int1", Int)
 
   comment ~S"""
   XDR Source Code::
@@ -108,7 +96,6 @@ defmodule MyXDR do
       typedef hyper           int2;
   """
 
-  define_type("Int2", HyperInt)
 
   comment ~S"""
   XDR Source Code::
@@ -116,7 +103,6 @@ defmodule MyXDR do
       typedef unsigned int    int3;
   """
 
-  define_type("Int3", UnsignedInt)
 
   comment ~S"""
   XDR Source Code::
@@ -124,7 +110,6 @@ defmodule MyXDR do
       typedef unsigned hyper  int4;
   """
 
-  define_type("Int4", UnsignedHyperInt)
 
   comment ~S"""
   XDR Source Code::

@@ -23,7 +23,6 @@ defmodule MyXDR do
       typedef int Foo;
   """
 
-  define_type("Foo", Int)
 
   comment ~S"""
   XDR Source Code::

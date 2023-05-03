@@ -35,9 +35,9 @@ module Xdrgen
         when AST::Definitions::Enum ;
           render_enum defn
         when AST::Definitions::Union ;
-          render_union out, defn
+          render_union defn
         when AST::Definitions::Typedef ;
-          render_typedef out, defn
+          render_typedef defn
         when AST::Definitions::Const ;
           render_const out, defn
         end
@@ -109,8 +109,16 @@ module Xdrgen
         out.break
       end
 
-      def render_typedef(out, typedef)
-        out.puts "define_type(\"#{name typedef}\", #{build_type_args typedef.declaration.type})"
+      def render_typedef(typedef)
+        file_name = "#{typedef.name.downcase}.ex"
+        out = @output.open(file_name)
+
+        render_define_block_enum_type(out, typedef.name.downcase) do 
+          out.indent do
+            build_typedef(out, typedef)
+          end
+        end
+        out.close
       end
 
       def render_const(out, const)
@@ -125,7 +133,7 @@ module Xdrgen
           out.indent do
             alias_namespace = "alias #{@namespace}.{"
             struct.members.each_with_index do |m, i|
-              alias_namespace += "#{type_reference m.type}#{comma_and_space_unless_last(i, struct.members)}"
+              alias_namespace += "#{type_reference m, m.name.camelize}#{comma_and_space_unless_last(i, struct.members)}"
             end
             alias_namespace += "} \n\n"
             out.puts alias_namespace
@@ -133,56 +141,56 @@ module Xdrgen
             out.puts "@struct_spec XDR.Struct.new("
             out.indent do
               struct.members.each_with_index do |m, i|
-                out.puts "#{m.name}: #{type_reference m.type}#{comma_unless_last(i, struct.members)}"
+                out.puts "#{m.name}: #{type_reference m, m.name.camelize}#{comma_unless_last(i, struct.members)}"
               end
             end
             out.puts ")\n\n"
 
             struct.members.each_with_index do |m, i|
-              out.puts "@type #{m.name} :: #{type_reference m.type}.t()"
+              out.puts "@type #{m.name} :: #{type_reference m, m.name.camelize}.t()"
             end
             out.puts "\n"
 
             types = "@type t :: %__MODULE__{"
-            struct.members.each_with_index do |m, i|
+              struct.members.each_with_index do |m, i|
               types += "#{m.name}: #{m.name}()#{comma_and_space_unless_last(i, struct.members)}"
-            end
+              end
             types += "}\n\n"
             out.puts types
 
             def_struct = "defstruct ["
-            struct.members.each_with_index do |m, i|
+              struct.members.each_with_index do |m, i|
               def_struct += ":#{m.name}#{comma_and_space_unless_last(i, struct.members)}"
-            end
+              end
             def_struct += "]\n\n"
             out.puts def_struct
 
             spec = "@spec new("
-            struct.members.each_with_index do |m, i|
+              struct.members.each_with_index do |m, i|
               spec += "#{m.name} :: #{m.name}()#{comma_and_space_unless_last(i, struct.members)}"
-            end
+              end
             spec += ") :: t()\n\n"
             out.puts spec
 
             out.puts "def new(\n"
             out.indent do
               struct.members.each_with_index do |m, i|
-                out.puts "%#{type_reference m.type}{} = #{m.name}#{comma_unless_last(i, struct.members)}"
+                out.puts "%#{type_reference m, m.name.camelize}{} = #{m.name}#{comma_unless_last(i, struct.members)}"
               end
             end
             out.puts "),\n"
             function = "do: %__MODULE__{"
-            struct.members.each_with_index do |m, i|
+              struct.members.each_with_index do |m, i|
               function += "#{m.name}: #{m.name}#{comma_and_space_unless_last(i, struct.members)}"
-            end
+              end
             function += "}\n\n"
             out.puts function
 
             out.puts "@impl true\n"
             impl = "def encode_xdr(%__MODULE__{"
-            struct.members.each_with_index do |m, i|
+              struct.members.each_with_index do |m, i|
               impl += "#{m.name}: #{m.name}#{comma_and_space_unless_last(i, struct.members)}"
-            end
+              end
             impl += "}) do \n"
             out.puts impl
             args = "["
@@ -200,9 +208,9 @@ module Xdrgen
 
             out.puts "@impl true\n"
             impl = "def encode_xdr!(%__MODULE__{"
-            struct.members.each_with_index do |m, i|
+              struct.members.each_with_index do |m, i|
               impl += "#{m.name}: #{m.name}#{comma_and_space_unless_last(i, struct.members)}"
-            end
+              end
             impl += "}) do \n"
             out.puts impl
             args = "["
@@ -340,21 +348,20 @@ module Xdrgen
         end
       end
 
-      def render_union(out, union)
+      def render_union(union)
         file_name = "#{union.name.underscore.downcase}.ex"
         out = @output.open(file_name)
+        union_name_camelize = union.name.camelize
+        union_discriminant = union.discriminant
 
         render_define_block_enum_type(out, union.name) do 
           out.indent do
             out.puts "alias #{@namespace}.{\n"
             out.indent do
-              out.puts "#{type_reference union.discriminant.type},"
-              union.normal_arms.each_with_index do |arm, i|
-                arm_name = arm.void? ? "Void" : "#{type_reference arm.type}"
-
-                arm.cases.each do |acase|
-                  out.puts "#{arm_name}#{comma_unless_last(i, union.normal_arms)}"
-                end
+              out.puts "#{type_reference union_discriminant, union_name_camelize},"
+              union.arms.each_with_index do |arm, i|
+                arm_name = arm.void? ? "Void" : "#{type_reference arm.declaration, arm.name.camelize}"
+                out.puts "#{arm_name}#{comma_unless_last(i, union.arms)}"
               end
             end
             out.puts "}\n\n"
@@ -362,7 +369,7 @@ module Xdrgen
             out.puts "@arms ["
             out.indent do
               union.normal_arms.each_with_index do |arm, i|
-                arm_name = arm.void? ? "Void" : "#{type_reference arm.type}"
+                arm_name = arm.void? ? "Void" : "#{type_reference arm.declaration, arm.name.camelize}"
 
                 arm.cases.each do |acase|
                   switch = if acase.value.is_a?(AST::Identifier)
@@ -371,31 +378,40 @@ module Xdrgen
                     acase.value.text_value
                   end
 
-                  out.puts "#{switch}: #{arm_name}#{comma_unless_last(i, union.normal_arms)}"
+                  out.puts "#{switch}: #{arm_name}#{comma_unless_last(i, union.arms)}"
                 end
+              end
+
+              if union.default_arm.present?
+                out.puts "default: #{type_reference union.default_arm.declaration, union.default_arm.name.camelize}"
               end
             end
             out.puts "]\n\n"
 
             out.puts "@type value ::"
             out.indent(4) do
-              union.normal_arms.each_with_index do |arm, i|
-                next if arm.void?
+              union.arms.each_with_index do |arm, i|
+                arm_name = arm.void? ? "Void" : "#{type_reference arm.declaration, arm.name.camelize}"
                 if i == 0
-                  out.puts "#{type_reference arm.type}.t()"
+                  out.puts "#{arm_name}.t()"
                 else
-                  out.puts "| #{type_reference arm.type}.t()"
+                  out.puts "| #{arm_name}.t()"
                 end
               end
+
+              if union.default_arm.present?
+                out.puts "| any()"
+              end
+
             end
             out.puts "\n"
 
-            out.puts "@type t :: %__MODULE__{value: value(), type: #{type_reference union.discriminant.type}.t()}\n\n"
+            out.puts "@type t :: %__MODULE__{value: value(), type: #{type_reference union_discriminant, union_name_camelize}.t()}\n\n"
 
             out.puts "defstruct [:value, :type]\n\n"
 
-            out.puts "@spec new(value :: value(), type :: #{type_reference union.discriminant.type}.t()) :: t()\n"
-            out.puts "def new(value, %#{type_reference union.discriminant.type}{} = type), do: %__MODULE__{value: value, type: type}\n\n"
+            out.puts "@spec new(value :: value(), type :: #{type_reference union_discriminant, union_name_camelize}.t()) :: t()\n"
+            out.puts "def new(value, %#{type_reference union_discriminant, union_name_camelize}{} = type), do: %__MODULE__{value: value, type: type}\n\n"
 
             out.puts "@impl true"
             out.puts "def encode_xdr(%__MODULE__{value: value, type: type}) do\n"
@@ -443,7 +459,7 @@ module Xdrgen
             out.puts "defp union_spec do"
             out.indent do
               out.puts "nil\n"
-              out.puts "|> #{type_reference union.discriminant.type}.new()\n"
+              out.puts "|> #{type_reference union_discriminant, union_name_camelize}.new()\n"
               out.puts "|> XDR.Union.new(@arms)\n"
             end
             out.puts "end\n"
@@ -473,13 +489,21 @@ module Xdrgen
         name(member).underscore.upcase
       end
 
-      # this can be a string to reference a custom type
-      # or a build_type call like build_type(VariableOpaque, 100)
-      # args for build_type can be created with build_type_args
-      def type_reference(type)
-        build_args = build_type_args(type)
+      def type_reference(decl, container_name)
+        type_hint = type_string decl.type
 
-        build_args === "#{name type}" ? build_args : "build_type(#{build_args})"
+        if type_hint == container_name
+          type_hint = "#{type_hint}"
+        end
+
+        case decl.type.sub_type
+          when :optional
+            "Optional#{type_hint}"
+          when :var_array, :array
+            "#{type_hint}List"
+          else
+            type_hint
+        end
       end
 
       def comma_unless_last(index, collection)
@@ -498,13 +522,12 @@ module Xdrgen
         end
       end
 
-      # the args to supply build_type (or define_type(name, ...args))
-      def build_type_args(type)
-        base_ref = case type
+      def type_string(type)
+        case type
           when AST::Typespecs::Bool
             "Bool"
           when AST::Typespecs::Double
-            "Double"
+            "DoubleFloat"
           when AST::Typespecs::Float
             "Float"
           when AST::Typespecs::Hyper
@@ -513,18 +536,18 @@ module Xdrgen
             "Int"
           when AST::Typespecs::Opaque
             if type.fixed?
-              "Opaque, #{type.size}"
+              "FixedOpaque#{type.size}"
             else
-              type.size ? "VariableOpaque, #{type.size}" : "VariableOpaque"
+              type.size ? "VariableOpaque#{type.size}" : "VariableOpaque"
             end
           when AST::Typespecs::Quadruple
             raise "no quadruple support in elixir"
           when AST::Typespecs::String
-            "XDR.Type.String, #{type.size}"
+            "String#{type.size}"
           when AST::Typespecs::UnsignedHyper
-            "UnsignedHyperInt"
+            "HyperUInt"
           when AST::Typespecs::UnsignedInt
-            "UnsignedInt"
+            "UInt"
           when AST::Typespecs::Simple
             "#{name type}"
           when AST::Definitions::Base
@@ -534,24 +557,128 @@ module Xdrgen
           else
             raise "Unknown reference type: #{type.class.name}, #{type.class.ancestors}"
         end
+      end
 
-        base_type = base_ref === "#{name type}" ? base_ref : "buid_type(base_ref)"
+      def build_number_typedef(out, number_type, type, attribute)
+        out.puts "@type t :: %__MODULE__{#{attribute}: #{number_type}()}\n\n"
 
-        case type.sub_type
-          when :simple
-            base_ref
-          when :optional
-            "Optional, #{base_type}"
-          when :array
-            is_named, size = type.array_size
-            size = is_named ? "\"#{size}\"" : size
-            "Array, length: #{size}, type: #{base_type}"
-          when :var_array
-            is_named, size = type.array_size
-            size = is_named ? "\"#{size}\"" : (size || MAX_INT)
-            "VariableArray, max_length: #{size}, type: #{base_type}"
-          else
-            raise "Unknown sub_type: #{type.sub_type}"
+        out.puts "defstruct [:#{attribute}]\n\n"
+
+        out.puts "@spec new(value :: #{number_type}()) :: t()\n"
+        out.puts "def new(value), do: %__MODULE__{#{attribute}: value}\n\n"
+
+        out.puts "@impl true"
+        out.puts "def encode_xdr(%__MODULE__{#{attribute}: value}) do\n"
+        out.indent do
+          out.puts "XDR.#{type}.encode_xdr(%XDR.#{type}{datum: value})\n"
+        end
+        out.puts "end\n\n"
+
+        out.puts "@impl true"
+        out.puts "def encode_xdr!(%__MODULE__{#{attribute}: value}) do\n"
+        out.indent do
+          out.puts "XDR.#{type}.encode_xdr!(%XDR.#{type}{datum: value})\n"
+        end
+        out.puts "end\n\n"
+
+        out.puts "@impl true"
+        out.puts "def decode_xdr(bytes, term \\\\ nil)\n\n"
+
+        out.puts "def decode_xdr(bytes, _term) do\n"
+        out.indent do
+          out.puts "case XDR.#{type}.decode_xdr(bytes) do\n"
+          out.indent do
+            out.puts "{:ok, {%XDR.#{type}{datum: value}, rest}} -> {:ok, {new(value), rest}}\n"
+            out.puts "error -> error\n"
+          end
+          out.puts "end\n"
+        end
+        out.puts "end\n\n"
+
+        out.puts "@impl true"
+        out.puts "def decode_xdr!(bytes, term \\\\ nil)\n\n"
+
+        out.puts "def decode_xdr!(bytes, _term) do\n"
+        out.indent do
+          out.puts "{%XDR.#{type}{datum: value}, rest} = XDR.#{type}.decode_xdr!(bytes)\n"
+          out.puts "{new(value), rest}\n"
+        end
+        out.puts "end\n"
+      end
+
+      def build_bool_typedef(out, number_type, type, attribute)
+        out.puts "@type t :: %__MODULE__{#{attribute}: #{number_type}()}\n\n"
+
+        out.puts "defstruct [:#{attribute}]\n\n"
+
+        out.puts "@spec new(value :: #{number_type}()) :: t()\n"
+        out.puts "def new(value), do: %__MODULE__{#{attribute}: value}\n\n"
+
+        out.puts "@impl true"
+        out.puts "def encode_xdr(%__MODULE__{#{attribute}: value}) do\n"
+        out.indent do
+          out.puts "XDR.#{type}.encode_xdr(%XDR.#{type}{identifier: value})\n"
+        end
+        out.puts "end\n\n"
+
+        out.puts "@impl true"
+        out.puts "def encode_xdr!(%__MODULE__{#{attribute}: value}) do\n"
+        out.indent do
+          out.puts "XDR.#{type}.encode_xdr!(%XDR.#{type}{identifier: value})\n"
+        end
+        out.puts "end\n\n"
+
+        out.puts "@impl true"
+        out.puts "def decode_xdr(bytes, term \\\\ nil)\n\n"
+
+        out.puts "def decode_xdr(bytes, _term) do\n"
+        out.indent do
+          out.puts "case XDR.#{type}.decode_xdr(bytes) do\n"
+          out.indent do
+            out.puts "{:ok, {%XDR.#{type}{identifier: value}, rest}} -> {:ok, {new(value), rest}}\n"
+            out.puts "error -> error\n"
+          end
+          out.puts "end\n"
+        end
+        out.puts "end\n\n"
+
+        out.puts "@impl true"
+        out.puts "def decode_xdr!(bytes, term \\\\ nil)\n\n"
+
+        out.puts "def decode_xdr!(bytes, _term) do\n"
+        out.indent do
+          out.puts "{%XDR.#{type}{identifier: value}, rest} = XDR.#{type}.decode_xdr!(bytes)\n"
+          out.puts "{new(value), rest}\n"
+        end
+        out.puts "end\n"
+      end
+
+      def build_typedef(out, typedef)
+        type = typedef.declaration.type
+        base_type = type_string(type)
+
+        case type
+          when AST::Typespecs::Bool
+            build_bool_typedef(out, "boolean", "Bool", "bool")
+            "Bool"
+          when AST::Typespecs::Double
+            build_number_typedef(out, "float_number", "DoubleFloat", "float")
+            "DoubleFloat"
+          when AST::Typespecs::Float
+            build_number_typedef(out, "float_number", "Float", "float")
+            "Float"
+          when AST::Typespecs::Hyper
+            build_number_typedef(out, "integer", "HyperInt", "datum")
+            "HyperInt"
+          when AST::Typespecs::Int
+            build_number_typedef(out, "integer", "Int", "datum")
+            "Int"
+          when AST::Typespecs::UnsignedHyper
+            build_number_typedef(out, "non_neg_integer", "HyperUInt", "datum")
+            "HyperUInt"
+          when AST::Typespecs::UnsignedInt
+            build_number_typedef(out, "non_neg_integer", "UInt", "datum")
+            "UInt"
         end
       end
     end

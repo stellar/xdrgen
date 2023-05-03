@@ -12,14 +12,19 @@ defmodule MyXDR.NestedUnion do
 
   alias MyXDR.{
     Color,
-    Void
+    Void,
+    Int
   }
 
   @arms [
-    RED: Void
+    RED: Void,
+    default: Int
   ]
 
   @type value ::
+          Void.t()
+          | Int.t()
+          | any()
 
   @type t :: %__MODULE__{value: value(), type: Color.t()}
 

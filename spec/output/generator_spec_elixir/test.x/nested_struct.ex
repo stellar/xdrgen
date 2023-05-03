@@ -10,13 +10,13 @@ defmodule MyXDR.NestedStruct do
 
   @behaviour XDR.Declaration
 
-  alias MyXDR.{build_type(Int)} 
+  alias MyXDR.{Int} 
 
   @struct_spec XDR.Struct.new(
-    blah: build_type(Int)
+    blah: Int
   )
 
-  @type blah :: build_type(Int).t()
+  @type blah :: Int.t()
 
   @type t :: %__MODULE__{blah: blah()}
 
@@ -25,7 +25,7 @@ defmodule MyXDR.NestedStruct do
   @spec new(blah :: blah()) :: t()
 
   def new(
-    %build_type(Int){} = blah
+    %Int{} = blah
   ),
   do: %__MODULE__{blah: blah}
 

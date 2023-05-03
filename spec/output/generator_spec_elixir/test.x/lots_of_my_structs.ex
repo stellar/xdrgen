@@ -10,13 +10,13 @@ defmodule MyXDR.LotsOfMyStructs do
 
   @behaviour XDR.Declaration
 
-  alias MyXDR.{build_type(VariableArray, max_length: 2147483647, type: MyStruct)} 
+  alias MyXDR.{MyStructList} 
 
   @struct_spec XDR.Struct.new(
-    members: build_type(VariableArray, max_length: 2147483647, type: MyStruct)
+    members: MyStructList
   )
 
-  @type members :: build_type(VariableArray, max_length: 2147483647, type: MyStruct).t()
+  @type members :: MyStructList.t()
 
   @type t :: %__MODULE__{members: members()}
 
@@ -25,7 +25,7 @@ defmodule MyXDR.LotsOfMyStructs do
   @spec new(members :: members()) :: t()
 
   def new(
-    %build_type(VariableArray, max_length: 2147483647, type: MyStruct){} = members
+    %MyStructList{} = members
   ),
   do: %__MODULE__{members: members}
 

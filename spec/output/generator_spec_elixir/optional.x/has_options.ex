@@ -10,17 +10,17 @@ defmodule MyXDR.HasOptions do
 
   @behaviour XDR.Declaration
 
-  alias MyXDR.{build_type(Optional, buid_type(base_ref)), build_type(Optional, buid_type(base_ref)), build_type(Optional, Arr)} 
+  alias MyXDR.{OptionalInt, OptionalInt, OptionalArr} 
 
   @struct_spec XDR.Struct.new(
-    firstOption: build_type(Optional, buid_type(base_ref)),
-    secondOption: build_type(Optional, buid_type(base_ref)),
-    thirdOption: build_type(Optional, Arr)
+    firstOption: OptionalInt,
+    secondOption: OptionalInt,
+    thirdOption: OptionalArr
   )
 
-  @type firstOption :: build_type(Optional, buid_type(base_ref)).t()
-  @type secondOption :: build_type(Optional, buid_type(base_ref)).t()
-  @type thirdOption :: build_type(Optional, Arr).t()
+  @type firstOption :: OptionalInt.t()
+  @type secondOption :: OptionalInt.t()
+  @type thirdOption :: OptionalArr.t()
 
   @type t :: %__MODULE__{firstOption: firstOption(), secondOption: secondOption(), thirdOption: thirdOption()}
 
@@ -29,9 +29,9 @@ defmodule MyXDR.HasOptions do
   @spec new(firstOption :: firstOption(), secondOption :: secondOption(), thirdOption :: thirdOption()) :: t()
 
   def new(
-    %build_type(Optional, buid_type(base_ref)){} = firstOption,
-    %build_type(Optional, buid_type(base_ref)){} = secondOption,
-    %build_type(Optional, Arr){} = thirdOption
+    %OptionalInt{} = firstOption,
+    %OptionalInt{} = secondOption,
+    %OptionalArr{} = thirdOption
   ),
   do: %__MODULE__{firstOption: firstOption, secondOption: secondOption, thirdOption: thirdOption}
 

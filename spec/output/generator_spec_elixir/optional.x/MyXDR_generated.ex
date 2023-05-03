@@ -12,7 +12,6 @@ defmodule MyXDR do
       typedef int Arr[2];
   """
 
-  define_type("Arr", Array, length: 2, type: buid_type(base_ref))
 
   comment ~S"""
   XDR Source Code::
