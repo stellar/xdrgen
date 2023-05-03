@@ -13,59 +13,58 @@ defmodule MyXDR.HasOptions do
   alias MyXDR.{OptionalInt, OptionalInt, OptionalArr} 
 
   @struct_spec XDR.Struct.new(
-    firstOption: OptionalInt,
-    secondOption: OptionalInt,
-    thirdOption: OptionalArr
+    first_option: OptionalInt,
+    second_option: OptionalInt,
+    third_option: OptionalArr
   )
 
-  @type firstOption :: OptionalInt.t()
-  @type secondOption :: OptionalInt.t()
-  @type thirdOption :: OptionalArr.t()
+  @type first_option :: OptionalInt.t()
+  @type second_option :: OptionalInt.t()
+  @type third_option :: OptionalArr.t()
 
-  @type t :: %__MODULE__{firstOption: firstOption(), secondOption: secondOption(), thirdOption: thirdOption()}
+  @type t :: %__MODULE__{first_option: first_option(), second_option: second_option(), third_option: third_option()}
 
-  defstruct [:firstOption, :secondOption, :thirdOption]
+  defstruct [:first_option, :second_option, :third_option]
 
-  @spec new(firstOption :: firstOption(), secondOption :: secondOption(), thirdOption :: thirdOption()) :: t()
-
+  @spec new(first_option :: first_option(), second_option :: second_option(), third_option :: third_option()) :: t()
   def new(
-    %OptionalInt{} = firstOption,
-    %OptionalInt{} = secondOption,
-    %OptionalArr{} = thirdOption
+    %OptionalInt{} = first_option,
+    %OptionalInt{} = second_option,
+    %OptionalArr{} = third_option
   ),
-  do: %__MODULE__{firstOption: firstOption, secondOption: secondOption, thirdOption: thirdOption}
+  do: %__MODULE__{first_option: first_option, second_option: second_option, third_option: third_option}
 
   @impl true
-  def encode_xdr(%__MODULE__{firstOption: firstOption, secondOption: secondOption, thirdOption: thirdOption}) do 
-    [firstOption: firstOption, secondOption: secondOption, thirdOption: thirdOption]
+  def encode_xdr(%__MODULE__{first_option: first_option, second_option: second_option, third_option: third_option}) do
+    [first_option: first_option, second_option: second_option, third_option: third_option]
     |> XDR.Struct.new()
     |> XDR.Struct.encode_xdr()
-  end 
+  end
 
   @impl true
-  def encode_xdr!(%__MODULE__{firstOption: firstOption, secondOption: secondOption, thirdOption: thirdOption}) do 
-    [firstOption: firstOption, secondOption: secondOption, thirdOption: thirdOption]
+  def encode_xdr!(%__MODULE__{first_option: first_option, second_option: second_option, third_option: third_option}) do
+    [first_option: first_option, second_option: second_option, third_option: third_option]
     |> XDR.Struct.new()
     |> XDR.Struct.encode_xdr!()
-  end 
+  end
 
-  @impl true 
-  def decode_xdr(bytes, struct \\ @struct_spec) 
+  @impl true
+  def decode_xdr(bytes, struct \\ @struct_spec)
 
   def decode_xdr(bytes, struct) do
     case XDR.Struct.decode_xdr(bytes, struct) do
-      {:ok, {%XDR.Struct{components: [firstOption: firstOption, secondOption: secondOption, thirdOption: thirdOption]}, rest}} -> 
-        {:ok, {new(firstOption, secondOption, thirdOption), rest}}
+      {:ok, {%XDR.Struct{components: [first_option: first_option, second_option: second_option, third_option: third_option]}, rest}} ->
+        {:ok, {new(first_option, second_option, third_option), rest}}
       error -> error
     end
-  end 
+  end
 
-  @impl true 
-  def decode_xdr!(bytes, struct \\ @struct_spec) 
+  @impl true
+  def decode_xdr!(bytes, struct \\ @struct_spec)
 
   def decode_xdr!(bytes, struct) do
-    {%XDR.Struct{components: [firstOption: firstOption, secondOption: secondOption, thirdOption: thirdOption]}, rest} = 
+    {%XDR.Struct{components: [first_option: first_option, second_option: second_option, third_option: third_option]}, rest} =
       XDR.Struct.decode_xdr!(bytes, struct)
-    {new(firstOption, secondOption, thirdOption), rest}
+    {new(first_option, second_option, third_option), rest}
   end
 end

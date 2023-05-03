@@ -23,42 +23,41 @@ defmodule MyXDR.NestedStruct do
   defstruct [:blah]
 
   @spec new(blah :: blah()) :: t()
-
   def new(
     %Int{} = blah
   ),
   do: %__MODULE__{blah: blah}
 
   @impl true
-  def encode_xdr(%__MODULE__{blah: blah}) do 
+  def encode_xdr(%__MODULE__{blah: blah}) do
     [blah: blah]
     |> XDR.Struct.new()
     |> XDR.Struct.encode_xdr()
-  end 
+  end
 
   @impl true
-  def encode_xdr!(%__MODULE__{blah: blah}) do 
+  def encode_xdr!(%__MODULE__{blah: blah}) do
     [blah: blah]
     |> XDR.Struct.new()
     |> XDR.Struct.encode_xdr!()
-  end 
+  end
 
-  @impl true 
-  def decode_xdr(bytes, struct \\ @struct_spec) 
+  @impl true
+  def decode_xdr(bytes, struct \\ @struct_spec)
 
   def decode_xdr(bytes, struct) do
     case XDR.Struct.decode_xdr(bytes, struct) do
-      {:ok, {%XDR.Struct{components: [blah: blah]}, rest}} -> 
+      {:ok, {%XDR.Struct{components: [blah: blah]}, rest}} ->
         {:ok, {new(blah), rest}}
       error -> error
     end
-  end 
+  end
 
-  @impl true 
-  def decode_xdr!(bytes, struct \\ @struct_spec) 
+  @impl true
+  def decode_xdr!(bytes, struct \\ @struct_spec)
 
   def decode_xdr!(bytes, struct) do
-    {%XDR.Struct{components: [blah: blah]}, rest} = 
+    {%XDR.Struct{components: [blah: blah]}, rest} =
       XDR.Struct.decode_xdr!(bytes, struct)
     {new(blah), rest}
   end

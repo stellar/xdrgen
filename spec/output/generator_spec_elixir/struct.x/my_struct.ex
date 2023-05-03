@@ -13,65 +13,64 @@ defmodule MyXDR.MyStruct do
   alias MyXDR.{Int, Int64, FixedOpaque10, String, String100} 
 
   @struct_spec XDR.Struct.new(
-    someInt: Int,
-    aBigInt: Int64,
-    someOpaque: FixedOpaque10,
-    someString: String,
-    maxString: String100
+    some_int: Int,
+    a_big_int: Int64,
+    some_opaque: FixedOpaque10,
+    some_string: String,
+    max_string: String100
   )
 
-  @type someInt :: Int.t()
-  @type aBigInt :: Int64.t()
-  @type someOpaque :: FixedOpaque10.t()
-  @type someString :: String.t()
-  @type maxString :: String100.t()
+  @type some_int :: Int.t()
+  @type a_big_int :: Int64.t()
+  @type some_opaque :: FixedOpaque10.t()
+  @type some_string :: String.t()
+  @type max_string :: String100.t()
 
-  @type t :: %__MODULE__{someInt: someInt(), aBigInt: aBigInt(), someOpaque: someOpaque(), someString: someString(), maxString: maxString()}
+  @type t :: %__MODULE__{some_int: some_int(), a_big_int: a_big_int(), some_opaque: some_opaque(), some_string: some_string(), max_string: max_string()}
 
-  defstruct [:someInt, :aBigInt, :someOpaque, :someString, :maxString]
+  defstruct [:some_int, :a_big_int, :some_opaque, :some_string, :max_string]
 
-  @spec new(someInt :: someInt(), aBigInt :: aBigInt(), someOpaque :: someOpaque(), someString :: someString(), maxString :: maxString()) :: t()
-
+  @spec new(some_int :: some_int(), a_big_int :: a_big_int(), some_opaque :: some_opaque(), some_string :: some_string(), max_string :: max_string()) :: t()
   def new(
-    %Int{} = someInt,
-    %Int64{} = aBigInt,
-    %FixedOpaque10{} = someOpaque,
-    %String{} = someString,
-    %String100{} = maxString
+    %Int{} = some_int,
+    %Int64{} = a_big_int,
+    %FixedOpaque10{} = some_opaque,
+    %String{} = some_string,
+    %String100{} = max_string
   ),
-  do: %__MODULE__{someInt: someInt, aBigInt: aBigInt, someOpaque: someOpaque, someString: someString, maxString: maxString}
+  do: %__MODULE__{some_int: some_int, a_big_int: a_big_int, some_opaque: some_opaque, some_string: some_string, max_string: max_string}
 
   @impl true
-  def encode_xdr(%__MODULE__{someInt: someInt, aBigInt: aBigInt, someOpaque: someOpaque, someString: someString, maxString: maxString}) do 
-    [someInt: someInt, aBigInt: aBigInt, someOpaque: someOpaque, someString: someString, maxString: maxString]
+  def encode_xdr(%__MODULE__{some_int: some_int, a_big_int: a_big_int, some_opaque: some_opaque, some_string: some_string, max_string: max_string}) do
+    [some_int: some_int, a_big_int: a_big_int, some_opaque: some_opaque, some_string: some_string, max_string: max_string]
     |> XDR.Struct.new()
     |> XDR.Struct.encode_xdr()
-  end 
+  end
 
   @impl true
-  def encode_xdr!(%__MODULE__{someInt: someInt, aBigInt: aBigInt, someOpaque: someOpaque, someString: someString, maxString: maxString}) do 
-    [someInt: someInt, aBigInt: aBigInt, someOpaque: someOpaque, someString: someString, maxString: maxString]
+  def encode_xdr!(%__MODULE__{some_int: some_int, a_big_int: a_big_int, some_opaque: some_opaque, some_string: some_string, max_string: max_string}) do
+    [some_int: some_int, a_big_int: a_big_int, some_opaque: some_opaque, some_string: some_string, max_string: max_string]
     |> XDR.Struct.new()
     |> XDR.Struct.encode_xdr!()
-  end 
+  end
 
-  @impl true 
-  def decode_xdr(bytes, struct \\ @struct_spec) 
+  @impl true
+  def decode_xdr(bytes, struct \\ @struct_spec)
 
   def decode_xdr(bytes, struct) do
     case XDR.Struct.decode_xdr(bytes, struct) do
-      {:ok, {%XDR.Struct{components: [someInt: someInt, aBigInt: aBigInt, someOpaque: someOpaque, someString: someString, maxString: maxString]}, rest}} -> 
-        {:ok, {new(someInt, aBigInt, someOpaque, someString, maxString), rest}}
+      {:ok, {%XDR.Struct{components: [some_int: some_int, a_big_int: a_big_int, some_opaque: some_opaque, some_string: some_string, max_string: max_string]}, rest}} ->
+        {:ok, {new(some_int, a_big_int, some_opaque, some_string, max_string), rest}}
       error -> error
     end
-  end 
+  end
 
-  @impl true 
-  def decode_xdr!(bytes, struct \\ @struct_spec) 
+  @impl true
+  def decode_xdr!(bytes, struct \\ @struct_spec)
 
   def decode_xdr!(bytes, struct) do
-    {%XDR.Struct{components: [someInt: someInt, aBigInt: aBigInt, someOpaque: someOpaque, someString: someString, maxString: maxString]}, rest} = 
+    {%XDR.Struct{components: [some_int: some_int, a_big_int: a_big_int, some_opaque: some_opaque, some_string: some_string, max_string: max_string]}, rest} =
       XDR.Struct.decode_xdr!(bytes, struct)
-    {new(someInt, aBigInt, someOpaque, someString, maxString), rest}
+    {new(some_int, a_big_int, some_opaque, some_string, max_string), rest}
   end
 end
