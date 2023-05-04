@@ -10,7 +10,9 @@ defmodule MyXDR.HasStuff do
 
   @behaviour XDR.Declaration
 
-  alias MyXDR.{LotsOfMyStructs} 
+  alias MyXDR.{
+    LotsOfMyStructs
+  } 
 
   @struct_spec XDR.Struct.new(
     data: LotsOfMyStructs

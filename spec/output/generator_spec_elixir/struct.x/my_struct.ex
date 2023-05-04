@@ -10,19 +10,25 @@ defmodule MyXDR.MyStruct do
 
   @behaviour XDR.Declaration
 
-  alias MyXDR.{Int, Int64, FixedOpaque10, String, String100} 
+  alias MyXDR.{
+    Int,
+    Int64,
+    Opaque10,
+    String,
+    String100
+  } 
 
   @struct_spec XDR.Struct.new(
     some_int: Int,
     a_big_int: Int64,
-    some_opaque: FixedOpaque10,
+    some_opaque: Opaque10,
     some_string: String,
     max_string: String100
   )
 
   @type some_int :: Int.t()
   @type a_big_int :: Int64.t()
-  @type some_opaque :: FixedOpaque10.t()
+  @type some_opaque :: Opaque10.t()
   @type some_string :: String.t()
   @type max_string :: String100.t()
 
@@ -34,7 +40,7 @@ defmodule MyXDR.MyStruct do
   def new(
     %Int{} = some_int,
     %Int64{} = a_big_int,
-    %FixedOpaque10{} = some_opaque,
+    %Opaque10{} = some_opaque,
     %String{} = some_string,
     %String100{} = max_string
   ),

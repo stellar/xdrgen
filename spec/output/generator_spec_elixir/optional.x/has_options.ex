@@ -10,7 +10,10 @@ defmodule MyXDR.HasOptions do
 
   @behaviour XDR.Declaration
 
-  alias MyXDR.{OptionalInt, OptionalInt, OptionalArr} 
+  alias MyXDR.{
+    OptionalInt,
+    OptionalArr
+  } 
 
   @struct_spec XDR.Struct.new(
     first_option: OptionalInt,

@@ -10,7 +10,15 @@ defmodule MyXDR.MyStruct do
 
   @behaviour XDR.Declaration
 
-  alias MyXDR.{Uint512, OptHash1, Int1, UInt, Float, DoubleFloat, Bool} 
+  alias MyXDR.{
+    Uint512,
+    OptHash1,
+    Int1,
+    UInt,
+    Float,
+    DoubleFloat,
+    Bool
+  } 
 
   @struct_spec XDR.Struct.new(
     field1: Uint512,
