@@ -12,7 +12,7 @@ defmodule MyXDR.TestArray2 do
 
   alias MyXDR.Int
 
-  @max_length "FOO"
+  @max_length 1
 
   @array_type Int
 

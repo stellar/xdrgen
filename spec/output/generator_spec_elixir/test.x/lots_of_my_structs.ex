@@ -12,7 +12,7 @@ defmodule MyXDR.LotsOfMyStructs do
 
   alias MyXDR.{
     MyStructList
-  } 
+  }
 
   @struct_spec XDR.Struct.new(
     members: MyStructList

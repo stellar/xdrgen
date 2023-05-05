@@ -14,7 +14,7 @@ defmodule MyXDR.Nester do
     NesterNestedEnum,
     NesterNestedStruct,
     NesterNestedUnion
-  } 
+  }
 
   @struct_spec XDR.Struct.new(
     nested_enum: NesterNestedEnum,

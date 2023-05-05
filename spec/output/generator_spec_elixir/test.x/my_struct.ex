@@ -18,7 +18,7 @@ defmodule MyXDR.MyStruct do
     Float,
     DoubleFloat,
     Bool
-  } 
+  }
 
   @struct_spec XDR.Struct.new(
     field1: Uint512,

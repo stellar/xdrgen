@@ -16,7 +16,7 @@ defmodule MyXDR.MyStruct do
     Opaque10,
     String,
     String100
-  } 
+  }
 
   @struct_spec XDR.Struct.new(
     some_int: Int,

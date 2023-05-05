@@ -13,7 +13,7 @@ defmodule MyXDR.HasOptions do
   alias MyXDR.{
     OptionalInt,
     OptionalArr
-  } 
+  }
 
   @struct_spec XDR.Struct.new(
     first_option: OptionalInt,

@@ -12,7 +12,7 @@ defmodule MyXDR.HasStuff do
 
   alias MyXDR.{
     LotsOfMyStructs
-  } 
+  }
 
   @struct_spec XDR.Struct.new(
     data: LotsOfMyStructs

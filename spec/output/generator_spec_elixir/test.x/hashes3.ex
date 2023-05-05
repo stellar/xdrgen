@@ -12,11 +12,9 @@ defmodule MyXDR.Hashes3 do
 
   alias MyXDR.Hash
 
-  @max_length 2147483647
-
   @array_type Hash
 
-  @array_spec %{type: @array_type, max_length: @max_length}
+  @array_spec %{type: @array_type}
 
   @type t :: %__MODULE__{items: list(Hash.t())}
 
@@ -28,14 +26,14 @@ defmodule MyXDR.Hashes3 do
   @impl true
   def encode_xdr(%__MODULE__{items: items}) do
     items
-    |> XDR.VariableArray.new(@array_type, @max_length)
+    |> XDR.VariableArray.new(@array_type)
     |> XDR.VariableArray.encode_xdr()
   end
 
   @impl true
   def encode_xdr!(%__MODULE__{items: items}) do
     items
-    |> XDR.VariableArray.new(@array_type, @max_length)
+    |> XDR.VariableArray.new(@array_type)
     |> XDR.VariableArray.encode_xdr!()
   end
 

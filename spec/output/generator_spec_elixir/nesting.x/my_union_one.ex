@@ -12,7 +12,7 @@ defmodule MyXDR.MyUnionOne do
 
   alias MyXDR.{
     Int
-  } 
+  }
 
   @struct_spec XDR.Struct.new(
     some_int: Int

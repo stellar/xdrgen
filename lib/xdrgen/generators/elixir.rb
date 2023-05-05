@@ -4,6 +4,7 @@ module Xdrgen
       MAX_INT = (2**31) - 1
 
       def generate
+        @constants = Hash.new
         render_definitions(@top)
         render_base_classes
       end
@@ -82,10 +83,7 @@ module Xdrgen
       end
 
       def render_const(const)
-        file_name = "#{const.name.underscore.downcase}.ex"
-        out = @output.open(file_name)
-
-        out.puts "define_type(\"#{const_name const}\", Const, #{const.value});"
+        @constants["#{const.name.underscore.downcase}"] = const.value
       end
 
       def render_other_type(type)
@@ -94,11 +92,21 @@ module Xdrgen
           unless number.nil?
             render_typedef(type, true)
           else
-            if type.declaration.type.sub_type == :optional
+            case type.declaration.type.sub_type
+            when :optional
               variable = type.declaration.type
               base_type = type_string(variable)
               name = type_reference(type, type.name.camelize)
-              build_optional_typedef(type, base_type.downcase, name)
+              build_optional_typedef(type, base_type, name)
+            when :var_array, :array
+              variable = type.declaration.type
+              base_type = type_string(variable)
+              name = type_reference(type, type.name.camelize)
+              if type.declaration.type.sub_type == :var_array
+                build_list_typedef(name, base_type, "VariableArray", variable)
+              else
+                build_list_typedef(name, base_type, "FixedArray", variable)
+              end
             end
           end
         rescue => exception
@@ -124,7 +132,7 @@ module Xdrgen
               end
               out.puts alias_list
             end
-            out.puts "} \n\n"
+            out.puts "}\n\n"
 
             out.puts "@struct_spec XDR.Struct.new("
             out.indent do
@@ -351,6 +359,7 @@ module Xdrgen
               union.arms.each_with_index do |arm, i|
                 arm_name = arm.void? ? "Void" : "#{type_reference arm, arm.name.camelize}"
                 out.puts "#{arm_name}#{comma_unless_last(i, union.arms)}"
+                render_other_type(arm)
               end
             end
             out.puts "}\n\n"
@@ -793,33 +802,33 @@ module Xdrgen
 
         render_define_block(out, "#{name}") do 
           out.indent do
-            out.puts "alias #{@namespace}.#{attribute.capitalize}\n\n"
+            out.puts "alias #{@namespace}.#{attribute}\n\n"
 
-            out.puts "@optional_spec XDR.Optional.new(#{attribute.capitalize})\n\n"
+            out.puts "@optional_spec XDR.Optional.new(#{attribute})\n\n"
 
-            out.puts "@type #{attribute} :: #{attribute.capitalize}.t() | nil\n\n"
+            out.puts "@type #{attribute.underscore.downcase} :: #{attribute}.t() | nil\n\n"
 
-            out.puts "@type t :: %__MODULE__{#{attribute}: #{attribute}()}\n\n"
+            out.puts "@type t :: %__MODULE__{#{attribute.underscore.downcase}: #{attribute.underscore.downcase}()}\n\n"
 
-            out.puts "defstruct [:#{attribute}]\n\n"
+            out.puts "defstruct [:#{attribute.underscore.downcase}]\n\n"
 
 
-            out.puts "@spec new(#{attribute} :: #{attribute}()) :: t()\n"
-            out.puts "def new(#{attribute} \\\\ nil), do: %__MODULE__{#{attribute}: #{attribute}}\n\n"
+            out.puts "@spec new(#{attribute.underscore.downcase} :: #{attribute.underscore.downcase}()) :: t()\n"
+            out.puts "def new(#{attribute.underscore.downcase} \\\\ nil), do: %__MODULE__{#{attribute.underscore.downcase}: #{attribute.underscore.downcase}}\n\n"
 
             out.puts "@impl true"
-            out.puts "def encode_xdr(%__MODULE__{#{attribute}: #{attribute}}) do\n"
+            out.puts "def encode_xdr(%__MODULE__{#{attribute.underscore.downcase}: #{attribute.underscore.downcase}}) do\n"
             out.indent do
-              out.puts "#{attribute}"
+              out.puts "#{attribute.underscore.downcase}"
               out.puts "|> XDR.Optional.new()"
               out.puts "|> XDR.Optional.encode_xdr()"
             end
             out.puts "end\n\n"
 
             out.puts "@impl true"
-            out.puts "def encode_xdr!(%__MODULE__{#{attribute}: #{attribute}}) do\n"
+            out.puts "def encode_xdr!(%__MODULE__{#{attribute.underscore.downcase}: #{attribute.underscore.downcase}}) do\n"
             out.indent do
-              out.puts "#{attribute}"
+              out.puts "#{attribute.underscore.downcase}"
               out.puts "|> XDR.Optional.new()"
               out.puts "|> XDR.Optional.encode_xdr!()"
             end
@@ -832,7 +841,7 @@ module Xdrgen
             out.indent do
               out.puts "case XDR.Optional.decode_xdr(bytes, optional_spec) do\n"
               out.indent do
-                out.puts "{:ok, {%XDR.Optional{type: #{attribute}}, rest}} -> {:ok, {new(#{attribute}), rest}}\n"
+                out.puts "{:ok, {%XDR.Optional{type: #{attribute.underscore.downcase}}, rest}} -> {:ok, {new(#{attribute.underscore.downcase}), rest}}\n"
                 out.puts "{:ok, {nil, rest}} -> {:ok, {new(), rest}}"
                 out.puts "error -> error\n"
               end
@@ -845,8 +854,8 @@ module Xdrgen
 
             out.puts "def decode_xdr!(bytes, optional_spec) do\n"
             out.indent do
-              out.puts "{%XDR.Optional{identifier: #{attribute}}, rest} = XDR.Optional.decode_xdr!(bytes)\n"
-              out.puts "{new(#{attribute}), rest}\n"
+              out.puts "{%XDR.Optional{identifier: #{attribute.underscore.downcase}}, rest} = XDR.Optional.decode_xdr!(bytes)\n"
+              out.puts "{new(#{attribute.underscore.downcase}), rest}\n"
               out.puts "{nil, rest} -> {new(), rest}"
             end
             out.puts "end\n"
@@ -978,19 +987,32 @@ module Xdrgen
         end
       end
 
-      def build_list_typedef(typedef, base_type, size, list_type)
-        file_name = "#{typedef.name.underscore.downcase}.ex"
+      def build_list_typedef(module_name, base_type, list_type, type)
+        file_name = "#{module_name.underscore.downcase}.ex"
         out = @output.open(file_name)
 
-        render_define_block(out, typedef.name) do
+        is_named, size = type.array_size
+        if type.sub_type == :var_array
+          size = is_named ? @constants["#{size.underscore.downcase}"] : (size || MAX_INT)
+          length_nil = type.decl.resolved_size.nil?
+        else
+          size = is_named ? @constants["#{size.underscore.downcase}"] : size
+          length_nil = false
+        end
+
+        
+
+        render_define_block(out, module_name) do
           out.indent do
             out.puts "alias #{@namespace}.#{base_type}\n\n"
 
-            out.puts "@#{list_type.downcase == "fixedarray" ? "length" : "max_length"} #{size.nil? ? "4_294_967_295" : size}\n\n"
+            unless length_nil
+              out.puts "@#{list_type.downcase == "fixedarray" ? "length" : "max_length"} #{size}\n\n"
+            end
 
             out.puts "@array_type #{base_type}\n\n"
 
-            out.puts "@array_spec %{type: @array_type, #{list_type.downcase == "fixedarray" ? "length: @length" : "max_length: @max_length"}}\n\n"
+            out.puts "@array_spec %{type: @array_type#{length_nil ? "" : ", #{list_type.downcase == "fixedarray"? "length: @length" : "max_length: @max_length"}"}}\n\n"
 
             out.puts "@type t :: %__MODULE__{items: list(#{base_type}.t())}\n\n"
 
@@ -1003,7 +1025,7 @@ module Xdrgen
             out.puts "def encode_xdr(%__MODULE__{items: items}) do\n"
             out.indent do
               out.puts "items\n"
-              out.puts "|> XDR.#{list_type}.new(@array_type, @#{list_type.downcase == "fixedarray" ? "length" : "max_length"})\n"
+              out.puts "|> XDR.#{list_type}.new(@array_type#{length_nil ? "" : ", @#{list_type.downcase == "fixedarray" ? "length" : "max_length"}"})\n"
               out.puts "|> XDR.#{list_type}.encode_xdr()\n"
             end
             out.puts "end\n\n"
@@ -1012,7 +1034,7 @@ module Xdrgen
             out.puts "def encode_xdr!(%__MODULE__{items: items}) do\n"
             out.indent do
               out.puts "items\n"
-              out.puts "|> XDR.#{list_type}.new(@array_type, @#{list_type.downcase == "fixedarray" ? "length" : "max_length"})\n"
+              out.puts "|> XDR.#{list_type}.new(@array_type#{length_nil ? "" : ", @#{list_type.downcase == "fixedarray" ? "length" : "max_length"}"})\n"
               out.puts "|> XDR.#{list_type}.encode_xdr!()\n"
             end
             out.puts "end\n\n"
@@ -1052,15 +1074,11 @@ module Xdrgen
 
         case type.sub_type
           when :optional
-            build_optional_typedef(typedef, base_type.downcase, name)
+            build_optional_typedef(typedef, base_type, name)
           when :array
-            is_named, size = type.array_size
-            size = is_named ? "\"#{size}\"" : size
-            build_list_typedef(typedef, base_type, size, "FixedArray")
+            build_list_typedef(name, base_type, "FixedArray", type)
           when :var_array
-            is_named, size = type.array_size
-            size = is_named ? "\"#{size}\"" : (size || MAX_INT)
-            build_list_typedef(typedef, base_type, size, "VariableArray")
+            build_list_typedef(name, base_type, "VariableArray", type)
           else
           case type
             when AST::Typespecs::Bool
