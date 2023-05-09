@@ -16,10 +16,10 @@ defmodule MyXDR.IntUnion do
     MultiList
   }
 
-  @arms [
-    0: Error,
-    1: MultiList
-  ]
+  @arms %{
+    0 => Error,
+    1 => MultiList
+  }
 
   @type value ::
           Error.t()
@@ -66,7 +66,7 @@ defmodule MyXDR.IntUnion do
 
   @spec union_spec() :: XDR.Union.t()
   defp union_spec do
-    nil
+    0
     |> Int.new()
     |> XDR.Union.new(@arms)
   end

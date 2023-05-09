@@ -68,9 +68,12 @@ module Xdrgen
       end
 
       def render_define_block(out, module_name)
-        out.puts "defmodule #{@namespace}.#{module_name.upcase_first} do"
+        name = module_name.upcase_first
+        name = module_name.downcase.gsub("uint", "UInt") if module_name.downcase.include?("uint")
+
+        out.puts "defmodule #{@namespace}.#{name} do"
         out.indent do
-          render_moduledoc(out, module_name)
+          render_moduledoc(out, name)
         end
         yield
       ensure
@@ -89,24 +92,28 @@ module Xdrgen
       def render_other_type(type)
         begin
           number = type_reference(type, type.name.camelize).scan(/\d+/).first
-          unless number.nil?
-            render_typedef(type, true)
+          case type.declaration.type.sub_type
+          when :optional
+            variable = type.declaration.type
+            base_type = type_string(variable)
+            name = type_reference(type, type.name.camelize)
+            build_optional_typedef(type, base_type, name)
+          when :var_array, :array
+            variable = type.declaration.type
+            base_type = type_string(variable)
+            name = type_reference(type, type.name.camelize)
+            if type.declaration.type.sub_type == :var_array
+              is_named, size = type.declaration.type.array_size
+              size = is_named ? @constants["#{size.underscore.downcase}"] : (size || MAX_INT)
+              length_nil = type.declaration.type.decl.resolved_size.nil?
+              name = "#{name}#{size unless length_nil}"
+              build_list_typedef(name, base_type, "VariableArray", variable)
+            else
+              build_list_typedef(name, base_type, "FixedArray", variable)
+            end
           else
-            case type.declaration.type.sub_type
-            when :optional
-              variable = type.declaration.type
-              base_type = type_string(variable)
-              name = type_reference(type, type.name.camelize)
-              build_optional_typedef(type, base_type, name)
-            when :var_array, :array
-              variable = type.declaration.type
-              base_type = type_string(variable)
-              name = type_reference(type, type.name.camelize)
-              if type.declaration.type.sub_type == :var_array
-                build_list_typedef(name, base_type, "VariableArray", variable)
-              else
-                build_list_typedef(name, base_type, "FixedArray", variable)
-              end
+            unless number.nil?
+              render_typedef(type, true)
             end
           end
         rescue => exception
@@ -126,6 +133,12 @@ module Xdrgen
               struct.members.each_with_index do |m, i|
                 name = type_reference m, m.name.camelize
                 unless alias_list.include?(name)
+                  if m.declaration.type.sub_type == :var_array
+                    is_named, size = m.declaration.type.array_size
+                    size = is_named ? @constants["#{size.underscore.downcase}"] : (size || MAX_INT)
+                    length_nil = m.declaration.type.decl.resolved_size.nil?
+                    name = "#{name}#{size unless length_nil}"
+                  end
                   alias_list += "#{name}#{comma_unless_last(i, struct.members)}\n"
                   render_other_type(m)
                 end
@@ -137,7 +150,14 @@ module Xdrgen
             out.puts "@struct_spec XDR.Struct.new("
             out.indent do
               struct.members.each_with_index do |m, i|
-                out.puts "#{m.name.underscore.downcase}: #{type_reference m, m.name.camelize}#{comma_unless_last(i, struct.members)}"
+                module_name = type_reference m, m.name.camelize
+                if m.declaration.type.sub_type == :var_array
+                  is_named, size = m.declaration.type.array_size
+                  size = is_named ? @constants["#{size.underscore.downcase}"] : (size || MAX_INT)
+                  length_nil = m.declaration.type.decl.resolved_size.nil?
+                  module_name = "#{module_name}#{size unless length_nil}"
+                end
+                out.puts "#{m.name.underscore.downcase}: #{module_name}#{comma_unless_last(i, struct.members)}"
               end
             end
             out.puts ")\n\n"
@@ -347,36 +367,56 @@ module Xdrgen
         union_name = name union
         union_name_camelize = union.name.camelize
         union_discriminant = union.discriminant
+        is_number_type = is_number_type?(union)
 
         file_name = "#{union_name.underscore}.ex"
         out = @output.open(file_name)
 
-        render_define_block(out, union_name) do 
+        render_define_block(out, union_name) do
           out.indent do
             out.puts "alias #{@namespace}.{\n"
             out.indent do
               out.puts "#{type_reference union_discriminant, union_name_camelize},"
-              union.arms.each_with_index do |arm, i|
-                arm_name = arm.void? ? "Void" : "#{type_reference arm, arm.name.camelize}"
-                out.puts "#{arm_name}#{comma_unless_last(i, union.arms)}"
-                render_other_type(arm)
+              alias_list = ""
+              union.arms.each_with_index do |m, i|
+                name = m.void? ? "Void" : "#{type_reference m, m.name.camelize}"
+                unless alias_list.include?(name)
+                  unless m.void?
+                    if m.declaration.type.sub_type == :var_array
+                      is_named, size = m.declaration.type.array_size
+                      size = is_named ? @constants["#{size.underscore.downcase}"] : (size || MAX_INT)
+                      length_nil = m.declaration.type.decl.resolved_size.nil?
+                      name = "#{name}#{size unless length_nil}"
+                    end
+                  end
+                  alias_list += "#{name}#{comma_unless_last(i, union.arms)}\n"
+                  render_other_type(m)
+                end
               end
+              out.puts alias_list
             end
             out.puts "}\n\n"
 
-            out.puts "@arms ["
+            out.puts "@arms #{is_number_type ? "%{" : "["}"
             out.indent do
               union.normal_arms.each_with_index do |arm, i|
                 arm_name = arm.void? ? "Void" : "#{type_reference arm, arm.name.camelize}"
-
+                unless arm.void?
+                  if arm.declaration.type.sub_type == :var_array
+                    is_named, size = arm.declaration.type.array_size
+                    size = is_named ? @constants["#{size.underscore.downcase}"] : (size || MAX_INT)
+                    length_nil = arm.declaration.type.decl.resolved_size.nil?
+                    arm_name = "#{arm_name}#{size unless length_nil}"
+                  end
+                end
                 arm.cases.each do |acase|
                   switch = if acase.value.is_a?(AST::Identifier)
-                    "#{member_name(acase.value)}"
+                    "#{member_name(acase.value)}:"
                   else
-                    acase.value.text_value
+                    "#{acase.value.text_value} =>"
                   end
 
-                  out.puts "#{switch}: #{arm_name}#{comma_unless_last(i, union.arms)}"
+                  out.puts "#{switch} #{arm_name}#{comma_unless_last(i, union.arms)}"
                 end
               end
 
@@ -384,18 +424,30 @@ module Xdrgen
                 out.puts "default: #{type_reference union.default_arm, union.default_arm.name.camelize}"
               end
             end
-            out.puts "]\n\n"
+            out.puts "#{is_number_type ? "}" : "]"}\n\n"
 
             out.puts "@type value ::"
             out.indent(4) do
-              union.arms.each_with_index do |arm, i|
-                arm_name = arm.void? ? "Void" : "#{type_reference arm, arm.name.camelize}"
+              type_list = ""
+              union.arms.each_with_index do |m, i|
+                name = m.void? ? "Void" : "#{type_reference m, m.name.camelize}"
+                unless m.void?
+                  if m.declaration.type.sub_type == :var_array
+                    is_named, size = m.declaration.type.array_size
+                    size = is_named ? @constants["#{size.underscore.downcase}"] : (size || MAX_INT)
+                    length_nil = m.declaration.type.decl.resolved_size.nil?
+                    name = "#{name}#{size unless length_nil}"
+                  end
+                end
                 if i == 0
-                  out.puts "#{arm_name}.t()"
+                  type_list += "#{name}.t()\n"
                 else
-                  out.puts "| #{arm_name}.t()"
+                  unless type_list.include?(name)
+                    type_list += "| #{name}.t()\n"
+                  end
                 end
               end
+              out.puts type_list
 
               if union.default_arm.present?
                 out.puts "| any()"
@@ -456,7 +508,7 @@ module Xdrgen
             out.puts "@spec union_spec() :: XDR.Union.t()"
             out.puts "defp union_spec do"
             out.indent do
-              out.puts "nil\n"
+              out.puts "#{is_number_type ? 0 : "nil"}\n"
               out.puts "|> #{type_reference union_discriminant, union_name_camelize}.new()\n"
               out.puts "|> XDR.Union.new(@arms)\n"
             end
@@ -475,8 +527,18 @@ module Xdrgen
         out.close
       end
 
-      def const_name(named)
-        named.name.underscore.upcase
+      def is_number_type?(union)
+        value = false
+        union.normal_arms.each do |arm|
+          arm.cases.each do |acase|
+            value = if acase.value.is_a?(AST::Identifier)
+              false
+            else
+              true
+            end
+          end
+        end
+        value
       end
 
       def member_name(member)
@@ -493,8 +555,10 @@ module Xdrgen
         case decl.type.sub_type
           when :optional
             "Optional#{type_hint}"
-          when :var_array, :array
+          when :var_array
             "#{type_hint}List"
+          when :array
+            "#{type_hint}FixedList"
           else
             type_hint
         end
@@ -869,67 +933,69 @@ module Xdrgen
 
         unless size.nil?
           file_name = "#{type.underscore.downcase}#{size}.ex"
-          out = @output.open(file_name)
-
-          render_define_block(out, name) do 
-            out.indent do
-              out.puts "@type t :: %__MODULE__{opaque: binary()}\n\n"
-
-              out.puts "defstruct [:opaque]\n\n"
-
-              out.puts "@#{type.downcase == "opaque" ? "length" : "max_size"} #{size}\n\n"
-
-              out.puts "@opaque_spec XDR.#{xdr_module}.new(nil, @#{type.downcase == "opaque" ? "length" : "max_size"})\n\n"
-
-              out.puts "@spec new(opaque :: binary()) :: t()\n"
-              out.puts "def new(opaque), do: %__MODULE__{opaque: opaque}\n\n"
-
-              out.puts "@impl true"
-              out.puts "def encode_xdr(%__MODULE__{opaque: opaque}) do\n"
+          begin
+            out = @output.open(file_name)
+            render_define_block(out, name) do 
               out.indent do
-                out.puts "XDR.#{xdr_module}.encode_xdr(%XDR.#{xdr_module}{opaque: opaque, #{type.downcase == "opaque" ? "length: @length" : "max_size: @max_size"}})\n"
-              end
-              out.puts "end\n\n"
-
-              out.puts "@impl true"
-              out.puts "def encode_xdr!(%__MODULE__{opaque: opaque}) do\n"
-              out.indent do
-                out.puts "XDR.#{xdr_module}.encode_xdr!(%XDR.#{xdr_module}{opaque: opaque, #{type.downcase == "opaque" ? "length: @length" : "max_size: @max_size"}})\n"
-              end
-              out.puts "end\n\n"
-
-              out.puts "@impl true"
-              out.puts "def decode_xdr(bytes, spec \\\\ @opaque_spec)\n\n"
-
-              out.puts "def decode_xdr(bytes, spec) do\n"
-              out.indent do
-                out.puts "case XDR.#{xdr_module}.decode_xdr(bytes, spec) do\n"
+                out.puts "@type t :: %__MODULE__{opaque: binary()}\n\n"
+  
+                out.puts "defstruct [:opaque]\n\n"
+  
+                out.puts "@#{type.downcase == "opaque" ? "length" : "max_size"} #{size}\n\n"
+  
+                out.puts "@opaque_spec XDR.#{xdr_module}.new(nil, @#{type.downcase == "opaque" ? "length" : "max_size"})\n\n"
+  
+                out.puts "@spec new(opaque :: binary()) :: t()\n"
+                out.puts "def new(opaque), do: %__MODULE__{opaque: opaque}\n\n"
+  
+                out.puts "@impl true"
+                out.puts "def encode_xdr(%__MODULE__{opaque: opaque}) do\n"
                 out.indent do
-                  out.puts "{:ok, {%XDR.#{xdr_module}{opaque: opaque}, rest}} -> {:ok, {new(opaque), rest}}\n"
-                  out.puts "error -> error\n"
+                  out.puts "XDR.#{xdr_module}.encode_xdr(%XDR.#{xdr_module}{opaque: opaque, #{type.downcase == "opaque" ? "length: @length" : "max_size: @max_size"}})\n"
+                end
+                out.puts "end\n\n"
+  
+                out.puts "@impl true"
+                out.puts "def encode_xdr!(%__MODULE__{opaque: opaque}) do\n"
+                out.indent do
+                  out.puts "XDR.#{xdr_module}.encode_xdr!(%XDR.#{xdr_module}{opaque: opaque, #{type.downcase == "opaque" ? "length: @length" : "max_size: @max_size"}})\n"
+                end
+                out.puts "end\n\n"
+  
+                out.puts "@impl true"
+                out.puts "def decode_xdr(bytes, spec \\\\ @opaque_spec)\n\n"
+  
+                out.puts "def decode_xdr(bytes, spec) do\n"
+                out.indent do
+                  out.puts "case XDR.#{xdr_module}.decode_xdr(bytes, spec) do\n"
+                  out.indent do
+                    out.puts "{:ok, {%XDR.#{xdr_module}{opaque: opaque}, rest}} -> {:ok, {new(opaque), rest}}\n"
+                    out.puts "error -> error\n"
+                  end
+                  out.puts "end\n"
+                end
+                out.puts "end\n\n"
+  
+                out.puts "@impl true"
+                out.puts "def decode_xdr!(bytes, spec \\\\ @opaque_spec)\n\n"
+  
+                out.puts "def decode_xdr!(bytes, spec) do\n"
+                out.indent do
+                  out.puts "{%XDR.#{xdr_module}{opaque: opaque}, rest} = XDR.#{xdr_module}.decode_xdr!(bytes)\n"
+                  out.puts "{new(opaque), rest}\n"
                 end
                 out.puts "end\n"
               end
-              out.puts "end\n\n"
-
-              out.puts "@impl true"
-              out.puts "def decode_xdr!(bytes, spec \\\\ @opaque_spec)\n\n"
-
-              out.puts "def decode_xdr!(bytes, spec) do\n"
-              out.indent do
-                out.puts "{%XDR.#{xdr_module}{opaque: opaque}, rest} = XDR.#{xdr_module}.decode_xdr!(bytes)\n"
-                out.puts "{new(opaque), rest}\n"
-              end
-              out.puts "end\n"
             end
+            out.close
+          rescue => exception
           end
-          out.close
         end
 
         unless is_struct
-          file_name_main = "#{typedef.name.downcase.underscore}.ex"
+          file_name_main = "#{typedef.name.underscore.downcase}.ex"
           out_main = @output.open(file_name_main)
-          render_define_block(out_main, typedef.name.downcase) do
+          render_define_block(out_main, typedef.name) do
             out_main.indent do
               out_main.puts "alias #{@namespace}.#{type}#{size}\n\n"
   
@@ -999,8 +1065,6 @@ module Xdrgen
           size = is_named ? @constants["#{size.underscore.downcase}"] : size
           length_nil = false
         end
-
-        
 
         render_define_block(out, module_name) do
           out.indent do
