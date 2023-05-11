@@ -51,7 +51,7 @@ defmodule MyXDR.MyStructList do
   def decode_xdr!(bytes, spec \\ @array_spec)
 
   def decode_xdr!(bytes, spec) do
-    {items, rest} = XDR.{list_type}.decode_xdr!(bytes, spec)
+    {items, rest} = XDR.VariableArray.decode_xdr!(bytes, spec)
     {new(items), rest}
   end
 end

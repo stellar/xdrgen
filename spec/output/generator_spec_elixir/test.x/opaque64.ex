@@ -45,7 +45,7 @@ defmodule MyXDR.Opaque64 do
   def decode_xdr!(bytes, spec \\ @opaque_spec)
 
   def decode_xdr!(bytes, spec) do
-    {%XDR.FixedOpaque{opaque: opaque}, rest} = XDR.FixedOpaque.decode_xdr!(bytes)
+    {%XDR.FixedOpaque{opaque: opaque}, rest} = XDR.FixedOpaque.decode_xdr!(bytes, spec)
     {new(opaque), rest}
   end
 end

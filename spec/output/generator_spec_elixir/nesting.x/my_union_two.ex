@@ -20,14 +20,14 @@ defmodule MyXDR.MyUnionTwo do
     foo: Foo
   )
 
-  @type some_int :: Int.t()
-  @type foo :: Foo.t()
+  @type type_some_int :: Int.t()
+  @type type_foo :: Foo.t()
 
-  @type t :: %__MODULE__{some_int: some_int(), foo: foo()}
+  @type t :: %__MODULE__{some_int: type_some_int(), foo: type_foo()}
 
   defstruct [:some_int, :foo]
 
-  @spec new(some_int :: some_int(), foo :: foo()) :: t()
+  @spec new(some_int :: type_some_int(), foo :: type_foo()) :: t()
   def new(
     %Int{} = some_int,
     %Foo{} = foo

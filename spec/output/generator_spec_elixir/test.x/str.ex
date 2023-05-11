@@ -14,7 +14,7 @@ defmodule MyXDR.Str do
 
   defstruct [:value]
 
-  @max_lenght 64
+  @max_length 64
 
   @spec new(value :: String.t()) :: t()
   def new(value), do: %__MODULE__{value: value}

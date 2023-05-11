@@ -22,15 +22,15 @@ defmodule MyXDR.Nester do
     nested_union: NesterNestedUnion
   )
 
-  @type nested_enum :: NesterNestedEnum.t()
-  @type nested_struct :: NesterNestedStruct.t()
-  @type nested_union :: NesterNestedUnion.t()
+  @type type_nested_enum :: NesterNestedEnum.t()
+  @type type_nested_struct :: NesterNestedStruct.t()
+  @type type_nested_union :: NesterNestedUnion.t()
 
-  @type t :: %__MODULE__{nested_enum: nested_enum(), nested_struct: nested_struct(), nested_union: nested_union()}
+  @type t :: %__MODULE__{nested_enum: type_nested_enum(), nested_struct: type_nested_struct(), nested_union: type_nested_union()}
 
   defstruct [:nested_enum, :nested_struct, :nested_union]
 
-  @spec new(nested_enum :: nested_enum(), nested_struct :: nested_struct(), nested_union :: nested_union()) :: t()
+  @spec new(nested_enum :: type_nested_enum(), nested_struct :: type_nested_struct(), nested_union :: type_nested_union()) :: t()
   def new(
     %NesterNestedEnum{} = nested_enum,
     %NesterNestedStruct{} = nested_struct,

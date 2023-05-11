@@ -21,15 +21,15 @@ defmodule MyXDR.HasOptions do
     third_option: OptionalArr
   )
 
-  @type first_option :: OptionalInt.t()
-  @type second_option :: OptionalInt.t()
-  @type third_option :: OptionalArr.t()
+  @type type_first_option :: OptionalInt.t()
+  @type type_second_option :: OptionalInt.t()
+  @type type_third_option :: OptionalArr.t()
 
-  @type t :: %__MODULE__{first_option: first_option(), second_option: second_option(), third_option: third_option()}
+  @type t :: %__MODULE__{first_option: type_first_option(), second_option: type_second_option(), third_option: type_third_option()}
 
   defstruct [:first_option, :second_option, :third_option]
 
-  @spec new(first_option :: first_option(), second_option :: second_option(), third_option :: third_option()) :: t()
+  @spec new(first_option :: type_first_option(), second_option :: type_second_option(), third_option :: type_third_option()) :: t()
   def new(
     %OptionalInt{} = first_option,
     %OptionalInt{} = second_option,

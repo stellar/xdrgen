@@ -30,19 +30,19 @@ defmodule MyXDR.MyStruct do
     field7: Bool
   )
 
-  @type field1 :: Uint512.t()
-  @type field2 :: OptHash1.t()
-  @type field3 :: Int1.t()
-  @type field4 :: UInt.t()
-  @type field5 :: Float.t()
-  @type field6 :: DoubleFloat.t()
-  @type field7 :: Bool.t()
+  @type type_field1 :: Uint512.t()
+  @type type_field2 :: OptHash1.t()
+  @type type_field3 :: Int1.t()
+  @type type_field4 :: UInt.t()
+  @type type_field5 :: Float.t()
+  @type type_field6 :: DoubleFloat.t()
+  @type type_field7 :: Bool.t()
 
-  @type t :: %__MODULE__{field1: field1(), field2: field2(), field3: field3(), field4: field4(), field5: field5(), field6: field6(), field7: field7()}
+  @type t :: %__MODULE__{field1: type_field1(), field2: type_field2(), field3: type_field3(), field4: type_field4(), field5: type_field5(), field6: type_field6(), field7: type_field7()}
 
   defstruct [:field1, :field2, :field3, :field4, :field5, :field6, :field7]
 
-  @spec new(field1 :: field1(), field2 :: field2(), field3 :: field3(), field4 :: field4(), field5 :: field5(), field6 :: field6(), field7 :: field7()) :: t()
+  @spec new(field1 :: type_field1(), field2 :: type_field2(), field3 :: type_field3(), field4 :: type_field4(), field5 :: type_field5(), field6 :: type_field6(), field7 :: type_field7()) :: t()
   def new(
     %Uint512{} = field1,
     %OptHash1{} = field2,

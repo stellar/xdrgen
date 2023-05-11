@@ -52,8 +52,10 @@ defmodule MyXDR.OptionalInt do
   def decode_xdr!(bytes, optional_spec \\ @optional_spec)
 
   def decode_xdr!(bytes, optional_spec) do
-    {%XDR.Optional{identifier: int}, rest} = XDR.Optional.decode_xdr!(bytes)
-    {new(int), rest}
-    {nil, rest} -> {new(), rest}
+    case XDR.Optional.decode_xdr!(bytes, optional_spec) do
+      {%XDR.Optional{type: int}, rest} -> {new(int), rest}
+      {nil, rest} -> {new(), rest}
+    end
   end
+
 end

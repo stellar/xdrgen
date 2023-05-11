@@ -18,13 +18,13 @@ defmodule MyXDR.MyUnionOne do
     some_int: Int
   )
 
-  @type some_int :: Int.t()
+  @type type_some_int :: Int.t()
 
-  @type t :: %__MODULE__{some_int: some_int()}
+  @type t :: %__MODULE__{some_int: type_some_int()}
 
   defstruct [:some_int]
 
-  @spec new(some_int :: some_int()) :: t()
+  @spec new(some_int :: type_some_int()) :: t()
   def new(
     %Int{} = some_int
   ),

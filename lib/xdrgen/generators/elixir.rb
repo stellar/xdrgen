@@ -37,21 +37,6 @@ module Xdrgen
         end
       end
 
-      def render_source_comment(out, defn)
-        return if defn.is_a?(AST::Definitions::Namespace)
-
-        out.puts <<-EOS.strip_heredoc
-          comment ~S"""
-          XDR Source Code::\n
-        EOS
-
-        out.puts "    " + defn.text_value.split("\n").join("\n    ")
-
-        out.puts <<-EOS.strip_heredoc
-          """\n
-        EOS
-      end
-
       def render_moduledoc(out, type)
         out.puts <<-EOS.strip_heredoc
           @moduledoc """
@@ -68,12 +53,9 @@ module Xdrgen
       end
 
       def render_define_block(out, module_name)
-        name = module_name.upcase_first
-        name = module_name.downcase.gsub("uint", "UInt") if module_name.downcase.include?("uint")
-
-        out.puts "defmodule #{@namespace}.#{name} do"
+        out.puts "defmodule #{@namespace}.#{module_name.upcase_first} do"
         out.indent do
-          render_moduledoc(out, name)
+          render_moduledoc(out, module_name)
         end
         yield
       ensure
@@ -91,27 +73,30 @@ module Xdrgen
 
       def render_other_type(type)
         begin
-          number = type_reference(type, type.name.camelize).scan(/\d+/).first
-          case type.declaration.type.sub_type
+          type_name_camelize = type.name.camelize
+          declaration_type = type.declaration.type
+          sub_type = declaration_type.sub_type
+          number = type_reference(type, type_name_camelize).scan(/\d+/).first
+
+          case sub_type
           when :optional
-            variable = type.declaration.type
-            base_type = type_string(variable)
-            name = type_reference(type, type.name.camelize)
+            base_type = type_string(declaration_type)
+            name = type_reference(type, type_name_camelize)
             build_optional_typedef(type, base_type, name)
           when :var_array, :array
-            variable = type.declaration.type
-            base_type = type_string(variable)
-            name = type_reference(type, type.name.camelize)
-            if type.declaration.type.sub_type == :var_array
-              is_named, size = type.declaration.type.array_size
-              size = is_named ? @constants["#{size.underscore.downcase}"] : (size || MAX_INT)
-              length_nil = type.declaration.type.decl.resolved_size.nil?
+            base_type = type_string(declaration_type)
+            name = type_reference(type, type_name_camelize)
+            if sub_type == :var_array
+              is_named, size = declaration_type.array_size
+              size = get_size(size, is_named, true)
+              length_nil = declaration_type.decl.resolved_size.nil?
               name = "#{name}#{size unless length_nil}"
-              build_list_typedef(name, base_type, "VariableArray", variable)
+              build_list_typedef(name, base_type, "VariableArray", declaration_type)
             else
-              build_list_typedef(name, base_type, "FixedArray", variable)
+              build_list_typedef(name, base_type, "FixedArray", declaration_type)
             end
           else
+
             unless number.nil?
               render_typedef(type, true)
             end
@@ -129,21 +114,21 @@ module Xdrgen
           out.indent do
             out.puts "alias #{@namespace}.{\n"
             out.indent do
-              alias_list = ""
-              struct.members.each_with_index do |m, i|
+              alias_list = []
+              struct.members.each do |m|
                 name = type_reference m, m.name.camelize
                 unless alias_list.include?(name)
                   if m.declaration.type.sub_type == :var_array
-                    is_named, size = m.declaration.type.array_size
-                    size = is_named ? @constants["#{size.underscore.downcase}"] : (size || MAX_INT)
-                    length_nil = m.declaration.type.decl.resolved_size.nil?
-                    name = "#{name}#{size unless length_nil}"
+                    name = add_size_to_name(m, name)
                   end
-                  alias_list += "#{name}#{comma_unless_last(i, struct.members)}\n"
+                  alias_list << name
                   render_other_type(m)
                 end
               end
-              out.puts alias_list
+
+              alias_list.each_with_index do |m, i|
+                out.puts "#{m}#{comma_unless_last(i, alias_list)}"
+              end
             end
             out.puts "}\n\n"
 
@@ -152,10 +137,7 @@ module Xdrgen
               struct.members.each_with_index do |m, i|
                 module_name = type_reference m, m.name.camelize
                 if m.declaration.type.sub_type == :var_array
-                  is_named, size = m.declaration.type.array_size
-                  size = is_named ? @constants["#{size.underscore.downcase}"] : (size || MAX_INT)
-                  length_nil = m.declaration.type.decl.resolved_size.nil?
-                  module_name = "#{module_name}#{size unless length_nil}"
+                  module_name = add_size_to_name(m, module_name)
                 end
                 out.puts "#{m.name.underscore.downcase}: #{module_name}#{comma_unless_last(i, struct.members)}"
               end
@@ -163,13 +145,17 @@ module Xdrgen
             out.puts ")\n\n"
 
             struct.members.each_with_index do |m, i|
-              out.puts "@type #{m.name.underscore.downcase} :: #{type_reference m, m.name.camelize}.t()"
+              module_name = type_reference m, m.name.camelize
+              if m.declaration.type.sub_type == :var_array
+                module_name = add_size_to_name(m, module_name)
+              end
+              out.puts "@type type_#{m.name.underscore.downcase} :: #{module_name}.t()"
             end
             out.puts "\n"
 
             types = "@type t :: %__MODULE__{"
               struct.members.each_with_index do |m, i|
-              types += "#{m.name.underscore.downcase}: #{m.name.underscore.downcase}()#{comma_and_space_unless_last(i, struct.members)}"
+              types += "#{m.name.underscore.downcase}: type_#{m.name.underscore.downcase}()#{comma_and_space_unless_last(i, struct.members)}"
               end
             types += "}\n\n"
             out.puts types
@@ -183,7 +169,7 @@ module Xdrgen
 
             spec = "@spec new("
               struct.members.each_with_index do |m, i|
-              spec += "#{m.name.underscore.downcase} :: #{m.name.underscore.downcase}()#{comma_and_space_unless_last(i, struct.members)}"
+              spec += "#{m.name.underscore.downcase} :: type_#{m.name.underscore.downcase}()#{comma_and_space_unless_last(i, struct.members)}"
               end
             spec += ") :: t()\n"
             out.puts spec
@@ -191,7 +177,11 @@ module Xdrgen
             out.puts "def new("
             out.indent do
               struct.members.each_with_index do |m, i|
-                out.puts "%#{type_reference m, m.name.camelize}{} = #{m.name.underscore.downcase}#{comma_unless_last(i, struct.members)}"
+                module_name = type_reference m, m.name.camelize
+                if m.declaration.type.sub_type == :var_array
+                  module_name = add_size_to_name(m, module_name)
+                end
+                out.puts "%#{module_name}{} = #{m.name.underscore.downcase}#{comma_unless_last(i, struct.members)}"
               end
             end
             out.puts "),\n"
@@ -377,23 +367,23 @@ module Xdrgen
             out.puts "alias #{@namespace}.{\n"
             out.indent do
               out.puts "#{type_reference union_discriminant, union_name_camelize},"
-              alias_list = ""
-              union.arms.each_with_index do |m, i|
+              alias_list = []
+              union.arms.each do |m|
                 name = m.void? ? "Void" : "#{type_reference m, m.name.camelize}"
                 unless alias_list.include?(name)
                   unless m.void?
                     if m.declaration.type.sub_type == :var_array
-                      is_named, size = m.declaration.type.array_size
-                      size = is_named ? @constants["#{size.underscore.downcase}"] : (size || MAX_INT)
-                      length_nil = m.declaration.type.decl.resolved_size.nil?
-                      name = "#{name}#{size unless length_nil}"
+                      name = add_size_to_name(m, name)
                     end
                   end
-                  alias_list += "#{name}#{comma_unless_last(i, union.arms)}\n"
+                  alias_list << name
                   render_other_type(m)
                 end
               end
-              out.puts alias_list
+
+              alias_list.each_with_index do |m, i|
+                out.puts "#{m}#{comma_unless_last(i, alias_list)}"
+              end
             end
             out.puts "}\n\n"
 
@@ -403,20 +393,16 @@ module Xdrgen
                 arm_name = arm.void? ? "Void" : "#{type_reference arm, arm.name.camelize}"
                 unless arm.void?
                   if arm.declaration.type.sub_type == :var_array
-                    is_named, size = arm.declaration.type.array_size
-                    size = is_named ? @constants["#{size.underscore.downcase}"] : (size || MAX_INT)
-                    length_nil = arm.declaration.type.decl.resolved_size.nil?
-                    arm_name = "#{arm_name}#{size unless length_nil}"
+                    arm_name = add_size_to_name(m, arm_name)
                   end
                 end
-                arm.cases.each do |acase|
+                arm.cases.each_with_index do |acase, o|
                   switch = if acase.value.is_a?(AST::Identifier)
                     "#{member_name(acase.value)}:"
                   else
                     "#{acase.value.text_value} =>"
                   end
-
-                  out.puts "#{switch} #{arm_name}#{comma_unless_last(i, union.arms)}"
+                  out.puts "#{switch} #{arm_name}#{(union.arms.count <= (i + 1)) && ((o + 1) >= arm.cases.count) ? "" : ","}"
                 end
               end
 
@@ -433,10 +419,7 @@ module Xdrgen
                 name = m.void? ? "Void" : "#{type_reference m, m.name.camelize}"
                 unless m.void?
                   if m.declaration.type.sub_type == :var_array
-                    is_named, size = m.declaration.type.array_size
-                    size = is_named ? @constants["#{size.underscore.downcase}"] : (size || MAX_INT)
-                    length_nil = m.declaration.type.decl.resolved_size.nil?
-                    name = "#{name}#{size unless length_nil}"
+                    name = add_size_to_name(m, name)
                   end
                 end
                 if i == 0
@@ -518,6 +501,23 @@ module Xdrgen
       end
 
       private
+      def add_size_to_name(member, name)
+        is_named, size = member.declaration.type.array_size
+        size = get_size(size, is_named, true)
+        length_nil = member.declaration.type.decl.resolved_size.nil?
+        "#{name}#{size unless length_nil}"
+      end
+
+      def get_size(size, is_named = false, is_var_array_type = false)
+        if size
+          if is_var_array_type
+            is_named ? @constants["#{size.underscore.downcase}"] : (size || MAX_INT)
+          else
+            size.scan(/\D/).any? ? @constants["#{size.underscore.downcase}"] : size
+          end
+        end
+      end
+
       def render_base_classes
         file_name = "base.ex"
         out = @output.open(file_name)
@@ -600,14 +600,14 @@ module Xdrgen
             "Int"
           when AST::Typespecs::Opaque
             if type.fixed?
-              "Opaque#{type.size}"
+              "Opaque#{get_size(type.size)}"
             else
-              type.size ? "VariableOpaque#{type.size}" : "VariableOpaque"
+              type.size ? "VariableOpaque#{get_size(type.size)}" : "VariableOpaque"
             end
           when AST::Typespecs::Quadruple
             raise "no quadruple support in elixir"
           when AST::Typespecs::String
-            "String#{type.size}"
+            "String#{get_size(type.size)}"
           when AST::Typespecs::UnsignedHyper
             "HyperUInt"
           when AST::Typespecs::UnsignedInt
@@ -790,17 +790,17 @@ module Xdrgen
       def build_string_typedef(typedef, is_struct)
         name = is_struct ? type_string(typedef.declaration.type) : typedef.name
 
-        file_name = "#{name.downcase.underscore}.ex"
+        file_name = "#{name.underscore.downcase}.ex"
         out = @output.open(file_name)
 
-        render_define_block(out, name.downcase) do 
+        render_define_block(out, name) do 
           out.indent do
             out.puts "@type t :: %__MODULE__{value: String.t()}\n\n"
 
             out.puts "defstruct [:value]\n\n"
 
             unless typedef.declaration.type.size.nil?
-              out.puts "@max_lenght #{typedef.declaration.type.size}\n\n"
+              out.puts "@max_length #{get_size(typedef.declaration.type.size)}\n\n"
             end
 
             out.puts "@spec new(value :: String.t()) :: t()\n"
@@ -918,17 +918,21 @@ module Xdrgen
 
             out.puts "def decode_xdr!(bytes, optional_spec) do\n"
             out.indent do
-              out.puts "{%XDR.Optional{identifier: #{attribute.underscore.downcase}}, rest} = XDR.Optional.decode_xdr!(bytes)\n"
-              out.puts "{new(#{attribute.underscore.downcase}), rest}\n"
-              out.puts "{nil, rest} -> {new(), rest}"
-            end
-            out.puts "end\n"
+              out.puts "case XDR.Optional.decode_xdr!(bytes, optional_spec) do\n"
+                out.indent do
+                  out.puts "{%XDR.Optional{type: #{attribute.underscore.downcase}}, rest} -> {new(#{attribute.underscore.downcase}), rest}\n"
+                  out.puts "{nil, rest} -> {new(), rest}"
+                end
+                out.puts "end\n"
+              end
+              out.puts "end\n\n"
           end
         end
         out.close
       end
 
       def build_opaque_typedef(typedef, type, xdr_module, size = nil, is_struct)
+        size = get_size(size) unless size.nil?
         name = "#{type}#{size}"
 
         unless size.nil?
@@ -981,7 +985,7 @@ module Xdrgen
   
                 out.puts "def decode_xdr!(bytes, spec) do\n"
                 out.indent do
-                  out.puts "{%XDR.#{xdr_module}{opaque: opaque}, rest} = XDR.#{xdr_module}.decode_xdr!(bytes)\n"
+                  out.puts "{%XDR.#{xdr_module}{opaque: opaque}, rest} = XDR.#{xdr_module}.decode_xdr!(bytes, spec)\n"
                   out.puts "{new(opaque), rest}\n"
                 end
                 out.puts "end\n"
@@ -1016,11 +1020,11 @@ module Xdrgen
               out_main.puts "end\n\n"
   
               out_main.puts "@impl true"
-              out_main.puts "def encode_xdr!(%__MODULE__{opaque: opaque}) do\n"
+              out_main.puts "def encode_xdr!(%__MODULE__{value: value}) do\n"
               out_main.indent do
                 out_main.puts "value\n"
                 out_main.puts "|> #{type}#{size}.new()\n"
-                out_main.puts "|> #{type}#{size}.encode_xdr()\n"
+                out_main.puts "|> #{type}#{size}.encode_xdr!()\n"
               end
               out_main.puts "end\n\n"
   
@@ -1029,9 +1033,9 @@ module Xdrgen
   
               out_main.puts "def decode_xdr(bytes, _term) do\n"
               out_main.indent do
-                out_main.puts "case XDR.#{type}#{size}.decode_xdr(bytes, term) do\n"
+                out_main.puts "case #{type}#{size}.decode_xdr(bytes) do\n"
                 out_main.indent do
-                  out_main.puts "{:ok, {%XDR.#{type}#{size}{opaque: value}, rest}} -> {:ok, {new(value), rest}}\n"
+                  out_main.puts "{:ok, {%#{type}#{size}{opaque: value}, rest}} -> {:ok, {new(value), rest}}\n"
                   out_main.puts "error -> error\n"
                 end
                 out_main.puts "end\n"
@@ -1043,7 +1047,7 @@ module Xdrgen
   
               out_main.puts "def decode_xdr!(bytes, _term) do\n"
               out_main.indent do
-                out_main.puts "{%XDR.#{type}#{size}{opaque: value}, rest} = XDR.#{type}#{size}.decode_xdr!(bytes)\n"
+                out_main.puts "{%#{type}#{size}{opaque: value}, rest} = #{type}#{size}.decode_xdr!(bytes)\n"
                 out_main.puts "{new(value), rest}\n"
               end
               out_main.puts "end\n"
@@ -1059,10 +1063,10 @@ module Xdrgen
 
         is_named, size = type.array_size
         if type.sub_type == :var_array
-          size = is_named ? @constants["#{size.underscore.downcase}"] : (size || MAX_INT)
+          size = get_size(size, is_named, true)
           length_nil = type.decl.resolved_size.nil?
         else
-          size = is_named ? @constants["#{size.underscore.downcase}"] : size
+          size = get_size(size, is_named)
           length_nil = false
         end
 
@@ -1122,7 +1126,7 @@ module Xdrgen
 
             out.puts "def decode_xdr!(bytes, spec) do\n"
             out.indent do
-              out.puts "{items, rest} = XDR.{list_type}.decode_xdr!(bytes, spec)\n"
+              out.puts "{items, rest} = XDR.#{list_type}.decode_xdr!(bytes, spec)\n"
               out.puts "{new(items), rest}\n"
             end
             out.puts "end\n"

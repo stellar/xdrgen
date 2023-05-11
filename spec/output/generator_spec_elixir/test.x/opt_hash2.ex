@@ -52,8 +52,10 @@ defmodule MyXDR.OptHash2 do
   def decode_xdr!(bytes, optional_spec \\ @optional_spec)
 
   def decode_xdr!(bytes, optional_spec) do
-    {%XDR.Optional{identifier: hash}, rest} = XDR.Optional.decode_xdr!(bytes)
-    {new(hash), rest}
-    {nil, rest} -> {new(), rest}
+    case XDR.Optional.decode_xdr!(bytes, optional_spec) do
+      {%XDR.Optional{type: hash}, rest} -> {new(hash), rest}
+      {nil, rest} -> {new(), rest}
+    end
   end
+
 end

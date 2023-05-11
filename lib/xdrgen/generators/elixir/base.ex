@@ -41,9 +41,9 @@ defmodule Int do
   end
 end
 
-defmodule UInt do
+defmodule Uint do
   @moduledoc """
-  Representation of Stellar `UInt` type.
+  Representation of Stellar `Uint` type.
   """
 
   @behaviour XDR.Declaration
@@ -91,21 +91,21 @@ defmodule Float do
 
   @behaviour XDR.Declaration
 
-  @type t :: %__MODULE__{datum: float()}
+  @type t :: %__MODULE__{float: float()}
 
-  defstruct [:datum]
+  defstruct [:float]
 
   @spec new(float :: float()) :: t()
-  def new(float), do: %__MODULE__{datum: float}
+  def new(float), do: %__MODULE__{float: float}
 
   @impl true
-  def encode_xdr(%__MODULE__{datum: float}) do
-    XDR.Float.encode_xdr(%XDR.Float{datum: float})
+  def encode_xdr(%__MODULE__{float: float}) do
+    XDR.Float.encode_xdr(%XDR.Float{float: float})
   end
 
   @impl true
-  def encode_xdr!(%__MODULE__{datum: float}) do
-    XDR.Float.encode_xdr!(%XDR.Float{datum: float})
+  def encode_xdr!(%__MODULE__{float: float}) do
+    XDR.Float.encode_xdr!(%XDR.Float{float: float})
   end
 
   @impl true
@@ -113,7 +113,7 @@ defmodule Float do
 
   def decode_xdr(bytes, _term) do
     case XDR.Float.decode_xdr(bytes) do
-      {:ok, {%XDR.Float{datum: float}, rest}} -> {:ok, {new(float), rest}}
+      {:ok, {%XDR.Float{float: float}, rest}} -> {:ok, {new(float), rest}}
       error -> error
     end
   end
@@ -122,7 +122,7 @@ defmodule Float do
   def decode_xdr!(bytes, term \\ nil)
 
   def decode_xdr!(bytes, _term) do
-    {%XDR.Float{datum: float}, rest} = XDR.Float.decode_xdr!(bytes)
+    {%XDR.Float{float: float}, rest} = XDR.Float.decode_xdr!(bytes)
     {new(float), rest}
   end
 end
@@ -134,21 +134,21 @@ defmodule DoubleFloat do
 
   @behaviour XDR.Declaration
 
-  @type t :: %__MODULE__{datum: float()}
+  @type t :: %__MODULE__{float: float()}
 
-  defstruct [:datum]
+  defstruct [:float]
 
   @spec new(float :: float()) :: t()
-  def new(float), do: %__MODULE__{datum: float}
+  def new(float), do: %__MODULE__{float: float}
 
   @impl true
-  def encode_xdr(%__MODULE__{datum: float}) do
-    XDR.DoubleFloat.encode_xdr(%XDR.DoubleFloat{datum: float})
+  def encode_xdr(%__MODULE__{float: float}) do
+    XDR.DoubleFloat.encode_xdr(%XDR.DoubleFloat{float: float})
   end
 
   @impl true
-  def encode_xdr!(%__MODULE__{datum: float}) do
-    XDR.DoubleFloat.encode_xdr!(%XDR.DoubleFloat{datum: float})
+  def encode_xdr!(%__MODULE__{float: float}) do
+    XDR.DoubleFloat.encode_xdr!(%XDR.DoubleFloat{float: float})
   end
 
   @impl true
@@ -156,7 +156,7 @@ defmodule DoubleFloat do
 
   def decode_xdr(bytes, _term) do
     case XDR.DoubleFloat.decode_xdr(bytes) do
-      {:ok, {%XDR.DoubleFloat{datum: float}, rest}} -> {:ok, {new(float), rest}}
+      {:ok, {%XDR.DoubleFloat{float: float}, rest}} -> {:ok, {new(float), rest}}
       error -> error
     end
   end
@@ -165,7 +165,7 @@ defmodule DoubleFloat do
   def decode_xdr!(bytes, term \\ nil)
 
   def decode_xdr!(bytes, _term) do
-    {%XDR.DoubleFloat{datum: float}, rest} = XDR.DoubleFloat.decode_xdr!(bytes)
+    {%XDR.DoubleFloat{float: float}, rest} = XDR.DoubleFloat.decode_xdr!(bytes)
     {new(float), rest}
   end
 end
@@ -314,7 +314,7 @@ defmodule FixedOpaque do
 
   defstruct [:opaque]
 
-  @length = 4_294_967_295
+  @length 4_294_967_295
 
   @opaque_spec XDR.FixedOpaque.new(nil, @length)
 

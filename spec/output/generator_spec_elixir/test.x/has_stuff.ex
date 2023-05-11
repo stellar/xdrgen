@@ -18,13 +18,13 @@ defmodule MyXDR.HasStuff do
     data: LotsOfMyStructs
   )
 
-  @type data :: LotsOfMyStructs.t()
+  @type type_data :: LotsOfMyStructs.t()
 
-  @type t :: %__MODULE__{data: data()}
+  @type t :: %__MODULE__{data: type_data()}
 
   defstruct [:data]
 
-  @spec new(data :: data()) :: t()
+  @spec new(data :: type_data()) :: t()
   def new(
     %LotsOfMyStructs{} = data
   ),

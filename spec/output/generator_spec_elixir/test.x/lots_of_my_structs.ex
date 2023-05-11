@@ -18,13 +18,13 @@ defmodule MyXDR.LotsOfMyStructs do
     members: MyStructList
   )
 
-  @type members :: MyStructList.t()
+  @type type_members :: MyStructList.t()
 
-  @type t :: %__MODULE__{members: members()}
+  @type t :: %__MODULE__{members: type_members()}
 
   defstruct [:members]
 
-  @spec new(members :: members()) :: t()
+  @spec new(members :: type_members()) :: t()
   def new(
     %MyStructList{} = members
   ),

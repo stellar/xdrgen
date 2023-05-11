@@ -45,7 +45,7 @@ defmodule MyXDR.VariableOpaque64 do
   def decode_xdr!(bytes, spec \\ @opaque_spec)
 
   def decode_xdr!(bytes, spec) do
-    {%XDR.VariableOpaque{opaque: opaque}, rest} = XDR.VariableOpaque.decode_xdr!(bytes)
+    {%XDR.VariableOpaque{opaque: opaque}, rest} = XDR.VariableOpaque.decode_xdr!(bytes, spec)
     {new(opaque), rest}
   end
 end
