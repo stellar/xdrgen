@@ -393,7 +393,7 @@ module Xdrgen
                 arm_name = arm.void? ? "Void" : "#{type_reference arm, arm.name.camelize}"
                 unless arm.void?
                   if arm.declaration.type.sub_type == :var_array
-                    arm_name = add_size_to_name(m, arm_name)
+                    arm_name = add_size_to_name(arm, arm_name)
                   end
                 end
                 arm.cases.each_with_index do |acase, o|
