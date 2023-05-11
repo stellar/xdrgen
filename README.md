@@ -16,18 +16,16 @@ Xdrgen is a very early project.  Aside from the test fixtures in
 are the .x files used for the
 [stellar-core project](https://github.com/stellar/stellar-core).
 
-Xdrgen presently supports these output languages:  ruby, javacript, java,
-golang, and elixir:
+Xdrgen presently supports these output languages:  ruby, javacript, java, golang, and elixir:
 
 - ruby: complete support
 - javascript: complete support
 - java: complete support
 - golang: currently using a fork of go-xdr, but has complete support
 - rust: support is experimental. Default arms and floats are not supported.
-- elixir: support is experimental as the SDK is in early development. Generated
-  code requires [:exdr](https://github.com/revelrylabs/exdr) in your deps
+- elixir: complete support. Generated code requires [:elixir_xdr](https://github.com/kommitters/elixir_xdr) in your deps.
 - C#: complete support
-  
+
 Testing is _very_ sparse, but will improve over time.
 
 ## Usage as a binary
