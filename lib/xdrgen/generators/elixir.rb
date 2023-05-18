@@ -161,13 +161,13 @@ module Xdrgen
               if m.declaration.type.sub_type == :var_array
                 module_name = add_size_to_name(m, module_name)
               end
-              out.puts "@type type_#{m.name.underscore.downcase} :: #{module_name}.t()"
+              out.puts "@type #{m.name.underscore.downcase}_type :: #{module_name}.t()"
             end
             out.puts "\n"
 
             types = "@type t :: %__MODULE__{"
               struct.members.each_with_index do |m, i|
-              types += "#{m.name.underscore.downcase}: type_#{m.name.underscore.downcase}()#{comma_and_space_unless_last(i, struct.members)}"
+              types += "#{m.name.underscore.downcase}: #{m.name.underscore.downcase}_type()#{comma_and_space_unless_last(i, struct.members)}"
               end
             types += "}\n\n"
             out.puts types
@@ -181,7 +181,7 @@ module Xdrgen
 
             spec = "@spec new("
               struct.members.each_with_index do |m, i|
-              spec += "#{m.name.underscore.downcase} :: type_#{m.name.underscore.downcase}()#{comma_and_space_unless_last(i, struct.members)}"
+              spec += "#{m.name.underscore.downcase} :: #{m.name.underscore.downcase}_type()#{comma_and_space_unless_last(i, struct.members)}"
               end
             spec += ") :: t()\n"
             out.puts spec
@@ -451,17 +451,19 @@ module Xdrgen
             end
             out.puts "\n"
 
-            out.puts "@type t :: %__MODULE__{value: value(), type: #{type_reference union_discriminant, union_name_camelize}.t()}\n\n"
+            out.puts "@type t :: %__MODULE__{value: value(), type: #{is_number_type ? "integer()" : "#{type_reference(union_discriminant, union_name_camelize)}.t()"}}\n\n"
 
             out.puts "defstruct [:value, :type]\n\n"
 
-            out.puts "@spec new(value :: value(), type :: #{type_reference union_discriminant, union_name_camelize}.t()) :: t()\n"
-            out.puts "def new(value, %#{type_reference union_discriminant, union_name_camelize}{} = type), do: %__MODULE__{value: value, type: type}\n\n"
+            out.puts "@spec new(value :: value(), type :: #{is_number_type ? "integer()" : "#{type_reference(union_discriminant, union_name_camelize)}.t()"}) :: t()\n"
+
+            out.puts "def new(value, #{is_number_type ? "" : "%#{type_reference(union_discriminant, union_name_camelize)}{} = "}type), do: %__MODULE__{value: value, type: type}\n\n"
 
             out.puts "@impl true"
             out.puts "def encode_xdr(%__MODULE__{value: value, type: type}) do\n"
             out.indent do
               out.puts "type\n"
+              out.puts "|> #{type_reference(union_discriminant, union_name_camelize)}.new()" if is_number_type
               out.puts "|> XDR.Union.new(@arms, value)\n"
               out.puts "|> XDR.Union.encode_xdr()\n"
             end
@@ -471,6 +473,7 @@ module Xdrgen
             out.puts "def encode_xdr!(%__MODULE__{value: value, type: type}) do\n"
             out.indent do
               out.puts "type\n"
+              out.puts "|> #{type_reference(union_discriminant, union_name_camelize)}.new()" if is_number_type
               out.puts "|> XDR.Union.new(@arms, value)\n"
               out.puts "|> XDR.Union.encode_xdr!()\n"
             end

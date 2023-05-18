@@ -18,13 +18,13 @@ defmodule MyXDR.NesterNestedStruct do
     blah: Int
   )
 
-  @type type_blah :: Int.t()
+  @type blah_type :: Int.t()
 
-  @type t :: %__MODULE__{blah: type_blah()}
+  @type t :: %__MODULE__{blah: blah_type()}
 
   defstruct [:blah]
 
-  @spec new(blah :: type_blah()) :: t()
+  @spec new(blah :: blah_type()) :: t()
   def new(
     %Int{} = blah
   ),

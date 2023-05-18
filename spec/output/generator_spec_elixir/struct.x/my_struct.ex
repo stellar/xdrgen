@@ -26,17 +26,17 @@ defmodule MyXDR.MyStruct do
     max_string: String100
   )
 
-  @type type_some_int :: Int.t()
-  @type type_a_big_int :: Int64.t()
-  @type type_some_opaque :: Opaque10.t()
-  @type type_some_string :: String.t()
-  @type type_max_string :: String100.t()
+  @type some_int_type :: Int.t()
+  @type a_big_int_type :: Int64.t()
+  @type some_opaque_type :: Opaque10.t()
+  @type some_string_type :: String.t()
+  @type max_string_type :: String100.t()
 
-  @type t :: %__MODULE__{some_int: type_some_int(), a_big_int: type_a_big_int(), some_opaque: type_some_opaque(), some_string: type_some_string(), max_string: type_max_string()}
+  @type t :: %__MODULE__{some_int: some_int_type(), a_big_int: a_big_int_type(), some_opaque: some_opaque_type(), some_string: some_string_type(), max_string: max_string_type()}
 
   defstruct [:some_int, :a_big_int, :some_opaque, :some_string, :max_string]
 
-  @spec new(some_int :: type_some_int(), a_big_int :: type_a_big_int(), some_opaque :: type_some_opaque(), some_string :: type_some_string(), max_string :: type_max_string()) :: t()
+  @spec new(some_int :: some_int_type(), a_big_int :: a_big_int_type(), some_opaque :: some_opaque_type(), some_string :: some_string_type(), max_string :: max_string_type()) :: t()
   def new(
     %Int{} = some_int,
     %Int64{} = a_big_int,
