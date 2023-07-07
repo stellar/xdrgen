@@ -11,6 +11,9 @@ pub const XDR_FILES_SHA256: [(&str, &str); 1] = [
 use core::{array::TryFromSliceError, fmt, fmt::Debug, marker::Sized, ops::Deref, slice};
 
 #[cfg(feature = "std")]
+use super::depth_limiter::*;
+
+#[cfg(feature = "std")]
 use core::marker::PhantomData;
 
 // When feature alloc is turned off use static lifetime Box and Vec types.
@@ -66,6 +69,7 @@ pub enum Error {
     InvalidHex,
     #[cfg(feature = "std")]
     Io(io::Error),
+    DepthLimitExceeded,
 }
 
 impl PartialEq for Error {
@@ -109,6 +113,7 @@ impl fmt::Display for Error {
             Error::InvalidHex => write!(f, "hex invalid"),
             #[cfg(feature = "std")]
             Error::Io(e) => write!(f, "{e}"),
+            Error::DepthLimitExceeded => write!(f, "depth limit exceeded"),
         }
     }
 }
@@ -182,15 +187,15 @@ where
 
 #[cfg(feature = "std")]
 pub struct ReadXdrIter<R: Read, S: ReadXdr> {
-    reader: BufReader<R>,
+    reader: DepthLimitedRead<BufReader<R>>,
     _s: PhantomData<S>,
 }
 
 #[cfg(feature = "std")]
 impl<R: Read, S: ReadXdr> ReadXdrIter<R, S> {
-    fn new(r: R) -> Self {
+    fn new(r: R, depth_limit: u32) -> Self {
         Self {
-            reader: BufReader::new(r),
+            reader: DepthLimitedRead::new(BufReader::new(r), depth_limit),
             _s: PhantomData,
         }
     }
@@ -214,7 +219,7 @@ impl<R: Read, S: ReadXdr> Iterator for ReadXdrIter<R, S> {
         // xdr types in this crate heavily use the `std::io::Read::read_exact`
         // method that doesn't distinguish between an EOF at the beginning of a
         // read and an EOF after a partial fill of a read_exact.
-        match self.reader.fill_buf() {
+        match self.reader.inner.fill_buf() {
             // If the reader has no more data and is unable to fill any new data
             // into its internal buf, then the EOF has been reached.
             Ok([]) => return None,
@@ -224,7 +229,8 @@ impl<R: Read, S: ReadXdr> Iterator for ReadXdrIter<R, S> {
             Ok([..]) => (),
         };
         // Read the buf into the type.
-        match S::read_xdr(&mut self.reader) {
+        let r = self.reader.with_limited_depth(|dlr| S::read_xdr(dlr));
+        match r {
             Ok(s) => Some(Ok(s)),
             Err(e) => Some(Err(e)),
         }
@@ -247,18 +253,21 @@ where
     /// All implementations should continue if the read implementation returns
     /// [`ErrorKind::Interrupted`](std::io::ErrorKind::Interrupted).
     ///
-    /// Use [`ReadXdr::read_xdr_to_end`] when the intent is for all bytes in the
+    /// Use [`ReadXdR: Read_xdr_to_end`] when the intent is for all bytes in the
     /// read implementation to be consumed by the read.
     #[cfg(feature = "std")]
-    fn read_xdr(r: &mut impl Read) -> Result<Self>;
+    fn read_xdr<R: Read>(r: &mut DepthLimitedRead<R>) -> Result<Self>;
 
     /// Construct the type from the XDR bytes base64 encoded.
     ///
     /// An error is returned if the bytes are not completely consumed by the
     /// deserialization.
     #[cfg(feature = "base64")]
-    fn read_xdr_base64(r: &mut impl Read) -> Result<Self> {
-        let mut dec = base64::read::DecoderReader::new(r, base64::STANDARD);
+    fn read_xdr_base64(r: &mut impl Read, depth_limit: u32) -> Result<Self> {
+        let mut dec = DepthLimitedRead::new(
+            base64::read::DecoderReader::new(r, base64::STANDARD),
+            depth_limit,
+        );
         let t = Self::read_xdr(&mut dec)?;
         Ok(t)
     }
@@ -282,7 +291,7 @@ where
     /// All implementations should continue if the read implementation returns
     /// [`ErrorKind::Interrupted`](std::io::ErrorKind::Interrupted).
     #[cfg(feature = "std")]
-    fn read_xdr_to_end(r: &mut impl Read) -> Result<Self> {
+    fn read_xdr_to_end<R: Read>(r: &mut DepthLimitedRead<R>) -> Result<Self> {
         let s = Self::read_xdr(r)?;
         // Check that any further reads, such as this read of one byte, read no
         // data, indicating EOF. If a byte is read the data is invalid.
@@ -298,8 +307,11 @@ where
     /// An error is returned if the bytes are not completely consumed by the
     /// deserialization.
     #[cfg(feature = "base64")]
-    fn read_xdr_base64_to_end(r: &mut impl Read) -> Result<Self> {
-        let mut dec = base64::read::DecoderReader::new(r, base64::STANDARD);
+    fn read_xdr_base64_to_end(r: &mut impl Read, depth_limit: u32) -> Result<Self> {
+        let mut dec = DepthLimitedRead::new(
+            base64::read::DecoderReader::new(r, base64::STANDARD),
+            depth_limit,
+        );
         let t = Self::read_xdr_to_end(&mut dec)?;
         Ok(t)
     }
@@ -316,10 +328,10 @@ where
     /// All implementations should continue if the read implementation returns
     /// [`ErrorKind::Interrupted`](std::io::ErrorKind::Interrupted).
     ///
-    /// Use [`ReadXdr::read_xdr_into_to_end`] when the intent is for all bytes
+    /// Use [`ReadXdR: Read_xdr_into_to_end`] when the intent is for all bytes
     /// in the read implementation to be consumed by the read.
     #[cfg(feature = "std")]
-    fn read_xdr_into(&mut self, r: &mut impl Read) -> Result<()> {
+    fn read_xdr_into<R: Read>(&mut self, r: &mut DepthLimitedRead<R>) -> Result<()> {
         *self = Self::read_xdr(r)?;
         Ok(())
     }
@@ -343,7 +355,7 @@ where
     /// All implementations should continue if the read implementation returns
     /// [`ErrorKind::Interrupted`](std::io::ErrorKind::Interrupted).
     #[cfg(feature = "std")]
-    fn read_xdr_into_to_end(&mut self, r: &mut impl Read) -> Result<()> {
+    fn read_xdr_into_to_end<R: Read>(&mut self, r: &mut DepthLimitedRead<R>) -> Result<()> {
         Self::read_xdr_into(self, r)?;
         // Check that any further reads, such as this read of one byte, read no
         // data, indicating EOF. If a byte is read the data is invalid.
@@ -373,8 +385,8 @@ where
     /// All implementations should continue if the read implementation returns
     /// [`ErrorKind::Interrupted`](std::io::ErrorKind::Interrupted).
     #[cfg(feature = "std")]
-    fn read_xdr_iter<R: Read>(r: &mut R) -> ReadXdrIter<&mut R, Self> {
-        ReadXdrIter::new(r)
+    fn read_xdr_iter<R: Read>(r: &mut R, depth_limit: u32) -> ReadXdrIter<&mut R, Self> {
+        ReadXdrIter::new(r, depth_limit)
     }
 
     /// Create an iterator that reads the read implementation as a stream of
@@ -382,9 +394,10 @@ where
     #[cfg(feature = "base64")]
     fn read_xdr_base64_iter<R: Read>(
         r: &mut R,
+        depth_limit: u32,
     ) -> ReadXdrIter<base64::read::DecoderReader<R>, Self> {
         let dec = base64::read::DecoderReader::new(r, base64::STANDARD);
-        ReadXdrIter::new(dec)
+        ReadXdrIter::new(dec, depth_limit)
     }
 
     /// Construct the type from the XDR bytes.
@@ -392,8 +405,8 @@ where
     /// An error is returned if the bytes are not completely consumed by the
     /// deserialization.
     #[cfg(feature = "std")]
-    fn from_xdr(bytes: impl AsRef<[u8]>) -> Result<Self> {
-        let mut cursor = Cursor::new(bytes.as_ref());
+    fn from_xdr(bytes: impl AsRef<[u8]>, depth_limit: u32) -> Result<Self> {
+        let mut cursor = DepthLimitedRead::new(Cursor::new(bytes.as_ref()), depth_limit);
         let t = Self::read_xdr_to_end(&mut cursor)?;
         Ok(t)
     }
@@ -403,9 +416,12 @@ where
     /// An error is returned if the bytes are not completely consumed by the
     /// deserialization.
     #[cfg(feature = "base64")]
-    fn from_xdr_base64(b64: impl AsRef<[u8]>) -> Result<Self> {
+    fn from_xdr_base64(b64: impl AsRef<[u8]>, depth_limit: u32) -> Result<Self> {
         let mut b64_reader = Cursor::new(b64);
-        let mut dec = base64::read::DecoderReader::new(&mut b64_reader, base64::STANDARD);
+        let mut dec = DepthLimitedRead::new(
+            base64::read::DecoderReader::new(&mut b64_reader, base64::STANDARD),
+            depth_limit,
+        );
         let t = Self::read_xdr_to_end(&mut dec)?;
         Ok(t)
     }
@@ -413,21 +429,24 @@ where
 
 pub trait WriteXdr {
     #[cfg(feature = "std")]
-    fn write_xdr(&self, w: &mut impl Write) -> Result<()>;
+    fn write_xdr<W: Write>(&self, w: &mut DepthLimitedWrite<W>) -> Result<()>;
 
     #[cfg(feature = "std")]
-    fn to_xdr(&self) -> Result<Vec<u8>> {
-        let mut cursor = Cursor::new(vec![]);
+    fn to_xdr(&self, depth_limit: u32) -> Result<Vec<u8>> {
+        let mut cursor = DepthLimitedWrite::new(Cursor::new(vec![]), depth_limit);
         self.write_xdr(&mut cursor)?;
-        let bytes = cursor.into_inner();
+        let bytes = cursor.inner.into_inner();
         Ok(bytes)
     }
 
     #[cfg(feature = "base64")]
-    fn to_xdr_base64(&self) -> Result<String> {
-        let mut enc = base64::write::EncoderStringWriter::new(base64::STANDARD);
+    fn to_xdr_base64(&self, depth_limit: u32) -> Result<String> {
+        let mut enc = DepthLimitedWrite::new(
+            base64::write::EncoderStringWriter::new(base64::STANDARD),
+            depth_limit,
+        );
         self.write_xdr(&mut enc)?;
-        let b64 = enc.into_inner();
+        let b64 = enc.inner.into_inner();
         Ok(b64)
     }
 }
@@ -441,229 +460,239 @@ fn pad_len(len: usize) -> usize {
 
 impl ReadXdr for i32 {
     #[cfg(feature = "std")]
-    fn read_xdr(r: &mut impl Read) -> Result<Self> {
+    fn read_xdr<R: Read>(r: &mut DepthLimitedRead<R>) -> Result<Self> {
         let mut b = [0u8; 4];
-        r.read_exact(&mut b)?;
-        let i = i32::from_be_bytes(b);
-        Ok(i)
+        r.with_limited_depth(|r| {
+            r.read_exact(&mut b)?;
+            Ok(i32::from_be_bytes(b))
+        })
     }
 }
 
 impl WriteXdr for i32 {
     #[cfg(feature = "std")]
-    fn write_xdr(&self, w: &mut impl Write) -> Result<()> {
+    fn write_xdr<W: Write>(&self, w: &mut DepthLimitedWrite<W>) -> Result<()> {
         let b: [u8; 4] = self.to_be_bytes();
-        w.write_all(&b)?;
-        Ok(())
+        w.with_limited_depth(|w| Ok(w.write_all(&b)?))
     }
 }
 
 impl ReadXdr for u32 {
     #[cfg(feature = "std")]
-    fn read_xdr(r: &mut impl Read) -> Result<Self> {
+    fn read_xdr<R: Read>(r: &mut DepthLimitedRead<R>) -> Result<Self> {
         let mut b = [0u8; 4];
-        r.read_exact(&mut b)?;
-        let i = u32::from_be_bytes(b);
-        Ok(i)
+        r.with_limited_depth(|r| {
+            r.read_exact(&mut b)?;
+            Ok(u32::from_be_bytes(b))
+        })
     }
 }
 
 impl WriteXdr for u32 {
     #[cfg(feature = "std")]
-    fn write_xdr(&self, w: &mut impl Write) -> Result<()> {
+    fn write_xdr<W: Write>(&self, w: &mut DepthLimitedWrite<W>) -> Result<()> {
         let b: [u8; 4] = self.to_be_bytes();
-        w.write_all(&b)?;
-        Ok(())
+        w.with_limited_depth(|w| Ok(w.write_all(&b)?))
     }
 }
 
 impl ReadXdr for i64 {
     #[cfg(feature = "std")]
-    fn read_xdr(r: &mut impl Read) -> Result<Self> {
+    fn read_xdr<R: Read>(r: &mut DepthLimitedRead<R>) -> Result<Self> {
         let mut b = [0u8; 8];
-        r.read_exact(&mut b)?;
-        let i = i64::from_be_bytes(b);
-        Ok(i)
+        r.with_limited_depth(|r| {
+            r.read_exact(&mut b)?;
+            Ok(i64::from_be_bytes(b))
+        })
     }
 }
 
 impl WriteXdr for i64 {
     #[cfg(feature = "std")]
-    fn write_xdr(&self, w: &mut impl Write) -> Result<()> {
+    fn write_xdr<W: Write>(&self, w: &mut DepthLimitedWrite<W>) -> Result<()> {
         let b: [u8; 8] = self.to_be_bytes();
-        w.write_all(&b)?;
-        Ok(())
+        w.with_limited_depth(|w| Ok(w.write_all(&b)?))
     }
 }
 
 impl ReadXdr for u64 {
     #[cfg(feature = "std")]
-    fn read_xdr(r: &mut impl Read) -> Result<Self> {
+    fn read_xdr<R: Read>(r: &mut DepthLimitedRead<R>) -> Result<Self> {
         let mut b = [0u8; 8];
-        r.read_exact(&mut b)?;
-        let i = u64::from_be_bytes(b);
-        Ok(i)
+        r.with_limited_depth(|r| {
+            r.read_exact(&mut b)?;
+            Ok(u64::from_be_bytes(b))
+        })
     }
 }
 
 impl WriteXdr for u64 {
     #[cfg(feature = "std")]
-    fn write_xdr(&self, w: &mut impl Write) -> Result<()> {
+    fn write_xdr<W: Write>(&self, w: &mut DepthLimitedWrite<W>) -> Result<()> {
         let b: [u8; 8] = self.to_be_bytes();
-        w.write_all(&b)?;
-        Ok(())
+        w.with_limited_depth(|w| Ok(w.write_all(&b)?))
     }
 }
 
 impl ReadXdr for f32 {
     #[cfg(feature = "std")]
-    fn read_xdr(_r: &mut impl Read) -> Result<Self> {
+    fn read_xdr<R: Read>(_r: &mut DepthLimitedRead<R>) -> Result<Self> {
         todo!()
     }
 }
 
 impl WriteXdr for f32 {
     #[cfg(feature = "std")]
-    fn write_xdr(&self, _w: &mut impl Write) -> Result<()> {
+    fn write_xdr<W: Write>(&self, _w: &mut DepthLimitedWrite<W>) -> Result<()> {
         todo!()
     }
 }
 
 impl ReadXdr for f64 {
     #[cfg(feature = "std")]
-    fn read_xdr(_r: &mut impl Read) -> Result<Self> {
+    fn read_xdr<R: Read>(_r: &mut DepthLimitedRead<R>) -> Result<Self> {
         todo!()
     }
 }
 
 impl WriteXdr for f64 {
     #[cfg(feature = "std")]
-    fn write_xdr(&self, _w: &mut impl Write) -> Result<()> {
+    fn write_xdr<W: Write>(&self, _w: &mut DepthLimitedWrite<W>) -> Result<()> {
         todo!()
     }
 }
 
 impl ReadXdr for bool {
     #[cfg(feature = "std")]
-    fn read_xdr(r: &mut impl Read) -> Result<Self> {
-        let i = u32::read_xdr(r)?;
-        let b = i == 1;
-        Ok(b)
+    fn read_xdr<R: Read>(r: &mut DepthLimitedRead<R>) -> Result<Self> {
+        r.with_limited_depth(|r| {
+            let i = u32::read_xdr(r)?;
+            let b = i == 1;
+            Ok(b)
+        })
     }
 }
 
 impl WriteXdr for bool {
     #[cfg(feature = "std")]
-    fn write_xdr(&self, w: &mut impl Write) -> Result<()> {
-        let i = u32::from(*self); // true = 1, false = 0
-        i.write_xdr(w)?;
-        Ok(())
+    fn write_xdr<W: Write>(&self, w: &mut DepthLimitedWrite<W>) -> Result<()> {
+        w.with_limited_depth(|w| {
+            let i = u32::from(*self); // true = 1, false = 0
+            i.write_xdr(w)
+        })
     }
 }
 
 impl<T: ReadXdr> ReadXdr for Option<T> {
     #[cfg(feature = "std")]
-    fn read_xdr(r: &mut impl Read) -> Result<Self> {
-        let i = u32::read_xdr(r)?;
-        match i {
-            0 => Ok(None),
-            1 => {
-                let t = T::read_xdr(r)?;
-                Ok(Some(t))
+    fn read_xdr<R: Read>(r: &mut DepthLimitedRead<R>) -> Result<Self> {
+        r.with_limited_depth(|r| {
+            let i = u32::read_xdr(r)?;
+            match i {
+                0 => Ok(None),
+                1 => {
+                    let t = T::read_xdr(r)?;
+                    Ok(Some(t))
+                }
+                _ => Err(Error::Invalid),
             }
-            _ => Err(Error::Invalid),
-        }
+        })
     }
 }
 
 impl<T: WriteXdr> WriteXdr for Option<T> {
     #[cfg(feature = "std")]
-    fn write_xdr(&self, w: &mut impl Write) -> Result<()> {
-        if let Some(t) = self {
-            1u32.write_xdr(w)?;
-            t.write_xdr(w)?;
-        } else {
-            0u32.write_xdr(w)?;
-        }
-        Ok(())
+    fn write_xdr<W: Write>(&self, w: &mut DepthLimitedWrite<W>) -> Result<()> {
+        w.with_limited_depth(|w| {
+            Ok(if let Some(t) = self {
+                1u32.write_xdr(w)?;
+                t.write_xdr(w)?;
+            } else {
+                0u32.write_xdr(w)?;
+            })
+        })
     }
 }
 
 impl<T: ReadXdr> ReadXdr for Box<T> {
     #[cfg(feature = "std")]
-    fn read_xdr(r: &mut impl Read) -> Result<Self> {
-        let t = T::read_xdr(r)?;
-        Ok(Box::new(t))
+    fn read_xdr<R: Read>(r: &mut DepthLimitedRead<R>) -> Result<Self> {
+        r.with_limited_depth(|r| Ok(Box::new(T::read_xdr(r)?)))
     }
 }
 
 impl<T: WriteXdr> WriteXdr for Box<T> {
     #[cfg(feature = "std")]
-    fn write_xdr(&self, w: &mut impl Write) -> Result<()> {
-        T::write_xdr(self, w)?;
-        Ok(())
+    fn write_xdr<W: Write>(&self, w: &mut DepthLimitedWrite<W>) -> Result<()> {
+        w.with_limited_depth(|w| T::write_xdr(self, w))
     }
 }
 
 impl ReadXdr for () {
     #[cfg(feature = "std")]
-    fn read_xdr(_r: &mut impl Read) -> Result<Self> {
+    fn read_xdr<R: Read>(_r: &mut DepthLimitedRead<R>) -> Result<Self> {
         Ok(())
     }
 }
 
 impl WriteXdr for () {
     #[cfg(feature = "std")]
-    fn write_xdr(&self, _w: &mut impl Write) -> Result<()> {
+    fn write_xdr<W: Write>(&self, _w: &mut DepthLimitedWrite<W>) -> Result<()> {
         Ok(())
     }
 }
 
 impl<const N: usize> ReadXdr for [u8; N] {
     #[cfg(feature = "std")]
-    fn read_xdr(r: &mut impl Read) -> Result<Self> {
-        let mut arr = [0u8; N];
-        r.read_exact(&mut arr)?;
-
-        let pad = &mut [0u8; 3][..pad_len(N)];
-        r.read_exact(pad)?;
-        if pad.iter().any(|b| *b != 0) {
-            return Err(Error::NonZeroPadding);
-        }
-
-        Ok(arr)
+    fn read_xdr<R: Read>(r: &mut DepthLimitedRead<R>) -> Result<Self> {
+        r.with_limited_depth(|r| {
+            let mut arr = [0u8; N];
+            r.read_exact(&mut arr)?;
+            let pad = &mut [0u8; 3][..pad_len(N)];
+            r.read_exact(pad)?;
+            if pad.iter().any(|b| *b != 0) {
+                return Err(Error::NonZeroPadding);
+            }
+            Ok(arr)
+        })
     }
 }
 
 impl<const N: usize> WriteXdr for [u8; N] {
     #[cfg(feature = "std")]
-    fn write_xdr(&self, w: &mut impl Write) -> Result<()> {
-        w.write_all(self)?;
-        w.write_all(&[0u8; 3][..pad_len(N)])?;
-        Ok(())
+    fn write_xdr<W: Write>(&self, w: &mut DepthLimitedWrite<W>) -> Result<()> {
+        w.with_limited_depth(|w| {
+            w.write_all(self)?;
+            w.write_all(&[0u8; 3][..pad_len(N)])?;
+            Ok(())
+        })
     }
 }
 
 impl<T: ReadXdr, const N: usize> ReadXdr for [T; N] {
     #[cfg(feature = "std")]
-    fn read_xdr(r: &mut impl Read) -> Result<Self> {
-        let mut vec = Vec::with_capacity(N);
-        for _ in 0..N {
-            let t = T::read_xdr(r)?;
-            vec.push(t);
-        }
-        let arr: [T; N] = vec.try_into().unwrap_or_else(|_: Vec<T>| unreachable!());
-        Ok(arr)
+    fn read_xdr<R: Read>(r: &mut DepthLimitedRead<R>) -> Result<Self> {
+        r.with_limited_depth(|r| {
+            let mut vec = Vec::with_capacity(N);
+            for _ in 0..N {
+                let t = T::read_xdr(r)?;
+                vec.push(t);
+            }
+            let arr: [T; N] = vec.try_into().unwrap_or_else(|_: Vec<T>| unreachable!());
+            Ok(arr)
+        })
     }
 }
 
 impl<T: WriteXdr, const N: usize> WriteXdr for [T; N] {
     #[cfg(feature = "std")]
-    fn write_xdr(&self, w: &mut impl Write) -> Result<()> {
-        for t in self {
-            t.write_xdr(w)?;
-        }
-        Ok(())
+    fn write_xdr<W: Write>(&self, w: &mut DepthLimitedWrite<W>) -> Result<()> {
+        w.with_limited_depth(|w| {
+            for t in self {
+                t.write_xdr(w)?;
+            }
+            Ok(())
+        })
     }
 }
 
@@ -990,68 +1019,76 @@ impl<'a, const MAX: u32> TryFrom<&'a VecM<u8, MAX>> for &'a str {
 
 impl<const MAX: u32> ReadXdr for VecM<u8, MAX> {
     #[cfg(feature = "std")]
-    fn read_xdr(r: &mut impl Read) -> Result<Self> {
-        let len: u32 = u32::read_xdr(r)?;
-        if len > MAX {
-            return Err(Error::LengthExceedsMax);
-        }
+    fn read_xdr<R: Read>(r: &mut DepthLimitedRead<R>) -> Result<Self> {
+        r.with_limited_depth(|r| {
+            let len: u32 = u32::read_xdr(r)?;
+            if len > MAX {
+                return Err(Error::LengthExceedsMax);
+            }
 
-        let mut vec = vec![0u8; len as usize];
-        r.read_exact(&mut vec)?;
+            let mut vec = vec![0u8; len as usize];
+            r.read_exact(&mut vec)?;
 
-        let pad = &mut [0u8; 3][..pad_len(len as usize)];
-        r.read_exact(pad)?;
-        if pad.iter().any(|b| *b != 0) {
-            return Err(Error::NonZeroPadding);
-        }
+            let pad = &mut [0u8; 3][..pad_len(len as usize)];
+            r.read_exact(pad)?;
+            if pad.iter().any(|b| *b != 0) {
+                return Err(Error::NonZeroPadding);
+            }
 
-        Ok(VecM(vec))
+            Ok(VecM(vec))
+        })
     }
 }
 
 impl<const MAX: u32> WriteXdr for VecM<u8, MAX> {
     #[cfg(feature = "std")]
-    fn write_xdr(&self, w: &mut impl Write) -> Result<()> {
-        let len: u32 = self.len().try_into().map_err(|_| Error::LengthExceedsMax)?;
-        len.write_xdr(w)?;
+    fn write_xdr<W: Write>(&self, w: &mut DepthLimitedWrite<W>) -> Result<()> {
+        w.with_limited_depth(|w| {
+            let len: u32 = self.len().try_into().map_err(|_| Error::LengthExceedsMax)?;
+            len.write_xdr(w)?;
 
-        w.write_all(&self.0)?;
+            w.write_all(&self.0)?;
 
-        w.write_all(&[0u8; 3][..pad_len(len as usize)])?;
+            w.write_all(&[0u8; 3][..pad_len(len as usize)])?;
 
-        Ok(())
+            Ok(())
+        })
     }
 }
 
 impl<T: ReadXdr, const MAX: u32> ReadXdr for VecM<T, MAX> {
     #[cfg(feature = "std")]
-    fn read_xdr(r: &mut impl Read) -> Result<Self> {
-        let len = u32::read_xdr(r)?;
-        if len > MAX {
-            return Err(Error::LengthExceedsMax);
-        }
+    fn read_xdr<R: Read>(r: &mut DepthLimitedRead<R>) -> Result<Self> {
+        r.with_limited_depth(|r| {
+            let len = u32::read_xdr(r)?;
+            if len > MAX {
+                return Err(Error::LengthExceedsMax);
+            }
 
-        let mut vec = Vec::with_capacity(len as usize);
-        for _ in 0..len {
-            let t = T::read_xdr(r)?;
-            vec.push(t);
-        }
+            let mut vec = Vec::with_capacity(len as usize);
+            for _ in 0..len {
+                let t = T::read_xdr(r)?;
+                vec.push(t);
+            }
 
-        Ok(VecM(vec))
+            Ok(VecM(vec))
+        })
     }
 }
 
 impl<T: WriteXdr, const MAX: u32> WriteXdr for VecM<T, MAX> {
     #[cfg(feature = "std")]
-    fn write_xdr(&self, w: &mut impl Write) -> Result<()> {
-        let len: u32 = self.len().try_into().map_err(|_| Error::LengthExceedsMax)?;
-        len.write_xdr(w)?;
+    fn write_xdr<W: Write>(&self, w: &mut DepthLimitedWrite<W>) -> Result<()> {
+        w.with_limited_depth(|w| {
+            let len: u32 = self.len().try_into().map_err(|_| Error::LengthExceedsMax)?;
+            len.write_xdr(w)?;
 
-        for t in &self.0 {
-            t.write_xdr(w)?;
-        }
+            for t in &self.0 {
+                t.write_xdr(w)?;
+            }
 
-        Ok(())
+            Ok(())
+        })
     }
 }
 
@@ -1380,36 +1417,40 @@ impl<'a, const MAX: u32> TryFrom<&'a BytesM<MAX>> for &'a str {
 
 impl<const MAX: u32> ReadXdr for BytesM<MAX> {
     #[cfg(feature = "std")]
-    fn read_xdr(r: &mut impl Read) -> Result<Self> {
-        let len: u32 = u32::read_xdr(r)?;
-        if len > MAX {
-            return Err(Error::LengthExceedsMax);
-        }
+    fn read_xdr<R: Read>(r: &mut DepthLimitedRead<R>) -> Result<Self> {
+        r.with_limited_depth(|r| {
+            let len: u32 = u32::read_xdr(r)?;
+            if len > MAX {
+                return Err(Error::LengthExceedsMax);
+            }
 
-        let mut vec = vec![0u8; len as usize];
-        r.read_exact(&mut vec)?;
+            let mut vec = vec![0u8; len as usize];
+            r.read_exact(&mut vec)?;
 
-        let pad = &mut [0u8; 3][..pad_len(len as usize)];
-        r.read_exact(pad)?;
-        if pad.iter().any(|b| *b != 0) {
-            return Err(Error::NonZeroPadding);
-        }
+            let pad = &mut [0u8; 3][..pad_len(len as usize)];
+            r.read_exact(pad)?;
+            if pad.iter().any(|b| *b != 0) {
+                return Err(Error::NonZeroPadding);
+            }
 
-        Ok(BytesM(vec))
+            Ok(BytesM(vec))
+        })
     }
 }
 
 impl<const MAX: u32> WriteXdr for BytesM<MAX> {
     #[cfg(feature = "std")]
-    fn write_xdr(&self, w: &mut impl Write) -> Result<()> {
-        let len: u32 = self.len().try_into().map_err(|_| Error::LengthExceedsMax)?;
-        len.write_xdr(w)?;
+    fn write_xdr<W: Write>(&self, w: &mut DepthLimitedWrite<W>) -> Result<()> {
+        w.with_limited_depth(|w| {
+            let len: u32 = self.len().try_into().map_err(|_| Error::LengthExceedsMax)?;
+            len.write_xdr(w)?;
 
-        w.write_all(&self.0)?;
+            w.write_all(&self.0)?;
 
-        w.write_all(&[0u8; 3][..pad_len(len as usize)])?;
+            w.write_all(&[0u8; 3][..pad_len(len as usize)])?;
 
-        Ok(())
+            Ok(())
+        })
     }
 }
 
@@ -1759,36 +1800,40 @@ impl<'a, const MAX: u32> TryFrom<&'a StringM<MAX>> for &'a str {
 
 impl<const MAX: u32> ReadXdr for StringM<MAX> {
     #[cfg(feature = "std")]
-    fn read_xdr(r: &mut impl Read) -> Result<Self> {
-        let len: u32 = u32::read_xdr(r)?;
-        if len > MAX {
-            return Err(Error::LengthExceedsMax);
-        }
+    fn read_xdr<R: Read>(r: &mut DepthLimitedRead<R>) -> Result<Self> {
+        r.with_limited_depth(|r| {
+            let len: u32 = u32::read_xdr(r)?;
+            if len > MAX {
+                return Err(Error::LengthExceedsMax);
+            }
 
-        let mut vec = vec![0u8; len as usize];
-        r.read_exact(&mut vec)?;
+            let mut vec = vec![0u8; len as usize];
+            r.read_exact(&mut vec)?;
 
-        let pad = &mut [0u8; 3][..pad_len(len as usize)];
-        r.read_exact(pad)?;
-        if pad.iter().any(|b| *b != 0) {
-            return Err(Error::NonZeroPadding);
-        }
+            let pad = &mut [0u8; 3][..pad_len(len as usize)];
+            r.read_exact(pad)?;
+            if pad.iter().any(|b| *b != 0) {
+                return Err(Error::NonZeroPadding);
+            }
 
-        Ok(StringM(vec))
+            Ok(StringM(vec))
+        })
     }
 }
 
 impl<const MAX: u32> WriteXdr for StringM<MAX> {
     #[cfg(feature = "std")]
-    fn write_xdr(&self, w: &mut impl Write) -> Result<()> {
-        let len: u32 = self.len().try_into().map_err(|_| Error::LengthExceedsMax)?;
-        len.write_xdr(w)?;
+    fn write_xdr<W: Write>(&self, w: &mut DepthLimitedWrite<W>) -> Result<()> {
+        w.with_limited_depth(|w| {
+            let len: u32 = self.len().try_into().map_err(|_| Error::LengthExceedsMax)?;
+            len.write_xdr(w)?;
 
-        w.write_all(&self.0)?;
+            w.write_all(&self.0)?;
 
-        w.write_all(&[0u8; 3][..pad_len(len as usize)])?;
+            w.write_all(&[0u8; 3][..pad_len(len as usize)])?;
 
-        Ok(())
+            Ok(())
+        })
     }
 }
 
@@ -1809,7 +1854,7 @@ where
     T: ReadXdr,
 {
     #[cfg(feature = "std")]
-    fn read_xdr(r: &mut impl Read) -> Result<Self> {
+    fn read_xdr<R: Read>(r: &mut DepthLimitedRead<R>) -> Result<Self> {
         // Read the frame header value that contains 1 flag-bit and a 33-bit length.
         //  - The 1 flag bit is 0 when there are more frames for the same record.
         //  - The 31-bit length is the length of the bytes within the frame that
@@ -1832,26 +1877,30 @@ where
 mod tests {
     use std::io::Cursor;
 
+    use crate::{DepthLimitedRead, DepthLimitedWrite};
+
     use super::{Error, ReadXdr, VecM, WriteXdr};
+
+    const DEPTH_LIMIT: u32 = 10;
 
     #[test]
     pub fn vec_u8_read_without_padding() {
-        let mut buf = Cursor::new(vec![0, 0, 0, 4, 2, 2, 2, 2]);
-        let v = VecM::<u8, 8>::read_xdr(&mut buf).unwrap();
+        let buf = Cursor::new(vec![0, 0, 0, 4, 2, 2, 2, 2]);
+        let v = VecM::<u8, 8>::read_xdr(&mut DepthLimitedRead::new(buf, DEPTH_LIMIT)).unwrap();
         assert_eq!(v.to_vec(), vec![2, 2, 2, 2]);
     }
 
     #[test]
     pub fn vec_u8_read_with_padding() {
-        let mut buf = Cursor::new(vec![0, 0, 0, 1, 2, 0, 0, 0]);
-        let v = VecM::<u8, 8>::read_xdr(&mut buf).unwrap();
+        let buf = Cursor::new(vec![0, 0, 0, 1, 2, 0, 0, 0]);
+        let v = VecM::<u8, 8>::read_xdr(&mut DepthLimitedRead::new(buf, DEPTH_LIMIT)).unwrap();
         assert_eq!(v.to_vec(), vec![2]);
     }
 
     #[test]
     pub fn vec_u8_read_with_insufficient_padding() {
-        let mut buf = Cursor::new(vec![0, 0, 0, 1, 2, 0, 0]);
-        let res = VecM::<u8, 8>::read_xdr(&mut buf);
+        let buf = Cursor::new(vec![0, 0, 0, 1, 2, 0, 0]);
+        let res = VecM::<u8, 8>::read_xdr(&mut DepthLimitedRead::new(buf, DEPTH_LIMIT));
         match res {
             Err(Error::Io(_)) => (),
             _ => panic!("expected IO error got {res:?}"),
@@ -1860,8 +1909,8 @@ mod tests {
 
     #[test]
     pub fn vec_u8_read_with_non_zero_padding() {
-        let mut buf = Cursor::new(vec![0, 0, 0, 1, 2, 3, 0, 0]);
-        let res = VecM::<u8, 8>::read_xdr(&mut buf);
+        let buf = Cursor::new(vec![0, 0, 0, 1, 2, 3, 0, 0]);
+        let res = VecM::<u8, 8>::read_xdr(&mut DepthLimitedRead::new(buf, DEPTH_LIMIT));
         match res {
             Err(Error::NonZeroPadding) => (),
             _ => panic!("expected NonZeroPadding got {res:?}"),
@@ -1872,7 +1921,12 @@ mod tests {
     pub fn vec_u8_write_without_padding() {
         let mut buf = vec![];
         let v: VecM<u8, 8> = vec![2, 2, 2, 2].try_into().unwrap();
-        v.write_xdr(&mut Cursor::new(&mut buf)).unwrap();
+
+        v.write_xdr(&mut DepthLimitedWrite::new(
+            Cursor::new(&mut buf),
+            DEPTH_LIMIT,
+        ))
+        .unwrap();
         assert_eq!(buf, vec![0, 0, 0, 4, 2, 2, 2, 2]);
     }
 
@@ -1880,28 +1934,32 @@ mod tests {
     pub fn vec_u8_write_with_padding() {
         let mut buf = vec![];
         let v: VecM<u8, 8> = vec![2].try_into().unwrap();
-        v.write_xdr(&mut Cursor::new(&mut buf)).unwrap();
+        v.write_xdr(&mut DepthLimitedWrite::new(
+            Cursor::new(&mut buf),
+            DEPTH_LIMIT,
+        ))
+        .unwrap();
         assert_eq!(buf, vec![0, 0, 0, 1, 2, 0, 0, 0]);
     }
 
     #[test]
     pub fn arr_u8_read_without_padding() {
-        let mut buf = Cursor::new(vec![2, 2, 2, 2]);
-        let v = <[u8; 4]>::read_xdr(&mut buf).unwrap();
+        let buf = Cursor::new(vec![2, 2, 2, 2]);
+        let v = <[u8; 4]>::read_xdr(&mut DepthLimitedRead::new(buf, DEPTH_LIMIT)).unwrap();
         assert_eq!(v, [2, 2, 2, 2]);
     }
 
     #[test]
     pub fn arr_u8_read_with_padding() {
-        let mut buf = Cursor::new(vec![2, 0, 0, 0]);
-        let v = <[u8; 1]>::read_xdr(&mut buf).unwrap();
+        let buf = Cursor::new(vec![2, 0, 0, 0]);
+        let v = <[u8; 1]>::read_xdr(&mut DepthLimitedRead::new(buf, DEPTH_LIMIT)).unwrap();
         assert_eq!(v, [2]);
     }
 
     #[test]
     pub fn arr_u8_read_with_insufficient_padding() {
-        let mut buf = Cursor::new(vec![2, 0, 0]);
-        let res = <[u8; 1]>::read_xdr(&mut buf);
+        let buf = Cursor::new(vec![2, 0, 0]);
+        let res = <[u8; 1]>::read_xdr(&mut DepthLimitedRead::new(buf, DEPTH_LIMIT));
         match res {
             Err(Error::Io(_)) => (),
             _ => panic!("expected IO error got {res:?}"),
@@ -1910,8 +1968,8 @@ mod tests {
 
     #[test]
     pub fn arr_u8_read_with_non_zero_padding() {
-        let mut buf = Cursor::new(vec![2, 3, 0, 0]);
-        let res = <[u8; 1]>::read_xdr(&mut buf);
+        let buf = Cursor::new(vec![2, 3, 0, 0]);
+        let res = <[u8; 1]>::read_xdr(&mut DepthLimitedRead::new(buf, DEPTH_LIMIT));
         match res {
             Err(Error::NonZeroPadding) => (),
             _ => panic!("expected NonZeroPadding got {res:?}"),
@@ -1922,7 +1980,10 @@ mod tests {
     pub fn arr_u8_write_without_padding() {
         let mut buf = vec![];
         [2u8, 2, 2, 2]
-            .write_xdr(&mut Cursor::new(&mut buf))
+            .write_xdr(&mut DepthLimitedWrite::new(
+                Cursor::new(&mut buf),
+                DEPTH_LIMIT,
+            ))
             .unwrap();
         assert_eq!(buf, vec![2, 2, 2, 2]);
     }
@@ -1930,14 +1991,19 @@ mod tests {
     #[test]
     pub fn arr_u8_write_with_padding() {
         let mut buf = vec![];
-        [2u8].write_xdr(&mut Cursor::new(&mut buf)).unwrap();
+        [2u8]
+            .write_xdr(&mut DepthLimitedWrite::new(
+                Cursor::new(&mut buf),
+                DEPTH_LIMIT,
+            ))
+            .unwrap();
         assert_eq!(buf, vec![2, 0, 0, 0]);
     }
 }
 
 #[cfg(all(test, feature = "std"))]
 mod test {
-    use super::VecM;
+    use super::*;
 
     #[test]
     fn into_option_none() {
@@ -1961,6 +2027,36 @@ mod test {
     fn to_option_some() {
         let v: VecM<_, 1> = vec![1].try_into().unwrap();
         assert_eq!(v.to_option(), Some(1));
+    }
+
+    #[test]
+    fn depth_limited_read_write_under_the_limit_success() {
+        let a: Option<Option<Option<u32>>> = Some(Some(Some(5)));
+        let mut buf = DepthLimitedWrite::new(Vec::new(), 4);
+        a.write_xdr(&mut buf).unwrap();
+
+        let mut dlr = DepthLimitedRead::new(Cursor::new(buf.inner.as_slice()), 4);
+        let a_back: Option<Option<Option<u32>>> = ReadXdr::read_xdr(&mut dlr).unwrap();
+        assert_eq!(a, a_back);
+    }
+
+    #[should_panic]
+    #[test]
+    fn write_over_depth_limit_fail() {
+        let a: Option<Option<Option<u32>>> = Some(Some(Some(5)));
+        let mut buf = DepthLimitedWrite::new(Vec::new(), 3);
+        a.write_xdr(&mut buf).unwrap();
+    }
+
+    #[should_panic]
+    #[test]
+    fn read_over_depth_limit_fail() {
+        let a: Option<Option<Option<u32>>> = Some(Some(Some(5)));
+        let mut buf = DepthLimitedWrite::new(Vec::new(), 5);
+        a.write_xdr(&mut buf).unwrap();
+
+        let mut dlr = DepthLimitedRead::new(Cursor::new(buf.inner.as_slice()), 3);
+        let _: Option<Option<Option<u32>>> = ReadXdr::read_xdr(&mut dlr).unwrap();
     }
 }
 
@@ -2074,18 +2170,22 @@ Self::Multi => "Multi",
 
         impl ReadXdr for UnionKey {
             #[cfg(feature = "std")]
-            fn read_xdr(r: &mut impl Read) -> Result<Self> {
-                let e = i32::read_xdr(r)?;
-                let v: Self = e.try_into()?;
-                Ok(v)
+            fn read_xdr<R: Read>(r: &mut DepthLimitedRead<R>) -> Result<Self> {
+                r.with_limited_depth(|r| {
+                    let e = i32::read_xdr(r)?;
+                    let v: Self = e.try_into()?;
+                    Ok(v)
+                })
             }
         }
 
         impl WriteXdr for UnionKey {
             #[cfg(feature = "std")]
-            fn write_xdr(&self, w: &mut impl Write) -> Result<()> {
-                let i: i32 = (*self).into();
-                i.write_xdr(w)
+            fn write_xdr<W: Write>(&self, w: &mut DepthLimitedWrite<W>) -> Result<()> {
+                w.with_limited_write(|w| {
+                    let i: i32 = (*self).into();
+                    i.write_xdr(w)
+                })
             }
         }
 
@@ -2168,29 +2268,33 @@ Self::Multi(_) => UnionKey::Multi,
 
         impl ReadXdr for MyUnion {
             #[cfg(feature = "std")]
-            fn read_xdr(r: &mut impl Read) -> Result<Self> {
-                let dv: UnionKey = <UnionKey as ReadXdr>::read_xdr(r)?;
-                #[allow(clippy::match_same_arms, clippy::match_wildcard_for_single_variants)]
-                let v = match dv {
-                    UnionKey::Error => Self::Error(i32::read_xdr(r)?),
+            fn read_xdr<R: Read>(r: &mut DepthLimitedRead<R>) -> Result<Self> {
+                r.with_limited_read(|r| {
+                    let dv: UnionKey = <UnionKey as ReadXdr>::read_xdr(r)?;
+                    #[allow(clippy::match_same_arms, clippy::match_wildcard_for_single_variants)]
+                    let v = match dv {
+                        UnionKey::Error => Self::Error(i32::read_xdr(r)?),
 UnionKey::Multi => Self::Multi(VecM::<i32>::read_xdr(r)?),
-                    #[allow(unreachable_patterns)]
-                    _ => return Err(Error::Invalid),
-                };
-                Ok(v)
+                        #[allow(unreachable_patterns)]
+                        _ => return Err(Error::Invalid),
+                    };
+                    Ok(v)
+                }
             }
         }
 
         impl WriteXdr for MyUnion {
             #[cfg(feature = "std")]
-            fn write_xdr(&self, w: &mut impl Write) -> Result<()> {
-                self.discriminant().write_xdr(w)?;
-                #[allow(clippy::match_same_arms)]
-                match self {
-                    Self::Error(v) => v.write_xdr(w)?,
+            fn write_xdr<W: Write>(&self, w: &mut DepthLimitedWrite) -> Result<()> {
+                w.with_limited_depth(|w| {
+                    self.discriminant().write_xdr(w)?;
+                    #[allow(clippy::match_same_arms)]
+                    match self {
+                        Self::Error(v) => v.write_xdr(w)?,
 Self::Multi(v) => v.write_xdr(w)?,
-                };
-                Ok(())
+                    };
+                    Ok(())
+                })
             }
         }
 
@@ -2272,29 +2376,33 @@ Self::V1(_) => 1,
 
         impl ReadXdr for IntUnion {
             #[cfg(feature = "std")]
-            fn read_xdr(r: &mut impl Read) -> Result<Self> {
-                let dv: i32 = <i32 as ReadXdr>::read_xdr(r)?;
-                #[allow(clippy::match_same_arms, clippy::match_wildcard_for_single_variants)]
-                let v = match dv {
-                    0 => Self::V0(i32::read_xdr(r)?),
+            fn read_xdr<R: Read>(r: &mut DepthLimitedRead<R>) -> Result<Self> {
+                r.with_limited_read(|r| {
+                    let dv: i32 = <i32 as ReadXdr>::read_xdr(r)?;
+                    #[allow(clippy::match_same_arms, clippy::match_wildcard_for_single_variants)]
+                    let v = match dv {
+                        0 => Self::V0(i32::read_xdr(r)?),
 1 => Self::V1(VecM::<i32>::read_xdr(r)?),
-                    #[allow(unreachable_patterns)]
-                    _ => return Err(Error::Invalid),
-                };
-                Ok(v)
+                        #[allow(unreachable_patterns)]
+                        _ => return Err(Error::Invalid),
+                    };
+                    Ok(v)
+                }
             }
         }
 
         impl WriteXdr for IntUnion {
             #[cfg(feature = "std")]
-            fn write_xdr(&self, w: &mut impl Write) -> Result<()> {
-                self.discriminant().write_xdr(w)?;
-                #[allow(clippy::match_same_arms)]
-                match self {
-                    Self::V0(v) => v.write_xdr(w)?,
+            fn write_xdr<W: Write>(&self, w: &mut DepthLimitedWrite) -> Result<()> {
+                w.with_limited_depth(|w| {
+                    self.discriminant().write_xdr(w)?;
+                    #[allow(clippy::match_same_arms)]
+                    match self {
+                        Self::V0(v) => v.write_xdr(w)?,
 Self::V1(v) => v.write_xdr(w)?,
-                };
-                Ok(())
+                    };
+                    Ok(())
+                })
             }
         }
 
@@ -2331,17 +2439,19 @@ impl AsRef<IntUnion> for IntUnion2 {
 
 impl ReadXdr for IntUnion2 {
     #[cfg(feature = "std")]
-    fn read_xdr(r: &mut impl Read) -> Result<Self> {
-        let i = IntUnion::read_xdr(r)?;
-        let v = IntUnion2(i);
-        Ok(v)
+    fn read_xdr<R: Read>(r: &mut DepthLimitedRead<R>) -> Result<Self> {
+        r.with_limited_depth(|r| {
+            let i = IntUnion::read_xdr(r)?;
+            let v = IntUnion2(i);
+            Ok(v)})
+        })
     }
 }
 
 impl WriteXdr for IntUnion2 {
     #[cfg(feature = "std")]
-    fn write_xdr(&self, w: &mut impl Write) -> Result<()> {
-        self.0.write_xdr(w)
+    fn write_xdr<W: Write>(&self, w: &mut DepthLimitedWrite<W>) -> Result<()> {
+        w.with_limited_depth(|w|{ self.0.write_xdr(w) })
     }
 }
 
@@ -2455,26 +2565,29 @@ TypeVariant::IntUnion2, ];
 
             #[cfg(feature = "std")]
             #[allow(clippy::too_many_lines)]
-            pub fn read_xdr(v: TypeVariant, r: &mut impl Read) -> Result<Self> {
+            pub fn read_xdr<R: Read>(v: TypeVariant, r: &mut DepthLimitedRead<R>) -> Result<Self> {
                 match v {
-                    TypeVariant::SError => Ok(Self::SError(Box::new(SError::read_xdr(r)?))),
-TypeVariant::Multi => Ok(Self::Multi(Box::new(Multi::read_xdr(r)?))),
-TypeVariant::UnionKey => Ok(Self::UnionKey(Box::new(UnionKey::read_xdr(r)?))),
-TypeVariant::MyUnion => Ok(Self::MyUnion(Box::new(MyUnion::read_xdr(r)?))),
-TypeVariant::IntUnion => Ok(Self::IntUnion(Box::new(IntUnion::read_xdr(r)?))),
-TypeVariant::IntUnion2 => Ok(Self::IntUnion2(Box::new(IntUnion2::read_xdr(r)?))),
+                    TypeVariant::SError => r.with_limited_depth(|r| Ok(Self::SError(Box::new(SError::read_xdr(r)?))))?,
+TypeVariant::Multi => r.with_limited_depth(|r| Ok(Self::Multi(Box::new(Multi::read_xdr(r)?))))?,
+TypeVariant::UnionKey => r.with_limited_depth(|r| Ok(Self::UnionKey(Box::new(UnionKey::read_xdr(r)?))))?,
+TypeVariant::MyUnion => r.with_limited_depth(|r| Ok(Self::MyUnion(Box::new(MyUnion::read_xdr(r)?))))?,
+TypeVariant::IntUnion => r.with_limited_depth(|r| Ok(Self::IntUnion(Box::new(IntUnion::read_xdr(r)?))))?,
+TypeVariant::IntUnion2 => r.with_limited_depth(|r| Ok(Self::IntUnion2(Box::new(IntUnion2::read_xdr(r)?))))?,
                 }
             }
 
             #[cfg(feature = "base64")]
-            pub fn read_xdr_base64(v: TypeVariant, r: &mut impl Read) -> Result<Self> {
-                let mut dec = base64::read::DecoderReader::new(r, base64::STANDARD);
+            pub fn read_xdr_base64(v: TypeVariant, r: &mut impl Read, depth_limit: u32) -> Result<Self> {
+                let mut dec = DepthLimitedRead::new(
+                  base64::read::DecoderReader::new(r, base64::STANDARD),
+                  depth_limit,
+                );
                 let t = Self::read_xdr(v, &mut dec)?;
                 Ok(t)
             }
 
             #[cfg(feature = "std")]
-            pub fn read_xdr_to_end(v: TypeVariant, r: &mut impl Read) -> Result<Self> {
+            pub fn read_xdr_to_end<R: Read>(v: TypeVariant, r: &mut DepthLimitedRead<R>) -> Result<Self> {
                 let s = Self::read_xdr(v, r)?;
                 // Check that any further reads, such as this read of one byte, read no
                 // data, indicating EOF. If a byte is read the data is invalid.
@@ -2486,63 +2599,66 @@ TypeVariant::IntUnion2 => Ok(Self::IntUnion2(Box::new(IntUnion2::read_xdr(r)?)))
             }
 
             #[cfg(feature = "base64")]
-            pub fn read_xdr_base64_to_end(v: TypeVariant, r: &mut impl Read) -> Result<Self> {
-                let mut dec = base64::read::DecoderReader::new(r, base64::STANDARD);
+            pub fn read_xdr_base64_to_end(v: TypeVariant, r: &mut impl Read, depth_limit: u32) -> Result<Self> {
+                let mut dec = DepthLimitedRead::new(
+                  base64::read::DecoderReader::new(r, base64::STANDARD),
+                  depth_limit,
+                );
                 let t = Self::read_xdr_to_end(v, &mut dec)?;
                 Ok(t)
             }
 
             #[cfg(feature = "std")]
             #[allow(clippy::too_many_lines)]
-            pub fn read_xdr_iter<R: Read>(v: TypeVariant, r: &mut R) -> Box<dyn Iterator<Item=Result<Self>> + '_> {
+            pub fn read_xdr_iter<R: Read>(v: TypeVariant, r: &mut R, depth_limit: u32) -> Box<dyn Iterator<Item=Result<Self>> + '_> {
                 match v {
-                    TypeVariant::SError => Box::new(ReadXdrIter::<_, SError>::new(r).map(|r| r.map(|t| Self::SError(Box::new(t))))),
-TypeVariant::Multi => Box::new(ReadXdrIter::<_, Multi>::new(r).map(|r| r.map(|t| Self::Multi(Box::new(t))))),
-TypeVariant::UnionKey => Box::new(ReadXdrIter::<_, UnionKey>::new(r).map(|r| r.map(|t| Self::UnionKey(Box::new(t))))),
-TypeVariant::MyUnion => Box::new(ReadXdrIter::<_, MyUnion>::new(r).map(|r| r.map(|t| Self::MyUnion(Box::new(t))))),
-TypeVariant::IntUnion => Box::new(ReadXdrIter::<_, IntUnion>::new(r).map(|r| r.map(|t| Self::IntUnion(Box::new(t))))),
-TypeVariant::IntUnion2 => Box::new(ReadXdrIter::<_, IntUnion2>::new(r).map(|r| r.map(|t| Self::IntUnion2(Box::new(t))))),
+                    TypeVariant::SError => Box::new(ReadXdrIter::<_, SError>::new(r, depth_limit).map(|r| r.map(|t| Self::SError(Box::new(t))))),
+TypeVariant::Multi => Box::new(ReadXdrIter::<_, Multi>::new(r, depth_limit).map(|r| r.map(|t| Self::Multi(Box::new(t))))),
+TypeVariant::UnionKey => Box::new(ReadXdrIter::<_, UnionKey>::new(r, depth_limit).map(|r| r.map(|t| Self::UnionKey(Box::new(t))))),
+TypeVariant::MyUnion => Box::new(ReadXdrIter::<_, MyUnion>::new(r, depth_limit).map(|r| r.map(|t| Self::MyUnion(Box::new(t))))),
+TypeVariant::IntUnion => Box::new(ReadXdrIter::<_, IntUnion>::new(r, depth_limit).map(|r| r.map(|t| Self::IntUnion(Box::new(t))))),
+TypeVariant::IntUnion2 => Box::new(ReadXdrIter::<_, IntUnion2>::new(r, depth_limit).map(|r| r.map(|t| Self::IntUnion2(Box::new(t))))),
                 }
             }
 
             #[cfg(feature = "std")]
             #[allow(clippy::too_many_lines)]
-            pub fn read_xdr_framed_iter<R: Read>(v: TypeVariant, r: &mut R) -> Box<dyn Iterator<Item=Result<Self>> + '_> {
+            pub fn read_xdr_framed_iter<R: Read>(v: TypeVariant, r: &mut R, depth_limit) -> Box<dyn Iterator<Item=Result<Self>> + '_> {
                 match v {
-                    TypeVariant::SError => Box::new(ReadXdrIter::<_, Frame<SError>>::new(r).map(|r| r.map(|t| Self::SError(Box::new(t.0))))),
-TypeVariant::Multi => Box::new(ReadXdrIter::<_, Frame<Multi>>::new(r).map(|r| r.map(|t| Self::Multi(Box::new(t.0))))),
-TypeVariant::UnionKey => Box::new(ReadXdrIter::<_, Frame<UnionKey>>::new(r).map(|r| r.map(|t| Self::UnionKey(Box::new(t.0))))),
-TypeVariant::MyUnion => Box::new(ReadXdrIter::<_, Frame<MyUnion>>::new(r).map(|r| r.map(|t| Self::MyUnion(Box::new(t.0))))),
-TypeVariant::IntUnion => Box::new(ReadXdrIter::<_, Frame<IntUnion>>::new(r).map(|r| r.map(|t| Self::IntUnion(Box::new(t.0))))),
-TypeVariant::IntUnion2 => Box::new(ReadXdrIter::<_, Frame<IntUnion2>>::new(r).map(|r| r.map(|t| Self::IntUnion2(Box::new(t.0))))),
+                    TypeVariant::SError => Box::new(ReadXdrIter::<_, Frame<SError>>::new(r, depth_limit).map(|r| r.map(|t| Self::SError(Box::new(t.0))))),
+TypeVariant::Multi => Box::new(ReadXdrIter::<_, Frame<Multi>>::new(r, depth_limit).map(|r| r.map(|t| Self::Multi(Box::new(t.0))))),
+TypeVariant::UnionKey => Box::new(ReadXdrIter::<_, Frame<UnionKey>>::new(r, depth_limit).map(|r| r.map(|t| Self::UnionKey(Box::new(t.0))))),
+TypeVariant::MyUnion => Box::new(ReadXdrIter::<_, Frame<MyUnion>>::new(r, depth_limit).map(|r| r.map(|t| Self::MyUnion(Box::new(t.0))))),
+TypeVariant::IntUnion => Box::new(ReadXdrIter::<_, Frame<IntUnion>>::new(r, depth_limit).map(|r| r.map(|t| Self::IntUnion(Box::new(t.0))))),
+TypeVariant::IntUnion2 => Box::new(ReadXdrIter::<_, Frame<IntUnion2>>::new(r, depth_limit).map(|r| r.map(|t| Self::IntUnion2(Box::new(t.0))))),
                 }
             }
 
             #[cfg(feature = "base64")]
             #[allow(clippy::too_many_lines)]
-            pub fn read_xdr_base64_iter<R: Read>(v: TypeVariant, r: &mut R) -> Box<dyn Iterator<Item=Result<Self>> + '_> {
+            pub fn read_xdr_base64_iter<R: Read>(v: TypeVariant, r: &mut R, depth_limit) -> Box<dyn Iterator<Item=Result<Self>> + '_> {
                 let dec = base64::read::DecoderReader::new(r, base64::STANDARD);
                 match v {
-                    TypeVariant::SError => Box::new(ReadXdrIter::<_, SError>::new(dec).map(|r| r.map(|t| Self::SError(Box::new(t))))),
-TypeVariant::Multi => Box::new(ReadXdrIter::<_, Multi>::new(dec).map(|r| r.map(|t| Self::Multi(Box::new(t))))),
-TypeVariant::UnionKey => Box::new(ReadXdrIter::<_, UnionKey>::new(dec).map(|r| r.map(|t| Self::UnionKey(Box::new(t))))),
-TypeVariant::MyUnion => Box::new(ReadXdrIter::<_, MyUnion>::new(dec).map(|r| r.map(|t| Self::MyUnion(Box::new(t))))),
-TypeVariant::IntUnion => Box::new(ReadXdrIter::<_, IntUnion>::new(dec).map(|r| r.map(|t| Self::IntUnion(Box::new(t))))),
-TypeVariant::IntUnion2 => Box::new(ReadXdrIter::<_, IntUnion2>::new(dec).map(|r| r.map(|t| Self::IntUnion2(Box::new(t))))),
+                    TypeVariant::SError => Box::new(ReadXdrIter::<_, SError>::new(dec, depth_limit).map(|r| r.map(|t| Self::SError(Box::new(t))))),
+TypeVariant::Multi => Box::new(ReadXdrIter::<_, Multi>::new(dec, depth_limit).map(|r| r.map(|t| Self::Multi(Box::new(t))))),
+TypeVariant::UnionKey => Box::new(ReadXdrIter::<_, UnionKey>::new(dec, depth_limit).map(|r| r.map(|t| Self::UnionKey(Box::new(t))))),
+TypeVariant::MyUnion => Box::new(ReadXdrIter::<_, MyUnion>::new(dec, depth_limit).map(|r| r.map(|t| Self::MyUnion(Box::new(t))))),
+TypeVariant::IntUnion => Box::new(ReadXdrIter::<_, IntUnion>::new(dec, depth_limit).map(|r| r.map(|t| Self::IntUnion(Box::new(t))))),
+TypeVariant::IntUnion2 => Box::new(ReadXdrIter::<_, IntUnion2>::new(dec, depth_limit).map(|r| r.map(|t| Self::IntUnion2(Box::new(t))))),
                 }
             }
 
             #[cfg(feature = "std")]
-            pub fn from_xdr<B: AsRef<[u8]>>(v: TypeVariant, bytes: B) -> Result<Self> {
-                let mut cursor = Cursor::new(bytes.as_ref());
+            pub fn from_xdr<B: AsRef<[u8]>>(v: TypeVariant, bytes: B, depth_limit: u32) -> Result<Self> {
+                let mut cursor = DepthLimitedRead::new(Cursor::new(bytes.as_ref()), depth_limit);
                 let t = Self::read_xdr_to_end(v, &mut cursor)?;
                 Ok(t)
             }
 
             #[cfg(feature = "base64")]
-            pub fn from_xdr_base64(v: TypeVariant, b64: String) -> Result<Self> {
+            pub fn from_xdr_base64(v: TypeVariant, b64: String, depth_limit: u32) -> Result<Self> {
                 let mut b64_reader = Cursor::new(b64);
-                let mut dec = base64::read::DecoderReader::new(&mut b64_reader, base64::STANDARD);
+                let mut dec = DepthLimitedRead::new(base64::read::DecoderReader::new(&mut b64_reader, base64::STANDARD), depth_limit);
                 let t = Self::read_xdr_to_end(v, &mut dec)?;
                 Ok(t)
             }
