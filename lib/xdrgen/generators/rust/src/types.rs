@@ -192,8 +192,8 @@ pub trait DepthLimiter {
 
 #[cfg(feature = "std")]
 pub struct DepthLimitedRead<R: Read> {
-    pub(crate) inner: R,
-    depth: RefCell<u32>,
+    pub inner: R,
+    pub(crate) depth: RefCell<u32>,
 }
 
 #[cfg(feature = "std")]
@@ -234,8 +234,8 @@ impl<R: Read> Read for DepthLimitedRead<R> {
 
 #[cfg(feature = "std")]
 pub struct DepthLimitedWrite<W: Write> {
-    pub(crate) inner: W,
-    depth: RefCell<u32>,
+    pub inner: W,
+    pub(crate) depth: RefCell<u32>,
 }
 
 #[cfg(feature = "std")]
@@ -286,9 +286,12 @@ pub struct ReadXdrIter<R: Read, S: ReadXdr> {
 
 #[cfg(feature = "std")]
 impl<R: Read, S: ReadXdr> ReadXdrIter<R, S> {
-    fn new(r: R, depth_limit: u32) -> Self {
+    fn new(r: R, depth: u32) -> Self {
         Self {
-            reader: DepthLimitedRead::new(BufReader::new(r), depth_limit),
+            reader: DepthLimitedRead {
+                inner: BufReader::new(r),
+                depth: RefCell::new(depth),
+            },
             _s: PhantomData,
         }
     }
@@ -356,10 +359,10 @@ where
     /// An error is returned if the bytes are not completely consumed by the
     /// deserialization.
     #[cfg(feature = "base64")]
-    fn read_xdr_base64(r: &mut impl Read, depth_limit: u32) -> Result<Self> {
+    fn read_xdr_base64<R: Read>(r: &mut DepthLimitedRead<R>) -> Result<Self> {
         let mut dec = DepthLimitedRead::new(
-            base64::read::DecoderReader::new(r, base64::STANDARD),
-            depth_limit,
+            base64::read::DecoderReader::new(&mut r.inner, base64::STANDARD),
+            r.depth.take(),
         );
         let t = Self::read_xdr(&mut dec)?;
         Ok(t)
@@ -400,10 +403,10 @@ where
     /// An error is returned if the bytes are not completely consumed by the
     /// deserialization.
     #[cfg(feature = "base64")]
-    fn read_xdr_base64_to_end(r: &mut impl Read, depth_limit: u32) -> Result<Self> {
+    fn read_xdr_base64_to_end<R: Read>(r: &mut DepthLimitedRead<R>) -> Result<Self> {
         let mut dec = DepthLimitedRead::new(
-            base64::read::DecoderReader::new(r, base64::STANDARD),
-            depth_limit,
+            base64::read::DecoderReader::new(&mut r.inner, base64::STANDARD),
+            r.depth.take(),
         );
         let t = Self::read_xdr_to_end(&mut dec)?;
         Ok(t)
@@ -478,19 +481,18 @@ where
     /// All implementations should continue if the read implementation returns
     /// [`ErrorKind::Interrupted`](std::io::ErrorKind::Interrupted).
     #[cfg(feature = "std")]
-    fn read_xdr_iter<R: Read>(r: &mut R, depth_limit: u32) -> ReadXdrIter<&mut R, Self> {
-        ReadXdrIter::new(r, depth_limit)
+    fn read_xdr_iter<R: Read>(r: &mut DepthLimitedRead<R>) -> ReadXdrIter<&mut R, Self> {
+        ReadXdrIter::new(&mut r.inner, r.depth.take())
     }
 
     /// Create an iterator that reads the read implementation as a stream of
     /// values that are read into the implementing type.
     #[cfg(feature = "base64")]
     fn read_xdr_base64_iter<R: Read>(
-        r: &mut R,
-        depth_limit: u32,
+        r: &mut DepthLimitedRead<R>,
     ) -> ReadXdrIter<base64::read::DecoderReader<R>, Self> {
-        let dec = base64::read::DecoderReader::new(r, base64::STANDARD);
-        ReadXdrIter::new(dec, depth_limit)
+        let dec = base64::read::DecoderReader::new(&mut r.inner, base64::STANDARD);
+        ReadXdrIter::new(dec, r.depth.take())
     }
 
     /// Construct the type from the XDR bytes.
