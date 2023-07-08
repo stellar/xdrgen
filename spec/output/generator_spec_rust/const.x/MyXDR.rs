@@ -11,10 +11,7 @@ pub const XDR_FILES_SHA256: [(&str, &str); 1] = [
 use core::{array::TryFromSliceError, fmt, fmt::Debug, marker::Sized, ops::Deref, slice};
 
 #[cfg(feature = "std")]
-use super::depth_limiter::*;
-
-#[cfg(feature = "std")]
-use core::marker::PhantomData;
+use core::{cell::RefCell, marker::PhantomData};
 
 // When feature alloc is turned off use static lifetime Box and Vec types.
 #[cfg(not(feature = "alloc"))]
@@ -53,6 +50,8 @@ use std::{
     error, io,
     io::{BufRead, BufReader, Cursor, Read, Write},
 };
+
+pub const DEFAULT_MAX_DEPTH_LIMIT: u32 = 500;
 
 /// Error contains all errors returned by functions in this crate. It can be
 /// compared via `PartialEq`, however any contained IO errors will only be
@@ -185,6 +184,112 @@ where
 {
 }
 
+pub trait DepthLimiter {
+    type DepthError;
+
+    fn enter(&self) -> core::result::Result<(), Self::DepthError>;
+
+    fn leave(&self);
+
+    fn with_limited_depth<T, F>(&mut self, f: F) -> core::result::Result<T, Self::DepthError>
+    where
+        F: FnOnce(&mut Self) -> core::result::Result<T, Self::DepthError>,
+    {
+        self.enter()?;
+        let res = f(self)?;
+        self.leave();
+        Ok(res)
+    }
+}
+
+#[cfg(feature = "std")]
+pub struct DepthLimitedRead<R: Read> {
+    pub inner: R,
+    pub(crate) depth: RefCell<u32>,
+}
+
+#[cfg(feature = "std")]
+impl<R: Read> DepthLimitedRead<R> {
+    pub fn new(inner: R, depth: u32) -> Self {
+        DepthLimitedRead {
+            inner,
+            depth: RefCell::new(depth),
+        }
+    }
+}
+
+#[cfg(feature = "std")]
+impl<R: Read> DepthLimiter for DepthLimitedRead<R> {
+    type DepthError = Error;
+
+    fn enter(&self) -> core::result::Result<(), Error> {
+        let depth = *self.depth.borrow();
+        if depth == 0 {
+            return Err(Error::DepthLimitExceeded);
+        }
+        self.depth.replace(depth - 1);
+        Ok(())
+    }
+
+    fn leave(&self) {
+        let depth = *self.depth.borrow();
+        self.depth.replace(depth.saturating_add(1));
+    }
+}
+
+#[cfg(feature = "std")]
+impl<R: Read> Read for DepthLimitedRead<R> {
+    fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
+        self.inner.read(buf)
+    }
+}
+
+#[cfg(feature = "std")]
+pub struct DepthLimitedWrite<W: Write> {
+    pub inner: W,
+    pub(crate) depth: RefCell<u32>,
+}
+
+#[cfg(feature = "std")]
+impl<W: Write> DepthLimitedWrite<W> {
+    pub fn new(inner: W, depth: u32) -> Self {
+        DepthLimitedWrite {
+            inner,
+            depth: RefCell::new(depth),
+        }
+    }
+}
+
+#[cfg(feature = "std")]
+impl<W: Write> DepthLimiter for DepthLimitedWrite<W> {
+    type DepthError = Error;
+
+    fn enter(&self) -> Result<()> {
+        let depth = *self.depth.borrow();
+        if depth == 0 {
+            return Err(Error::DepthLimitExceeded);
+        }
+        self.depth.replace(depth - 1);
+        Ok(())
+    }
+
+    fn leave(&self) {
+        let depth = *self.depth.borrow();
+        self.depth.replace(depth.saturating_add(1));
+    }
+}
+
+#[cfg(feature = "std")]
+impl<W: Write> Write for DepthLimitedWrite<W> {
+    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+        self.inner.write(buf)
+    }
+
+    fn flush(&mut self) -> std::io::Result<()> {
+        self.inner.flush()
+    }
+}
+
 #[cfg(feature = "std")]
 pub struct ReadXdrIter<R: Read, S: ReadXdr> {
     reader: DepthLimitedRead<BufReader<R>>,
@@ -193,9 +298,12 @@ pub struct ReadXdrIter<R: Read, S: ReadXdr> {
 
 #[cfg(feature = "std")]
 impl<R: Read, S: ReadXdr> ReadXdrIter<R, S> {
-    fn new(r: R, depth_limit: u32) -> Self {
+    fn new(r: R, depth: u32) -> Self {
         Self {
-            reader: DepthLimitedRead::new(BufReader::new(r), depth_limit),
+            reader: DepthLimitedRead {
+                inner: BufReader::new(r),
+                depth: RefCell::new(depth),
+            },
             _s: PhantomData,
         }
     }
@@ -263,10 +371,10 @@ where
     /// An error is returned if the bytes are not completely consumed by the
     /// deserialization.
     #[cfg(feature = "base64")]
-    fn read_xdr_base64(r: &mut impl Read, depth_limit: u32) -> Result<Self> {
+    fn read_xdr_base64<R: Read>(r: &mut DepthLimitedRead<R>) -> Result<Self> {
         let mut dec = DepthLimitedRead::new(
-            base64::read::DecoderReader::new(r, base64::STANDARD),
-            depth_limit,
+            base64::read::DecoderReader::new(&mut r.inner, base64::STANDARD),
+            r.depth.take(),
         );
         let t = Self::read_xdr(&mut dec)?;
         Ok(t)
@@ -307,10 +415,10 @@ where
     /// An error is returned if the bytes are not completely consumed by the
     /// deserialization.
     #[cfg(feature = "base64")]
-    fn read_xdr_base64_to_end(r: &mut impl Read, depth_limit: u32) -> Result<Self> {
+    fn read_xdr_base64_to_end<R: Read>(r: &mut DepthLimitedRead<R>) -> Result<Self> {
         let mut dec = DepthLimitedRead::new(
-            base64::read::DecoderReader::new(r, base64::STANDARD),
-            depth_limit,
+            base64::read::DecoderReader::new(&mut r.inner, base64::STANDARD),
+            r.depth.take(),
         );
         let t = Self::read_xdr_to_end(&mut dec)?;
         Ok(t)
@@ -385,19 +493,18 @@ where
     /// All implementations should continue if the read implementation returns
     /// [`ErrorKind::Interrupted`](std::io::ErrorKind::Interrupted).
     #[cfg(feature = "std")]
-    fn read_xdr_iter<R: Read>(r: &mut R, depth_limit: u32) -> ReadXdrIter<&mut R, Self> {
-        ReadXdrIter::new(r, depth_limit)
+    fn read_xdr_iter<R: Read>(r: &mut DepthLimitedRead<R>) -> ReadXdrIter<&mut R, Self> {
+        ReadXdrIter::new(&mut r.inner, r.depth.take())
     }
 
     /// Create an iterator that reads the read implementation as a stream of
     /// values that are read into the implementing type.
     #[cfg(feature = "base64")]
     fn read_xdr_base64_iter<R: Read>(
-        r: &mut R,
-        depth_limit: u32,
+        r: &mut DepthLimitedRead<R>,
     ) -> ReadXdrIter<base64::read::DecoderReader<R>, Self> {
-        let dec = base64::read::DecoderReader::new(r, base64::STANDARD);
-        ReadXdrIter::new(dec, depth_limit)
+        let dec = base64::read::DecoderReader::new(&mut r.inner, base64::STANDARD);
+        ReadXdrIter::new(dec, r.depth.take())
     }
 
     /// Construct the type from the XDR bytes.
@@ -405,8 +512,9 @@ where
     /// An error is returned if the bytes are not completely consumed by the
     /// deserialization.
     #[cfg(feature = "std")]
-    fn from_xdr(bytes: impl AsRef<[u8]>, depth_limit: u32) -> Result<Self> {
-        let mut cursor = DepthLimitedRead::new(Cursor::new(bytes.as_ref()), depth_limit);
+    fn from_xdr(bytes: impl AsRef<[u8]>) -> Result<Self> {
+        let mut cursor =
+            DepthLimitedRead::new(Cursor::new(bytes.as_ref()), DEFAULT_MAX_DEPTH_LIMIT);
         let t = Self::read_xdr_to_end(&mut cursor)?;
         Ok(t)
     }
@@ -416,11 +524,11 @@ where
     /// An error is returned if the bytes are not completely consumed by the
     /// deserialization.
     #[cfg(feature = "base64")]
-    fn from_xdr_base64(b64: impl AsRef<[u8]>, depth_limit: u32) -> Result<Self> {
+    fn from_xdr_base64(b64: impl AsRef<[u8]>) -> Result<Self> {
         let mut b64_reader = Cursor::new(b64);
         let mut dec = DepthLimitedRead::new(
             base64::read::DecoderReader::new(&mut b64_reader, base64::STANDARD),
-            depth_limit,
+            DEFAULT_MAX_DEPTH_LIMIT,
         );
         let t = Self::read_xdr_to_end(&mut dec)?;
         Ok(t)
@@ -432,18 +540,18 @@ pub trait WriteXdr {
     fn write_xdr<W: Write>(&self, w: &mut DepthLimitedWrite<W>) -> Result<()>;
 
     #[cfg(feature = "std")]
-    fn to_xdr(&self, depth_limit: u32) -> Result<Vec<u8>> {
-        let mut cursor = DepthLimitedWrite::new(Cursor::new(vec![]), depth_limit);
+    fn to_xdr(&self) -> Result<Vec<u8>> {
+        let mut cursor = DepthLimitedWrite::new(Cursor::new(vec![]), DEFAULT_MAX_DEPTH_LIMIT);
         self.write_xdr(&mut cursor)?;
         let bytes = cursor.inner.into_inner();
         Ok(bytes)
     }
 
     #[cfg(feature = "base64")]
-    fn to_xdr_base64(&self, depth_limit: u32) -> Result<String> {
+    fn to_xdr_base64(&self) -> Result<String> {
         let mut enc = DepthLimitedWrite::new(
             base64::write::EncoderStringWriter::new(base64::STANDARD),
-            depth_limit,
+            DEFAULT_MAX_DEPTH_LIMIT,
         );
         self.write_xdr(&mut enc)?;
         let b64 = enc.inner.into_inner();
@@ -604,12 +712,13 @@ impl<T: WriteXdr> WriteXdr for Option<T> {
     #[cfg(feature = "std")]
     fn write_xdr<W: Write>(&self, w: &mut DepthLimitedWrite<W>) -> Result<()> {
         w.with_limited_depth(|w| {
-            Ok(if let Some(t) = self {
+            if let Some(t) = self {
                 1u32.write_xdr(w)?;
                 t.write_xdr(w)?;
             } else {
                 0u32.write_xdr(w)?;
-            })
+            }
+            Ok(())
         })
     }
 }
@@ -1877,30 +1986,31 @@ where
 mod tests {
     use std::io::Cursor;
 
-    use crate::{DepthLimitedRead, DepthLimitedWrite};
-
-    use super::{Error, ReadXdr, VecM, WriteXdr};
-
-    const DEPTH_LIMIT: u32 = 10;
+    use super::{
+        DepthLimitedRead, DepthLimitedWrite, Error, ReadXdr, VecM, WriteXdr,
+        DEFAULT_MAX_DEPTH_LIMIT,
+    };
 
     #[test]
     pub fn vec_u8_read_without_padding() {
         let buf = Cursor::new(vec![0, 0, 0, 4, 2, 2, 2, 2]);
-        let v = VecM::<u8, 8>::read_xdr(&mut DepthLimitedRead::new(buf, DEPTH_LIMIT)).unwrap();
+        let v = VecM::<u8, 8>::read_xdr(&mut DepthLimitedRead::new(buf, DEFAULT_MAX_DEPTH_LIMIT))
+            .unwrap();
         assert_eq!(v.to_vec(), vec![2, 2, 2, 2]);
     }
 
     #[test]
     pub fn vec_u8_read_with_padding() {
         let buf = Cursor::new(vec![0, 0, 0, 1, 2, 0, 0, 0]);
-        let v = VecM::<u8, 8>::read_xdr(&mut DepthLimitedRead::new(buf, DEPTH_LIMIT)).unwrap();
+        let v = VecM::<u8, 8>::read_xdr(&mut DepthLimitedRead::new(buf, DEFAULT_MAX_DEPTH_LIMIT))
+            .unwrap();
         assert_eq!(v.to_vec(), vec![2]);
     }
 
     #[test]
     pub fn vec_u8_read_with_insufficient_padding() {
         let buf = Cursor::new(vec![0, 0, 0, 1, 2, 0, 0]);
-        let res = VecM::<u8, 8>::read_xdr(&mut DepthLimitedRead::new(buf, DEPTH_LIMIT));
+        let res = VecM::<u8, 8>::read_xdr(&mut DepthLimitedRead::new(buf, DEFAULT_MAX_DEPTH_LIMIT));
         match res {
             Err(Error::Io(_)) => (),
             _ => panic!("expected IO error got {res:?}"),
@@ -1910,7 +2020,7 @@ mod tests {
     #[test]
     pub fn vec_u8_read_with_non_zero_padding() {
         let buf = Cursor::new(vec![0, 0, 0, 1, 2, 3, 0, 0]);
-        let res = VecM::<u8, 8>::read_xdr(&mut DepthLimitedRead::new(buf, DEPTH_LIMIT));
+        let res = VecM::<u8, 8>::read_xdr(&mut DepthLimitedRead::new(buf, DEFAULT_MAX_DEPTH_LIMIT));
         match res {
             Err(Error::NonZeroPadding) => (),
             _ => panic!("expected NonZeroPadding got {res:?}"),
@@ -1924,7 +2034,7 @@ mod tests {
 
         v.write_xdr(&mut DepthLimitedWrite::new(
             Cursor::new(&mut buf),
-            DEPTH_LIMIT,
+            DEFAULT_MAX_DEPTH_LIMIT,
         ))
         .unwrap();
         assert_eq!(buf, vec![0, 0, 0, 4, 2, 2, 2, 2]);
@@ -1936,7 +2046,7 @@ mod tests {
         let v: VecM<u8, 8> = vec![2].try_into().unwrap();
         v.write_xdr(&mut DepthLimitedWrite::new(
             Cursor::new(&mut buf),
-            DEPTH_LIMIT,
+            DEFAULT_MAX_DEPTH_LIMIT,
         ))
         .unwrap();
         assert_eq!(buf, vec![0, 0, 0, 1, 2, 0, 0, 0]);
@@ -1945,21 +2055,23 @@ mod tests {
     #[test]
     pub fn arr_u8_read_without_padding() {
         let buf = Cursor::new(vec![2, 2, 2, 2]);
-        let v = <[u8; 4]>::read_xdr(&mut DepthLimitedRead::new(buf, DEPTH_LIMIT)).unwrap();
+        let v =
+            <[u8; 4]>::read_xdr(&mut DepthLimitedRead::new(buf, DEFAULT_MAX_DEPTH_LIMIT)).unwrap();
         assert_eq!(v, [2, 2, 2, 2]);
     }
 
     #[test]
     pub fn arr_u8_read_with_padding() {
         let buf = Cursor::new(vec![2, 0, 0, 0]);
-        let v = <[u8; 1]>::read_xdr(&mut DepthLimitedRead::new(buf, DEPTH_LIMIT)).unwrap();
+        let v =
+            <[u8; 1]>::read_xdr(&mut DepthLimitedRead::new(buf, DEFAULT_MAX_DEPTH_LIMIT)).unwrap();
         assert_eq!(v, [2]);
     }
 
     #[test]
     pub fn arr_u8_read_with_insufficient_padding() {
         let buf = Cursor::new(vec![2, 0, 0]);
-        let res = <[u8; 1]>::read_xdr(&mut DepthLimitedRead::new(buf, DEPTH_LIMIT));
+        let res = <[u8; 1]>::read_xdr(&mut DepthLimitedRead::new(buf, DEFAULT_MAX_DEPTH_LIMIT));
         match res {
             Err(Error::Io(_)) => (),
             _ => panic!("expected IO error got {res:?}"),
@@ -1969,7 +2081,7 @@ mod tests {
     #[test]
     pub fn arr_u8_read_with_non_zero_padding() {
         let buf = Cursor::new(vec![2, 3, 0, 0]);
-        let res = <[u8; 1]>::read_xdr(&mut DepthLimitedRead::new(buf, DEPTH_LIMIT));
+        let res = <[u8; 1]>::read_xdr(&mut DepthLimitedRead::new(buf, DEFAULT_MAX_DEPTH_LIMIT));
         match res {
             Err(Error::NonZeroPadding) => (),
             _ => panic!("expected NonZeroPadding got {res:?}"),
@@ -1982,7 +2094,7 @@ mod tests {
         [2u8, 2, 2, 2]
             .write_xdr(&mut DepthLimitedWrite::new(
                 Cursor::new(&mut buf),
-                DEPTH_LIMIT,
+                DEFAULT_MAX_DEPTH_LIMIT,
             ))
             .unwrap();
         assert_eq!(buf, vec![2, 2, 2, 2]);
@@ -1994,7 +2106,7 @@ mod tests {
         [2u8]
             .write_xdr(&mut DepthLimitedWrite::new(
                 Cursor::new(&mut buf),
-                DEPTH_LIMIT,
+                DEFAULT_MAX_DEPTH_LIMIT,
             ))
             .unwrap();
         assert_eq!(buf, vec![2, 0, 0, 0]);
@@ -2040,23 +2152,32 @@ mod test {
         assert_eq!(a, a_back);
     }
 
-    #[should_panic]
     #[test]
     fn write_over_depth_limit_fail() {
+        let depth_limit = 3;
         let a: Option<Option<Option<u32>>> = Some(Some(Some(5)));
-        let mut buf = DepthLimitedWrite::new(Vec::new(), 3);
-        a.write_xdr(&mut buf).unwrap();
+        let mut buf = DepthLimitedWrite::new(Vec::new(), depth_limit);
+        let res = a.write_xdr(&mut buf);
+        match res {
+            Err(Error::DepthLimitExceeded) => (),
+            _ => panic!("expected DepthLimitExceeded got {res:?}"),
+        }
     }
 
-    #[should_panic]
     #[test]
     fn read_over_depth_limit_fail() {
+        let read_depth_limit = 3;
+        let write_depth_limit = 5;
         let a: Option<Option<Option<u32>>> = Some(Some(Some(5)));
-        let mut buf = DepthLimitedWrite::new(Vec::new(), 5);
+        let mut buf = DepthLimitedWrite::new(Vec::new(), write_depth_limit);
         a.write_xdr(&mut buf).unwrap();
 
-        let mut dlr = DepthLimitedRead::new(Cursor::new(buf.inner.as_slice()), 3);
-        let _: Option<Option<Option<u32>>> = ReadXdr::read_xdr(&mut dlr).unwrap();
+        let mut dlr = DepthLimitedRead::new(Cursor::new(buf.inner.as_slice()), read_depth_limit);
+        let res: Result<Option<Option<Option<u32>>>> = ReadXdr::read_xdr(&mut dlr);
+        match res {
+            Err(Error::DepthLimitExceeded) => (),
+            _ => panic!("expected DepthLimitExceeded got {res:?}"),
+        }
     }
 }
 
@@ -2175,17 +2296,14 @@ TypeVariant::TestArray2, ];
             #[allow(clippy::too_many_lines)]
             pub fn read_xdr<R: Read>(v: TypeVariant, r: &mut DepthLimitedRead<R>) -> Result<Self> {
                 match v {
-                    TypeVariant::TestArray => r.with_limited_depth(|r| Ok(Self::TestArray(Box::new(TestArray::read_xdr(r)?))))?,
-TypeVariant::TestArray2 => r.with_limited_depth(|r| Ok(Self::TestArray2(Box::new(TestArray2::read_xdr(r)?))))?,
+                    TypeVariant::TestArray => r.with_limited_depth(|r| Ok(Self::TestArray(Box::new(TestArray::read_xdr(r)?)))),
+TypeVariant::TestArray2 => r.with_limited_depth(|r| Ok(Self::TestArray2(Box::new(TestArray2::read_xdr(r)?)))),
                 }
             }
 
             #[cfg(feature = "base64")]
-            pub fn read_xdr_base64(v: TypeVariant, r: &mut impl Read, depth_limit: u32) -> Result<Self> {
-                let mut dec = DepthLimitedRead::new(
-                  base64::read::DecoderReader::new(r, base64::STANDARD),
-                  depth_limit,
-                );
+            pub fn read_xdr_base64<R: Read>(v: TypeVariant, r: &mut DepthLimitedRead<R>) -> Result<Self> {
+                let mut dec = DepthLimitedRead::new(base64::read::DecoderReader::new(&mut r.inner, base64::STANDARD), r.depth.take());
                 let t = Self::read_xdr(v, &mut dec)?;
                 Ok(t)
             }
@@ -2203,54 +2321,51 @@ TypeVariant::TestArray2 => r.with_limited_depth(|r| Ok(Self::TestArray2(Box::new
             }
 
             #[cfg(feature = "base64")]
-            pub fn read_xdr_base64_to_end(v: TypeVariant, r: &mut impl Read, depth_limit: u32) -> Result<Self> {
-                let mut dec = DepthLimitedRead::new(
-                  base64::read::DecoderReader::new(r, base64::STANDARD),
-                  depth_limit,
-                );
+            pub fn read_xdr_base64_to_end<R: Read>(v: TypeVariant, r: &mut DepthLimitedRead<R>) -> Result<Self> {
+                let mut dec = DepthLimitedRead::new(base64::read::DecoderReader::new(&mut r.inner, base64::STANDARD), r.depth.take());
                 let t = Self::read_xdr_to_end(v, &mut dec)?;
                 Ok(t)
             }
 
             #[cfg(feature = "std")]
             #[allow(clippy::too_many_lines)]
-            pub fn read_xdr_iter<R: Read>(v: TypeVariant, r: &mut R, depth_limit: u32) -> Box<dyn Iterator<Item=Result<Self>> + '_> {
+            pub fn read_xdr_iter<R: Read>(v: TypeVariant, r: &mut DepthLimitedRead<R>) -> Box<dyn Iterator<Item=Result<Self>> + '_> {
                 match v {
-                    TypeVariant::TestArray => Box::new(ReadXdrIter::<_, TestArray>::new(r, depth_limit).map(|r| r.map(|t| Self::TestArray(Box::new(t))))),
-TypeVariant::TestArray2 => Box::new(ReadXdrIter::<_, TestArray2>::new(r, depth_limit).map(|r| r.map(|t| Self::TestArray2(Box::new(t))))),
+                    TypeVariant::TestArray => Box::new(ReadXdrIter::<_, TestArray>::new(&mut r.inner, r.depth.take()).map(|r| r.map(|t| Self::TestArray(Box::new(t))))),
+TypeVariant::TestArray2 => Box::new(ReadXdrIter::<_, TestArray2>::new(&mut r.inner, r.depth.take()).map(|r| r.map(|t| Self::TestArray2(Box::new(t))))),
                 }
             }
 
             #[cfg(feature = "std")]
             #[allow(clippy::too_many_lines)]
-            pub fn read_xdr_framed_iter<R: Read>(v: TypeVariant, r: &mut R, depth_limit) -> Box<dyn Iterator<Item=Result<Self>> + '_> {
+            pub fn read_xdr_framed_iter<R: Read>(v: TypeVariant, r: &mut DepthLimitedRead<R>) -> Box<dyn Iterator<Item=Result<Self>> + '_> {
                 match v {
-                    TypeVariant::TestArray => Box::new(ReadXdrIter::<_, Frame<TestArray>>::new(r, depth_limit).map(|r| r.map(|t| Self::TestArray(Box::new(t.0))))),
-TypeVariant::TestArray2 => Box::new(ReadXdrIter::<_, Frame<TestArray2>>::new(r, depth_limit).map(|r| r.map(|t| Self::TestArray2(Box::new(t.0))))),
+                    TypeVariant::TestArray => Box::new(ReadXdrIter::<_, Frame<TestArray>>::new(&mut r.inner, r.depth.take()).map(|r| r.map(|t| Self::TestArray(Box::new(t.0))))),
+TypeVariant::TestArray2 => Box::new(ReadXdrIter::<_, Frame<TestArray2>>::new(&mut r.inner, r.depth.take()).map(|r| r.map(|t| Self::TestArray2(Box::new(t.0))))),
                 }
             }
 
             #[cfg(feature = "base64")]
             #[allow(clippy::too_many_lines)]
-            pub fn read_xdr_base64_iter<R: Read>(v: TypeVariant, r: &mut R, depth_limit) -> Box<dyn Iterator<Item=Result<Self>> + '_> {
-                let dec = base64::read::DecoderReader::new(r, base64::STANDARD);
+            pub fn read_xdr_base64_iter<R: Read>(v: TypeVariant, r: &mut DepthLimitedRead<R>) -> Box<dyn Iterator<Item=Result<Self>> + '_> {
+                let dec = base64::read::DecoderReader::new(&mut r.inner, base64::STANDARD);
                 match v {
-                    TypeVariant::TestArray => Box::new(ReadXdrIter::<_, TestArray>::new(dec, depth_limit).map(|r| r.map(|t| Self::TestArray(Box::new(t))))),
-TypeVariant::TestArray2 => Box::new(ReadXdrIter::<_, TestArray2>::new(dec, depth_limit).map(|r| r.map(|t| Self::TestArray2(Box::new(t))))),
+                    TypeVariant::TestArray => Box::new(ReadXdrIter::<_, TestArray>::new(dec, r.depth.take()).map(|r| r.map(|t| Self::TestArray(Box::new(t))))),
+TypeVariant::TestArray2 => Box::new(ReadXdrIter::<_, TestArray2>::new(dec, r.depth.take()).map(|r| r.map(|t| Self::TestArray2(Box::new(t))))),
                 }
             }
 
             #[cfg(feature = "std")]
-            pub fn from_xdr<B: AsRef<[u8]>>(v: TypeVariant, bytes: B, depth_limit: u32) -> Result<Self> {
-                let mut cursor = DepthLimitedRead::new(Cursor::new(bytes.as_ref()), depth_limit);
+            pub fn from_xdr<B: AsRef<[u8]>>(v: TypeVariant, bytes: B) -> Result<Self> {
+                let mut cursor = DepthLimitedRead::new(Cursor::new(bytes.as_ref()), DEFAULT_MAX_DEPTH_LIMIT);
                 let t = Self::read_xdr_to_end(v, &mut cursor)?;
                 Ok(t)
             }
 
             #[cfg(feature = "base64")]
-            pub fn from_xdr_base64(v: TypeVariant, b64: String, depth_limit: u32) -> Result<Self> {
+            pub fn from_xdr_base64(v: TypeVariant, b64: String) -> Result<Self> {
                 let mut b64_reader = Cursor::new(b64);
-                let mut dec = DepthLimitedRead::new(base64::read::DecoderReader::new(&mut b64_reader, base64::STANDARD), depth_limit);
+                let mut dec = DepthLimitedRead::new(base64::read::DecoderReader::new(&mut b64_reader, base64::STANDARD), DEFAULT_MAX_DEPTH_LIMIT);
                 let t = Self::read_xdr_to_end(v, &mut dec)?;
                 Ok(t)
             }
