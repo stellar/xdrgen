@@ -172,6 +172,8 @@ where
 {
 }
 
+pub static mut DEFAULT_DEPTH_LIMIT: u32 = 100;
+
 pub trait DepthLimiter {
     type DepthError;
 
@@ -500,10 +502,13 @@ where
     /// An error is returned if the bytes are not completely consumed by the
     /// deserialization.
     #[cfg(feature = "std")]
-    fn from_xdr(bytes: impl AsRef<[u8]>, depth_limit: u32) -> Result<Self> {
-        let mut cursor = DepthLimitedRead::new(Cursor::new(bytes.as_ref()), depth_limit);
-        let t = Self::read_xdr_to_end(&mut cursor)?;
-        Ok(t)
+    fn from_xdr(bytes: impl AsRef<[u8]>) -> Result<Self> {
+        unsafe {
+            let mut cursor =
+                DepthLimitedRead::new(Cursor::new(bytes.as_ref()), DEFAULT_DEPTH_LIMIT);
+            let t = Self::read_xdr_to_end(&mut cursor)?;
+            Ok(t)
+        }
     }
 
     /// Construct the type from the XDR bytes base64 encoded.
@@ -511,14 +516,16 @@ where
     /// An error is returned if the bytes are not completely consumed by the
     /// deserialization.
     #[cfg(feature = "base64")]
-    fn from_xdr_base64(b64: impl AsRef<[u8]>, depth_limit: u32) -> Result<Self> {
+    fn from_xdr_base64(b64: impl AsRef<[u8]>) -> Result<Self> {
         let mut b64_reader = Cursor::new(b64);
-        let mut dec = DepthLimitedRead::new(
-            base64::read::DecoderReader::new(&mut b64_reader, base64::STANDARD),
-            depth_limit,
-        );
-        let t = Self::read_xdr_to_end(&mut dec)?;
-        Ok(t)
+        unsafe {
+            let mut dec = DepthLimitedRead::new(
+                base64::read::DecoderReader::new(&mut b64_reader, base64::STANDARD),
+                DEFAULT_DEPTH_LIMIT,
+            );
+            let t = Self::read_xdr_to_end(&mut dec)?;
+            Ok(t)
+        }
     }
 }
 
@@ -527,22 +534,26 @@ pub trait WriteXdr {
     fn write_xdr<W: Write>(&self, w: &mut DepthLimitedWrite<W>) -> Result<()>;
 
     #[cfg(feature = "std")]
-    fn to_xdr(&self, depth_limit: u32) -> Result<Vec<u8>> {
-        let mut cursor = DepthLimitedWrite::new(Cursor::new(vec![]), depth_limit);
-        self.write_xdr(&mut cursor)?;
-        let bytes = cursor.inner.into_inner();
-        Ok(bytes)
+    fn to_xdr(&self) -> Result<Vec<u8>> {
+        unsafe {
+            let mut cursor = DepthLimitedWrite::new(Cursor::new(vec![]), DEFAULT_DEPTH_LIMIT);
+            self.write_xdr(&mut cursor)?;
+            let bytes = cursor.inner.into_inner();
+            Ok(bytes)
+        }
     }
 
     #[cfg(feature = "base64")]
-    fn to_xdr_base64(&self, depth_limit: u32) -> Result<String> {
-        let mut enc = DepthLimitedWrite::new(
-            base64::write::EncoderStringWriter::new(base64::STANDARD),
-            depth_limit,
-        );
-        self.write_xdr(&mut enc)?;
-        let b64 = enc.inner.into_inner();
-        Ok(b64)
+    fn to_xdr_base64(&self) -> Result<String> {
+        unsafe {
+            let mut enc = DepthLimitedWrite::new(
+                base64::write::EncoderStringWriter::new(base64::STANDARD),
+                DEFAULT_DEPTH_LIMIT,
+            );
+            self.write_xdr(&mut enc)?;
+            let b64 = enc.inner.into_inner();
+            Ok(b64)
+        }
     }
 }
 
@@ -1973,41 +1984,51 @@ where
 mod tests {
     use std::io::Cursor;
 
-    use super::{DepthLimitedRead, DepthLimitedWrite, Error, ReadXdr, VecM, WriteXdr};
-
-    const DEPTH_LIMIT: u32 = 10;
+    use super::{
+        DepthLimitedRead, DepthLimitedWrite, Error, ReadXdr, VecM, WriteXdr, DEFAULT_DEPTH_LIMIT,
+    };
 
     #[test]
     pub fn vec_u8_read_without_padding() {
         let buf = Cursor::new(vec![0, 0, 0, 4, 2, 2, 2, 2]);
-        let v = VecM::<u8, 8>::read_xdr(&mut DepthLimitedRead::new(buf, DEPTH_LIMIT)).unwrap();
-        assert_eq!(v.to_vec(), vec![2, 2, 2, 2]);
+        unsafe {
+            let v = VecM::<u8, 8>::read_xdr(&mut DepthLimitedRead::new(buf, DEFAULT_DEPTH_LIMIT))
+                .unwrap();
+            assert_eq!(v.to_vec(), vec![2, 2, 2, 2]);
+        }
     }
 
     #[test]
     pub fn vec_u8_read_with_padding() {
         let buf = Cursor::new(vec![0, 0, 0, 1, 2, 0, 0, 0]);
-        let v = VecM::<u8, 8>::read_xdr(&mut DepthLimitedRead::new(buf, DEPTH_LIMIT)).unwrap();
-        assert_eq!(v.to_vec(), vec![2]);
+        unsafe {
+            let v = VecM::<u8, 8>::read_xdr(&mut DepthLimitedRead::new(buf, DEFAULT_DEPTH_LIMIT))
+                .unwrap();
+            assert_eq!(v.to_vec(), vec![2]);
+        }
     }
 
     #[test]
     pub fn vec_u8_read_with_insufficient_padding() {
         let buf = Cursor::new(vec![0, 0, 0, 1, 2, 0, 0]);
-        let res = VecM::<u8, 8>::read_xdr(&mut DepthLimitedRead::new(buf, DEPTH_LIMIT));
-        match res {
-            Err(Error::Io(_)) => (),
-            _ => panic!("expected IO error got {res:?}"),
+        unsafe {
+            let res = VecM::<u8, 8>::read_xdr(&mut DepthLimitedRead::new(buf, DEFAULT_DEPTH_LIMIT));
+            match res {
+                Err(Error::Io(_)) => (),
+                _ => panic!("expected IO error got {res:?}"),
+            }
         }
     }
 
     #[test]
     pub fn vec_u8_read_with_non_zero_padding() {
         let buf = Cursor::new(vec![0, 0, 0, 1, 2, 3, 0, 0]);
-        let res = VecM::<u8, 8>::read_xdr(&mut DepthLimitedRead::new(buf, DEPTH_LIMIT));
-        match res {
-            Err(Error::NonZeroPadding) => (),
-            _ => panic!("expected NonZeroPadding got {res:?}"),
+        unsafe {
+            let res = VecM::<u8, 8>::read_xdr(&mut DepthLimitedRead::new(buf, DEFAULT_DEPTH_LIMIT));
+            match res {
+                Err(Error::NonZeroPadding) => (),
+                _ => panic!("expected NonZeroPadding got {res:?}"),
+            }
         }
     }
 
@@ -2016,82 +2037,100 @@ mod tests {
         let mut buf = vec![];
         let v: VecM<u8, 8> = vec![2, 2, 2, 2].try_into().unwrap();
 
-        v.write_xdr(&mut DepthLimitedWrite::new(
-            Cursor::new(&mut buf),
-            DEPTH_LIMIT,
-        ))
-        .unwrap();
-        assert_eq!(buf, vec![0, 0, 0, 4, 2, 2, 2, 2]);
+        unsafe {
+            v.write_xdr(&mut DepthLimitedWrite::new(
+                Cursor::new(&mut buf),
+                DEFAULT_DEPTH_LIMIT,
+            ))
+            .unwrap();
+            assert_eq!(buf, vec![0, 0, 0, 4, 2, 2, 2, 2]);
+        }
     }
 
     #[test]
     pub fn vec_u8_write_with_padding() {
         let mut buf = vec![];
         let v: VecM<u8, 8> = vec![2].try_into().unwrap();
-        v.write_xdr(&mut DepthLimitedWrite::new(
-            Cursor::new(&mut buf),
-            DEPTH_LIMIT,
-        ))
-        .unwrap();
-        assert_eq!(buf, vec![0, 0, 0, 1, 2, 0, 0, 0]);
+        unsafe {
+            v.write_xdr(&mut DepthLimitedWrite::new(
+                Cursor::new(&mut buf),
+                DEFAULT_DEPTH_LIMIT,
+            ))
+            .unwrap();
+            assert_eq!(buf, vec![0, 0, 0, 1, 2, 0, 0, 0]);
+        }
     }
 
     #[test]
     pub fn arr_u8_read_without_padding() {
         let buf = Cursor::new(vec![2, 2, 2, 2]);
-        let v = <[u8; 4]>::read_xdr(&mut DepthLimitedRead::new(buf, DEPTH_LIMIT)).unwrap();
-        assert_eq!(v, [2, 2, 2, 2]);
+        unsafe {
+            let v =
+                <[u8; 4]>::read_xdr(&mut DepthLimitedRead::new(buf, DEFAULT_DEPTH_LIMIT)).unwrap();
+            assert_eq!(v, [2, 2, 2, 2]);
+        }
     }
 
     #[test]
     pub fn arr_u8_read_with_padding() {
         let buf = Cursor::new(vec![2, 0, 0, 0]);
-        let v = <[u8; 1]>::read_xdr(&mut DepthLimitedRead::new(buf, DEPTH_LIMIT)).unwrap();
-        assert_eq!(v, [2]);
+        unsafe {
+            let v =
+                <[u8; 1]>::read_xdr(&mut DepthLimitedRead::new(buf, DEFAULT_DEPTH_LIMIT)).unwrap();
+            assert_eq!(v, [2]);
+        }
     }
 
     #[test]
     pub fn arr_u8_read_with_insufficient_padding() {
         let buf = Cursor::new(vec![2, 0, 0]);
-        let res = <[u8; 1]>::read_xdr(&mut DepthLimitedRead::new(buf, DEPTH_LIMIT));
-        match res {
-            Err(Error::Io(_)) => (),
-            _ => panic!("expected IO error got {res:?}"),
+        unsafe {
+            let res = <[u8; 1]>::read_xdr(&mut DepthLimitedRead::new(buf, DEFAULT_DEPTH_LIMIT));
+            match res {
+                Err(Error::Io(_)) => (),
+                _ => panic!("expected IO error got {res:?}"),
+            }
         }
     }
 
     #[test]
     pub fn arr_u8_read_with_non_zero_padding() {
         let buf = Cursor::new(vec![2, 3, 0, 0]);
-        let res = <[u8; 1]>::read_xdr(&mut DepthLimitedRead::new(buf, DEPTH_LIMIT));
-        match res {
-            Err(Error::NonZeroPadding) => (),
-            _ => panic!("expected NonZeroPadding got {res:?}"),
+        unsafe {
+            let res = <[u8; 1]>::read_xdr(&mut DepthLimitedRead::new(buf, DEFAULT_DEPTH_LIMIT));
+            match res {
+                Err(Error::NonZeroPadding) => (),
+                _ => panic!("expected NonZeroPadding got {res:?}"),
+            }
         }
     }
 
     #[test]
     pub fn arr_u8_write_without_padding() {
         let mut buf = vec![];
-        [2u8, 2, 2, 2]
-            .write_xdr(&mut DepthLimitedWrite::new(
-                Cursor::new(&mut buf),
-                DEPTH_LIMIT,
-            ))
-            .unwrap();
-        assert_eq!(buf, vec![2, 2, 2, 2]);
+        unsafe {
+            [2u8, 2, 2, 2]
+                .write_xdr(&mut DepthLimitedWrite::new(
+                    Cursor::new(&mut buf),
+                    DEFAULT_DEPTH_LIMIT,
+                ))
+                .unwrap();
+            assert_eq!(buf, vec![2, 2, 2, 2]);
+        }
     }
 
     #[test]
     pub fn arr_u8_write_with_padding() {
         let mut buf = vec![];
-        [2u8]
-            .write_xdr(&mut DepthLimitedWrite::new(
-                Cursor::new(&mut buf),
-                DEPTH_LIMIT,
-            ))
-            .unwrap();
-        assert_eq!(buf, vec![2, 0, 0, 0]);
+        unsafe {
+            [2u8]
+                .write_xdr(&mut DepthLimitedWrite::new(
+                    Cursor::new(&mut buf),
+                    DEFAULT_DEPTH_LIMIT,
+                ))
+                .unwrap();
+            assert_eq!(buf, vec![2, 0, 0, 0]);
+        }
     }
 }
 
