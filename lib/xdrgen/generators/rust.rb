@@ -225,7 +225,7 @@ module Xdrgen
 
             #[cfg(feature = "std")]
             pub fn from_xdr<B: AsRef<[u8]>>(v: TypeVariant, bytes: B) -> Result<Self> {
-                let mut cursor = DepthLimitedRead::new(Cursor::new(bytes.as_ref()), DEFAULT_MAX_DEPTH_LIMIT);
+                let mut cursor = DepthLimitedRead::new(Cursor::new(bytes.as_ref()), DEFAULT_XDR_RW_DEPTH_LIMIT);
                 let t = Self::read_xdr_to_end(v, &mut cursor)?;
                 Ok(t)
             }
@@ -233,7 +233,7 @@ module Xdrgen
             #[cfg(feature = "base64")]
             pub fn from_xdr_base64(v: TypeVariant, b64: String) -> Result<Self> {
                 let mut b64_reader = Cursor::new(b64);
-                let mut dec = DepthLimitedRead::new(base64::read::DecoderReader::new(&mut b64_reader, base64::STANDARD), DEFAULT_MAX_DEPTH_LIMIT);
+                let mut dec = DepthLimitedRead::new(base64::read::DecoderReader::new(&mut b64_reader, base64::STANDARD), DEFAULT_XDR_RW_DEPTH_LIMIT);
                 let t = Self::read_xdr_to_end(v, &mut dec)?;
                 Ok(t)
             }
