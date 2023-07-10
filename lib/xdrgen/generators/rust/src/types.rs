@@ -216,11 +216,12 @@ pub trait DepthLimiter {
 }
 
 /// `DepthLimitedRead` wraps a `Read` object and enforces a depth limit to
-/// recursive read operations. It maintains a `depth` state tracking remaining recursion depth.
+/// recursive read operations. It maintains a `depth_remaining` state tracking
+/// remaining allowed recursion depth.
 #[cfg(feature = "std")]
 pub struct DepthLimitedRead<R: Read> {
     pub inner: R,
-    pub(crate) depth: RefCell<u32>,
+    pub(crate) depth_remaining: RefCell<u32>,
 }
 
 #[cfg(feature = "std")]
@@ -228,11 +229,11 @@ impl<R: Read> DepthLimitedRead<R> {
     /// Constructs a new `DepthLimitedRead`.
     ///
     /// - `inner`: The object implementing the `Read` trait.
-    /// - `depth`: The maximum allowed recursion depth.
-    pub fn new(inner: R, depth: u32) -> Self {
+    /// - `depth_limit`: The maximum allowed recursion depth.
+    pub fn new(inner: R, depth_limit: u32) -> Self {
         DepthLimitedRead {
             inner,
-            depth: RefCell::new(depth),
+            depth_remaining: RefCell::new(depth_limit),
         }
     }
 }
@@ -241,21 +242,21 @@ impl<R: Read> DepthLimitedRead<R> {
 impl<R: Read> DepthLimiter for DepthLimitedRead<R> {
     type DepthError = Error;
 
-    /// Decrements the depth. If the depth is already zero, an error is returned indicating
-    /// that the maximum depth limit has been exceeded.
+    /// Decrements the `depth_remaining`. If the `depth_remaining` is already zero, an error is
+    /// returned indicating that the maximum depth limit has been exceeded.
     fn enter(&self) -> core::result::Result<(), Error> {
-        let depth = *self.depth.borrow();
+        let depth = *self.depth_remaining.borrow();
         if depth == 0 {
             return Err(Error::DepthLimitExceeded);
         }
-        self.depth.replace(depth - 1);
+        self.depth_remaining.replace(depth - 1);
         Ok(())
     }
 
     /// Increments the depth, without exceeding the initial depth value.
     fn leave(&self) {
-        let depth = *self.depth.borrow();
-        self.depth.replace(depth.saturating_add(1));
+        let depth = *self.depth_remaining.borrow();
+        self.depth_remaining.replace(depth.saturating_add(1));
     }
 }
 
@@ -268,11 +269,12 @@ impl<R: Read> Read for DepthLimitedRead<R> {
 }
 
 /// `DepthLimitedWrite` wraps a `Write` object and enforces a depth limit to
-/// recursive write operations. It maintains a `depth` state tracking remaining recursion depth.
+/// recursive write operations. It maintains a `depth_remaining` state tracking
+/// remaining allowed recursion depth.
 #[cfg(feature = "std")]
 pub struct DepthLimitedWrite<W: Write> {
     pub inner: W,
-    pub(crate) depth: RefCell<u32>,
+    pub(crate) depth_remaining: RefCell<u32>,
 }
 
 #[cfg(feature = "std")]
@@ -280,11 +282,11 @@ impl<W: Write> DepthLimitedWrite<W> {
     /// Constructs a new `DepthLimitedWrite`.
     ///
     /// - `inner`: The object implementing the `Write` trait.
-    /// - `depth`: The maximum allowed recursion depth.
-    pub fn new(inner: W, depth: u32) -> Self {
+    /// - `depth_limit`: The maximum allowed recursion depth.
+    pub fn new(inner: W, depth_limit: u32) -> Self {
         DepthLimitedWrite {
             inner,
-            depth: RefCell::new(depth),
+            depth_remaining: RefCell::new(depth_limit),
         }
     }
 }
@@ -293,21 +295,21 @@ impl<W: Write> DepthLimitedWrite<W> {
 impl<W: Write> DepthLimiter for DepthLimitedWrite<W> {
     type DepthError = Error;
 
-    /// Decrements the depth. If the depth is already zero, an error is returned indicating
-    /// that the maximum depth limit has been exceeded.
+    /// Decrements the `depth_remaining`. If the depth is already zero, an error is
+    /// returned indicating that the maximum depth limit has been exceeded.
     fn enter(&self) -> Result<()> {
-        let depth = *self.depth.borrow();
+        let depth = *self.depth_remaining.borrow();
         if depth == 0 {
             return Err(Error::DepthLimitExceeded);
         }
-        self.depth.replace(depth - 1);
+        self.depth_remaining.replace(depth - 1);
         Ok(())
     }
 
     /// Increments the depth, without exceeding the initial depth value.
     fn leave(&self) {
-        let depth = *self.depth.borrow();
-        self.depth.replace(depth.saturating_add(1));
+        let depth = *self.depth_remaining.borrow();
+        self.depth_remaining.replace(depth.saturating_add(1));
     }
 }
 
@@ -332,11 +334,11 @@ pub struct ReadXdrIter<R: Read, S: ReadXdr> {
 
 #[cfg(feature = "std")]
 impl<R: Read, S: ReadXdr> ReadXdrIter<R, S> {
-    fn new(r: R, depth: u32) -> Self {
+    fn new(r: R, depth_limit: u32) -> Self {
         Self {
             reader: DepthLimitedRead {
                 inner: BufReader::new(r),
-                depth: RefCell::new(depth),
+                depth_remaining: RefCell::new(depth_limit),
             },
             _s: PhantomData,
         }
@@ -408,7 +410,7 @@ where
     fn read_xdr_base64<R: Read>(r: &mut DepthLimitedRead<R>) -> Result<Self> {
         let mut dec = DepthLimitedRead::new(
             base64::read::DecoderReader::new(&mut r.inner, base64::STANDARD),
-            r.depth.take(),
+            r.depth_remaining.take(),
         );
         let t = Self::read_xdr(&mut dec)?;
         Ok(t)
@@ -452,7 +454,7 @@ where
     fn read_xdr_base64_to_end<R: Read>(r: &mut DepthLimitedRead<R>) -> Result<Self> {
         let mut dec = DepthLimitedRead::new(
             base64::read::DecoderReader::new(&mut r.inner, base64::STANDARD),
-            r.depth.take(),
+            r.depth_remaining.take(),
         );
         let t = Self::read_xdr_to_end(&mut dec)?;
         Ok(t)
@@ -528,7 +530,7 @@ where
     /// [`ErrorKind::Interrupted`](std::io::ErrorKind::Interrupted).
     #[cfg(feature = "std")]
     fn read_xdr_iter<R: Read>(r: &mut DepthLimitedRead<R>) -> ReadXdrIter<&mut R, Self> {
-        ReadXdrIter::new(&mut r.inner, r.depth.take())
+        ReadXdrIter::new(&mut r.inner, r.depth_remaining.take())
     }
 
     /// Create an iterator that reads the read implementation as a stream of
@@ -538,34 +540,51 @@ where
         r: &mut DepthLimitedRead<R>,
     ) -> ReadXdrIter<base64::read::DecoderReader<R>, Self> {
         let dec = base64::read::DecoderReader::new(&mut r.inner, base64::STANDARD);
-        ReadXdrIter::new(dec, r.depth.take())
+        ReadXdrIter::new(dec, r.depth_remaining.take())
     }
 
-    /// Construct the type from the XDR bytes.
+    /// Construct the type from the XDR bytes, specifying a depth limit.
+    ///
+    /// An error is returned if the bytes are not completely consumed by the
+    /// deserialization.
+    #[cfg(feature = "std")]
+    fn from_xdr_with_depth_limit(bytes: impl AsRef<[u8]>, depth_limit: u32) -> Result<Self> {
+        let mut cursor = DepthLimitedRead::new(Cursor::new(bytes.as_ref()), depth_limit);
+        let t = Self::read_xdr_to_end(&mut cursor)?;
+        Ok(t)
+    }
+
+    /// Construct the type from the XDR bytes, using the default depth limit.
     ///
     /// An error is returned if the bytes are not completely consumed by the
     /// deserialization.
     #[cfg(feature = "std")]
     fn from_xdr(bytes: impl AsRef<[u8]>) -> Result<Self> {
-        let mut cursor =
-            DepthLimitedRead::new(Cursor::new(bytes.as_ref()), DEFAULT_MAX_DEPTH_LIMIT);
-        let t = Self::read_xdr_to_end(&mut cursor)?;
+        ReadXdr::from_xdr_with_depth_limit(bytes, DEFAULT_MAX_DEPTH_LIMIT)
+    }
+
+    /// Construct the type from the XDR bytes base64 encoded, specifying a depth limit.
+    ///
+    /// An error is returned if the bytes are not completely consumed by the
+    /// deserialization.
+    #[cfg(feature = "base64")]
+    fn from_xdr_base64_with_depth_limit(b64: impl AsRef<[u8]>, depth_limit: u32) -> Result<Self> {
+        let mut b64_reader = Cursor::new(b64);
+        let mut dec = DepthLimitedRead::new(
+            base64::read::DecoderReader::new(&mut b64_reader, base64::STANDARD),
+            depth_limit,
+        );
+        let t = Self::read_xdr_to_end(&mut dec)?;
         Ok(t)
     }
 
-    /// Construct the type from the XDR bytes base64 encoded.
+    /// Construct the type from the XDR bytes base64 encoded, using the default depth limit.
     ///
     /// An error is returned if the bytes are not completely consumed by the
     /// deserialization.
     #[cfg(feature = "base64")]
     fn from_xdr_base64(b64: impl AsRef<[u8]>) -> Result<Self> {
-        let mut b64_reader = Cursor::new(b64);
-        let mut dec = DepthLimitedRead::new(
-            base64::read::DecoderReader::new(&mut b64_reader, base64::STANDARD),
-            DEFAULT_MAX_DEPTH_LIMIT,
-        );
-        let t = Self::read_xdr_to_end(&mut dec)?;
-        Ok(t)
+        ReadXdr::from_xdr_base64_with_depth_limit(b64, DEFAULT_MAX_DEPTH_LIMIT)
     }
 }
 
@@ -574,22 +593,32 @@ pub trait WriteXdr {
     fn write_xdr<W: Write>(&self, w: &mut DepthLimitedWrite<W>) -> Result<()>;
 
     #[cfg(feature = "std")]
-    fn to_xdr(&self) -> Result<Vec<u8>> {
-        let mut cursor = DepthLimitedWrite::new(Cursor::new(vec![]), DEFAULT_MAX_DEPTH_LIMIT);
+    fn to_xdr_with_depth_limit(&self, depth_limit: u32) -> Result<Vec<u8>> {
+        let mut cursor = DepthLimitedWrite::new(Cursor::new(vec![]), depth_limit);
         self.write_xdr(&mut cursor)?;
         let bytes = cursor.inner.into_inner();
         Ok(bytes)
     }
 
+    #[cfg(feature = "std")]
+    fn to_xdr(&self) -> Result<Vec<u8>> {
+        self.to_xdr_with_depth_limit(DEFAULT_MAX_DEPTH_LIMIT)
+    }
+
     #[cfg(feature = "base64")]
-    fn to_xdr_base64(&self) -> Result<String> {
+    fn to_xdr_base64_with_depth_limit(&self, depth_limit: u32) -> Result<String> {
         let mut enc = DepthLimitedWrite::new(
             base64::write::EncoderStringWriter::new(base64::STANDARD),
-            DEFAULT_MAX_DEPTH_LIMIT,
+            depth_limit,
         );
         self.write_xdr(&mut enc)?;
         let b64 = enc.inner.into_inner();
         Ok(b64)
+    }
+
+    #[cfg(feature = "base64")]
+    fn to_xdr_base64(&self) -> Result<String> {
+        self.to_xdr_base64_with_depth_limit(DEFAULT_MAX_DEPTH_LIMIT)
     }
 }
 

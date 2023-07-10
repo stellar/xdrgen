@@ -174,7 +174,7 @@ module Xdrgen
 
             #[cfg(feature = "base64")]
             pub fn read_xdr_base64<R: Read>(v: TypeVariant, r: &mut DepthLimitedRead<R>) -> Result<Self> {
-                let mut dec = DepthLimitedRead::new(base64::read::DecoderReader::new(&mut r.inner, base64::STANDARD), r.depth.take());
+                let mut dec = DepthLimitedRead::new(base64::read::DecoderReader::new(&mut r.inner, base64::STANDARD), r.depth_remaining.take());
                 let t = Self::read_xdr(v, &mut dec)?;
                 Ok(t)
             }
@@ -193,7 +193,7 @@ module Xdrgen
 
             #[cfg(feature = "base64")]
             pub fn read_xdr_base64_to_end<R: Read>(v: TypeVariant, r: &mut DepthLimitedRead<R>) -> Result<Self> {
-                let mut dec = DepthLimitedRead::new(base64::read::DecoderReader::new(&mut r.inner, base64::STANDARD), r.depth.take());
+                let mut dec = DepthLimitedRead::new(base64::read::DecoderReader::new(&mut r.inner, base64::STANDARD), r.depth_remaining.take());
                 let t = Self::read_xdr_to_end(v, &mut dec)?;
                 Ok(t)
             }
@@ -202,7 +202,7 @@ module Xdrgen
             #[allow(clippy::too_many_lines)]
             pub fn read_xdr_iter<R: Read>(v: TypeVariant, r: &mut DepthLimitedRead<R>) -> Box<dyn Iterator<Item=Result<Self>> + '_> {
                 match v {
-                    #{types.map { |t| "TypeVariant::#{t} => Box::new(ReadXdrIter::<_, #{t}>::new(&mut r.inner, r.depth.take()).map(|r| r.map(|t| Self::#{t}(Box::new(t)))))," }.join("\n")}
+                    #{types.map { |t| "TypeVariant::#{t} => Box::new(ReadXdrIter::<_, #{t}>::new(&mut r.inner, r.depth_remaining.take()).map(|r| r.map(|t| Self::#{t}(Box::new(t)))))," }.join("\n")}
                 }
             }
 
@@ -210,7 +210,7 @@ module Xdrgen
             #[allow(clippy::too_many_lines)]
             pub fn read_xdr_framed_iter<R: Read>(v: TypeVariant, r: &mut DepthLimitedRead<R>) -> Box<dyn Iterator<Item=Result<Self>> + '_> {
                 match v {
-                    #{types.map { |t| "TypeVariant::#{t} => Box::new(ReadXdrIter::<_, Frame<#{t}>>::new(&mut r.inner, r.depth.take()).map(|r| r.map(|t| Self::#{t}(Box::new(t.0)))))," }.join("\n")}
+                    #{types.map { |t| "TypeVariant::#{t} => Box::new(ReadXdrIter::<_, Frame<#{t}>>::new(&mut r.inner, r.depth_remaining.take()).map(|r| r.map(|t| Self::#{t}(Box::new(t.0)))))," }.join("\n")}
                 }
             }
 
@@ -219,7 +219,7 @@ module Xdrgen
             pub fn read_xdr_base64_iter<R: Read>(v: TypeVariant, r: &mut DepthLimitedRead<R>) -> Box<dyn Iterator<Item=Result<Self>> + '_> {
                 let dec = base64::read::DecoderReader::new(&mut r.inner, base64::STANDARD);
                 match v {
-                    #{types.map { |t| "TypeVariant::#{t} => Box::new(ReadXdrIter::<_, #{t}>::new(dec, r.depth.take()).map(|r| r.map(|t| Self::#{t}(Box::new(t)))))," }.join("\n")}
+                    #{types.map { |t| "TypeVariant::#{t} => Box::new(ReadXdrIter::<_, #{t}>::new(dec, r.depth_remaining.take()).map(|r| r.map(|t| Self::#{t}(Box::new(t)))))," }.join("\n")}
                 }
             }
 
