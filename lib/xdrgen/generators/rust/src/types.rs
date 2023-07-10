@@ -41,10 +41,11 @@ use std::{
     io::{BufRead, BufReader, Cursor, Read, Write},
 };
 
-/// Depth limit for recursive calls in `Read/WriteXdr`. Mimics the stack depth
-/// and its purpose is to avoid the running program from reaching the Rust's
-/// stack size limit (see https://doc.rust-lang.org/std/thread/#stack-size),
-/// which leads to an unrecoverable `SIGABRT`.
+/// Defines the maximum depth for recursive calls in `Read/WriteXdr` to prevent stack overflow.
+///
+/// The depth limit is akin to limiting stack depth. Its purpose is to prevent the program from
+/// hitting the maximum stack size allowed by Rust, which would result in an unrecoverable `SIGABRT`.
+/// For more information about Rust's stack size limit, refer to the [Rust documentation](https://doc.rust-lang.org/std/thread/#stack-size).
 pub const DEFAULT_MAX_DEPTH_LIMIT: u32 = 500;
 
 /// Error contains all errors returned by functions in this crate. It can be
