@@ -51,6 +51,10 @@ use std::{
     io::{BufRead, BufReader, Cursor, Read, Write},
 };
 
+/// Depth limit for recursive calls in `Read/WriteXdr`. Mimics the stack depth
+/// and its purpose is to avoid the running program from reaching the Rust's
+/// stack size limit (see https://doc.rust-lang.org/std/thread/#stack-size),
+/// which leads to an unrecoverable `SIGABRT`.
 pub const DEFAULT_MAX_DEPTH_LIMIT: u32 = 500;
 
 /// Error contains all errors returned by functions in this crate. It can be
@@ -184,13 +188,31 @@ where
 {
 }
 
+/// `DepthLimiter` is a trait designed for managing the depth of recursive operations.
+/// It provides a mechanism to limit recursion depth, and defines the behavior upon
+/// entering and leaving a recursion level.
 pub trait DepthLimiter {
+    /// The error type returned by methods when they fail due to exceeding the depth limit.
     type DepthError;
 
+    /// Defines the behavior for entering a new recursion level.
+    /// A `DepthError` is returned if the new level exceeds the depth limit.
     fn enter(&self) -> core::result::Result<(), Self::DepthError>;
 
+    /// Defines the behavior for leaving a recursion level.
     fn leave(&self);
 
+    /// Wraps a given function `f` with depth limiting guards.
+    /// It triggers an `enter` before, and a `leave` after the execution of `f`.
+    ///
+    /// # Parameters
+    ///
+    /// - `f`: The function to be executed under depth limit constraints.
+    ///
+    /// # Returns
+    ///
+    /// - `Ok` with function result if `f` executes without exceeding depth limits,
+    ///   `Err` otherwise.
     fn with_limited_depth<T, F>(&mut self, f: F) -> core::result::Result<T, Self::DepthError>
     where
         F: FnOnce(&mut Self) -> core::result::Result<T, Self::DepthError>,
@@ -202,6 +224,8 @@ pub trait DepthLimiter {
     }
 }
 
+/// `DepthLimitedRead` wraps a `Read` object and enforces a depth limit to
+/// recursive read operations. It maintains a `depth` state tracking remaining recursion depth.
 #[cfg(feature = "std")]
 pub struct DepthLimitedRead<R: Read> {
     pub inner: R,
@@ -210,6 +234,10 @@ pub struct DepthLimitedRead<R: Read> {
 
 #[cfg(feature = "std")]
 impl<R: Read> DepthLimitedRead<R> {
+    /// Constructs a new `DepthLimitedRead`.
+    ///
+    /// - `inner`: The object implementing the `Read` trait.
+    /// - `depth`: The maximum allowed recursion depth.
     pub fn new(inner: R, depth: u32) -> Self {
         DepthLimitedRead {
             inner,
@@ -222,6 +250,8 @@ impl<R: Read> DepthLimitedRead<R> {
 impl<R: Read> DepthLimiter for DepthLimitedRead<R> {
     type DepthError = Error;
 
+    /// Decrements the depth. If the depth is already zero, an error is returned indicating
+    /// that the maximum depth limit has been exceeded.
     fn enter(&self) -> core::result::Result<(), Error> {
         let depth = *self.depth.borrow();
         if depth == 0 {
@@ -231,6 +261,7 @@ impl<R: Read> DepthLimiter for DepthLimitedRead<R> {
         Ok(())
     }
 
+    /// Increments the depth, without exceeding the initial depth value.
     fn leave(&self) {
         let depth = *self.depth.borrow();
         self.depth.replace(depth.saturating_add(1));
@@ -239,11 +270,14 @@ impl<R: Read> DepthLimiter for DepthLimitedRead<R> {
 
 #[cfg(feature = "std")]
 impl<R: Read> Read for DepthLimitedRead<R> {
+    /// Forwards the read operation to the wrapped object.
     fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
         self.inner.read(buf)
     }
 }
 
+/// `DepthLimitedWrite` wraps a `Write` object and enforces a depth limit to
+/// recursive write operations. It maintains a `depth` state tracking remaining recursion depth.
 #[cfg(feature = "std")]
 pub struct DepthLimitedWrite<W: Write> {
     pub inner: W,
@@ -252,6 +286,10 @@ pub struct DepthLimitedWrite<W: Write> {
 
 #[cfg(feature = "std")]
 impl<W: Write> DepthLimitedWrite<W> {
+    /// Constructs a new `DepthLimitedWrite`.
+    ///
+    /// - `inner`: The object implementing the `Write` trait.
+    /// - `depth`: The maximum allowed recursion depth.
     pub fn new(inner: W, depth: u32) -> Self {
         DepthLimitedWrite {
             inner,
@@ -264,6 +302,8 @@ impl<W: Write> DepthLimitedWrite<W> {
 impl<W: Write> DepthLimiter for DepthLimitedWrite<W> {
     type DepthError = Error;
 
+    /// Decrements the depth. If the depth is already zero, an error is returned indicating
+    /// that the maximum depth limit has been exceeded.
     fn enter(&self) -> Result<()> {
         let depth = *self.depth.borrow();
         if depth == 0 {
@@ -273,6 +313,7 @@ impl<W: Write> DepthLimiter for DepthLimitedWrite<W> {
         Ok(())
     }
 
+    /// Increments the depth, without exceeding the initial depth value.
     fn leave(&self) {
         let depth = *self.depth.borrow();
         self.depth.replace(depth.saturating_add(1));
@@ -281,10 +322,12 @@ impl<W: Write> DepthLimiter for DepthLimitedWrite<W> {
 
 #[cfg(feature = "std")]
 impl<W: Write> Write for DepthLimitedWrite<W> {
+    /// Forwards the write operation to the wrapped object.
     fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
         self.inner.write(buf)
     }
 
+    /// Forwards the flush operation to the wrapped object.
     fn flush(&mut self) -> std::io::Result<()> {
         self.inner.flush()
     }
