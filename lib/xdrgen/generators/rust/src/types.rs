@@ -46,7 +46,7 @@ use std::{
 /// The depth limit is akin to limiting stack depth. Its purpose is to prevent the program from
 /// hitting the maximum stack size allowed by Rust, which would result in an unrecoverable `SIGABRT`.
 /// For more information about Rust's stack size limit, refer to the [Rust documentation](https://doc.rust-lang.org/std/thread/#stack-size).
-pub const DEFAULT_MAX_DEPTH_LIMIT: u32 = 500;
+pub const DEFAULT_XDR_RW_DEPTH_LIMIT: u32 = 500;
 
 /// Error contains all errors returned by functions in this crate. It can be
 /// compared via `PartialEq`, however any contained IO errors will only be
@@ -560,7 +560,7 @@ where
     /// deserialization.
     #[cfg(feature = "std")]
     fn from_xdr(bytes: impl AsRef<[u8]>) -> Result<Self> {
-        ReadXdr::from_xdr_with_depth_limit(bytes, DEFAULT_MAX_DEPTH_LIMIT)
+        ReadXdr::from_xdr_with_depth_limit(bytes, DEFAULT_XDR_RW_DEPTH_LIMIT)
     }
 
     /// Construct the type from the XDR bytes base64 encoded, specifying a depth limit.
@@ -584,7 +584,7 @@ where
     /// deserialization.
     #[cfg(feature = "base64")]
     fn from_xdr_base64(b64: impl AsRef<[u8]>) -> Result<Self> {
-        ReadXdr::from_xdr_base64_with_depth_limit(b64, DEFAULT_MAX_DEPTH_LIMIT)
+        ReadXdr::from_xdr_base64_with_depth_limit(b64, DEFAULT_XDR_RW_DEPTH_LIMIT)
     }
 }
 
@@ -602,7 +602,7 @@ pub trait WriteXdr {
 
     #[cfg(feature = "std")]
     fn to_xdr(&self) -> Result<Vec<u8>> {
-        self.to_xdr_with_depth_limit(DEFAULT_MAX_DEPTH_LIMIT)
+        self.to_xdr_with_depth_limit(DEFAULT_XDR_RW_DEPTH_LIMIT)
     }
 
     #[cfg(feature = "base64")]
@@ -618,7 +618,7 @@ pub trait WriteXdr {
 
     #[cfg(feature = "base64")]
     fn to_xdr_base64(&self) -> Result<String> {
-        self.to_xdr_base64_with_depth_limit(DEFAULT_MAX_DEPTH_LIMIT)
+        self.to_xdr_base64_with_depth_limit(DEFAULT_XDR_RW_DEPTH_LIMIT)
     }
 }
 
@@ -2051,29 +2051,32 @@ mod tests {
 
     use super::{
         DepthLimitedRead, DepthLimitedWrite, Error, ReadXdr, VecM, WriteXdr,
-        DEFAULT_MAX_DEPTH_LIMIT,
+        DEFAULT_XDR_RW_DEPTH_LIMIT,
     };
 
     #[test]
     pub fn vec_u8_read_without_padding() {
         let buf = Cursor::new(vec![0, 0, 0, 4, 2, 2, 2, 2]);
-        let v = VecM::<u8, 8>::read_xdr(&mut DepthLimitedRead::new(buf, DEFAULT_MAX_DEPTH_LIMIT))
-            .unwrap();
+        let v =
+            VecM::<u8, 8>::read_xdr(&mut DepthLimitedRead::new(buf, DEFAULT_XDR_RW_DEPTH_LIMIT))
+                .unwrap();
         assert_eq!(v.to_vec(), vec![2, 2, 2, 2]);
     }
 
     #[test]
     pub fn vec_u8_read_with_padding() {
         let buf = Cursor::new(vec![0, 0, 0, 1, 2, 0, 0, 0]);
-        let v = VecM::<u8, 8>::read_xdr(&mut DepthLimitedRead::new(buf, DEFAULT_MAX_DEPTH_LIMIT))
-            .unwrap();
+        let v =
+            VecM::<u8, 8>::read_xdr(&mut DepthLimitedRead::new(buf, DEFAULT_XDR_RW_DEPTH_LIMIT))
+                .unwrap();
         assert_eq!(v.to_vec(), vec![2]);
     }
 
     #[test]
     pub fn vec_u8_read_with_insufficient_padding() {
         let buf = Cursor::new(vec![0, 0, 0, 1, 2, 0, 0]);
-        let res = VecM::<u8, 8>::read_xdr(&mut DepthLimitedRead::new(buf, DEFAULT_MAX_DEPTH_LIMIT));
+        let res =
+            VecM::<u8, 8>::read_xdr(&mut DepthLimitedRead::new(buf, DEFAULT_XDR_RW_DEPTH_LIMIT));
         match res {
             Err(Error::Io(_)) => (),
             _ => panic!("expected IO error got {res:?}"),
@@ -2083,7 +2086,8 @@ mod tests {
     #[test]
     pub fn vec_u8_read_with_non_zero_padding() {
         let buf = Cursor::new(vec![0, 0, 0, 1, 2, 3, 0, 0]);
-        let res = VecM::<u8, 8>::read_xdr(&mut DepthLimitedRead::new(buf, DEFAULT_MAX_DEPTH_LIMIT));
+        let res =
+            VecM::<u8, 8>::read_xdr(&mut DepthLimitedRead::new(buf, DEFAULT_XDR_RW_DEPTH_LIMIT));
         match res {
             Err(Error::NonZeroPadding) => (),
             _ => panic!("expected NonZeroPadding got {res:?}"),
@@ -2097,7 +2101,7 @@ mod tests {
 
         v.write_xdr(&mut DepthLimitedWrite::new(
             Cursor::new(&mut buf),
-            DEFAULT_MAX_DEPTH_LIMIT,
+            DEFAULT_XDR_RW_DEPTH_LIMIT,
         ))
         .unwrap();
         assert_eq!(buf, vec![0, 0, 0, 4, 2, 2, 2, 2]);
@@ -2109,7 +2113,7 @@ mod tests {
         let v: VecM<u8, 8> = vec![2].try_into().unwrap();
         v.write_xdr(&mut DepthLimitedWrite::new(
             Cursor::new(&mut buf),
-            DEFAULT_MAX_DEPTH_LIMIT,
+            DEFAULT_XDR_RW_DEPTH_LIMIT,
         ))
         .unwrap();
         assert_eq!(buf, vec![0, 0, 0, 1, 2, 0, 0, 0]);
@@ -2118,23 +2122,23 @@ mod tests {
     #[test]
     pub fn arr_u8_read_without_padding() {
         let buf = Cursor::new(vec![2, 2, 2, 2]);
-        let v =
-            <[u8; 4]>::read_xdr(&mut DepthLimitedRead::new(buf, DEFAULT_MAX_DEPTH_LIMIT)).unwrap();
+        let v = <[u8; 4]>::read_xdr(&mut DepthLimitedRead::new(buf, DEFAULT_XDR_RW_DEPTH_LIMIT))
+            .unwrap();
         assert_eq!(v, [2, 2, 2, 2]);
     }
 
     #[test]
     pub fn arr_u8_read_with_padding() {
         let buf = Cursor::new(vec![2, 0, 0, 0]);
-        let v =
-            <[u8; 1]>::read_xdr(&mut DepthLimitedRead::new(buf, DEFAULT_MAX_DEPTH_LIMIT)).unwrap();
+        let v = <[u8; 1]>::read_xdr(&mut DepthLimitedRead::new(buf, DEFAULT_XDR_RW_DEPTH_LIMIT))
+            .unwrap();
         assert_eq!(v, [2]);
     }
 
     #[test]
     pub fn arr_u8_read_with_insufficient_padding() {
         let buf = Cursor::new(vec![2, 0, 0]);
-        let res = <[u8; 1]>::read_xdr(&mut DepthLimitedRead::new(buf, DEFAULT_MAX_DEPTH_LIMIT));
+        let res = <[u8; 1]>::read_xdr(&mut DepthLimitedRead::new(buf, DEFAULT_XDR_RW_DEPTH_LIMIT));
         match res {
             Err(Error::Io(_)) => (),
             _ => panic!("expected IO error got {res:?}"),
@@ -2144,7 +2148,7 @@ mod tests {
     #[test]
     pub fn arr_u8_read_with_non_zero_padding() {
         let buf = Cursor::new(vec![2, 3, 0, 0]);
-        let res = <[u8; 1]>::read_xdr(&mut DepthLimitedRead::new(buf, DEFAULT_MAX_DEPTH_LIMIT));
+        let res = <[u8; 1]>::read_xdr(&mut DepthLimitedRead::new(buf, DEFAULT_XDR_RW_DEPTH_LIMIT));
         match res {
             Err(Error::NonZeroPadding) => (),
             _ => panic!("expected NonZeroPadding got {res:?}"),
@@ -2157,7 +2161,7 @@ mod tests {
         [2u8, 2, 2, 2]
             .write_xdr(&mut DepthLimitedWrite::new(
                 Cursor::new(&mut buf),
-                DEFAULT_MAX_DEPTH_LIMIT,
+                DEFAULT_XDR_RW_DEPTH_LIMIT,
             ))
             .unwrap();
         assert_eq!(buf, vec![2, 2, 2, 2]);
@@ -2169,7 +2173,7 @@ mod tests {
         [2u8]
             .write_xdr(&mut DepthLimitedWrite::new(
                 Cursor::new(&mut buf),
-                DEFAULT_MAX_DEPTH_LIMIT,
+                DEFAULT_XDR_RW_DEPTH_LIMIT,
             ))
             .unwrap();
         assert_eq!(buf, vec![2, 0, 0, 0]);
