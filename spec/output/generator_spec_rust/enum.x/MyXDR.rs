@@ -55,7 +55,8 @@ use std::{
 ///
 /// The depth limit is akin to limiting stack depth. Its purpose is to prevent the program from
 /// hitting the maximum stack size allowed by Rust, which would result in an unrecoverable `SIGABRT`.
-/// For more information about Rust's stack size limit, refer to the [Rust documentation](https://doc.rust-lang.org/std/thread/#stack-size).
+/// For more information about Rust's stack size limit, refer to the
+/// [Rust documentation](https://doc.rust-lang.org/std/thread/#stack-size).
 pub const DEFAULT_XDR_RW_DEPTH_LIMIT: u32 = 500;
 
 /// Error contains all errors returned by functions in this crate. It can be
