@@ -1,5 +1,7 @@
 # This is an automatically generated file.
 # DO NOT EDIT or your changes may be overwritten
+from __future__ import annotations
+
 import base64
 from enum import IntEnum
 from typing import List, Optional
@@ -26,7 +28,7 @@ class HasStuff:
     def pack(self, packer: Packer) -> None:
         self.data.pack(packer)
     @classmethod
-    def unpack(cls, unpacker: Unpacker) -> "HasStuff":
+    def unpack(cls, unpacker: Unpacker) -> HasStuff:
         data = LotsOfMyStructs.unpack(unpacker)
         return cls(
             data=data,
@@ -37,7 +39,7 @@ class HasStuff:
         return packer.get_buffer()
 
     @classmethod
-    def from_xdr_bytes(cls, xdr: bytes) -> "HasStuff":
+    def from_xdr_bytes(cls, xdr: bytes) -> HasStuff:
         unpacker = Unpacker(xdr)
         return cls.unpack(unpacker)
 
@@ -46,7 +48,7 @@ class HasStuff:
         return base64.b64encode(xdr_bytes).decode()
 
     @classmethod
-    def from_xdr(cls, xdr: str) -> "HasStuff":
+    def from_xdr(cls, xdr: str) -> HasStuff:
         xdr_bytes = base64.b64decode(xdr.encode())
         return cls.from_xdr_bytes(xdr_bytes)
     def __eq__(self, other: object):

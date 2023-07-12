@@ -1,5 +1,7 @@
 # This is an automatically generated file.
 # DO NOT EDIT or your changes may be overwritten
+from __future__ import annotations
+
 import base64
 from enum import IntEnum
 from typing import List, Optional
@@ -23,7 +25,7 @@ class TestArray:
         for test_array_item in self.test_array:
             Integer(test_array_item).pack(packer)
     @classmethod
-    def unpack(cls, unpacker: Unpacker) -> "TestArray":
+    def unpack(cls, unpacker: Unpacker) -> TestArray:
         length = FOO
         test_array = []
         for _ in range(length):
@@ -35,7 +37,7 @@ class TestArray:
         return packer.get_buffer()
 
     @classmethod
-    def from_xdr_bytes(cls, xdr: bytes) -> "TestArray":
+    def from_xdr_bytes(cls, xdr: bytes) -> TestArray:
         unpacker = Unpacker(xdr)
         return cls.unpack(unpacker)
 
@@ -44,7 +46,7 @@ class TestArray:
         return base64.b64encode(xdr_bytes).decode()
 
     @classmethod
-    def from_xdr(cls, xdr: str) -> "TestArray":
+    def from_xdr(cls, xdr: str) -> TestArray:
         xdr_bytes = base64.b64decode(xdr.encode())
         return cls.from_xdr_bytes(xdr_bytes)
     def __eq__(self, other: object):

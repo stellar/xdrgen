@@ -1,5 +1,7 @@
 # This is an automatically generated file.
 # DO NOT EDIT or your changes may be overwritten
+from __future__ import annotations
+
 import base64
 from enum import IntEnum
 from typing import List, Optional
@@ -25,7 +27,7 @@ class Hashes2:
         for hashes2_item in self.hashes2:
             hashes2_item.pack(packer)
     @classmethod
-    def unpack(cls, unpacker: Unpacker) -> "Hashes2":
+    def unpack(cls, unpacker: Unpacker) -> Hashes2:
         length = unpacker.unpack_uint()
         hashes2 = []
         for _ in range(length):
@@ -37,7 +39,7 @@ class Hashes2:
         return packer.get_buffer()
 
     @classmethod
-    def from_xdr_bytes(cls, xdr: bytes) -> "Hashes2":
+    def from_xdr_bytes(cls, xdr: bytes) -> Hashes2:
         unpacker = Unpacker(xdr)
         return cls.unpack(unpacker)
 
@@ -46,7 +48,7 @@ class Hashes2:
         return base64.b64encode(xdr_bytes).decode()
 
     @classmethod
-    def from_xdr(cls, xdr: str) -> "Hashes2":
+    def from_xdr(cls, xdr: str) -> Hashes2:
         xdr_bytes = base64.b64decode(xdr.encode())
         return cls.from_xdr_bytes(xdr_bytes)
     def __eq__(self, other: object):

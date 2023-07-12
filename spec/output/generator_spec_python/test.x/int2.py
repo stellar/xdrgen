@@ -1,5 +1,7 @@
 # This is an automatically generated file.
 # DO NOT EDIT or your changes may be overwritten
+from __future__ import annotations
+
 import base64
 from enum import IntEnum
 from typing import List, Optional
@@ -19,7 +21,7 @@ class Int2:
     def pack(self, packer: Packer) -> None:
         Hyper(self.int2).pack(packer)
     @classmethod
-    def unpack(cls, unpacker: Unpacker) -> "Int2":
+    def unpack(cls, unpacker: Unpacker) -> Int2:
         int2 = Hyper.unpack(unpacker)
         return cls(int2)
     def to_xdr_bytes(self) -> bytes:
@@ -28,7 +30,7 @@ class Int2:
         return packer.get_buffer()
 
     @classmethod
-    def from_xdr_bytes(cls, xdr: bytes) -> "Int2":
+    def from_xdr_bytes(cls, xdr: bytes) -> Int2:
         unpacker = Unpacker(xdr)
         return cls.unpack(unpacker)
 
@@ -37,7 +39,7 @@ class Int2:
         return base64.b64encode(xdr_bytes).decode()
 
     @classmethod
-    def from_xdr(cls, xdr: str) -> "Int2":
+    def from_xdr(cls, xdr: str) -> Int2:
         xdr_bytes = base64.b64decode(xdr.encode())
         return cls.from_xdr_bytes(xdr_bytes)
     def __eq__(self, other: object):

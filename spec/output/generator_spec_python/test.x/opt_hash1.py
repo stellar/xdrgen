@@ -1,5 +1,7 @@
 # This is an automatically generated file.
 # DO NOT EDIT or your changes may be overwritten
+from __future__ import annotations
+
 import base64
 from enum import IntEnum
 from typing import List, Optional
@@ -24,7 +26,7 @@ class OptHash1:
             packer.pack_uint(1)
             self.opt_hash1.pack(packer)
     @classmethod
-    def unpack(cls, unpacker: Unpacker) -> "OptHash1":
+    def unpack(cls, unpacker: Unpacker) -> OptHash1:
         opt_hash1 = Hash.unpack(unpacker) if unpacker.unpack_uint() else None
         return cls(opt_hash1)
     def to_xdr_bytes(self) -> bytes:
@@ -33,7 +35,7 @@ class OptHash1:
         return packer.get_buffer()
 
     @classmethod
-    def from_xdr_bytes(cls, xdr: bytes) -> "OptHash1":
+    def from_xdr_bytes(cls, xdr: bytes) -> OptHash1:
         unpacker = Unpacker(xdr)
         return cls.unpack(unpacker)
 
@@ -42,7 +44,7 @@ class OptHash1:
         return base64.b64encode(xdr_bytes).decode()
 
     @classmethod
-    def from_xdr(cls, xdr: str) -> "OptHash1":
+    def from_xdr(cls, xdr: str) -> OptHash1:
         xdr_bytes = base64.b64decode(xdr.encode())
         return cls.from_xdr_bytes(xdr_bytes)
     def __eq__(self, other: object):

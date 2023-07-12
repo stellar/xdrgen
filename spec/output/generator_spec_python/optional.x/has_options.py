@@ -1,5 +1,7 @@
 # This is an automatically generated file.
 # DO NOT EDIT or your changes may be overwritten
+from __future__ import annotations
+
 import base64
 from enum import IntEnum
 from typing import List, Optional
@@ -46,7 +48,7 @@ class HasOptions:
             packer.pack_uint(1)
             self.third_option.pack(packer)
     @classmethod
-    def unpack(cls, unpacker: Unpacker) -> "HasOptions":
+    def unpack(cls, unpacker: Unpacker) -> HasOptions:
         first_option = Integer.unpack(unpacker) if unpacker.unpack_uint() else None
         second_option = Integer.unpack(unpacker) if unpacker.unpack_uint() else None
         third_option = Arr.unpack(unpacker) if unpacker.unpack_uint() else None
@@ -61,7 +63,7 @@ class HasOptions:
         return packer.get_buffer()
 
     @classmethod
-    def from_xdr_bytes(cls, xdr: bytes) -> "HasOptions":
+    def from_xdr_bytes(cls, xdr: bytes) -> HasOptions:
         unpacker = Unpacker(xdr)
         return cls.unpack(unpacker)
 
@@ -70,7 +72,7 @@ class HasOptions:
         return base64.b64encode(xdr_bytes).decode()
 
     @classmethod
-    def from_xdr(cls, xdr: str) -> "HasOptions":
+    def from_xdr(cls, xdr: str) -> HasOptions:
         xdr_bytes = base64.b64decode(xdr.encode())
         return cls.from_xdr_bytes(xdr_bytes)
     def __eq__(self, other: object):

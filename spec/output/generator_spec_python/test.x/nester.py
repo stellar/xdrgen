@@ -1,5 +1,7 @@
 # This is an automatically generated file.
 # DO NOT EDIT or your changes may be overwritten
+from __future__ import annotations
+
 import base64
 from enum import IntEnum
 from typing import List, Optional
@@ -50,7 +52,7 @@ class Nester:
         self.nested_struct.pack(packer)
         self.nested_union.pack(packer)
     @classmethod
-    def unpack(cls, unpacker: Unpacker) -> "Nester":
+    def unpack(cls, unpacker: Unpacker) -> Nester:
         nested_enum = NesterNestedEnum.unpack(unpacker)
         nested_struct = NesterNestedStruct.unpack(unpacker)
         nested_union = NesterNestedUnion.unpack(unpacker)
@@ -65,7 +67,7 @@ class Nester:
         return packer.get_buffer()
 
     @classmethod
-    def from_xdr_bytes(cls, xdr: bytes) -> "Nester":
+    def from_xdr_bytes(cls, xdr: bytes) -> Nester:
         unpacker = Unpacker(xdr)
         return cls.unpack(unpacker)
 
@@ -74,7 +76,7 @@ class Nester:
         return base64.b64encode(xdr_bytes).decode()
 
     @classmethod
-    def from_xdr(cls, xdr: str) -> "Nester":
+    def from_xdr(cls, xdr: str) -> Nester:
         xdr_bytes = base64.b64decode(xdr.encode())
         return cls.from_xdr_bytes(xdr_bytes)
     def __eq__(self, other: object):

@@ -1,5 +1,7 @@
 # This is an automatically generated file.
 # DO NOT EDIT or your changes may be overwritten
+from __future__ import annotations
+
 import base64
 from enum import IntEnum
 from typing import List, Optional
@@ -38,10 +40,10 @@ class MyUnion:
         self.error = error
         self.things = things
     @classmethod
-    def from_error(cls, error: Error) -> "MyUnion":
+    def from_error(cls, error: Error) -> MyUnion:
         return cls(UnionKey.ERROR, error=error)
     @classmethod
-    def from_multi(cls, things: List[Multi]) -> "MyUnion":
+    def from_multi(cls, things: List[Multi]) -> MyUnion:
         return cls(UnionKey.MULTI, things=things)
     def pack(self, packer: Packer) -> None:
         self.type.pack(packer)
@@ -58,7 +60,7 @@ class MyUnion:
                 things_item.pack(packer)
             return
     @classmethod
-    def unpack(cls, unpacker: Unpacker) -> "MyUnion":
+    def unpack(cls, unpacker: Unpacker) -> MyUnion:
         type = UnionKey.unpack(unpacker)
         if type == UnionKey.ERROR:
             error = Error.unpack(unpacker)
@@ -76,7 +78,7 @@ class MyUnion:
         return packer.get_buffer()
 
     @classmethod
-    def from_xdr_bytes(cls, xdr: bytes) -> "MyUnion":
+    def from_xdr_bytes(cls, xdr: bytes) -> MyUnion:
         unpacker = Unpacker(xdr)
         return cls.unpack(unpacker)
 
@@ -85,7 +87,7 @@ class MyUnion:
         return base64.b64encode(xdr_bytes).decode()
 
     @classmethod
-    def from_xdr(cls, xdr: str) -> "MyUnion":
+    def from_xdr(cls, xdr: str) -> MyUnion:
         xdr_bytes = base64.b64decode(xdr.encode())
         return cls.from_xdr_bytes(xdr_bytes)
     def __eq__(self, other: object):

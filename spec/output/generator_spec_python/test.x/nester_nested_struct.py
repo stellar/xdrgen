@@ -1,5 +1,7 @@
 # This is an automatically generated file.
 # DO NOT EDIT or your changes may be overwritten
+from __future__ import annotations
+
 import base64
 from enum import IntEnum
 from typing import List, Optional
@@ -24,7 +26,7 @@ class NesterNestedStruct:
     def pack(self, packer: Packer) -> None:
         Integer(self.blah).pack(packer)
     @classmethod
-    def unpack(cls, unpacker: Unpacker) -> "NesterNestedStruct":
+    def unpack(cls, unpacker: Unpacker) -> NesterNestedStruct:
         blah = Integer.unpack(unpacker)
         return cls(
             blah=blah,
@@ -35,7 +37,7 @@ class NesterNestedStruct:
         return packer.get_buffer()
 
     @classmethod
-    def from_xdr_bytes(cls, xdr: bytes) -> "NesterNestedStruct":
+    def from_xdr_bytes(cls, xdr: bytes) -> NesterNestedStruct:
         unpacker = Unpacker(xdr)
         return cls.unpack(unpacker)
 
@@ -44,7 +46,7 @@ class NesterNestedStruct:
         return base64.b64encode(xdr_bytes).decode()
 
     @classmethod
-    def from_xdr(cls, xdr: str) -> "NesterNestedStruct":
+    def from_xdr(cls, xdr: str) -> NesterNestedStruct:
         xdr_bytes = base64.b64decode(xdr.encode())
         return cls.from_xdr_bytes(xdr_bytes)
     def __eq__(self, other: object):

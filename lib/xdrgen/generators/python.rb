@@ -87,7 +87,7 @@ module Xdrgen
                 packer.pack_int(self.value)
   
             @classmethod
-            def unpack(cls, unpacker: Unpacker) -> "#{enum_name}":
+            def unpack(cls, unpacker: Unpacker) -> #{enum_name}:
                 value = unpacker.unpack_int()
                 return cls(value)
           HEREDOC
@@ -126,7 +126,7 @@ module Xdrgen
           end
 
           out.puts "@classmethod"
-          out.puts "def unpack(cls, unpacker: Unpacker) -> \"#{typedef_name}\":"
+          out.puts "def unpack(cls, unpacker: Unpacker) -> #{typedef_name}:"
           out.indent(2) do
             decode_member typedef, out
             out.puts "return cls(#{typedef_name_underscore})"
@@ -208,12 +208,12 @@ module Xdrgen
               if c.value.is_a?(AST::Identifier)
                 out.puts "@classmethod"
                 if arm.void?
-                  out.puts "def from_#{c.value.name.underscore}(cls) -> \"#{union_name}\":"
+                  out.puts "def from_#{c.value.name.underscore}(cls) -> #{union_name}:"
                   out.indent(2) do
                     out.puts "return cls(#{type_string union.discriminant.type}.#{c.value.name})"
                   end
                 else
-                  out.puts "def from_#{c.value.name.underscore}(cls, #{arm.name.underscore}: #{type_hint_string arm.declaration, union_name}) -> \"#{union_name}\":"
+                  out.puts "def from_#{c.value.name.underscore}(cls, #{arm.name.underscore}: #{type_hint_string arm.declaration, union_name}) -> #{union_name}:"
                   out.indent(2) do
                     out.puts "return cls(#{type_string union.discriminant.type}.#{c.value.name}, #{arm.name.underscore}=#{arm.name.underscore})"
                   end
@@ -246,7 +246,7 @@ module Xdrgen
           end
 
           out.puts "@classmethod"
-          out.puts "def unpack(cls, unpacker: Unpacker) -> \"#{union_name}\":"
+          out.puts "def unpack(cls, unpacker: Unpacker) -> #{union_name}:"
           out.indent(2) do
             out.puts "#{union_discriminant_name_underscore} = #{decode_type union.discriminant}"
             union.normal_arms.each do |arm|
@@ -354,7 +354,7 @@ module Xdrgen
           end
 
           out.puts "@classmethod"
-          out.puts "def unpack(cls, unpacker: Unpacker) -> \"#{struct_name}\":"
+          out.puts "def unpack(cls, unpacker: Unpacker) -> #{struct_name}:"
           out.indent(2) do
             struct.members.each do |member|
               decode_member member, out
@@ -470,6 +470,8 @@ module Xdrgen
         out.puts <<-EOS.strip_heredoc
           # This is an automatically generated file.
           # DO NOT EDIT or your changes may be overwritten
+          from __future__ import annotations
+
           import base64
           from enum import IntEnum
           from typing import List, Optional
@@ -509,7 +511,7 @@ module Xdrgen
               return packer.get_buffer()
 
           @classmethod
-          def from_xdr_bytes(cls, xdr: bytes) -> "#{name}":
+          def from_xdr_bytes(cls, xdr: bytes) -> #{name}:
               unpacker = Unpacker(xdr)
               return cls.unpack(unpacker)
 
@@ -518,7 +520,7 @@ module Xdrgen
               return base64.b64encode(xdr_bytes).decode()
 
           @classmethod
-          def from_xdr(cls, xdr: str) -> "#{name}":
+          def from_xdr(cls, xdr: str) -> #{name}:
               xdr_bytes = base64.b64decode(xdr.encode())
               return cls.from_xdr_bytes(xdr_bytes)
         HEREDOC

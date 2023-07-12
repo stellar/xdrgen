@@ -1,5 +1,7 @@
 # This is an automatically generated file.
 # DO NOT EDIT or your changes may be overwritten
+from __future__ import annotations
+
 import base64
 from enum import IntEnum
 from typing import List, Optional
@@ -52,7 +54,7 @@ class MyStruct:
         Double(self.field6).pack(packer)
         Boolean(self.field7).pack(packer)
     @classmethod
-    def unpack(cls, unpacker: Unpacker) -> "MyStruct":
+    def unpack(cls, unpacker: Unpacker) -> MyStruct:
         field1 = Uint512.unpack(unpacker)
         field2 = OptHash1.unpack(unpacker)
         field3 = Int1.unpack(unpacker)
@@ -75,7 +77,7 @@ class MyStruct:
         return packer.get_buffer()
 
     @classmethod
-    def from_xdr_bytes(cls, xdr: bytes) -> "MyStruct":
+    def from_xdr_bytes(cls, xdr: bytes) -> MyStruct:
         unpacker = Unpacker(xdr)
         return cls.unpack(unpacker)
 
@@ -84,7 +86,7 @@ class MyStruct:
         return base64.b64encode(xdr_bytes).decode()
 
     @classmethod
-    def from_xdr(cls, xdr: str) -> "MyStruct":
+    def from_xdr(cls, xdr: str) -> MyStruct:
         xdr_bytes = base64.b64decode(xdr.encode())
         return cls.from_xdr_bytes(xdr_bytes)
     def __eq__(self, other: object):

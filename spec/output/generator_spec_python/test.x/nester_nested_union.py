@@ -1,5 +1,7 @@
 # This is an automatically generated file.
 # DO NOT EDIT or your changes may be overwritten
+from __future__ import annotations
+
 import base64
 from enum import IntEnum
 from typing import List, Optional
@@ -28,7 +30,7 @@ class NesterNestedUnion:
         self.color = color
         self.blah2 = blah2
     @classmethod
-    def from_red(cls) -> "NesterNestedUnion":
+    def from_red(cls) -> NesterNestedUnion:
         return cls(Color.RED)
     def pack(self, packer: Packer) -> None:
         self.color.pack(packer)
@@ -38,7 +40,7 @@ class NesterNestedUnion:
             raise ValueError("blah2 should not be None.")
         Integer(self.blah2).pack(packer)
     @classmethod
-    def unpack(cls, unpacker: Unpacker) -> "NesterNestedUnion":
+    def unpack(cls, unpacker: Unpacker) -> NesterNestedUnion:
         color = Color.unpack(unpacker)
         if color == Color.RED:
             return cls(color=color)
@@ -50,7 +52,7 @@ class NesterNestedUnion:
         return packer.get_buffer()
 
     @classmethod
-    def from_xdr_bytes(cls, xdr: bytes) -> "NesterNestedUnion":
+    def from_xdr_bytes(cls, xdr: bytes) -> NesterNestedUnion:
         unpacker = Unpacker(xdr)
         return cls.unpack(unpacker)
 
@@ -59,7 +61,7 @@ class NesterNestedUnion:
         return base64.b64encode(xdr_bytes).decode()
 
     @classmethod
-    def from_xdr(cls, xdr: str) -> "NesterNestedUnion":
+    def from_xdr(cls, xdr: str) -> NesterNestedUnion:
         xdr_bytes = base64.b64decode(xdr.encode())
         return cls.from_xdr_bytes(xdr_bytes)
     def __eq__(self, other: object):
