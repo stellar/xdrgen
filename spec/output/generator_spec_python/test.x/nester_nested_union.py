@@ -3,7 +3,7 @@
 import base64
 from enum import IntEnum
 from typing import List, Optional
-from xdrlib import Packer, Unpacker
+from xdrlib3 import Packer, Unpacker
 from .base import Integer, UnsignedInteger, Float, Double, Hyper, UnsignedHyper, Boolean, String, Opaque
 from .constants import *
 
