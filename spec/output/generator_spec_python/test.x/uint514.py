@@ -17,10 +17,10 @@ class Uint514:
     def __init__(self, uint514: bytes) -> None:
         self.uint514 = uint514
     def pack(self, packer: Packer) -> None:
-        Opaque(self.uint514, 4294967295, False).pack(packer)
+        Opaque(self.uint514, 2147483647, False).pack(packer)
     @classmethod
     def unpack(cls, unpacker: Unpacker) -> "Uint514":
-        uint514 = Opaque.unpack(unpacker, 4294967295, False)
+        uint514 = Opaque.unpack(unpacker, 2147483647, False)
         return cls(uint514)
     def to_xdr_bytes(self) -> bytes:
         packer = Packer()

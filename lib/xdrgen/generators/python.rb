@@ -10,7 +10,7 @@
 module Xdrgen
   module Generators
     class Python < Xdrgen::Generators::Base
-      MAX_SIZE = (2 ** 32) - 1
+      MAX_SIZE = (2 ** 31) - 1
 
       def generate
         @constants_out = @output.open("constants.py")
