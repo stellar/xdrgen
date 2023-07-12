@@ -6,8 +6,10 @@ module Xdrgen
     class Java < Xdrgen::Generators::Base
 
       def generate
+        constants_container = Set[]
         render_lib
-        render_definitions(@top)
+        render_definitions(@top, constants_container)
+        render_constants constants_container
       end
 
       def render_lib
@@ -28,9 +30,9 @@ module Xdrgen
         @output.write  "XdrString.java", result
       end
 
-      def render_definitions(node)
-        node.namespaces.each{|n| render_definitions n }
-        node.definitions.each(&method(:render_definition))
+      def render_definitions(node, constants_container)
+        node.namespaces.each{|n| render_definitions n, constants_container }
+        node.definitions.each { |defn| render_definition(defn, constants_container) }
       end
 
       def add_imports_for_definition(defn, imports)
@@ -92,7 +94,7 @@ module Xdrgen
         end
       end
 
-      def render_definition(defn)
+      def render_definition(defn, constants_container)
         imports = Set[]
         add_imports_for_definition(defn, imports)
 
@@ -115,6 +117,10 @@ module Xdrgen
           render_element "public class", imports, defn do |out|
             render_typedef defn, out
           end
+        when AST::Definitions::Const ;
+          const_name = defn.name
+          const_value = defn.value
+          constants_container.add([const_name, const_value])
         end
       end
 
@@ -161,6 +167,7 @@ module Xdrgen
         name = name_string element.name
         out  = @output.open(path)
         render_top_matter out
+        out.puts "import static #{@namespace}.Constants.*;"
         imports.each do |import|
           out.puts "import #{import};"
         end
@@ -170,6 +177,19 @@ module Xdrgen
         out.indent do
           yield out
           out.unbreak
+        end
+        out.puts "}"
+      end
+
+      def render_constants(constants_container)
+        out = @output.open("Constants.java")
+        render_top_matter out
+        out.puts "public final class Constants {"
+        out.indent do
+          out.puts "private Constants() {}"
+          constants_container.each do |const_name, const_value|
+            out.puts "public static final int #{const_name} = #{const_value};"
+          end
         end
         out.puts "}"
       end
@@ -655,7 +675,6 @@ module Xdrgen
           // DO NOT EDIT or your changes may be overwritten
 
           package #{@namespace};
-
 
           import java.io.IOException;
         EOS
