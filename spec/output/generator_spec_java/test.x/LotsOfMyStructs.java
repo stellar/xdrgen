@@ -68,7 +68,7 @@ public class LotsOfMyStructs implements XdrElement {
 
     public LotsOfMyStructs build() {
       LotsOfMyStructs val = new LotsOfMyStructs();
-      val.setMembers(members);
+      val.setMembers(this.members);
       return val;
     }
   }
