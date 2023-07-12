@@ -3,6 +3,8 @@ require 'set'
 module Xdrgen
   module Generators
 
+    MAX_SIZE = (2 ** 31) - 1
+
     class Java < Xdrgen::Generators::Base
 
       def generate
@@ -807,7 +809,7 @@ module Xdrgen
         when AST::Typespecs::Bool ;
           "stream.readInt() == 1 ? true : false"
         when AST::Typespecs::String ;
-          "XdrString.decode(stream, #{decl.size})"
+          "XdrString.decode(stream, #{decl.size || MAX_SIZE})"
         when AST::Typespecs::Simple ;
           "#{name decl.type.resolved_type}.decode(stream)"
         when AST::Concerns::NestedDefinition ;
