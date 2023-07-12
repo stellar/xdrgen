@@ -11,7 +11,7 @@ pub const XDR_FILES_SHA256: [(&str, &str); 1] = [
 use core::{array::TryFromSliceError, fmt, fmt::Debug, marker::Sized, ops::Deref, slice};
 
 #[cfg(feature = "std")]
-use core::{cell::RefCell, marker::PhantomData};
+use core::marker::PhantomData;
 
 // When feature alloc is turned off use static lifetime Box and Vec types.
 #[cfg(not(feature = "alloc"))]
@@ -194,15 +194,18 @@ where
 /// It provides a mechanism to limit recursion depth, and defines the behavior upon
 /// entering and leaving a recursion level.
 pub trait DepthLimiter {
-    /// The error type returned by methods when they fail due to exceeding the depth limit.
-    type DepthError;
+    /// A general error type for any type implementing, or an operation under the guard of
+    /// `DepthLimiter`. It must at least include the error case where the depth limit is exceeded
+    /// which is returned from `enter`.
+    type DepthLimiterError;
 
     /// Defines the behavior for entering a new recursion level.
-    /// A `DepthError` is returned if the new level exceeds the depth limit.
-    fn enter(&self) -> core::result::Result<(), Self::DepthError>;
+    /// A `DepthLimiterError` is returned if the new level exceeds the depth limit.
+    fn enter(&mut self) -> core::result::Result<(), Self::DepthLimiterError>;
 
     /// Defines the behavior for leaving a recursion level.
-    fn leave(&self);
+    /// A `DepthLimiterError` is returned if an error occurs.
+    fn leave(&mut self) -> core::result::Result<(), Self::DepthLimiterError>;
 
     /// Wraps a given function `f` with depth limiting guards.
     /// It triggers an `enter` before, and a `leave` after the execution of `f`.
@@ -213,16 +216,17 @@ pub trait DepthLimiter {
     ///
     /// # Returns
     ///
-    /// - `Ok` with function result if `f` executes without exceeding depth limits,
-    ///   `Err` otherwise.
-    fn with_limited_depth<T, F>(&mut self, f: F) -> core::result::Result<T, Self::DepthError>
+    /// - `Err` if 1. the depth limit has been exceeded upon `enter` 2. `f` executes
+    ///         with an error 3. if error occurs on `leave`.
+    ///   `Ok` otherwise.
+    fn with_limited_depth<T, F>(&mut self, f: F) -> core::result::Result<T, Self::DepthLimiterError>
     where
-        F: FnOnce(&mut Self) -> core::result::Result<T, Self::DepthError>,
+        F: FnOnce(&mut Self) -> core::result::Result<T, Self::DepthLimiterError>,
     {
         self.enter()?;
-        let res = f(self)?;
-        self.leave();
-        Ok(res)
+        let res = f(self);
+        self.leave()?;
+        res
     }
 }
 
@@ -232,7 +236,7 @@ pub trait DepthLimiter {
 #[cfg(feature = "std")]
 pub struct DepthLimitedRead<R: Read> {
     pub inner: R,
-    pub(crate) depth_remaining: RefCell<u32>,
+    pub(crate) depth_remaining: u32,
 }
 
 #[cfg(feature = "std")]
@@ -244,30 +248,31 @@ impl<R: Read> DepthLimitedRead<R> {
     pub fn new(inner: R, depth_limit: u32) -> Self {
         DepthLimitedRead {
             inner,
-            depth_remaining: RefCell::new(depth_limit),
+            depth_remaining: depth_limit,
         }
     }
 }
 
 #[cfg(feature = "std")]
 impl<R: Read> DepthLimiter for DepthLimitedRead<R> {
-    type DepthError = Error;
+    type DepthLimiterError = Error;
 
     /// Decrements the `depth_remaining`. If the `depth_remaining` is already zero, an error is
     /// returned indicating that the maximum depth limit has been exceeded.
-    fn enter(&self) -> core::result::Result<(), Error> {
-        let depth = *self.depth_remaining.borrow();
-        if depth == 0 {
+    fn enter(&mut self) -> core::result::Result<(), Error> {
+        if let Some(depth) = self.depth_remaining.checked_sub(1) {
+            self.depth_remaining = depth;
+        } else {
             return Err(Error::DepthLimitExceeded);
         }
-        self.depth_remaining.replace(depth - 1);
         Ok(())
     }
 
-    /// Increments the depth, without exceeding the initial depth value.
-    fn leave(&self) {
-        let depth = *self.depth_remaining.borrow();
-        self.depth_remaining.replace(depth.saturating_add(1));
+    /// Increments the depth. `leave` should be called in tandem with `enter` such that the depth
+    /// doesn't exceed the initial depth limit.
+    fn leave(&mut self) -> core::result::Result<(), Error> {
+        self.depth_remaining = self.depth_remaining.saturating_add(1);
+        Ok(())
     }
 }
 
@@ -285,7 +290,7 @@ impl<R: Read> Read for DepthLimitedRead<R> {
 #[cfg(feature = "std")]
 pub struct DepthLimitedWrite<W: Write> {
     pub inner: W,
-    pub(crate) depth_remaining: RefCell<u32>,
+    pub(crate) depth_remaining: u32,
 }
 
 #[cfg(feature = "std")]
@@ -297,30 +302,31 @@ impl<W: Write> DepthLimitedWrite<W> {
     pub fn new(inner: W, depth_limit: u32) -> Self {
         DepthLimitedWrite {
             inner,
-            depth_remaining: RefCell::new(depth_limit),
+            depth_remaining: depth_limit,
         }
     }
 }
 
 #[cfg(feature = "std")]
 impl<W: Write> DepthLimiter for DepthLimitedWrite<W> {
-    type DepthError = Error;
+    type DepthLimiterError = Error;
 
     /// Decrements the `depth_remaining`. If the depth is already zero, an error is
     /// returned indicating that the maximum depth limit has been exceeded.
-    fn enter(&self) -> Result<()> {
-        let depth = *self.depth_remaining.borrow();
-        if depth == 0 {
+    fn enter(&mut self) -> Result<()> {
+        if let Some(depth) = self.depth_remaining.checked_sub(1) {
+            self.depth_remaining = depth;
+        } else {
             return Err(Error::DepthLimitExceeded);
         }
-        self.depth_remaining.replace(depth - 1);
         Ok(())
     }
 
-    /// Increments the depth, without exceeding the initial depth value.
-    fn leave(&self) {
-        let depth = *self.depth_remaining.borrow();
-        self.depth_remaining.replace(depth.saturating_add(1));
+    /// Increments the depth. `leave` should be called in tandem with `enter` such that the depth
+    /// doesn't exceed the initial depth limit.
+    fn leave(&mut self) -> core::result::Result<(), Error> {
+        self.depth_remaining = self.depth_remaining.saturating_add(1);
+        Ok(())
     }
 }
 
@@ -349,7 +355,7 @@ impl<R: Read, S: ReadXdr> ReadXdrIter<R, S> {
         Self {
             reader: DepthLimitedRead {
                 inner: BufReader::new(r),
-                depth_remaining: RefCell::new(depth_limit),
+                depth_remaining: depth_limit,
             },
             _s: PhantomData,
         }
@@ -421,7 +427,7 @@ where
     fn read_xdr_base64<R: Read>(r: &mut DepthLimitedRead<R>) -> Result<Self> {
         let mut dec = DepthLimitedRead::new(
             base64::read::DecoderReader::new(&mut r.inner, base64::STANDARD),
-            r.depth_remaining.take(),
+            r.depth_remaining,
         );
         let t = Self::read_xdr(&mut dec)?;
         Ok(t)
@@ -465,7 +471,7 @@ where
     fn read_xdr_base64_to_end<R: Read>(r: &mut DepthLimitedRead<R>) -> Result<Self> {
         let mut dec = DepthLimitedRead::new(
             base64::read::DecoderReader::new(&mut r.inner, base64::STANDARD),
-            r.depth_remaining.take(),
+            r.depth_remaining,
         );
         let t = Self::read_xdr_to_end(&mut dec)?;
         Ok(t)
@@ -541,7 +547,7 @@ where
     /// [`ErrorKind::Interrupted`](std::io::ErrorKind::Interrupted).
     #[cfg(feature = "std")]
     fn read_xdr_iter<R: Read>(r: &mut DepthLimitedRead<R>) -> ReadXdrIter<&mut R, Self> {
-        ReadXdrIter::new(&mut r.inner, r.depth_remaining.take())
+        ReadXdrIter::new(&mut r.inner, r.depth_remaining)
     }
 
     /// Create an iterator that reads the read implementation as a stream of
@@ -551,7 +557,7 @@ where
         r: &mut DepthLimitedRead<R>,
     ) -> ReadXdrIter<base64::read::DecoderReader<R>, Self> {
         let dec = base64::read::DecoderReader::new(&mut r.inner, base64::STANDARD);
-        ReadXdrIter::new(dec, r.depth_remaining.take())
+        ReadXdrIter::new(dec, r.depth_remaining)
     }
 
     /// Construct the type from the XDR bytes, specifying a depth limit.
@@ -4119,7 +4125,7 @@ TypeVariant::NesterNestedUnion => r.with_limited_depth(|r| Ok(Self::NesterNested
 
             #[cfg(feature = "base64")]
             pub fn read_xdr_base64<R: Read>(v: TypeVariant, r: &mut DepthLimitedRead<R>) -> Result<Self> {
-                let mut dec = DepthLimitedRead::new(base64::read::DecoderReader::new(&mut r.inner, base64::STANDARD), r.depth_remaining.take());
+                let mut dec = DepthLimitedRead::new(base64::read::DecoderReader::new(&mut r.inner, base64::STANDARD), r.depth_remaining);
                 let t = Self::read_xdr(v, &mut dec)?;
                 Ok(t)
             }
@@ -4138,7 +4144,7 @@ TypeVariant::NesterNestedUnion => r.with_limited_depth(|r| Ok(Self::NesterNested
 
             #[cfg(feature = "base64")]
             pub fn read_xdr_base64_to_end<R: Read>(v: TypeVariant, r: &mut DepthLimitedRead<R>) -> Result<Self> {
-                let mut dec = DepthLimitedRead::new(base64::read::DecoderReader::new(&mut r.inner, base64::STANDARD), r.depth_remaining.take());
+                let mut dec = DepthLimitedRead::new(base64::read::DecoderReader::new(&mut r.inner, base64::STANDARD), r.depth_remaining);
                 let t = Self::read_xdr_to_end(v, &mut dec)?;
                 Ok(t)
             }
@@ -4147,29 +4153,29 @@ TypeVariant::NesterNestedUnion => r.with_limited_depth(|r| Ok(Self::NesterNested
             #[allow(clippy::too_many_lines)]
             pub fn read_xdr_iter<R: Read>(v: TypeVariant, r: &mut DepthLimitedRead<R>) -> Box<dyn Iterator<Item=Result<Self>> + '_> {
                 match v {
-                    TypeVariant::Uint512 => Box::new(ReadXdrIter::<_, Uint512>::new(&mut r.inner, r.depth_remaining.take()).map(|r| r.map(|t| Self::Uint512(Box::new(t))))),
-TypeVariant::Uint513 => Box::new(ReadXdrIter::<_, Uint513>::new(&mut r.inner, r.depth_remaining.take()).map(|r| r.map(|t| Self::Uint513(Box::new(t))))),
-TypeVariant::Uint514 => Box::new(ReadXdrIter::<_, Uint514>::new(&mut r.inner, r.depth_remaining.take()).map(|r| r.map(|t| Self::Uint514(Box::new(t))))),
-TypeVariant::Str => Box::new(ReadXdrIter::<_, Str>::new(&mut r.inner, r.depth_remaining.take()).map(|r| r.map(|t| Self::Str(Box::new(t))))),
-TypeVariant::Str2 => Box::new(ReadXdrIter::<_, Str2>::new(&mut r.inner, r.depth_remaining.take()).map(|r| r.map(|t| Self::Str2(Box::new(t))))),
-TypeVariant::Hash => Box::new(ReadXdrIter::<_, Hash>::new(&mut r.inner, r.depth_remaining.take()).map(|r| r.map(|t| Self::Hash(Box::new(t))))),
-TypeVariant::Hashes1 => Box::new(ReadXdrIter::<_, Hashes1>::new(&mut r.inner, r.depth_remaining.take()).map(|r| r.map(|t| Self::Hashes1(Box::new(t))))),
-TypeVariant::Hashes2 => Box::new(ReadXdrIter::<_, Hashes2>::new(&mut r.inner, r.depth_remaining.take()).map(|r| r.map(|t| Self::Hashes2(Box::new(t))))),
-TypeVariant::Hashes3 => Box::new(ReadXdrIter::<_, Hashes3>::new(&mut r.inner, r.depth_remaining.take()).map(|r| r.map(|t| Self::Hashes3(Box::new(t))))),
-TypeVariant::OptHash1 => Box::new(ReadXdrIter::<_, OptHash1>::new(&mut r.inner, r.depth_remaining.take()).map(|r| r.map(|t| Self::OptHash1(Box::new(t))))),
-TypeVariant::OptHash2 => Box::new(ReadXdrIter::<_, OptHash2>::new(&mut r.inner, r.depth_remaining.take()).map(|r| r.map(|t| Self::OptHash2(Box::new(t))))),
-TypeVariant::Int1 => Box::new(ReadXdrIter::<_, Int1>::new(&mut r.inner, r.depth_remaining.take()).map(|r| r.map(|t| Self::Int1(Box::new(t))))),
-TypeVariant::Int2 => Box::new(ReadXdrIter::<_, Int2>::new(&mut r.inner, r.depth_remaining.take()).map(|r| r.map(|t| Self::Int2(Box::new(t))))),
-TypeVariant::Int3 => Box::new(ReadXdrIter::<_, Int3>::new(&mut r.inner, r.depth_remaining.take()).map(|r| r.map(|t| Self::Int3(Box::new(t))))),
-TypeVariant::Int4 => Box::new(ReadXdrIter::<_, Int4>::new(&mut r.inner, r.depth_remaining.take()).map(|r| r.map(|t| Self::Int4(Box::new(t))))),
-TypeVariant::MyStruct => Box::new(ReadXdrIter::<_, MyStruct>::new(&mut r.inner, r.depth_remaining.take()).map(|r| r.map(|t| Self::MyStruct(Box::new(t))))),
-TypeVariant::LotsOfMyStructs => Box::new(ReadXdrIter::<_, LotsOfMyStructs>::new(&mut r.inner, r.depth_remaining.take()).map(|r| r.map(|t| Self::LotsOfMyStructs(Box::new(t))))),
-TypeVariant::HasStuff => Box::new(ReadXdrIter::<_, HasStuff>::new(&mut r.inner, r.depth_remaining.take()).map(|r| r.map(|t| Self::HasStuff(Box::new(t))))),
-TypeVariant::Color => Box::new(ReadXdrIter::<_, Color>::new(&mut r.inner, r.depth_remaining.take()).map(|r| r.map(|t| Self::Color(Box::new(t))))),
-TypeVariant::Nester => Box::new(ReadXdrIter::<_, Nester>::new(&mut r.inner, r.depth_remaining.take()).map(|r| r.map(|t| Self::Nester(Box::new(t))))),
-TypeVariant::NesterNestedEnum => Box::new(ReadXdrIter::<_, NesterNestedEnum>::new(&mut r.inner, r.depth_remaining.take()).map(|r| r.map(|t| Self::NesterNestedEnum(Box::new(t))))),
-TypeVariant::NesterNestedStruct => Box::new(ReadXdrIter::<_, NesterNestedStruct>::new(&mut r.inner, r.depth_remaining.take()).map(|r| r.map(|t| Self::NesterNestedStruct(Box::new(t))))),
-TypeVariant::NesterNestedUnion => Box::new(ReadXdrIter::<_, NesterNestedUnion>::new(&mut r.inner, r.depth_remaining.take()).map(|r| r.map(|t| Self::NesterNestedUnion(Box::new(t))))),
+                    TypeVariant::Uint512 => Box::new(ReadXdrIter::<_, Uint512>::new(&mut r.inner, r.depth_remaining).map(|r| r.map(|t| Self::Uint512(Box::new(t))))),
+TypeVariant::Uint513 => Box::new(ReadXdrIter::<_, Uint513>::new(&mut r.inner, r.depth_remaining).map(|r| r.map(|t| Self::Uint513(Box::new(t))))),
+TypeVariant::Uint514 => Box::new(ReadXdrIter::<_, Uint514>::new(&mut r.inner, r.depth_remaining).map(|r| r.map(|t| Self::Uint514(Box::new(t))))),
+TypeVariant::Str => Box::new(ReadXdrIter::<_, Str>::new(&mut r.inner, r.depth_remaining).map(|r| r.map(|t| Self::Str(Box::new(t))))),
+TypeVariant::Str2 => Box::new(ReadXdrIter::<_, Str2>::new(&mut r.inner, r.depth_remaining).map(|r| r.map(|t| Self::Str2(Box::new(t))))),
+TypeVariant::Hash => Box::new(ReadXdrIter::<_, Hash>::new(&mut r.inner, r.depth_remaining).map(|r| r.map(|t| Self::Hash(Box::new(t))))),
+TypeVariant::Hashes1 => Box::new(ReadXdrIter::<_, Hashes1>::new(&mut r.inner, r.depth_remaining).map(|r| r.map(|t| Self::Hashes1(Box::new(t))))),
+TypeVariant::Hashes2 => Box::new(ReadXdrIter::<_, Hashes2>::new(&mut r.inner, r.depth_remaining).map(|r| r.map(|t| Self::Hashes2(Box::new(t))))),
+TypeVariant::Hashes3 => Box::new(ReadXdrIter::<_, Hashes3>::new(&mut r.inner, r.depth_remaining).map(|r| r.map(|t| Self::Hashes3(Box::new(t))))),
+TypeVariant::OptHash1 => Box::new(ReadXdrIter::<_, OptHash1>::new(&mut r.inner, r.depth_remaining).map(|r| r.map(|t| Self::OptHash1(Box::new(t))))),
+TypeVariant::OptHash2 => Box::new(ReadXdrIter::<_, OptHash2>::new(&mut r.inner, r.depth_remaining).map(|r| r.map(|t| Self::OptHash2(Box::new(t))))),
+TypeVariant::Int1 => Box::new(ReadXdrIter::<_, Int1>::new(&mut r.inner, r.depth_remaining).map(|r| r.map(|t| Self::Int1(Box::new(t))))),
+TypeVariant::Int2 => Box::new(ReadXdrIter::<_, Int2>::new(&mut r.inner, r.depth_remaining).map(|r| r.map(|t| Self::Int2(Box::new(t))))),
+TypeVariant::Int3 => Box::new(ReadXdrIter::<_, Int3>::new(&mut r.inner, r.depth_remaining).map(|r| r.map(|t| Self::Int3(Box::new(t))))),
+TypeVariant::Int4 => Box::new(ReadXdrIter::<_, Int4>::new(&mut r.inner, r.depth_remaining).map(|r| r.map(|t| Self::Int4(Box::new(t))))),
+TypeVariant::MyStruct => Box::new(ReadXdrIter::<_, MyStruct>::new(&mut r.inner, r.depth_remaining).map(|r| r.map(|t| Self::MyStruct(Box::new(t))))),
+TypeVariant::LotsOfMyStructs => Box::new(ReadXdrIter::<_, LotsOfMyStructs>::new(&mut r.inner, r.depth_remaining).map(|r| r.map(|t| Self::LotsOfMyStructs(Box::new(t))))),
+TypeVariant::HasStuff => Box::new(ReadXdrIter::<_, HasStuff>::new(&mut r.inner, r.depth_remaining).map(|r| r.map(|t| Self::HasStuff(Box::new(t))))),
+TypeVariant::Color => Box::new(ReadXdrIter::<_, Color>::new(&mut r.inner, r.depth_remaining).map(|r| r.map(|t| Self::Color(Box::new(t))))),
+TypeVariant::Nester => Box::new(ReadXdrIter::<_, Nester>::new(&mut r.inner, r.depth_remaining).map(|r| r.map(|t| Self::Nester(Box::new(t))))),
+TypeVariant::NesterNestedEnum => Box::new(ReadXdrIter::<_, NesterNestedEnum>::new(&mut r.inner, r.depth_remaining).map(|r| r.map(|t| Self::NesterNestedEnum(Box::new(t))))),
+TypeVariant::NesterNestedStruct => Box::new(ReadXdrIter::<_, NesterNestedStruct>::new(&mut r.inner, r.depth_remaining).map(|r| r.map(|t| Self::NesterNestedStruct(Box::new(t))))),
+TypeVariant::NesterNestedUnion => Box::new(ReadXdrIter::<_, NesterNestedUnion>::new(&mut r.inner, r.depth_remaining).map(|r| r.map(|t| Self::NesterNestedUnion(Box::new(t))))),
                 }
             }
 
@@ -4177,29 +4183,29 @@ TypeVariant::NesterNestedUnion => Box::new(ReadXdrIter::<_, NesterNestedUnion>::
             #[allow(clippy::too_many_lines)]
             pub fn read_xdr_framed_iter<R: Read>(v: TypeVariant, r: &mut DepthLimitedRead<R>) -> Box<dyn Iterator<Item=Result<Self>> + '_> {
                 match v {
-                    TypeVariant::Uint512 => Box::new(ReadXdrIter::<_, Frame<Uint512>>::new(&mut r.inner, r.depth_remaining.take()).map(|r| r.map(|t| Self::Uint512(Box::new(t.0))))),
-TypeVariant::Uint513 => Box::new(ReadXdrIter::<_, Frame<Uint513>>::new(&mut r.inner, r.depth_remaining.take()).map(|r| r.map(|t| Self::Uint513(Box::new(t.0))))),
-TypeVariant::Uint514 => Box::new(ReadXdrIter::<_, Frame<Uint514>>::new(&mut r.inner, r.depth_remaining.take()).map(|r| r.map(|t| Self::Uint514(Box::new(t.0))))),
-TypeVariant::Str => Box::new(ReadXdrIter::<_, Frame<Str>>::new(&mut r.inner, r.depth_remaining.take()).map(|r| r.map(|t| Self::Str(Box::new(t.0))))),
-TypeVariant::Str2 => Box::new(ReadXdrIter::<_, Frame<Str2>>::new(&mut r.inner, r.depth_remaining.take()).map(|r| r.map(|t| Self::Str2(Box::new(t.0))))),
-TypeVariant::Hash => Box::new(ReadXdrIter::<_, Frame<Hash>>::new(&mut r.inner, r.depth_remaining.take()).map(|r| r.map(|t| Self::Hash(Box::new(t.0))))),
-TypeVariant::Hashes1 => Box::new(ReadXdrIter::<_, Frame<Hashes1>>::new(&mut r.inner, r.depth_remaining.take()).map(|r| r.map(|t| Self::Hashes1(Box::new(t.0))))),
-TypeVariant::Hashes2 => Box::new(ReadXdrIter::<_, Frame<Hashes2>>::new(&mut r.inner, r.depth_remaining.take()).map(|r| r.map(|t| Self::Hashes2(Box::new(t.0))))),
-TypeVariant::Hashes3 => Box::new(ReadXdrIter::<_, Frame<Hashes3>>::new(&mut r.inner, r.depth_remaining.take()).map(|r| r.map(|t| Self::Hashes3(Box::new(t.0))))),
-TypeVariant::OptHash1 => Box::new(ReadXdrIter::<_, Frame<OptHash1>>::new(&mut r.inner, r.depth_remaining.take()).map(|r| r.map(|t| Self::OptHash1(Box::new(t.0))))),
-TypeVariant::OptHash2 => Box::new(ReadXdrIter::<_, Frame<OptHash2>>::new(&mut r.inner, r.depth_remaining.take()).map(|r| r.map(|t| Self::OptHash2(Box::new(t.0))))),
-TypeVariant::Int1 => Box::new(ReadXdrIter::<_, Frame<Int1>>::new(&mut r.inner, r.depth_remaining.take()).map(|r| r.map(|t| Self::Int1(Box::new(t.0))))),
-TypeVariant::Int2 => Box::new(ReadXdrIter::<_, Frame<Int2>>::new(&mut r.inner, r.depth_remaining.take()).map(|r| r.map(|t| Self::Int2(Box::new(t.0))))),
-TypeVariant::Int3 => Box::new(ReadXdrIter::<_, Frame<Int3>>::new(&mut r.inner, r.depth_remaining.take()).map(|r| r.map(|t| Self::Int3(Box::new(t.0))))),
-TypeVariant::Int4 => Box::new(ReadXdrIter::<_, Frame<Int4>>::new(&mut r.inner, r.depth_remaining.take()).map(|r| r.map(|t| Self::Int4(Box::new(t.0))))),
-TypeVariant::MyStruct => Box::new(ReadXdrIter::<_, Frame<MyStruct>>::new(&mut r.inner, r.depth_remaining.take()).map(|r| r.map(|t| Self::MyStruct(Box::new(t.0))))),
-TypeVariant::LotsOfMyStructs => Box::new(ReadXdrIter::<_, Frame<LotsOfMyStructs>>::new(&mut r.inner, r.depth_remaining.take()).map(|r| r.map(|t| Self::LotsOfMyStructs(Box::new(t.0))))),
-TypeVariant::HasStuff => Box::new(ReadXdrIter::<_, Frame<HasStuff>>::new(&mut r.inner, r.depth_remaining.take()).map(|r| r.map(|t| Self::HasStuff(Box::new(t.0))))),
-TypeVariant::Color => Box::new(ReadXdrIter::<_, Frame<Color>>::new(&mut r.inner, r.depth_remaining.take()).map(|r| r.map(|t| Self::Color(Box::new(t.0))))),
-TypeVariant::Nester => Box::new(ReadXdrIter::<_, Frame<Nester>>::new(&mut r.inner, r.depth_remaining.take()).map(|r| r.map(|t| Self::Nester(Box::new(t.0))))),
-TypeVariant::NesterNestedEnum => Box::new(ReadXdrIter::<_, Frame<NesterNestedEnum>>::new(&mut r.inner, r.depth_remaining.take()).map(|r| r.map(|t| Self::NesterNestedEnum(Box::new(t.0))))),
-TypeVariant::NesterNestedStruct => Box::new(ReadXdrIter::<_, Frame<NesterNestedStruct>>::new(&mut r.inner, r.depth_remaining.take()).map(|r| r.map(|t| Self::NesterNestedStruct(Box::new(t.0))))),
-TypeVariant::NesterNestedUnion => Box::new(ReadXdrIter::<_, Frame<NesterNestedUnion>>::new(&mut r.inner, r.depth_remaining.take()).map(|r| r.map(|t| Self::NesterNestedUnion(Box::new(t.0))))),
+                    TypeVariant::Uint512 => Box::new(ReadXdrIter::<_, Frame<Uint512>>::new(&mut r.inner, r.depth_remaining).map(|r| r.map(|t| Self::Uint512(Box::new(t.0))))),
+TypeVariant::Uint513 => Box::new(ReadXdrIter::<_, Frame<Uint513>>::new(&mut r.inner, r.depth_remaining).map(|r| r.map(|t| Self::Uint513(Box::new(t.0))))),
+TypeVariant::Uint514 => Box::new(ReadXdrIter::<_, Frame<Uint514>>::new(&mut r.inner, r.depth_remaining).map(|r| r.map(|t| Self::Uint514(Box::new(t.0))))),
+TypeVariant::Str => Box::new(ReadXdrIter::<_, Frame<Str>>::new(&mut r.inner, r.depth_remaining).map(|r| r.map(|t| Self::Str(Box::new(t.0))))),
+TypeVariant::Str2 => Box::new(ReadXdrIter::<_, Frame<Str2>>::new(&mut r.inner, r.depth_remaining).map(|r| r.map(|t| Self::Str2(Box::new(t.0))))),
+TypeVariant::Hash => Box::new(ReadXdrIter::<_, Frame<Hash>>::new(&mut r.inner, r.depth_remaining).map(|r| r.map(|t| Self::Hash(Box::new(t.0))))),
+TypeVariant::Hashes1 => Box::new(ReadXdrIter::<_, Frame<Hashes1>>::new(&mut r.inner, r.depth_remaining).map(|r| r.map(|t| Self::Hashes1(Box::new(t.0))))),
+TypeVariant::Hashes2 => Box::new(ReadXdrIter::<_, Frame<Hashes2>>::new(&mut r.inner, r.depth_remaining).map(|r| r.map(|t| Self::Hashes2(Box::new(t.0))))),
+TypeVariant::Hashes3 => Box::new(ReadXdrIter::<_, Frame<Hashes3>>::new(&mut r.inner, r.depth_remaining).map(|r| r.map(|t| Self::Hashes3(Box::new(t.0))))),
+TypeVariant::OptHash1 => Box::new(ReadXdrIter::<_, Frame<OptHash1>>::new(&mut r.inner, r.depth_remaining).map(|r| r.map(|t| Self::OptHash1(Box::new(t.0))))),
+TypeVariant::OptHash2 => Box::new(ReadXdrIter::<_, Frame<OptHash2>>::new(&mut r.inner, r.depth_remaining).map(|r| r.map(|t| Self::OptHash2(Box::new(t.0))))),
+TypeVariant::Int1 => Box::new(ReadXdrIter::<_, Frame<Int1>>::new(&mut r.inner, r.depth_remaining).map(|r| r.map(|t| Self::Int1(Box::new(t.0))))),
+TypeVariant::Int2 => Box::new(ReadXdrIter::<_, Frame<Int2>>::new(&mut r.inner, r.depth_remaining).map(|r| r.map(|t| Self::Int2(Box::new(t.0))))),
+TypeVariant::Int3 => Box::new(ReadXdrIter::<_, Frame<Int3>>::new(&mut r.inner, r.depth_remaining).map(|r| r.map(|t| Self::Int3(Box::new(t.0))))),
+TypeVariant::Int4 => Box::new(ReadXdrIter::<_, Frame<Int4>>::new(&mut r.inner, r.depth_remaining).map(|r| r.map(|t| Self::Int4(Box::new(t.0))))),
+TypeVariant::MyStruct => Box::new(ReadXdrIter::<_, Frame<MyStruct>>::new(&mut r.inner, r.depth_remaining).map(|r| r.map(|t| Self::MyStruct(Box::new(t.0))))),
+TypeVariant::LotsOfMyStructs => Box::new(ReadXdrIter::<_, Frame<LotsOfMyStructs>>::new(&mut r.inner, r.depth_remaining).map(|r| r.map(|t| Self::LotsOfMyStructs(Box::new(t.0))))),
+TypeVariant::HasStuff => Box::new(ReadXdrIter::<_, Frame<HasStuff>>::new(&mut r.inner, r.depth_remaining).map(|r| r.map(|t| Self::HasStuff(Box::new(t.0))))),
+TypeVariant::Color => Box::new(ReadXdrIter::<_, Frame<Color>>::new(&mut r.inner, r.depth_remaining).map(|r| r.map(|t| Self::Color(Box::new(t.0))))),
+TypeVariant::Nester => Box::new(ReadXdrIter::<_, Frame<Nester>>::new(&mut r.inner, r.depth_remaining).map(|r| r.map(|t| Self::Nester(Box::new(t.0))))),
+TypeVariant::NesterNestedEnum => Box::new(ReadXdrIter::<_, Frame<NesterNestedEnum>>::new(&mut r.inner, r.depth_remaining).map(|r| r.map(|t| Self::NesterNestedEnum(Box::new(t.0))))),
+TypeVariant::NesterNestedStruct => Box::new(ReadXdrIter::<_, Frame<NesterNestedStruct>>::new(&mut r.inner, r.depth_remaining).map(|r| r.map(|t| Self::NesterNestedStruct(Box::new(t.0))))),
+TypeVariant::NesterNestedUnion => Box::new(ReadXdrIter::<_, Frame<NesterNestedUnion>>::new(&mut r.inner, r.depth_remaining).map(|r| r.map(|t| Self::NesterNestedUnion(Box::new(t.0))))),
                 }
             }
 
@@ -4208,29 +4214,29 @@ TypeVariant::NesterNestedUnion => Box::new(ReadXdrIter::<_, Frame<NesterNestedUn
             pub fn read_xdr_base64_iter<R: Read>(v: TypeVariant, r: &mut DepthLimitedRead<R>) -> Box<dyn Iterator<Item=Result<Self>> + '_> {
                 let dec = base64::read::DecoderReader::new(&mut r.inner, base64::STANDARD);
                 match v {
-                    TypeVariant::Uint512 => Box::new(ReadXdrIter::<_, Uint512>::new(dec, r.depth_remaining.take()).map(|r| r.map(|t| Self::Uint512(Box::new(t))))),
-TypeVariant::Uint513 => Box::new(ReadXdrIter::<_, Uint513>::new(dec, r.depth_remaining.take()).map(|r| r.map(|t| Self::Uint513(Box::new(t))))),
-TypeVariant::Uint514 => Box::new(ReadXdrIter::<_, Uint514>::new(dec, r.depth_remaining.take()).map(|r| r.map(|t| Self::Uint514(Box::new(t))))),
-TypeVariant::Str => Box::new(ReadXdrIter::<_, Str>::new(dec, r.depth_remaining.take()).map(|r| r.map(|t| Self::Str(Box::new(t))))),
-TypeVariant::Str2 => Box::new(ReadXdrIter::<_, Str2>::new(dec, r.depth_remaining.take()).map(|r| r.map(|t| Self::Str2(Box::new(t))))),
-TypeVariant::Hash => Box::new(ReadXdrIter::<_, Hash>::new(dec, r.depth_remaining.take()).map(|r| r.map(|t| Self::Hash(Box::new(t))))),
-TypeVariant::Hashes1 => Box::new(ReadXdrIter::<_, Hashes1>::new(dec, r.depth_remaining.take()).map(|r| r.map(|t| Self::Hashes1(Box::new(t))))),
-TypeVariant::Hashes2 => Box::new(ReadXdrIter::<_, Hashes2>::new(dec, r.depth_remaining.take()).map(|r| r.map(|t| Self::Hashes2(Box::new(t))))),
-TypeVariant::Hashes3 => Box::new(ReadXdrIter::<_, Hashes3>::new(dec, r.depth_remaining.take()).map(|r| r.map(|t| Self::Hashes3(Box::new(t))))),
-TypeVariant::OptHash1 => Box::new(ReadXdrIter::<_, OptHash1>::new(dec, r.depth_remaining.take()).map(|r| r.map(|t| Self::OptHash1(Box::new(t))))),
-TypeVariant::OptHash2 => Box::new(ReadXdrIter::<_, OptHash2>::new(dec, r.depth_remaining.take()).map(|r| r.map(|t| Self::OptHash2(Box::new(t))))),
-TypeVariant::Int1 => Box::new(ReadXdrIter::<_, Int1>::new(dec, r.depth_remaining.take()).map(|r| r.map(|t| Self::Int1(Box::new(t))))),
-TypeVariant::Int2 => Box::new(ReadXdrIter::<_, Int2>::new(dec, r.depth_remaining.take()).map(|r| r.map(|t| Self::Int2(Box::new(t))))),
-TypeVariant::Int3 => Box::new(ReadXdrIter::<_, Int3>::new(dec, r.depth_remaining.take()).map(|r| r.map(|t| Self::Int3(Box::new(t))))),
-TypeVariant::Int4 => Box::new(ReadXdrIter::<_, Int4>::new(dec, r.depth_remaining.take()).map(|r| r.map(|t| Self::Int4(Box::new(t))))),
-TypeVariant::MyStruct => Box::new(ReadXdrIter::<_, MyStruct>::new(dec, r.depth_remaining.take()).map(|r| r.map(|t| Self::MyStruct(Box::new(t))))),
-TypeVariant::LotsOfMyStructs => Box::new(ReadXdrIter::<_, LotsOfMyStructs>::new(dec, r.depth_remaining.take()).map(|r| r.map(|t| Self::LotsOfMyStructs(Box::new(t))))),
-TypeVariant::HasStuff => Box::new(ReadXdrIter::<_, HasStuff>::new(dec, r.depth_remaining.take()).map(|r| r.map(|t| Self::HasStuff(Box::new(t))))),
-TypeVariant::Color => Box::new(ReadXdrIter::<_, Color>::new(dec, r.depth_remaining.take()).map(|r| r.map(|t| Self::Color(Box::new(t))))),
-TypeVariant::Nester => Box::new(ReadXdrIter::<_, Nester>::new(dec, r.depth_remaining.take()).map(|r| r.map(|t| Self::Nester(Box::new(t))))),
-TypeVariant::NesterNestedEnum => Box::new(ReadXdrIter::<_, NesterNestedEnum>::new(dec, r.depth_remaining.take()).map(|r| r.map(|t| Self::NesterNestedEnum(Box::new(t))))),
-TypeVariant::NesterNestedStruct => Box::new(ReadXdrIter::<_, NesterNestedStruct>::new(dec, r.depth_remaining.take()).map(|r| r.map(|t| Self::NesterNestedStruct(Box::new(t))))),
-TypeVariant::NesterNestedUnion => Box::new(ReadXdrIter::<_, NesterNestedUnion>::new(dec, r.depth_remaining.take()).map(|r| r.map(|t| Self::NesterNestedUnion(Box::new(t))))),
+                    TypeVariant::Uint512 => Box::new(ReadXdrIter::<_, Uint512>::new(dec, r.depth_remaining).map(|r| r.map(|t| Self::Uint512(Box::new(t))))),
+TypeVariant::Uint513 => Box::new(ReadXdrIter::<_, Uint513>::new(dec, r.depth_remaining).map(|r| r.map(|t| Self::Uint513(Box::new(t))))),
+TypeVariant::Uint514 => Box::new(ReadXdrIter::<_, Uint514>::new(dec, r.depth_remaining).map(|r| r.map(|t| Self::Uint514(Box::new(t))))),
+TypeVariant::Str => Box::new(ReadXdrIter::<_, Str>::new(dec, r.depth_remaining).map(|r| r.map(|t| Self::Str(Box::new(t))))),
+TypeVariant::Str2 => Box::new(ReadXdrIter::<_, Str2>::new(dec, r.depth_remaining).map(|r| r.map(|t| Self::Str2(Box::new(t))))),
+TypeVariant::Hash => Box::new(ReadXdrIter::<_, Hash>::new(dec, r.depth_remaining).map(|r| r.map(|t| Self::Hash(Box::new(t))))),
+TypeVariant::Hashes1 => Box::new(ReadXdrIter::<_, Hashes1>::new(dec, r.depth_remaining).map(|r| r.map(|t| Self::Hashes1(Box::new(t))))),
+TypeVariant::Hashes2 => Box::new(ReadXdrIter::<_, Hashes2>::new(dec, r.depth_remaining).map(|r| r.map(|t| Self::Hashes2(Box::new(t))))),
+TypeVariant::Hashes3 => Box::new(ReadXdrIter::<_, Hashes3>::new(dec, r.depth_remaining).map(|r| r.map(|t| Self::Hashes3(Box::new(t))))),
+TypeVariant::OptHash1 => Box::new(ReadXdrIter::<_, OptHash1>::new(dec, r.depth_remaining).map(|r| r.map(|t| Self::OptHash1(Box::new(t))))),
+TypeVariant::OptHash2 => Box::new(ReadXdrIter::<_, OptHash2>::new(dec, r.depth_remaining).map(|r| r.map(|t| Self::OptHash2(Box::new(t))))),
+TypeVariant::Int1 => Box::new(ReadXdrIter::<_, Int1>::new(dec, r.depth_remaining).map(|r| r.map(|t| Self::Int1(Box::new(t))))),
+TypeVariant::Int2 => Box::new(ReadXdrIter::<_, Int2>::new(dec, r.depth_remaining).map(|r| r.map(|t| Self::Int2(Box::new(t))))),
+TypeVariant::Int3 => Box::new(ReadXdrIter::<_, Int3>::new(dec, r.depth_remaining).map(|r| r.map(|t| Self::Int3(Box::new(t))))),
+TypeVariant::Int4 => Box::new(ReadXdrIter::<_, Int4>::new(dec, r.depth_remaining).map(|r| r.map(|t| Self::Int4(Box::new(t))))),
+TypeVariant::MyStruct => Box::new(ReadXdrIter::<_, MyStruct>::new(dec, r.depth_remaining).map(|r| r.map(|t| Self::MyStruct(Box::new(t))))),
+TypeVariant::LotsOfMyStructs => Box::new(ReadXdrIter::<_, LotsOfMyStructs>::new(dec, r.depth_remaining).map(|r| r.map(|t| Self::LotsOfMyStructs(Box::new(t))))),
+TypeVariant::HasStuff => Box::new(ReadXdrIter::<_, HasStuff>::new(dec, r.depth_remaining).map(|r| r.map(|t| Self::HasStuff(Box::new(t))))),
+TypeVariant::Color => Box::new(ReadXdrIter::<_, Color>::new(dec, r.depth_remaining).map(|r| r.map(|t| Self::Color(Box::new(t))))),
+TypeVariant::Nester => Box::new(ReadXdrIter::<_, Nester>::new(dec, r.depth_remaining).map(|r| r.map(|t| Self::Nester(Box::new(t))))),
+TypeVariant::NesterNestedEnum => Box::new(ReadXdrIter::<_, NesterNestedEnum>::new(dec, r.depth_remaining).map(|r| r.map(|t| Self::NesterNestedEnum(Box::new(t))))),
+TypeVariant::NesterNestedStruct => Box::new(ReadXdrIter::<_, NesterNestedStruct>::new(dec, r.depth_remaining).map(|r| r.map(|t| Self::NesterNestedStruct(Box::new(t))))),
+TypeVariant::NesterNestedUnion => Box::new(ReadXdrIter::<_, NesterNestedUnion>::new(dec, r.depth_remaining).map(|r| r.map(|t| Self::NesterNestedUnion(Box::new(t))))),
                 }
             }
 
