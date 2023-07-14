@@ -37,7 +37,7 @@ use alloc::{
     string::{FromUtf8Error, String},
     vec::Vec,
 };
-#[cfg(all(feature = "std"))]
+#[cfg(feature = "std")]
 use std::string::FromUtf8Error;
 
 #[cfg(feature = "arbitrary")]
