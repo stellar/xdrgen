@@ -166,21 +166,21 @@ module Xdrgen
 
             #[cfg(feature = "std")]
             #[allow(clippy::too_many_lines)]
-            pub fn read_xdr(v: TypeVariant, r: &mut impl Read) -> Result<Self> {
+            pub fn read_xdr<R: Read>(v: TypeVariant, r: &mut DepthLimitedRead<R>) -> Result<Self> {
                 match v {
-                    #{types.map { |t| "TypeVariant::#{t} => Ok(Self::#{t}(Box::new(#{t}::read_xdr(r)?)))," }.join("\n")}
+                    #{types.map { |t| "TypeVariant::#{t} => r.with_limited_depth(|r| Ok(Self::#{t}(Box::new(#{t}::read_xdr(r)?))))," }.join("\n")}
                 }
             }
 
             #[cfg(feature = "base64")]
-            pub fn read_xdr_base64(v: TypeVariant, r: &mut impl Read) -> Result<Self> {
-                let mut dec = base64::read::DecoderReader::new(r, base64::STANDARD);
+            pub fn read_xdr_base64<R: Read>(v: TypeVariant, r: &mut DepthLimitedRead<R>) -> Result<Self> {
+                let mut dec = DepthLimitedRead::new(base64::read::DecoderReader::new(&mut r.inner, base64::STANDARD), r.depth_remaining);
                 let t = Self::read_xdr(v, &mut dec)?;
                 Ok(t)
             }
 
             #[cfg(feature = "std")]
-            pub fn read_xdr_to_end(v: TypeVariant, r: &mut impl Read) -> Result<Self> {
+            pub fn read_xdr_to_end<R: Read>(v: TypeVariant, r: &mut DepthLimitedRead<R>) -> Result<Self> {
                 let s = Self::read_xdr(v, r)?;
                 // Check that any further reads, such as this read of one byte, read no
                 // data, indicating EOF. If a byte is read the data is invalid.
@@ -192,40 +192,40 @@ module Xdrgen
             }
 
             #[cfg(feature = "base64")]
-            pub fn read_xdr_base64_to_end(v: TypeVariant, r: &mut impl Read) -> Result<Self> {
-                let mut dec = base64::read::DecoderReader::new(r, base64::STANDARD);
+            pub fn read_xdr_base64_to_end<R: Read>(v: TypeVariant, r: &mut DepthLimitedRead<R>) -> Result<Self> {
+                let mut dec = DepthLimitedRead::new(base64::read::DecoderReader::new(&mut r.inner, base64::STANDARD), r.depth_remaining);
                 let t = Self::read_xdr_to_end(v, &mut dec)?;
                 Ok(t)
             }
 
             #[cfg(feature = "std")]
             #[allow(clippy::too_many_lines)]
-            pub fn read_xdr_iter<R: Read>(v: TypeVariant, r: &mut R) -> Box<dyn Iterator<Item=Result<Self>> + '_> {
+            pub fn read_xdr_iter<R: Read>(v: TypeVariant, r: &mut DepthLimitedRead<R>) -> Box<dyn Iterator<Item=Result<Self>> + '_> {
                 match v {
-                    #{types.map { |t| "TypeVariant::#{t} => Box::new(ReadXdrIter::<_, #{t}>::new(r).map(|r| r.map(|t| Self::#{t}(Box::new(t)))))," }.join("\n")}
+                    #{types.map { |t| "TypeVariant::#{t} => Box::new(ReadXdrIter::<_, #{t}>::new(&mut r.inner, r.depth_remaining).map(|r| r.map(|t| Self::#{t}(Box::new(t)))))," }.join("\n")}
                 }
             }
 
             #[cfg(feature = "std")]
             #[allow(clippy::too_many_lines)]
-            pub fn read_xdr_framed_iter<R: Read>(v: TypeVariant, r: &mut R) -> Box<dyn Iterator<Item=Result<Self>> + '_> {
+            pub fn read_xdr_framed_iter<R: Read>(v: TypeVariant, r: &mut DepthLimitedRead<R>) -> Box<dyn Iterator<Item=Result<Self>> + '_> {
                 match v {
-                    #{types.map { |t| "TypeVariant::#{t} => Box::new(ReadXdrIter::<_, Frame<#{t}>>::new(r).map(|r| r.map(|t| Self::#{t}(Box::new(t.0)))))," }.join("\n")}
+                    #{types.map { |t| "TypeVariant::#{t} => Box::new(ReadXdrIter::<_, Frame<#{t}>>::new(&mut r.inner, r.depth_remaining).map(|r| r.map(|t| Self::#{t}(Box::new(t.0)))))," }.join("\n")}
                 }
             }
 
             #[cfg(feature = "base64")]
             #[allow(clippy::too_many_lines)]
-            pub fn read_xdr_base64_iter<R: Read>(v: TypeVariant, r: &mut R) -> Box<dyn Iterator<Item=Result<Self>> + '_> {
-                let dec = base64::read::DecoderReader::new(r, base64::STANDARD);
+            pub fn read_xdr_base64_iter<R: Read>(v: TypeVariant, r: &mut DepthLimitedRead<R>) -> Box<dyn Iterator<Item=Result<Self>> + '_> {
+                let dec = base64::read::DecoderReader::new(&mut r.inner, base64::STANDARD);
                 match v {
-                    #{types.map { |t| "TypeVariant::#{t} => Box::new(ReadXdrIter::<_, #{t}>::new(dec).map(|r| r.map(|t| Self::#{t}(Box::new(t)))))," }.join("\n")}
+                    #{types.map { |t| "TypeVariant::#{t} => Box::new(ReadXdrIter::<_, #{t}>::new(dec, r.depth_remaining).map(|r| r.map(|t| Self::#{t}(Box::new(t)))))," }.join("\n")}
                 }
             }
 
             #[cfg(feature = "std")]
             pub fn from_xdr<B: AsRef<[u8]>>(v: TypeVariant, bytes: B) -> Result<Self> {
-                let mut cursor = Cursor::new(bytes.as_ref());
+                let mut cursor = DepthLimitedRead::new(Cursor::new(bytes.as_ref()), DEFAULT_XDR_RW_DEPTH_LIMIT);
                 let t = Self::read_xdr_to_end(v, &mut cursor)?;
                 Ok(t)
             }
@@ -233,7 +233,7 @@ module Xdrgen
             #[cfg(feature = "base64")]
             pub fn from_xdr_base64(v: TypeVariant, b64: String) -> Result<Self> {
                 let mut b64_reader = Cursor::new(b64);
-                let mut dec = base64::read::DecoderReader::new(&mut b64_reader, base64::STANDARD);
+                let mut dec = DepthLimitedRead::new(base64::read::DecoderReader::new(&mut b64_reader, base64::STANDARD), DEFAULT_XDR_RW_DEPTH_LIMIT);
                 let t = Self::read_xdr_to_end(v, &mut dec)?;
                 Ok(t)
             }
@@ -356,22 +356,26 @@ module Xdrgen
         out.puts <<-EOS.strip_heredoc
         impl ReadXdr for #{name struct} {
             #[cfg(feature = "std")]
-            fn read_xdr(r: &mut impl Read) -> Result<Self> {
-                Ok(Self{
-                  #{struct.members.map do |m|
-                    "#{field_name(m)}: #{reference_to_call(struct, m.declaration.type)}::read_xdr(r)?,"
-                  end.join("\n")}
+            fn read_xdr<R: Read>(r: &mut DepthLimitedRead<R>) -> Result<Self> {
+                r.with_limited_depth(|r| {
+                    Ok(Self{
+                      #{struct.members.map do |m|
+                        "#{field_name(m)}: #{reference_to_call(struct, m.declaration.type)}::read_xdr(r)?,"
+                      end.join("\n")}
+                    })
                 })
             }
         }
 
         impl WriteXdr for #{name struct} {
             #[cfg(feature = "std")]
-            fn write_xdr(&self, w: &mut impl Write) -> Result<()> {
-                #{struct.members.map do |m|
-                  "self.#{field_name(m)}.write_xdr(w)?;"
-                end.join("\n")}
-                Ok(())
+            fn write_xdr<W: Write>(&self, w: &mut DepthLimitedWrite<W>) -> Result<()> {
+                w.with_limited_depth(|w| {
+                    #{struct.members.map do |m|
+                      "self.#{field_name(m)}.write_xdr(w)?;"
+                    end.join("\n")}
+                    Ok(())
+                })
             }
         }
         EOS
@@ -455,18 +459,22 @@ module Xdrgen
 
         impl ReadXdr for #{name enum} {
             #[cfg(feature = "std")]
-            fn read_xdr(r: &mut impl Read) -> Result<Self> {
-                let e = i32::read_xdr(r)?;
-                let v: Self = e.try_into()?;
-                Ok(v)
+            fn read_xdr<R: Read>(r: &mut DepthLimitedRead<R>) -> Result<Self> {
+                r.with_limited_depth(|r| {
+                    let e = i32::read_xdr(r)?;
+                    let v: Self = e.try_into()?;
+                    Ok(v)
+                })
             }
         }
 
         impl WriteXdr for #{name enum} {
             #[cfg(feature = "std")]
-            fn write_xdr(&self, w: &mut impl Write) -> Result<()> {
-                let i: i32 = (*self).into();
-                i.write_xdr(w)
+            fn write_xdr<W: Write>(&self, w: &mut DepthLimitedWrite<W>) -> Result<()> {
+                w.with_limited_depth(|w| {
+                    let i: i32 = (*self).into();
+                    i.write_xdr(w)
+                })
             }
         }
         EOS
@@ -583,39 +591,43 @@ module Xdrgen
 
         impl ReadXdr for #{name union} {
             #[cfg(feature = "std")]
-            fn read_xdr(r: &mut impl Read) -> Result<Self> {
-                let dv: #{discriminant_type} = <#{discriminant_type} as ReadXdr>::read_xdr(r)?;
-                #[allow(clippy::match_same_arms, clippy::match_wildcard_for_single_variants)]
-                let v = match dv {
-                    #{union_cases(union) do |case_name, arm, value|
-                      "#{
-                        value.nil? ? "#{discriminant_type}::#{case_name}" : "#{value}"
-                      } => #{
-                        arm.void? ? "Self::#{case_name}" : "Self::#{case_name}(#{reference_to_call(union, arm.type)}::read_xdr(r)?)"
-                      },"
-                    end.join("\n")}
-                    #[allow(unreachable_patterns)]
-                    _ => return Err(Error::Invalid),
-                };
-                Ok(v)
+            fn read_xdr<R: Read>(r: &mut DepthLimitedRead<R>) -> Result<Self> {
+                r.with_limited_depth(|r| {
+                    let dv: #{discriminant_type} = <#{discriminant_type} as ReadXdr>::read_xdr(r)?;
+                    #[allow(clippy::match_same_arms, clippy::match_wildcard_for_single_variants)]
+                    let v = match dv {
+                        #{union_cases(union) do |case_name, arm, value|
+                          "#{
+                            value.nil? ? "#{discriminant_type}::#{case_name}" : "#{value}"
+                          } => #{
+                            arm.void? ? "Self::#{case_name}" : "Self::#{case_name}(#{reference_to_call(union, arm.type)}::read_xdr(r)?)"
+                          },"
+                        end.join("\n")}
+                        #[allow(unreachable_patterns)]
+                        _ => return Err(Error::Invalid),
+                    };
+                    Ok(v)
+                })
             }
         }
 
         impl WriteXdr for #{name union} {
             #[cfg(feature = "std")]
-            fn write_xdr(&self, w: &mut impl Write) -> Result<()> {
-                self.discriminant().write_xdr(w)?;
-                #[allow(clippy::match_same_arms)]
-                match self {
-                    #{union_cases(union) do |case_name, arm, value|
-                      if arm.void?
-                        "Self::#{case_name} => ().write_xdr(w)?,"
-                      else
-                        "Self::#{case_name}(v) => v.write_xdr(w)?,"
-                      end
-                    end.join("\n")}
-                };
-                Ok(())
+            fn write_xdr<W: Write>(&self, w: &mut DepthLimitedWrite<W>) -> Result<()> {
+                w.with_limited_depth(|w| {
+                    self.discriminant().write_xdr(w)?;
+                    #[allow(clippy::match_same_arms)]
+                    match self {
+                        #{union_cases(union) do |case_name, arm, value|
+                          if arm.void?
+                            "Self::#{case_name} => ().write_xdr(w)?,"
+                          else
+                            "Self::#{case_name}(v) => v.write_xdr(w)?,"
+                          end
+                        end.join("\n")}
+                    };
+                    Ok(())
+                })
             }
         }
         EOS
@@ -694,17 +706,19 @@ module Xdrgen
 
           impl ReadXdr for #{name typedef} {
               #[cfg(feature = "std")]
-              fn read_xdr(r: &mut impl Read) -> Result<Self> {
-                  let i = #{reference_to_call(typedef, typedef.type)}::read_xdr(r)?;
-                  let v = #{name typedef}(i);
-                  Ok(v)
+              fn read_xdr<R: Read>(r: &mut DepthLimitedRead<R>) -> Result<Self> {
+                  r.with_limited_depth(|r| {
+                      let i = #{reference_to_call(typedef, typedef.type)}::read_xdr(r)?;
+                      let v = #{name typedef}(i);
+                      Ok(v)
+                  })
               }
           }
 
           impl WriteXdr for #{name typedef} {
               #[cfg(feature = "std")]
-              fn write_xdr(&self, w: &mut impl Write) -> Result<()> {
-                  self.0.write_xdr(w)
+              fn write_xdr<W: Write>(&self, w: &mut DepthLimitedWrite<W>) -> Result<()> {
+                  w.with_limited_depth(|w|{ self.0.write_xdr(w) })
               }
           }
           EOS
