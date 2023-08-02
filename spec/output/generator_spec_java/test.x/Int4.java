@@ -14,24 +14,24 @@ import com.google.common.base.Objects;
 
 //  ===========================================================================
 public class Int4 implements XdrElement {
-  private Long int4;
+  private XdrUnsignedHyperInteger int4;
 
   public Int4() {}
 
-  public Int4(Long int4) {
+  public Int4(XdrUnsignedHyperInteger int4) {
     this.int4 = int4;
   }
 
-  public Long getInt4() {
+  public XdrUnsignedHyperInteger getInt4() {
     return this.int4;
   }
 
-  public void setInt4(Long value) {
+  public void setInt4(XdrUnsignedHyperInteger value) {
     this.int4 = value;
   }
 
   public static void encode(XdrDataOutputStream stream, Int4  encodedInt4) throws IOException {
-    stream.writeLong(encodedInt4.int4);
+    encodedInt4.int4.encode(stream);
   }
 
   public void encode(XdrDataOutputStream stream) throws IOException {
@@ -39,7 +39,7 @@ public class Int4 implements XdrElement {
   }
   public static Int4 decode(XdrDataInputStream stream) throws IOException {
     Int4 decodedInt4 = new Int4();
-    decodedInt4.int4 = stream.readLong();
+    decodedInt4.int4 = XdrUnsignedHyperInteger.decode(stream);
     return decodedInt4;
   }
 
