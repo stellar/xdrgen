@@ -60,6 +60,6 @@ public class XdrUnsignedInteger implements XdrElement {
   }
 
   public String toString() {
-    return "XdrUint32(uint32=" + this.getNumber() + ")";
+    return "XdrUnsignedInteger(number=" + this.getNumber() + ")";
   }
 }

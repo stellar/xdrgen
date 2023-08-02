@@ -72,6 +72,6 @@ public class XdrUnsignedHyperInteger implements XdrElement {
   }
 
   public String toString() {
-    return "XdrUint64(uint64=" + this.getNumber() + ")";
+    return "XdrUnsignedInteger(number=" + this.getNumber() + ")";
   }
 }
