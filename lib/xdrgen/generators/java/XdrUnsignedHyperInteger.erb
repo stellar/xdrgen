@@ -42,7 +42,7 @@ public class XdrUnsignedHyperInteger implements XdrElement {
     return new XdrUnsignedHyperInteger(uint64);
   }
 
-  public byte[] getBytes() {
+  private byte[] getBytes() {
     byte[] bytes = number.toByteArray();
     byte[] paddedBytes = new byte[8];
 
