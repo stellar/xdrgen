@@ -6,6 +6,9 @@ package MyXDR;
 
 import java.io.IOException;
 
+import com.google.common.io.BaseEncoding;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import com.google.common.base.Objects;
 
 // === xdr source ============================================================
@@ -110,6 +113,31 @@ public class MyStruct implements XdrElement {
     return Objects.equal(this.field1, other.field1) && Objects.equal(this.field2, other.field2) && Objects.equal(this.field3, other.field3) && Objects.equal(this.field4, other.field4) && Objects.equal(this.field5, other.field5) && Objects.equal(this.field6, other.field6) && Objects.equal(this.field7, other.field7);
   }
 
+  @Override
+  public String toXdrBase64() throws IOException {
+    BaseEncoding base64Encoding = BaseEncoding.base64();
+    return base64Encoding.encode(toXdrByteArray());
+  }
+
+  @Override
+  public byte[] toXdrByteArray() throws IOException {
+    ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+    XdrDataOutputStream xdrDataOutputStream = new XdrDataOutputStream(byteArrayOutputStream);
+    encode(xdrDataOutputStream);
+    return byteArrayOutputStream.toByteArray();
+  }
+
+  public static MyStruct fromXdrBase64(String xdr) throws IOException {
+    BaseEncoding base64Encoding = BaseEncoding.base64();
+    byte[] bytes = base64Encoding.decode(xdr);
+    return fromXdrByteArray(bytes);
+  }
+
+  public static MyStruct fromXdrByteArray(byte[] xdr) throws IOException {
+    ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(xdr);
+    XdrDataInputStream xdrDataInputStream = new XdrDataInputStream(byteArrayInputStream);
+    return decode(xdrDataInputStream);
+  }
   public static final class Builder {
     private Uint512 field1;
     private OptHash1 field2;
