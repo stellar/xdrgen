@@ -26,6 +26,14 @@ module Xdrgen
         template = IO.read(__dir__ + "/java/XdrString.erb")
         result = ERB.new(template).result binding
         @output.write  "XdrString.java", result
+
+        template = IO.read(__dir__ + "/java/XdrUnsignedHyperInteger.erb")
+        result = ERB.new(template).result binding
+        @output.write  "XdrUnsignedHyperInteger.java", result
+
+        template = IO.read(__dir__ + "/java/XdrUnsignedInteger.erb")
+        result = ERB.new(template).result binding
+        @output.write  "XdrUnsignedInteger.java", result
       end
 
       def render_definitions(node)
@@ -506,13 +514,13 @@ module Xdrgen
           out.puts "stream.writeInt(encoded#{name union}.getDiscriminant().intValue());"
         elsif type_string(union.discriminant.type) == "Uint32"
           # ugly workaround for compile error after generating source for AuthenticatedMessage in stellar-core
-          out.puts "stream.writeInt(encoded#{name union}.getDiscriminant().getUint32());"
+          out.puts "stream.writeInt(encoded#{name union}.getDiscriminant().getUint32().getNumber().intValue());"
         else
           out.puts "stream.writeInt(encoded#{name union}.getDiscriminant().getValue());"
         end
         if type_string(union.discriminant.type) == "Uint32"
           # ugly workaround for compile error after generating source for AuthenticatedMessage in stellar-core
-          out.puts "switch (encoded#{name union}.getDiscriminant().getUint32()) {"
+          out.puts "switch (encoded#{name union}.getDiscriminant().getUint32().getNumber().intValue()) {"
         else
           out.puts "switch (encoded#{name union}.getDiscriminant()) {"
         end
@@ -555,7 +563,7 @@ module Xdrgen
 
         if type_string(union.discriminant.type) == "Uint32"
           # ugly workaround for compile error after generating source for AuthenticatedMessage in stellar-core
-          out.puts "switch (decoded#{name union}.getDiscriminant().getUint32()) {"
+          out.puts "switch (decoded#{name union}.getDiscriminant().getUint32().getNumber().intValue()) {"
         else
           out.puts "switch (decoded#{name union}.getDiscriminant()) {"
         end
@@ -722,11 +730,11 @@ module Xdrgen
         when AST::Typespecs::Int ;
           "stream.writeInt(#{value})"
         when AST::Typespecs::UnsignedInt ;
-          "stream.writeInt(#{value})"
+          "#{value}.encode(stream)"
         when AST::Typespecs::Hyper ;
           "stream.writeLong(#{value})"
         when AST::Typespecs::UnsignedHyper ;
-          "stream.writeLong(#{value})"
+          "#{value}.encode(stream)"
         when AST::Typespecs::Float ;
           "stream.writeFloat(#{value})"
         when AST::Typespecs::Double ;
@@ -793,11 +801,11 @@ module Xdrgen
         when AST::Typespecs::Int ;
           "stream.readInt()"
         when AST::Typespecs::UnsignedInt ;
-          "stream.readInt()"
+          "XdrUnsignedInteger.decode(stream)"
         when AST::Typespecs::Hyper ;
           "stream.readLong()"
         when AST::Typespecs::UnsignedHyper ;
-          "stream.readLong()"
+          "XdrUnsignedHyperInteger.decode(stream)"
         when AST::Typespecs::Float ;
           "stream.readFloat()"
         when AST::Typespecs::Double ;
@@ -863,11 +871,11 @@ module Xdrgen
         when AST::Typespecs::Int ;
           "Integer"
         when AST::Typespecs::UnsignedInt ;
-          "Integer"
+          "XdrUnsignedInteger"
         when AST::Typespecs::Hyper ;
           "Long"
         when AST::Typespecs::UnsignedHyper ;
-          "Long"
+          "XdrUnsignedHyperInteger"
         when AST::Typespecs::Float ;
           "Float"
         when AST::Typespecs::Double ;
