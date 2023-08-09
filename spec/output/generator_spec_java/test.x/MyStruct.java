@@ -45,11 +45,11 @@ public class MyStruct implements XdrElement {
   public void setField3(Int1 value) {
     this.field3 = value;
   }
-  private Integer field4;
-  public Integer getField4() {
+  private XdrUnsignedInteger field4;
+  public XdrUnsignedInteger getField4() {
     return this.field4;
   }
-  public void setField4(Integer value) {
+  public void setField4(XdrUnsignedInteger value) {
     this.field4 = value;
   }
   private Float field5;
@@ -77,7 +77,7 @@ public class MyStruct implements XdrElement {
     Uint512.encode(stream, encodedMyStruct.field1);
     OptHash1.encode(stream, encodedMyStruct.field2);
     Int1.encode(stream, encodedMyStruct.field3);
-    stream.writeInt(encodedMyStruct.field4);
+    encodedMyStruct.field4.encode(stream);
     stream.writeFloat(encodedMyStruct.field5);
     stream.writeDouble(encodedMyStruct.field6);
     stream.writeInt(encodedMyStruct.field7 ? 1 : 0);
@@ -90,7 +90,7 @@ public class MyStruct implements XdrElement {
     decodedMyStruct.field1 = Uint512.decode(stream);
     decodedMyStruct.field2 = OptHash1.decode(stream);
     decodedMyStruct.field3 = Int1.decode(stream);
-    decodedMyStruct.field4 = stream.readInt();
+    decodedMyStruct.field4 = XdrUnsignedInteger.decode(stream);
     decodedMyStruct.field5 = stream.readFloat();
     decodedMyStruct.field6 = stream.readDouble();
     decodedMyStruct.field7 = stream.readInt() == 1 ? true : false;
@@ -114,7 +114,7 @@ public class MyStruct implements XdrElement {
     private Uint512 field1;
     private OptHash1 field2;
     private Int1 field3;
-    private Integer field4;
+    private XdrUnsignedInteger field4;
     private Float field5;
     private Double field6;
     private Boolean field7;
@@ -134,7 +134,7 @@ public class MyStruct implements XdrElement {
       return this;
     }
 
-    public Builder field4(Integer field4) {
+    public Builder field4(XdrUnsignedInteger field4) {
       this.field4 = field4;
       return this;
     }

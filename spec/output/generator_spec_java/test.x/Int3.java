@@ -14,24 +14,24 @@ import com.google.common.base.Objects;
 
 //  ===========================================================================
 public class Int3 implements XdrElement {
-  private Integer int3;
+  private XdrUnsignedInteger int3;
 
   public Int3() {}
 
-  public Int3(Integer int3) {
+  public Int3(XdrUnsignedInteger int3) {
     this.int3 = int3;
   }
 
-  public Integer getInt3() {
+  public XdrUnsignedInteger getInt3() {
     return this.int3;
   }
 
-  public void setInt3(Integer value) {
+  public void setInt3(XdrUnsignedInteger value) {
     this.int3 = value;
   }
 
   public static void encode(XdrDataOutputStream stream, Int3  encodedInt3) throws IOException {
-    stream.writeInt(encodedInt3.int3);
+    encodedInt3.int3.encode(stream);
   }
 
   public void encode(XdrDataOutputStream stream) throws IOException {
@@ -39,7 +39,7 @@ public class Int3 implements XdrElement {
   }
   public static Int3 decode(XdrDataInputStream stream) throws IOException {
     Int3 decodedInt3 = new Int3();
-    decodedInt3.int3 = stream.readInt();
+    decodedInt3.int3 = XdrUnsignedInteger.decode(stream);
     return decodedInt3;
   }
 
