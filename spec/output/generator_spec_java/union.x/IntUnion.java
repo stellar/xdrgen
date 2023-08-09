@@ -68,8 +68,8 @@ public class IntUnion implements XdrElement {
     public IntUnion build() {
       IntUnion val = new IntUnion();
       val.setDiscriminant(discriminant);
-      val.setError(error);
-      val.setThings(things);
+      val.setError(this.error);
+      val.setThings(this.things);
       return val;
     }
   }

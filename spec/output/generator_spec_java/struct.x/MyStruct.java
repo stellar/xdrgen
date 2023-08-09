@@ -128,11 +128,11 @@ public class MyStruct implements XdrElement {
 
     public MyStruct build() {
       MyStruct val = new MyStruct();
-      val.setSomeInt(someInt);
-      val.setABigInt(aBigInt);
-      val.setSomeOpaque(someOpaque);
-      val.setSomeString(someString);
-      val.setMaxString(maxString);
+      val.setSomeInt(this.someInt);
+      val.setABigInt(this.aBigInt);
+      val.setSomeOpaque(this.someOpaque);
+      val.setSomeString(this.someString);
+      val.setMaxString(this.maxString);
       return val;
     }
   }

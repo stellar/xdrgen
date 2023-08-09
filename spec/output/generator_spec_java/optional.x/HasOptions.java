@@ -116,9 +116,9 @@ public class HasOptions implements XdrElement {
 
     public HasOptions build() {
       HasOptions val = new HasOptions();
-      val.setFirstOption(firstOption);
-      val.setSecondOption(secondOption);
-      val.setThirdOption(thirdOption);
+      val.setFirstOption(this.firstOption);
+      val.setSecondOption(this.secondOption);
+      val.setThirdOption(this.thirdOption);
       return val;
     }
   }
