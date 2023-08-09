@@ -3,9 +3,9 @@
 
 package MyXDR;
 
-
 import java.io.IOException;
 
+import static MyXDR.Constants.*;
 
 // === xdr source ============================================================
 

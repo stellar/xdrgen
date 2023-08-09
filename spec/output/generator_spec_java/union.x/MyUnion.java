@@ -3,9 +3,9 @@
 
 package MyXDR;
 
-
 import java.io.IOException;
 
+import static MyXDR.Constants.*;
 import com.google.common.base.Objects;
 import java.util.Arrays;
 
