@@ -348,7 +348,7 @@ module Xdrgen
           out.indent do
             out.puts "#{name struct} val = new #{name struct}();"
             struct.members.map { |m|
-              out.puts "val.set#{m.name.slice(0,1).capitalize+m.name.slice(1..-1)}(#{m.name});"
+              out.puts "val.set#{m.name.slice(0,1).capitalize+m.name.slice(1..-1)}(this.#{m.name});"
             }
             out.puts "return val;"
           end
@@ -497,7 +497,7 @@ module Xdrgen
             out.puts "val.setDiscriminant(discriminant);"
             union.arms.each do |arm|
               next if arm.void?
-              out.puts "val.set#{arm.name.slice(0,1).capitalize+arm.name.slice(1..-1)}(#{arm.name});"
+              out.puts "val.set#{arm.name.slice(0,1).capitalize+arm.name.slice(1..-1)}(this.#{arm.name});"
             end
             out.puts "return val;"
           end

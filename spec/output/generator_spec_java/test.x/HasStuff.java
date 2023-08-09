@@ -60,7 +60,7 @@ public class HasStuff implements XdrElement {
 
     public HasStuff build() {
       HasStuff val = new HasStuff();
-      val.setData(data);
+      val.setData(this.data);
       return val;
     }
   }
