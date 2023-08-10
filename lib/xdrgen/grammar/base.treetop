@@ -18,6 +18,7 @@ grammar XdrBaseGrammar
     "float" /
     "hyper" /
     "opaque" /
+    "set" /
     "string" /
     "struct" /
     "switch" /
