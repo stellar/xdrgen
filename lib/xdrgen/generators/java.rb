@@ -43,6 +43,10 @@ module Xdrgen
       end
 
       def add_imports_for_definition(defn, imports)
+        imports.add("com.google.common.io.BaseEncoding")
+        imports.add("java.io.ByteArrayInputStream")
+        imports.add("java.io.ByteArrayOutputStream")
+
         case defn
         when AST::Definitions::Struct ;
           defn.members.each do |m|
@@ -131,13 +135,13 @@ module Xdrgen
         end
       end
 
-      def render_nested_definitions(defn, out)
+      def render_nested_definitions(defn, out, post_name="implements XdrElement")
         return unless defn.respond_to? :nested_definitions
         defn.nested_definitions.each{|ndefn|
           case ndefn
           when AST::Definitions::Struct ;
             name = name ndefn
-            out.puts "public static class #{name} {"
+            out.puts "public static class #{name} #{post_name} {"
             out.indent do
               render_struct ndefn, out
               render_nested_definitions ndefn , out
@@ -145,14 +149,14 @@ module Xdrgen
             out.puts "}"
           when AST::Definitions::Enum ;
             name = name ndefn
-            out.puts "public static enum #{name} {"
+            out.puts "public static enum #{name} #{post_name} {"
             out.indent do
               render_enum ndefn, out
             end
             out.puts "}"
           when AST::Definitions::Union ;
             name = name ndefn
-            out.puts "public static class #{name} {"
+            out.puts "public static class #{name} #{post_name} {"
             out.indent do
               render_union ndefn, out
               render_nested_definitions ndefn, out
@@ -160,7 +164,7 @@ module Xdrgen
             out.puts "}"
           when AST::Definitions::Typedef ;
             name = name ndefn
-            out.puts "public static class #{name} {"
+            out.puts "public static class #{name} #{post_name} {"
             out.indent do
               render_typedef ndefn, out
             end
@@ -242,6 +246,7 @@ module Xdrgen
           encode(stream, this);
         }
         EOS
+        render_base64((name_string enum.name), out)
         out.break
       end
 
@@ -341,6 +346,8 @@ module Xdrgen
           }
 
         EOS
+
+        render_base64((name struct), out)
 
         out.puts "public static final class Builder {"
         out.indent do
@@ -453,6 +460,7 @@ module Xdrgen
             return #{equals_for_decl}(this.#{typedef.name}, other.#{typedef.name});
           }
         EOS
+        render_base64(typedef.name.camelize, out)
       end
 
       def render_union(union, out)
@@ -672,7 +680,7 @@ module Xdrgen
             return #{equalExpression};
           }
         EOS
-
+        render_base64((name union), out)
         out.break
       end
 
@@ -701,6 +709,36 @@ module Xdrgen
         out.puts <<-EOS.strip_heredoc
 
         //  ===========================================================================
+        EOS
+      end
+
+      def render_base64(return_type, out)
+        out.puts <<-EOS.strip_heredoc
+          @Override
+          public String toXdrBase64() throws IOException {
+            BaseEncoding base64Encoding = BaseEncoding.base64();
+            return base64Encoding.encode(toXdrByteArray());
+          }
+
+          @Override
+          public byte[] toXdrByteArray() throws IOException {
+            ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+            XdrDataOutputStream xdrDataOutputStream = new XdrDataOutputStream(byteArrayOutputStream);
+            encode(xdrDataOutputStream);
+            return byteArrayOutputStream.toByteArray();
+          }
+
+          public static #{return_type} fromXdrBase64(String xdr) throws IOException {
+            BaseEncoding base64Encoding = BaseEncoding.base64();
+            byte[] bytes = base64Encoding.decode(xdr);
+            return fromXdrByteArray(bytes);
+          }
+
+          public static #{return_type} fromXdrByteArray(byte[] xdr) throws IOException {
+            ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(xdr);
+            XdrDataInputStream xdrDataInputStream = new XdrDataInputStream(byteArrayInputStream);
+            return decode(xdrDataInputStream);
+          }
         EOS
       end
 

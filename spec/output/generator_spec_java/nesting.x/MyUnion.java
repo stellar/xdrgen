@@ -6,6 +6,9 @@ package MyXDR;
 import java.io.IOException;
 
 import static MyXDR.Constants.*;
+import com.google.common.io.BaseEncoding;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import com.google.common.base.Objects;
 
 // === xdr source ============================================================
@@ -128,8 +131,33 @@ public class MyUnion implements XdrElement {
     MyUnion other = (MyUnion) object;
     return Objects.equal(this.one, other.one) && Objects.equal(this.two, other.two) && Objects.equal(this.type, other.type);
   }
+  @Override
+  public String toXdrBase64() throws IOException {
+    BaseEncoding base64Encoding = BaseEncoding.base64();
+    return base64Encoding.encode(toXdrByteArray());
+  }
 
-  public static class MyUnionOne {
+  @Override
+  public byte[] toXdrByteArray() throws IOException {
+    ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+    XdrDataOutputStream xdrDataOutputStream = new XdrDataOutputStream(byteArrayOutputStream);
+    encode(xdrDataOutputStream);
+    return byteArrayOutputStream.toByteArray();
+  }
+
+  public static MyUnion fromXdrBase64(String xdr) throws IOException {
+    BaseEncoding base64Encoding = BaseEncoding.base64();
+    byte[] bytes = base64Encoding.decode(xdr);
+    return fromXdrByteArray(bytes);
+  }
+
+  public static MyUnion fromXdrByteArray(byte[] xdr) throws IOException {
+    ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(xdr);
+    XdrDataInputStream xdrDataInputStream = new XdrDataInputStream(byteArrayInputStream);
+    return decode(xdrDataInputStream);
+  }
+
+  public static class MyUnionOne implements XdrElement {
     public MyUnionOne () {}
     private Integer someInt;
     public Integer getSomeInt() {
@@ -163,6 +191,31 @@ public class MyUnion implements XdrElement {
       return Objects.equal(this.someInt, other.someInt);
     }
 
+    @Override
+    public String toXdrBase64() throws IOException {
+      BaseEncoding base64Encoding = BaseEncoding.base64();
+      return base64Encoding.encode(toXdrByteArray());
+    }
+
+    @Override
+    public byte[] toXdrByteArray() throws IOException {
+      ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+      XdrDataOutputStream xdrDataOutputStream = new XdrDataOutputStream(byteArrayOutputStream);
+      encode(xdrDataOutputStream);
+      return byteArrayOutputStream.toByteArray();
+    }
+
+    public static MyUnionOne fromXdrBase64(String xdr) throws IOException {
+      BaseEncoding base64Encoding = BaseEncoding.base64();
+      byte[] bytes = base64Encoding.decode(xdr);
+      return fromXdrByteArray(bytes);
+    }
+
+    public static MyUnionOne fromXdrByteArray(byte[] xdr) throws IOException {
+      ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(xdr);
+      XdrDataInputStream xdrDataInputStream = new XdrDataInputStream(byteArrayInputStream);
+      return decode(xdrDataInputStream);
+    }
     public static final class Builder {
       private Integer someInt;
 
@@ -179,7 +232,7 @@ public class MyUnion implements XdrElement {
     }
 
   }
-  public static class MyUnionTwo {
+  public static class MyUnionTwo implements XdrElement {
     public MyUnionTwo () {}
     private Integer someInt;
     public Integer getSomeInt() {
@@ -222,6 +275,31 @@ public class MyUnion implements XdrElement {
       return Objects.equal(this.someInt, other.someInt) && Objects.equal(this.foo, other.foo);
     }
 
+    @Override
+    public String toXdrBase64() throws IOException {
+      BaseEncoding base64Encoding = BaseEncoding.base64();
+      return base64Encoding.encode(toXdrByteArray());
+    }
+
+    @Override
+    public byte[] toXdrByteArray() throws IOException {
+      ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+      XdrDataOutputStream xdrDataOutputStream = new XdrDataOutputStream(byteArrayOutputStream);
+      encode(xdrDataOutputStream);
+      return byteArrayOutputStream.toByteArray();
+    }
+
+    public static MyUnionTwo fromXdrBase64(String xdr) throws IOException {
+      BaseEncoding base64Encoding = BaseEncoding.base64();
+      byte[] bytes = base64Encoding.decode(xdr);
+      return fromXdrByteArray(bytes);
+    }
+
+    public static MyUnionTwo fromXdrByteArray(byte[] xdr) throws IOException {
+      ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(xdr);
+      XdrDataInputStream xdrDataInputStream = new XdrDataInputStream(byteArrayInputStream);
+      return decode(xdrDataInputStream);
+    }
     public static final class Builder {
       private Integer someInt;
       private Foo foo;
