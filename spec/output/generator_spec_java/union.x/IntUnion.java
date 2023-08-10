@@ -3,9 +3,9 @@
 
 package MyXDR;
 
-
 import java.io.IOException;
 
+import static MyXDR.Constants.*;
 import com.google.common.io.BaseEncoding;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -71,8 +71,8 @@ public class IntUnion implements XdrElement {
     public IntUnion build() {
       IntUnion val = new IntUnion();
       val.setDiscriminant(discriminant);
-      val.setError(error);
-      val.setThings(things);
+      val.setError(this.error);
+      val.setThings(this.things);
       return val;
     }
   }

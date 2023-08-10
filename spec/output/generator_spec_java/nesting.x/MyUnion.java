@@ -3,9 +3,9 @@
 
 package MyXDR;
 
-
 import java.io.IOException;
 
+import static MyXDR.Constants.*;
 import com.google.common.io.BaseEncoding;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -78,8 +78,8 @@ public class MyUnion implements XdrElement {
     public MyUnion build() {
       MyUnion val = new MyUnion();
       val.setDiscriminant(discriminant);
-      val.setOne(one);
-      val.setTwo(two);
+      val.setOne(this.one);
+      val.setTwo(this.two);
       return val;
     }
   }
@@ -226,7 +226,7 @@ public class MyUnion implements XdrElement {
 
       public MyUnionOne build() {
         MyUnionOne val = new MyUnionOne();
-        val.setSomeInt(someInt);
+        val.setSomeInt(this.someInt);
         return val;
       }
     }
@@ -316,8 +316,8 @@ public class MyUnion implements XdrElement {
 
       public MyUnionTwo build() {
         MyUnionTwo val = new MyUnionTwo();
-        val.setSomeInt(someInt);
-        val.setFoo(foo);
+        val.setSomeInt(this.someInt);
+        val.setFoo(this.foo);
         return val;
       }
     }

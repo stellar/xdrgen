@@ -3,9 +3,9 @@
 
 package MyXDR;
 
-
 import java.io.IOException;
 
+import static MyXDR.Constants.*;
 import com.google.common.io.BaseEncoding;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -134,9 +134,9 @@ public class Nester implements XdrElement {
 
     public Nester build() {
       Nester val = new Nester();
-      val.setNestedEnum(nestedEnum);
-      val.setNestedStruct(nestedStruct);
-      val.setNestedUnion(nestedUnion);
+      val.setNestedEnum(this.nestedEnum);
+      val.setNestedStruct(this.nestedStruct);
+      val.setNestedUnion(this.nestedUnion);
       return val;
     }
   }
@@ -268,7 +268,7 @@ public class Nester implements XdrElement {
 
       public NesterNestedStruct build() {
         NesterNestedStruct val = new NesterNestedStruct();
-        val.setBlah(blah);
+        val.setBlah(this.blah);
         return val;
       }
     }
@@ -308,7 +308,7 @@ public class Nester implements XdrElement {
       public NesterNestedUnion build() {
         NesterNestedUnion val = new NesterNestedUnion();
         val.setDiscriminant(discriminant);
-        val.setBlah2(blah2);
+        val.setBlah2(this.blah2);
         return val;
       }
     }
