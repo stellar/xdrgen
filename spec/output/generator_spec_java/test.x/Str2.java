@@ -42,7 +42,7 @@ public class Str2 implements XdrElement {
   }
   public static Str2 decode(XdrDataInputStream stream) throws IOException {
     Str2 decodedStr2 = new Str2();
-    decodedStr2.str2 = XdrString.decode(stream, );
+    decodedStr2.str2 = XdrString.decode(stream, Integer.MAX_VALUE);
     return decodedStr2;
   }
 
