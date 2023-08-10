@@ -3,9 +3,9 @@
 
 package MyXDR;
 
-
 import java.io.IOException;
 
+import static MyXDR.Constants.*;
 import java.util.Arrays;
 
 // === xdr source ============================================================
@@ -68,7 +68,7 @@ public class LotsOfMyStructs implements XdrElement {
 
     public LotsOfMyStructs build() {
       LotsOfMyStructs val = new LotsOfMyStructs();
-      val.setMembers(members);
+      val.setMembers(this.members);
       return val;
     }
   }

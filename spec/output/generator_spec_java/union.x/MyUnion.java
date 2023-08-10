@@ -3,9 +3,9 @@
 
 package MyXDR;
 
-
 import java.io.IOException;
 
+import static MyXDR.Constants.*;
 import com.google.common.base.Objects;
 import java.util.Arrays;
 
@@ -69,8 +69,8 @@ public class MyUnion implements XdrElement {
     public MyUnion build() {
       MyUnion val = new MyUnion();
       val.setDiscriminant(discriminant);
-      val.setError(error);
-      val.setThings(things);
+      val.setError(this.error);
+      val.setThings(this.things);
       return val;
     }
   }

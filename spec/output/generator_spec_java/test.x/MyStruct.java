@@ -3,9 +3,9 @@
 
 package MyXDR;
 
-
 import java.io.IOException;
 
+import static MyXDR.Constants.*;
 import com.google.common.base.Objects;
 
 // === xdr source ============================================================
@@ -156,13 +156,13 @@ public class MyStruct implements XdrElement {
 
     public MyStruct build() {
       MyStruct val = new MyStruct();
-      val.setField1(field1);
-      val.setField2(field2);
-      val.setField3(field3);
-      val.setField4(field4);
-      val.setField5(field5);
-      val.setField6(field6);
-      val.setField7(field7);
+      val.setField1(this.field1);
+      val.setField2(this.field2);
+      val.setField3(this.field3);
+      val.setField4(this.field4);
+      val.setField5(this.field5);
+      val.setField6(this.field6);
+      val.setField7(this.field7);
       return val;
     }
   }

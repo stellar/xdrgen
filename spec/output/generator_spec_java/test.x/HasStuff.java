@@ -3,9 +3,9 @@
 
 package MyXDR;
 
-
 import java.io.IOException;
 
+import static MyXDR.Constants.*;
 import com.google.common.base.Objects;
 
 // === xdr source ============================================================
@@ -60,7 +60,7 @@ public class HasStuff implements XdrElement {
 
     public HasStuff build() {
       HasStuff val = new HasStuff();
-      val.setData(data);
+      val.setData(this.data);
       return val;
     }
   }
