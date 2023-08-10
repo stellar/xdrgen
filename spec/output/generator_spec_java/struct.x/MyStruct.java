@@ -76,7 +76,7 @@ public class MyStruct implements XdrElement {
     int someOpaquesize = 10;
     decodedMyStruct.someOpaque = new byte[someOpaquesize];
     stream.read(decodedMyStruct.someOpaque, 0, someOpaquesize);
-    decodedMyStruct.someString = XdrString.decode(stream, 2147483647);
+    decodedMyStruct.someString = XdrString.decode(stream, Integer.MAX_VALUE);
     decodedMyStruct.maxString = XdrString.decode(stream, 100);
     return decodedMyStruct;
   }
