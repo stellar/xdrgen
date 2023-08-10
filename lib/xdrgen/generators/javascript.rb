@@ -131,6 +131,8 @@ module Xdrgen
                   if union.discriminant.type.is_a?(AST::Typespecs::Int)
                     member = union.resolved_case(acase)
                     "#{member.value}"
+                  elsif member_name(acase.value) == 'set'
+                    '"set_"'
                   else
                     '"' + member_name(acase.value) + '"'
                   end
