@@ -130,10 +130,12 @@ module Xdrgen
                 switch = if acase.value.is_a?(AST::Identifier)
                   if union.discriminant.type.is_a?(AST::Typespecs::Int)
                     member = union.resolved_case(acase)
-                    "#{member.value}"
                   else
                     '"' + member_name(acase.value) + '"'
                   end
+                # render integers with a prefix so it's a callable method
+                elsif is_integer?(acase.value.text_value)
+                  '"_' + acase.value.text_value + '"'
                 else
                   acase.value.text_value
                 end
@@ -191,10 +193,15 @@ module Xdrgen
 
       def member_name(member)
         fixedName = name(member).camelize(:lower)
+        # render set() as set_() because set is reserved by stellar/js-xdr
         if fixedName == 'set'
           return 'set_'
         end
         fixedName
+      end
+
+      def is_integer? s
+        true if Integer(s) rescue false
       end
 
       def reference(type)
