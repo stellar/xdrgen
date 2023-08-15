@@ -77,8 +77,8 @@ xdr.union("IntUnion", {
   switchOn: xdr.int(),
   switchName: "type",
   switches: [
-    [0, "error"],
-    [1, "things"],
+    ["_0", "error"],
+    ["_1", "things"],
   ],
   arms: {
     error: xdr.lookup("Error"),
