@@ -191,6 +191,7 @@ module Xdrgen
 
       def member_name(member)
         fixedName = name(member).camelize(:lower)
+        # render set() as set_() because set is reserved by stellar/js-xdr
         if fixedName == 'set'
           return 'set_'
         end
