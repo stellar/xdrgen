@@ -2,12 +2,13 @@ require 'set'
 
 module Xdrgen
   module Generators
-
     class Java < Xdrgen::Generators::Base
 
       def generate
+        constants_container = Set[]
         render_lib
-        render_definitions(@top)
+        render_definitions(@top, constants_container)
+        render_constants constants_container
       end
 
       def render_lib
@@ -26,14 +27,26 @@ module Xdrgen
         template = IO.read(__dir__ + "/java/XdrString.erb")
         result = ERB.new(template).result binding
         @output.write  "XdrString.java", result
+
+        template = IO.read(__dir__ + "/java/XdrUnsignedHyperInteger.erb")
+        result = ERB.new(template).result binding
+        @output.write  "XdrUnsignedHyperInteger.java", result
+
+        template = IO.read(__dir__ + "/java/XdrUnsignedInteger.erb")
+        result = ERB.new(template).result binding
+        @output.write  "XdrUnsignedInteger.java", result
       end
 
-      def render_definitions(node)
-        node.namespaces.each{|n| render_definitions n }
-        node.definitions.each(&method(:render_definition))
+      def render_definitions(node, constants_container)
+        node.namespaces.each{|n| render_definitions n, constants_container }
+        node.definitions.each { |defn| render_definition(defn, constants_container) }
       end
 
       def add_imports_for_definition(defn, imports)
+        imports.add("com.google.common.io.BaseEncoding")
+        imports.add("java.io.ByteArrayInputStream")
+        imports.add("java.io.ByteArrayOutputStream")
+
         case defn
         when AST::Definitions::Struct ;
           defn.members.each do |m|
@@ -92,7 +105,7 @@ module Xdrgen
         end
       end
 
-      def render_definition(defn)
+      def render_definition(defn, constants_container)
         imports = Set[]
         add_imports_for_definition(defn, imports)
 
@@ -115,16 +128,20 @@ module Xdrgen
           render_element "public class", imports, defn do |out|
             render_typedef defn, out
           end
+        when AST::Definitions::Const ;
+          const_name = defn.name
+          const_value = defn.value
+          constants_container.add([const_name, const_value])
         end
       end
 
-      def render_nested_definitions(defn, out)
+      def render_nested_definitions(defn, out, post_name="implements XdrElement")
         return unless defn.respond_to? :nested_definitions
         defn.nested_definitions.each{|ndefn|
           case ndefn
           when AST::Definitions::Struct ;
             name = name ndefn
-            out.puts "public static class #{name} {"
+            out.puts "public static class #{name} #{post_name} {"
             out.indent do
               render_struct ndefn, out
               render_nested_definitions ndefn , out
@@ -132,14 +149,14 @@ module Xdrgen
             out.puts "}"
           when AST::Definitions::Enum ;
             name = name ndefn
-            out.puts "public static enum #{name} {"
+            out.puts "public static enum #{name} #{post_name} {"
             out.indent do
               render_enum ndefn, out
             end
             out.puts "}"
           when AST::Definitions::Union ;
             name = name ndefn
-            out.puts "public static class #{name} {"
+            out.puts "public static class #{name} #{post_name} {"
             out.indent do
               render_union ndefn, out
               render_nested_definitions ndefn, out
@@ -147,7 +164,7 @@ module Xdrgen
             out.puts "}"
           when AST::Definitions::Typedef ;
             name = name ndefn
-            out.puts "public static class #{name} {"
+            out.puts "public static class #{name} #{post_name} {"
             out.indent do
               render_typedef ndefn, out
             end
@@ -161,6 +178,7 @@ module Xdrgen
         name = name_string element.name
         out  = @output.open(path)
         render_top_matter out
+        out.puts "import static #{@namespace}.Constants.*;"
         imports.each do |import|
           out.puts "import #{import};"
         end
@@ -170,6 +188,19 @@ module Xdrgen
         out.indent do
           yield out
           out.unbreak
+        end
+        out.puts "}"
+      end
+
+      def render_constants(constants_container)
+        out = @output.open("Constants.java")
+        render_top_matter out
+        out.puts "public final class Constants {"
+        out.indent do
+          out.puts "private Constants() {}"
+          constants_container.each do |const_name, const_value|
+            out.puts "public static final int #{const_name} = #{const_value};"
+          end
         end
         out.puts "}"
       end
@@ -215,6 +246,7 @@ module Xdrgen
           encode(stream, this);
         }
         EOS
+        render_base64((name_string enum.name), out)
         out.break
       end
 
@@ -315,6 +347,8 @@ module Xdrgen
 
         EOS
 
+        render_base64((name struct), out)
+
         out.puts "public static final class Builder {"
         out.indent do
           struct.members.map { |m|
@@ -340,7 +374,7 @@ module Xdrgen
           out.indent do
             out.puts "#{name struct} val = new #{name struct}();"
             struct.members.map { |m|
-              out.puts "val.set#{m.name.slice(0,1).capitalize+m.name.slice(1..-1)}(#{m.name});"
+              out.puts "val.set#{m.name.slice(0,1).capitalize+m.name.slice(1..-1)}(this.#{m.name});"
             }
             out.puts "return val;"
           end
@@ -426,6 +460,7 @@ module Xdrgen
             return #{equals_for_decl}(this.#{typedef.name}, other.#{typedef.name});
           }
         EOS
+        render_base64(typedef.name.camelize, out)
       end
 
       def render_union(union, out)
@@ -489,7 +524,7 @@ module Xdrgen
             out.puts "val.setDiscriminant(discriminant);"
             union.arms.each do |arm|
               next if arm.void?
-              out.puts "val.set#{arm.name.slice(0,1).capitalize+arm.name.slice(1..-1)}(#{arm.name});"
+              out.puts "val.set#{arm.name.slice(0,1).capitalize+arm.name.slice(1..-1)}(this.#{arm.name});"
             end
             out.puts "return val;"
           end
@@ -506,13 +541,13 @@ module Xdrgen
           out.puts "stream.writeInt(encoded#{name union}.getDiscriminant().intValue());"
         elsif type_string(union.discriminant.type) == "Uint32"
           # ugly workaround for compile error after generating source for AuthenticatedMessage in stellar-core
-          out.puts "stream.writeInt(encoded#{name union}.getDiscriminant().getUint32());"
+          out.puts "stream.writeInt(encoded#{name union}.getDiscriminant().getUint32().getNumber().intValue());"
         else
           out.puts "stream.writeInt(encoded#{name union}.getDiscriminant().getValue());"
         end
         if type_string(union.discriminant.type) == "Uint32"
           # ugly workaround for compile error after generating source for AuthenticatedMessage in stellar-core
-          out.puts "switch (encoded#{name union}.getDiscriminant().getUint32()) {"
+          out.puts "switch (encoded#{name union}.getDiscriminant().getUint32().getNumber().intValue()) {"
         else
           out.puts "switch (encoded#{name union}.getDiscriminant()) {"
         end
@@ -555,7 +590,7 @@ module Xdrgen
 
         if type_string(union.discriminant.type) == "Uint32"
           # ugly workaround for compile error after generating source for AuthenticatedMessage in stellar-core
-          out.puts "switch (decoded#{name union}.getDiscriminant().getUint32()) {"
+          out.puts "switch (decoded#{name union}.getDiscriminant().getUint32().getNumber().intValue()) {"
         else
           out.puts "switch (decoded#{name union}.getDiscriminant()) {"
         end
@@ -645,7 +680,7 @@ module Xdrgen
             return #{equalExpression};
           }
         EOS
-
+        render_base64((name union), out)
         out.break
       end
 
@@ -655,7 +690,6 @@ module Xdrgen
           // DO NOT EDIT or your changes may be overwritten
 
           package #{@namespace};
-
 
           import java.io.IOException;
         EOS
@@ -675,6 +709,36 @@ module Xdrgen
         out.puts <<-EOS.strip_heredoc
 
         //  ===========================================================================
+        EOS
+      end
+
+      def render_base64(return_type, out)
+        out.puts <<-EOS.strip_heredoc
+          @Override
+          public String toXdrBase64() throws IOException {
+            BaseEncoding base64Encoding = BaseEncoding.base64();
+            return base64Encoding.encode(toXdrByteArray());
+          }
+
+          @Override
+          public byte[] toXdrByteArray() throws IOException {
+            ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+            XdrDataOutputStream xdrDataOutputStream = new XdrDataOutputStream(byteArrayOutputStream);
+            encode(xdrDataOutputStream);
+            return byteArrayOutputStream.toByteArray();
+          }
+
+          public static #{return_type} fromXdrBase64(String xdr) throws IOException {
+            BaseEncoding base64Encoding = BaseEncoding.base64();
+            byte[] bytes = base64Encoding.decode(xdr);
+            return fromXdrByteArray(bytes);
+          }
+
+          public static #{return_type} fromXdrByteArray(byte[] xdr) throws IOException {
+            ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(xdr);
+            XdrDataInputStream xdrDataInputStream = new XdrDataInputStream(byteArrayInputStream);
+            return decode(xdrDataInputStream);
+          }
         EOS
       end
 
@@ -722,11 +786,11 @@ module Xdrgen
         when AST::Typespecs::Int ;
           "stream.writeInt(#{value})"
         when AST::Typespecs::UnsignedInt ;
-          "stream.writeInt(#{value})"
+          "#{value}.encode(stream)"
         when AST::Typespecs::Hyper ;
           "stream.writeLong(#{value})"
         when AST::Typespecs::UnsignedHyper ;
-          "stream.writeLong(#{value})"
+          "#{value}.encode(stream)"
         when AST::Typespecs::Float ;
           "stream.writeFloat(#{value})"
         when AST::Typespecs::Double ;
@@ -793,11 +857,11 @@ module Xdrgen
         when AST::Typespecs::Int ;
           "stream.readInt()"
         when AST::Typespecs::UnsignedInt ;
-          "stream.readInt()"
+          "XdrUnsignedInteger.decode(stream)"
         when AST::Typespecs::Hyper ;
           "stream.readLong()"
         when AST::Typespecs::UnsignedHyper ;
-          "stream.readLong()"
+          "XdrUnsignedHyperInteger.decode(stream)"
         when AST::Typespecs::Float ;
           "stream.readFloat()"
         when AST::Typespecs::Double ;
@@ -807,7 +871,7 @@ module Xdrgen
         when AST::Typespecs::Bool ;
           "stream.readInt() == 1 ? true : false"
         when AST::Typespecs::String ;
-          "XdrString.decode(stream, #{decl.size})"
+          "XdrString.decode(stream, #{decl.size || 'Integer.MAX_VALUE'})"
         when AST::Typespecs::Simple ;
           "#{name decl.type.resolved_type}.decode(stream)"
         when AST::Concerns::NestedDefinition ;
@@ -863,11 +927,11 @@ module Xdrgen
         when AST::Typespecs::Int ;
           "Integer"
         when AST::Typespecs::UnsignedInt ;
-          "Integer"
+          "XdrUnsignedInteger"
         when AST::Typespecs::Hyper ;
           "Long"
         when AST::Typespecs::UnsignedHyper ;
-          "Long"
+          "XdrUnsignedHyperInteger"
         when AST::Typespecs::Float ;
           "Float"
         when AST::Typespecs::Double ;

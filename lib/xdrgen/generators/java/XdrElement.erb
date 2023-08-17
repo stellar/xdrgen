@@ -7,4 +7,8 @@ import java.io.IOException;
  */
 interface XdrElement {
     void encode(XdrDataOutputStream stream) throws IOException;
+
+    String toXdrBase64() throws IOException;
+
+    byte[] toXdrByteArray() throws IOException;
 }

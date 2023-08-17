@@ -23,6 +23,7 @@ golang, elixir and Python:
 - javascript: complete support
 - java: complete support
 - golang: currently using a fork of go-xdr, but has complete support
+- rust: support is experimental. Default arms and floats are not supported.
 - elixir: support is experimental as the SDK is in early development. Generated
   code requires [:exdr](https://github.com/revelrylabs/exdr) in your deps
 - C#: complete support

@@ -3,9 +3,12 @@
 
 package MyXDR;
 
-
 import java.io.IOException;
 
+import static MyXDR.Constants.*;
+import com.google.common.io.BaseEncoding;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import com.google.common.base.Objects;
 
 // === xdr source ============================================================
@@ -84,6 +87,31 @@ public class Nester implements XdrElement {
     return Objects.equal(this.nestedEnum, other.nestedEnum) && Objects.equal(this.nestedStruct, other.nestedStruct) && Objects.equal(this.nestedUnion, other.nestedUnion);
   }
 
+  @Override
+  public String toXdrBase64() throws IOException {
+    BaseEncoding base64Encoding = BaseEncoding.base64();
+    return base64Encoding.encode(toXdrByteArray());
+  }
+
+  @Override
+  public byte[] toXdrByteArray() throws IOException {
+    ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+    XdrDataOutputStream xdrDataOutputStream = new XdrDataOutputStream(byteArrayOutputStream);
+    encode(xdrDataOutputStream);
+    return byteArrayOutputStream.toByteArray();
+  }
+
+  public static Nester fromXdrBase64(String xdr) throws IOException {
+    BaseEncoding base64Encoding = BaseEncoding.base64();
+    byte[] bytes = base64Encoding.decode(xdr);
+    return fromXdrByteArray(bytes);
+  }
+
+  public static Nester fromXdrByteArray(byte[] xdr) throws IOException {
+    ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(xdr);
+    XdrDataInputStream xdrDataInputStream = new XdrDataInputStream(byteArrayInputStream);
+    return decode(xdrDataInputStream);
+  }
   public static final class Builder {
     private NesterNestedEnum nestedEnum;
     private NesterNestedStruct nestedStruct;
@@ -106,14 +134,14 @@ public class Nester implements XdrElement {
 
     public Nester build() {
       Nester val = new Nester();
-      val.setNestedEnum(nestedEnum);
-      val.setNestedStruct(nestedStruct);
-      val.setNestedUnion(nestedUnion);
+      val.setNestedEnum(this.nestedEnum);
+      val.setNestedStruct(this.nestedStruct);
+      val.setNestedUnion(this.nestedUnion);
       return val;
     }
   }
 
-  public static enum NesterNestedEnum {
+  public static enum NesterNestedEnum implements XdrElement {
     BLAH_1(0),
     BLAH_2(1),
     ;
@@ -144,9 +172,34 @@ public class Nester implements XdrElement {
     public void encode(XdrDataOutputStream stream) throws IOException {
       encode(stream, this);
     }
+    @Override
+    public String toXdrBase64() throws IOException {
+      BaseEncoding base64Encoding = BaseEncoding.base64();
+      return base64Encoding.encode(toXdrByteArray());
+    }
+
+    @Override
+    public byte[] toXdrByteArray() throws IOException {
+      ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+      XdrDataOutputStream xdrDataOutputStream = new XdrDataOutputStream(byteArrayOutputStream);
+      encode(xdrDataOutputStream);
+      return byteArrayOutputStream.toByteArray();
+    }
+
+    public static NestedEnum fromXdrBase64(String xdr) throws IOException {
+      BaseEncoding base64Encoding = BaseEncoding.base64();
+      byte[] bytes = base64Encoding.decode(xdr);
+      return fromXdrByteArray(bytes);
+    }
+
+    public static NestedEnum fromXdrByteArray(byte[] xdr) throws IOException {
+      ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(xdr);
+      XdrDataInputStream xdrDataInputStream = new XdrDataInputStream(byteArrayInputStream);
+      return decode(xdrDataInputStream);
+    }
 
   }
-  public static class NesterNestedStruct {
+  public static class NesterNestedStruct implements XdrElement {
     public NesterNestedStruct () {}
     private Integer blah;
     public Integer getBlah() {
@@ -180,6 +233,31 @@ public class Nester implements XdrElement {
       return Objects.equal(this.blah, other.blah);
     }
 
+    @Override
+    public String toXdrBase64() throws IOException {
+      BaseEncoding base64Encoding = BaseEncoding.base64();
+      return base64Encoding.encode(toXdrByteArray());
+    }
+
+    @Override
+    public byte[] toXdrByteArray() throws IOException {
+      ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+      XdrDataOutputStream xdrDataOutputStream = new XdrDataOutputStream(byteArrayOutputStream);
+      encode(xdrDataOutputStream);
+      return byteArrayOutputStream.toByteArray();
+    }
+
+    public static NesterNestedStruct fromXdrBase64(String xdr) throws IOException {
+      BaseEncoding base64Encoding = BaseEncoding.base64();
+      byte[] bytes = base64Encoding.decode(xdr);
+      return fromXdrByteArray(bytes);
+    }
+
+    public static NesterNestedStruct fromXdrByteArray(byte[] xdr) throws IOException {
+      ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(xdr);
+      XdrDataInputStream xdrDataInputStream = new XdrDataInputStream(byteArrayInputStream);
+      return decode(xdrDataInputStream);
+    }
     public static final class Builder {
       private Integer blah;
 
@@ -190,13 +268,13 @@ public class Nester implements XdrElement {
 
       public NesterNestedStruct build() {
         NesterNestedStruct val = new NesterNestedStruct();
-        val.setBlah(blah);
+        val.setBlah(this.blah);
         return val;
       }
     }
 
   }
-  public static class NesterNestedUnion {
+  public static class NesterNestedUnion implements XdrElement {
     public NesterNestedUnion () {}
     Color color;
     public Color getDiscriminant() {
@@ -230,7 +308,7 @@ public class Nester implements XdrElement {
       public NesterNestedUnion build() {
         NesterNestedUnion val = new NesterNestedUnion();
         val.setDiscriminant(discriminant);
-        val.setBlah2(blah2);
+        val.setBlah2(this.blah2);
         return val;
       }
     }
@@ -275,6 +353,31 @@ public class Nester implements XdrElement {
 
       NesterNestedUnion other = (NesterNestedUnion) object;
       return Objects.equal(this.blah2, other.blah2) && Objects.equal(this.color, other.color);
+    }
+    @Override
+    public String toXdrBase64() throws IOException {
+      BaseEncoding base64Encoding = BaseEncoding.base64();
+      return base64Encoding.encode(toXdrByteArray());
+    }
+
+    @Override
+    public byte[] toXdrByteArray() throws IOException {
+      ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+      XdrDataOutputStream xdrDataOutputStream = new XdrDataOutputStream(byteArrayOutputStream);
+      encode(xdrDataOutputStream);
+      return byteArrayOutputStream.toByteArray();
+    }
+
+    public static NesterNestedUnion fromXdrBase64(String xdr) throws IOException {
+      BaseEncoding base64Encoding = BaseEncoding.base64();
+      byte[] bytes = base64Encoding.decode(xdr);
+      return fromXdrByteArray(bytes);
+    }
+
+    public static NesterNestedUnion fromXdrByteArray(byte[] xdr) throws IOException {
+      ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(xdr);
+      XdrDataInputStream xdrDataInputStream = new XdrDataInputStream(byteArrayInputStream);
+      return decode(xdrDataInputStream);
     }
 
   }
