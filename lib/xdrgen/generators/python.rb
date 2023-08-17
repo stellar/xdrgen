@@ -11,6 +11,7 @@ module Xdrgen
   module Generators
     class Python < Xdrgen::Generators::Base
       MAX_SIZE = (2 ** 32) - 1
+      CIRCLE_IMPORT_UNION = %w[SCVal SCSpecTypeDef]
 
       def generate
         @constants_out = @output.open("constants.py")
@@ -51,7 +52,11 @@ module Xdrgen
         when AST::Definitions::Enum
           render_enum defn
         when AST::Definitions::Union;
-          render_union defn
+          if CIRCLE_IMPORT_UNION.include?(defn.name)
+            render_union defn, true
+          else
+            render_union defn
+          end
         when AST::Definitions::Typedef
           render_typedef defn
         when AST::Definitions::Const
@@ -152,7 +157,7 @@ module Xdrgen
         end
       end
 
-      def render_union(union)
+      def render_union(union, render_import_in_func = false)
         union_name = name union
         union_name_underscore = union_name.underscore
         @init_out.puts "from .#{union_name_underscore} import #{union_name}"
@@ -163,10 +168,21 @@ module Xdrgen
 
         render_import out, union.discriminant, union_name
 
-        union.arms.each do |arm|
-          next if arm.void?
-          # This may cause duplicate imports, we can remove it with autoflake
-          render_import out, arm.declaration, union_name
+        if render_import_in_func
+          out.puts "if TYPE_CHECKING:"
+          out.indent(2) do
+            union.arms.each do |arm|
+              next if arm.void?
+              # This may cause duplicate imports, we can remove it with autoflake
+              render_import out, arm.declaration, union_name
+            end
+          end
+        else
+          union.arms.each do |arm|
+            next if arm.void?
+            # This may cause duplicate imports, we can remove it with autoflake
+            render_import out, arm.declaration, union_name
+          end
         end
 
         out.puts "__all__ = ['#{union_name}']"
@@ -260,6 +276,10 @@ module Xdrgen
                   if arm.void?
                     out.puts "return cls(#{union_discriminant_name_underscore}=#{union_discriminant_name_underscore})"
                   else
+                    if render_import_in_func
+                      render_import out, arm.declaration, union_name
+                    end
+
                     decode_member arm, out
                     arm_name_underscore = arm.name.underscore
                     out.puts "return cls(#{union_discriminant_name_underscore}=#{union_discriminant_name_underscore}, #{arm_name_underscore}=#{arm_name_underscore})"
@@ -474,7 +494,7 @@ module Xdrgen
 
           import base64
           from enum import IntEnum
-          from typing import List, Optional
+          from typing import List, Optional, TYPE_CHECKING
           from xdrlib3 import Packer, Unpacker
           from .base import Integer, UnsignedInteger, Float, Double, Hyper, UnsignedHyper, Boolean, String, Opaque
           from .constants import *
