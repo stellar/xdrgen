@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import base64
 from enum import IntEnum
-from typing import List, Optional
+from typing import List, Optional, TYPE_CHECKING
 from xdrlib3 import Packer, Unpacker
 from .base import Integer, UnsignedInteger, Float, Double, Hyper, UnsignedHyper, Boolean, String, Opaque
 from .constants import *
@@ -79,6 +79,8 @@ class Nester:
     def from_xdr(cls, xdr: str) -> Nester:
         xdr_bytes = base64.b64decode(xdr.encode())
         return cls.from_xdr_bytes(xdr_bytes)
+    def __hash__(self):
+        return hash((self.nested_enum, self.nested_struct, self.nested_union,))
     def __eq__(self, other: object):
         if not isinstance(other, self.__class__):
             return NotImplemented

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import base64
 from enum import IntEnum
-from typing import List, Optional
+from typing import List, Optional, TYPE_CHECKING
 from xdrlib3 import Packer, Unpacker
 from .base import Integer, UnsignedInteger, Float, Double, Hyper, UnsignedHyper, Boolean, String, Opaque
 from .constants import *

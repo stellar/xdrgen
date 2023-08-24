@@ -138,6 +138,8 @@ module Xdrgen
           end
           render_xdr_utils(out, typedef_name)
           out.puts <<~HEREDOC
+            def __hash__(self):
+                return hash(self.#{typedef_name_underscore})
             def __eq__(self, other: object):
                 if not isinstance(other, self.__class__):
                     return NotImplemented
@@ -305,6 +307,8 @@ module Xdrgen
             attribute_names.push(arm.name.underscore)
           end
           out.puts <<~HEREDOC
+            def __hash__(self):
+                return hash((#{attribute_names.map { |m| 'self.' + m }.join(", ")},))
             def __eq__(self, other: object):
                 if not isinstance(other, self.__class__):
                     return NotImplemented
@@ -396,6 +400,8 @@ module Xdrgen
             attribute_names.push(member.name.underscore)
           end
           out.puts <<~HEREDOC
+            def __hash__(self):
+                return hash((#{attribute_names.map { |m| 'self.' + m }.join(", ")},))
             def __eq__(self, other: object):
                 if not isinstance(other, self.__class__):
                     return NotImplemented
