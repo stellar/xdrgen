@@ -43,15 +43,6 @@ class MyUnion:
         self.type = type
         self.one = one
         self.two = two
-    @classmethod
-    def from_one(cls, one: MyUnionOne) -> MyUnion:
-        return cls(UnionKey.ONE, one=one)
-    @classmethod
-    def from_two(cls, two: MyUnionTwo) -> MyUnion:
-        return cls(UnionKey.TWO, two=two)
-    @classmethod
-    def from_offer(cls) -> MyUnion:
-        return cls(UnionKey.OFFER)
     def pack(self, packer: Packer) -> None:
         self.type.pack(packer)
         if self.type == UnionKey.ONE:

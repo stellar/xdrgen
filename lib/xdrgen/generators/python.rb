@@ -221,25 +221,6 @@ module Xdrgen
             end
           end
 
-          union.normal_arms.each do |arm|
-            arm.cases.each do |c|
-              if c.value.is_a?(AST::Identifier)
-                out.puts "@classmethod"
-                if arm.void?
-                  out.puts "def from_#{c.value.name.underscore}(cls) -> #{union_name}:"
-                  out.indent(2) do
-                    out.puts "return cls(#{type_string union.discriminant.type}.#{c.value.name})"
-                  end
-                else
-                  out.puts "def from_#{c.value.name.underscore}(cls, #{arm.name.underscore}: #{type_hint_string arm.declaration, union_name}) -> #{union_name}:"
-                  out.indent(2) do
-                    out.puts "return cls(#{type_string union.discriminant.type}.#{c.value.name}, #{arm.name.underscore}=#{arm.name.underscore})"
-                  end
-                end
-              end
-            end
-          end
-
           out.puts "def pack(self, packer: Packer) -> None:"
           out.indent(2) do
             out.puts "#{encode_type union.discriminant, 'self.' + union_discriminant_name_underscore}"
