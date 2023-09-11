@@ -6,7 +6,7 @@ package MyXDR;
 import java.io.IOException;
 
 import static MyXDR.Constants.*;
-import java.util.Base64;;
+import java.util.Base64;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.util.Objects;

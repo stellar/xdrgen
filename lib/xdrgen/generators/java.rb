@@ -43,7 +43,7 @@ module Xdrgen
       end
 
       def add_imports_for_definition(defn, imports)
-        imports.add("java.util.Base64;")
+        imports.add("java.util.Base64")
         imports.add("java.io.ByteArrayInputStream")
         imports.add("java.io.ByteArrayOutputStream")
 
