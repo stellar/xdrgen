@@ -6,10 +6,10 @@ package MyXDR;
 import java.io.IOException;
 
 import static MyXDR.Constants.*;
-import com.google.common.io.BaseEncoding;
+import java.util.Base64;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import com.google.common.base.Objects;
+import java.util.Objects;
 import java.util.Arrays;
 
 // === xdr source ============================================================
@@ -85,7 +85,7 @@ public class MyStruct implements XdrElement {
   }
   @Override
   public int hashCode() {
-    return Objects.hashCode(this.someInt, this.aBigInt, Arrays.hashCode(this.someOpaque), this.someString, this.maxString);
+    return Objects.hash(this.someInt, this.aBigInt, Arrays.hashCode(this.someOpaque), this.someString, this.maxString);
   }
   @Override
   public boolean equals(Object object) {
@@ -94,13 +94,12 @@ public class MyStruct implements XdrElement {
     }
 
     MyStruct other = (MyStruct) object;
-    return Objects.equal(this.someInt, other.someInt) && Objects.equal(this.aBigInt, other.aBigInt) && Arrays.equals(this.someOpaque, other.someOpaque) && Objects.equal(this.someString, other.someString) && Objects.equal(this.maxString, other.maxString);
+    return Objects.equals(this.someInt, other.someInt) && Objects.equals(this.aBigInt, other.aBigInt) && Arrays.equals(this.someOpaque, other.someOpaque) && Objects.equals(this.someString, other.someString) && Objects.equals(this.maxString, other.maxString);
   }
 
   @Override
   public String toXdrBase64() throws IOException {
-    BaseEncoding base64Encoding = BaseEncoding.base64();
-    return base64Encoding.encode(toXdrByteArray());
+    return Base64.getEncoder().encodeToString(toXdrByteArray());
   }
 
   @Override
@@ -112,8 +111,7 @@ public class MyStruct implements XdrElement {
   }
 
   public static MyStruct fromXdrBase64(String xdr) throws IOException {
-    BaseEncoding base64Encoding = BaseEncoding.base64();
-    byte[] bytes = base64Encoding.decode(xdr);
+    byte[] bytes = Base64.getDecoder().decode(xdr);
     return fromXdrByteArray(bytes);
   }
 

@@ -6,10 +6,10 @@ package MyXDR;
 import java.io.IOException;
 
 import static MyXDR.Constants.*;
-import com.google.common.io.BaseEncoding;
+import java.util.Base64;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import com.google.common.base.Objects;
+import java.util.Objects;
 
 // === xdr source ============================================================
 
@@ -48,7 +48,7 @@ public class Multi implements XdrElement {
 
   @Override
   public int hashCode() {
-    return Objects.hashCode(this.Multi);
+    return Objects.hash(this.Multi);
   }
 
   @Override
@@ -58,12 +58,11 @@ public class Multi implements XdrElement {
     }
 
     Multi other = (Multi) object;
-    return Objects.equal(this.Multi, other.Multi);
+    return Objects.equals(this.Multi, other.Multi);
   }
   @Override
   public String toXdrBase64() throws IOException {
-    BaseEncoding base64Encoding = BaseEncoding.base64();
-    return base64Encoding.encode(toXdrByteArray());
+    return Base64.getEncoder().encodeToString(toXdrByteArray());
   }
 
   @Override
@@ -75,8 +74,7 @@ public class Multi implements XdrElement {
   }
 
   public static Multi fromXdrBase64(String xdr) throws IOException {
-    BaseEncoding base64Encoding = BaseEncoding.base64();
-    byte[] bytes = base64Encoding.decode(xdr);
+    byte[] bytes = Base64.getDecoder().decode(xdr);
     return fromXdrByteArray(bytes);
   }
 
