@@ -11,6 +11,7 @@ package MyXDR
 import (
   "bytes"
   "encoding"
+  "errors"
   "io"
   "fmt"
 
@@ -27,14 +28,14 @@ type xdrType interface {
 }
 
 type decoderFrom interface {
-  DecodeFrom(d *xdr.Decoder) (int, error)
+  DecodeFrom(d *xdr.Decoder, maxDepth uint) (int, error)
 }
 
 // Unmarshal reads an xdr element from `r` into `v`.
 func Unmarshal(r io.Reader, v interface{}) (int, error) {
   if decodable, ok := v.(decoderFrom); ok {
     d := xdr.NewDecoder(r)
-    return decodable.DecodeFrom(d)
+    return decodable.DecodeFrom(d, xdr.DecodeDefaultMaxDepth)
   }
   // delegate to xdr package's Unmarshal
 	return xdr.Unmarshal(r, v)
@@ -71,7 +72,11 @@ if _, err = e.EncodeInt(int32(s)); err != nil {
 
 var _ decoderFrom = (*Arr)(nil)
 // DecodeFrom decodes this value using the Decoder.
-func (s *Arr) DecodeFrom(d *xdr.Decoder) (int, error) {
+func (s *Arr) DecodeFrom(d *xdr.Decoder, maxDepth uint) (int, error) {
+  if maxDepth == 0 {
+    return 0, errors.New("decoding Arr: maximum decoding depth reached")
+  }
+  maxDepth -= 1
   var err error
   var n, nTmp int
   var v [2]int32
@@ -96,7 +101,7 @@ func (s Arr) MarshalBinary() ([]byte, error) {
 func (s *Arr) UnmarshalBinary(inp []byte) error {
   r := bytes.NewReader(inp)
   d := xdr.NewDecoder(r)
-  _, err := s.DecodeFrom(d)
+  _, err := s.DecodeFrom(d, xdr.DecodeDefaultMaxDepth)
   return err
 }
 
@@ -158,7 +163,11 @@ if   err = (*s.ThirdOption).EncodeTo(e); err != nil {
 
 var _ decoderFrom = (*HasOptions)(nil)
 // DecodeFrom decodes this value using the Decoder.
-func (s *HasOptions) DecodeFrom(d *xdr.Decoder) (int, error) {
+func (s *HasOptions) DecodeFrom(d *xdr.Decoder, maxDepth uint) (int, error) {
+  if maxDepth == 0 {
+    return 0, errors.New("maximum decoding depth reached")
+  }
+  maxDepth -= 1
   var err error
   var n, nTmp int
   var b bool
@@ -198,7 +207,7 @@ if err != nil {
   s.ThirdOption = nil
   if b {
      s.ThirdOption = new(Arr)
-  nTmp, err = s.ThirdOption.DecodeFrom(d)
+  nTmp, err = s.ThirdOption.DecodeFrom(d, maxDepth)
 n += nTmp
 if err != nil {
   return n, fmt.Errorf("decoding Arr: %s", err)
@@ -219,7 +228,7 @@ func (s HasOptions) MarshalBinary() ([]byte, error) {
 func (s *HasOptions) UnmarshalBinary(inp []byte) error {
   r := bytes.NewReader(inp)
   d := xdr.NewDecoder(r)
-  _, err := s.DecodeFrom(d)
+  _, err := s.DecodeFrom(d, xdr.DecodeDefaultMaxDepth)
   return err
 }
 
