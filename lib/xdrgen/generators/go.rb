@@ -538,7 +538,7 @@ module Xdrgen
         out.puts "// DecodeFrom decodes this value using the Decoder."
         out.puts "func (s *#{name}) DecodeFrom(d *xdr.Decoder, maxDepth uint) (int, error) {"
         out.puts "  if maxDepth == 0 {"
-        out.puts "    return 0, errors.New(\"maximum decoding depth reached\")"
+        out.puts "    return 0, fmt.Errorf(\"decoding #{name}: %w\", ErrMaxDecodingDepthReached)"
         out.puts "  }"
         out.puts "  maxDepth -= 1"
         out.puts "  var err error"
@@ -558,7 +558,7 @@ module Xdrgen
         out.puts "// DecodeFrom decodes this value using the Decoder."
         out.puts "func (u *#{name}) DecodeFrom(d *xdr.Decoder, maxDepth uint) (int, error) {"
         out.puts "  if maxDepth == 0 {"
-        out.puts "    return 0, errors.New(\"decoding #{name}: maximum decoding depth reached\")"
+        out.puts "    return 0, fmt.Errorf(\"decoding #{name}: %w\", ErrMaxDecodingDepthReached)"
         out.puts "  }"
         out.puts "  maxDepth -= 1"
         out.puts "  var err error"
@@ -591,12 +591,12 @@ module Xdrgen
         // DecodeFrom decodes this value using the Decoder.
         func (e *#{name}) DecodeFrom(d *xdr.Decoder, maxDepth uint) (int, error) {
           if maxDepth == 0 {
-            return 0, errors.New("decoding #{name}: maximum decoding depth reached")
+            return 0, fmt.Errorf("decoding #{name}: %w", ErrMaxDecodingDepthReached)
           }
           maxDepth -= 1
           v, n, err := d.DecodeInt()
           if err != nil {
-            return n, fmt.Errorf("decoding #{name}: %s", err)
+            return n, fmt.Errorf("decoding #{name}: %w", err)
           }
           if _, ok := #{private_name type}Map[v]; !ok {
             return n, fmt.Errorf("'%d' is not a valid #{name} enum value", v)
@@ -613,7 +613,7 @@ module Xdrgen
         out.puts "// DecodeFrom decodes this value using the Decoder."
         out.puts "func (s *#{name}) DecodeFrom(d *xdr.Decoder, maxDepth uint) (int, error) {"
         out.puts "  if maxDepth == 0 {"
-        out.puts "    return 0, errors.New(\"decoding #{name}: maximum decoding depth reached\")"
+        out.puts "    return 0, fmt.Errorf(\"decoding #{name}: %w\", ErrMaxDecodingDepthReached)"
         out.puts "  }"
         out.puts "  maxDepth -= 1"
         out.puts "  var err error"
@@ -652,7 +652,7 @@ module Xdrgen
         tail = <<-EOS.strip_heredoc
           n += nTmp
           if err != nil {
-            return n, fmt.Errorf("decoding #{name type}: %s", err)
+            return n, fmt.Errorf("decoding #{name type}: %w", err)
           }
         EOS
         optional = type.sub_type == :optional
@@ -849,6 +849,8 @@ module Xdrgen
         EOS
         out.break
         out.puts <<-EOS.strip_heredoc
+          var ErrMaxDecodingDepthReached = errors.New("maximum decoding depth reached")
+
           type xdrType interface {
             xdrType()
           }
@@ -996,7 +998,7 @@ module Xdrgen
             <<-EOS
             tv, ok := value.(#{reference arm.type})
             if !ok {
-              err = fmt.Errorf("invalid value, must be #{reference arm.type}")
+              err = errors.New("invalid value, must be #{reference arm.type}")
               return
             }
             result.#{name arm} = &tv

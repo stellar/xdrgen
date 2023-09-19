@@ -23,6 +23,8 @@ var XdrFilesSHA256 = map[string]string{
   "spec/fixtures/generator/block_comments.x": "e13131bc4134f38da17b9d5e9f67d2695a69ef98e3ef272833f4c18d0cc88a30",
 }
 
+var ErrMaxDecodingDepthReached = errors.New("maximum decoding depth reached")
+
 type xdrType interface {
   xdrType()
 }
@@ -95,12 +97,12 @@ var _ decoderFrom = (*AccountFlags)(nil)
 // DecodeFrom decodes this value using the Decoder.
 func (e *AccountFlags) DecodeFrom(d *xdr.Decoder, maxDepth uint) (int, error) {
   if maxDepth == 0 {
-    return 0, errors.New("decoding AccountFlags: maximum decoding depth reached")
+    return 0, fmt.Errorf("decoding AccountFlags: %w", ErrMaxDecodingDepthReached)
   }
   maxDepth -= 1
   v, n, err := d.DecodeInt()
   if err != nil {
-    return n, fmt.Errorf("decoding AccountFlags: %s", err)
+    return n, fmt.Errorf("decoding AccountFlags: %w", err)
   }
   if _, ok := accountFlagsMap[v]; !ok {
     return n, fmt.Errorf("'%d' is not a valid AccountFlags enum value", v)

@@ -23,6 +23,8 @@ var XdrFilesSHA256 = map[string]string{
   "spec/fixtures/generator/nesting.x": "5537949272c11f1bd09cf613a3751668b5018d686a1c2aaa3baa91183ca18f6a",
 }
 
+var ErrMaxDecodingDepthReached = errors.New("maximum decoding depth reached")
+
 type xdrType interface {
   xdrType()
 }
@@ -100,12 +102,12 @@ var _ decoderFrom = (*UnionKey)(nil)
 // DecodeFrom decodes this value using the Decoder.
 func (e *UnionKey) DecodeFrom(d *xdr.Decoder, maxDepth uint) (int, error) {
   if maxDepth == 0 {
-    return 0, errors.New("decoding UnionKey: maximum decoding depth reached")
+    return 0, fmt.Errorf("decoding UnionKey: %w", ErrMaxDecodingDepthReached)
   }
   maxDepth -= 1
   v, n, err := d.DecodeInt()
   if err != nil {
-    return n, fmt.Errorf("decoding UnionKey: %s", err)
+    return n, fmt.Errorf("decoding UnionKey: %w", err)
   }
   if _, ok := unionKeyMap[v]; !ok {
     return n, fmt.Errorf("'%d' is not a valid UnionKey enum value", v)
@@ -159,7 +161,7 @@ var _ decoderFrom = (*Foo)(nil)
 // DecodeFrom decodes this value using the Decoder.
 func (s *Foo) DecodeFrom(d *xdr.Decoder, maxDepth uint) (int, error) {
   if maxDepth == 0 {
-    return 0, errors.New("decoding Foo: maximum decoding depth reached")
+    return 0, fmt.Errorf("decoding Foo: %w", ErrMaxDecodingDepthReached)
   }
   maxDepth -= 1
   var err error
@@ -168,7 +170,7 @@ func (s *Foo) DecodeFrom(d *xdr.Decoder, maxDepth uint) (int, error) {
   v, nTmp, err = d.DecodeInt()
 n += nTmp
 if err != nil {
-  return n, fmt.Errorf("decoding Int: %s", err)
+  return n, fmt.Errorf("decoding Int: %w", err)
 }
   *s = Foo(v)
   return n, nil
@@ -224,7 +226,7 @@ var _ decoderFrom = (*MyUnionOne)(nil)
 // DecodeFrom decodes this value using the Decoder.
 func (s *MyUnionOne) DecodeFrom(d *xdr.Decoder, maxDepth uint) (int, error) {
   if maxDepth == 0 {
-    return 0, errors.New("maximum decoding depth reached")
+    return 0, fmt.Errorf("decoding MyUnionOne: %w", ErrMaxDecodingDepthReached)
   }
   maxDepth -= 1
   var err error
@@ -232,7 +234,7 @@ func (s *MyUnionOne) DecodeFrom(d *xdr.Decoder, maxDepth uint) (int, error) {
   s.SomeInt, nTmp, err = d.DecodeInt()
 n += nTmp
 if err != nil {
-  return n, fmt.Errorf("decoding Int: %s", err)
+  return n, fmt.Errorf("decoding Int: %w", err)
 }
   return n, nil
 }
@@ -292,7 +294,7 @@ var _ decoderFrom = (*MyUnionTwo)(nil)
 // DecodeFrom decodes this value using the Decoder.
 func (s *MyUnionTwo) DecodeFrom(d *xdr.Decoder, maxDepth uint) (int, error) {
   if maxDepth == 0 {
-    return 0, errors.New("maximum decoding depth reached")
+    return 0, fmt.Errorf("decoding MyUnionTwo: %w", ErrMaxDecodingDepthReached)
   }
   maxDepth -= 1
   var err error
@@ -300,12 +302,12 @@ func (s *MyUnionTwo) DecodeFrom(d *xdr.Decoder, maxDepth uint) (int, error) {
   s.SomeInt, nTmp, err = d.DecodeInt()
 n += nTmp
 if err != nil {
-  return n, fmt.Errorf("decoding Int: %s", err)
+  return n, fmt.Errorf("decoding Int: %w", err)
 }
   nTmp, err = s.Foo.DecodeFrom(d, maxDepth)
 n += nTmp
 if err != nil {
-  return n, fmt.Errorf("decoding Foo: %s", err)
+  return n, fmt.Errorf("decoding Foo: %w", err)
 }
   return n, nil
 }
@@ -389,14 +391,14 @@ switch UnionKey(aType) {
     case UnionKeyOne:
                   tv, ok := value.(MyUnionOne)
             if !ok {
-              err = fmt.Errorf("invalid value, must be MyUnionOne")
+              err = errors.New("invalid value, must be MyUnionOne")
               return
             }
             result.One = &tv
     case UnionKeyTwo:
                   tv, ok := value.(MyUnionTwo)
             if !ok {
-              err = fmt.Errorf("invalid value, must be MyUnionTwo")
+              err = errors.New("invalid value, must be MyUnionTwo")
               return
             }
             result.Two = &tv
@@ -482,7 +484,7 @@ var _ decoderFrom = (*MyUnion)(nil)
 // DecodeFrom decodes this value using the Decoder.
 func (u *MyUnion) DecodeFrom(d *xdr.Decoder, maxDepth uint) (int, error) {
   if maxDepth == 0 {
-    return 0, errors.New("decoding MyUnion: maximum decoding depth reached")
+    return 0, fmt.Errorf("decoding MyUnion: %w", ErrMaxDecodingDepthReached)
   }
   maxDepth -= 1
   var err error
@@ -490,7 +492,7 @@ func (u *MyUnion) DecodeFrom(d *xdr.Decoder, maxDepth uint) (int, error) {
   nTmp, err = u.Type.DecodeFrom(d, maxDepth)
 n += nTmp
 if err != nil {
-  return n, fmt.Errorf("decoding UnionKey: %s", err)
+  return n, fmt.Errorf("decoding UnionKey: %w", err)
 }
 switch UnionKey(u.Type) {
     case UnionKeyOne:
@@ -498,7 +500,7 @@ switch UnionKey(u.Type) {
   nTmp, err = (*u.One).DecodeFrom(d, maxDepth)
 n += nTmp
 if err != nil {
-  return n, fmt.Errorf("decoding MyUnionOne: %s", err)
+  return n, fmt.Errorf("decoding MyUnionOne: %w", err)
 }
   return n, nil
     case UnionKeyTwo:
@@ -506,7 +508,7 @@ if err != nil {
   nTmp, err = (*u.Two).DecodeFrom(d, maxDepth)
 n += nTmp
 if err != nil {
-  return n, fmt.Errorf("decoding MyUnionTwo: %s", err)
+  return n, fmt.Errorf("decoding MyUnionTwo: %w", err)
 }
   return n, nil
     case UnionKeyOffer:

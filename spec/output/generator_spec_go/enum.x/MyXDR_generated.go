@@ -23,6 +23,8 @@ var XdrFilesSHA256 = map[string]string{
   "spec/fixtures/generator/enum.x": "35cf5e97e2057039640ed260e8b38bb2733a3c3ca8529c93877bdec02a999d7f",
 }
 
+var ErrMaxDecodingDepthReached = errors.New("maximum decoding depth reached")
+
 type xdrType interface {
   xdrType()
 }
@@ -140,12 +142,12 @@ var _ decoderFrom = (*MessageType)(nil)
 // DecodeFrom decodes this value using the Decoder.
 func (e *MessageType) DecodeFrom(d *xdr.Decoder, maxDepth uint) (int, error) {
   if maxDepth == 0 {
-    return 0, errors.New("decoding MessageType: maximum decoding depth reached")
+    return 0, fmt.Errorf("decoding MessageType: %w", ErrMaxDecodingDepthReached)
   }
   maxDepth -= 1
   v, n, err := d.DecodeInt()
   if err != nil {
-    return n, fmt.Errorf("decoding MessageType: %s", err)
+    return n, fmt.Errorf("decoding MessageType: %w", err)
   }
   if _, ok := messageTypeMap[v]; !ok {
     return n, fmt.Errorf("'%d' is not a valid MessageType enum value", v)
@@ -224,12 +226,12 @@ var _ decoderFrom = (*Color)(nil)
 // DecodeFrom decodes this value using the Decoder.
 func (e *Color) DecodeFrom(d *xdr.Decoder, maxDepth uint) (int, error) {
   if maxDepth == 0 {
-    return 0, errors.New("decoding Color: maximum decoding depth reached")
+    return 0, fmt.Errorf("decoding Color: %w", ErrMaxDecodingDepthReached)
   }
   maxDepth -= 1
   v, n, err := d.DecodeInt()
   if err != nil {
-    return n, fmt.Errorf("decoding Color: %s", err)
+    return n, fmt.Errorf("decoding Color: %w", err)
   }
   if _, ok := colorMap[v]; !ok {
     return n, fmt.Errorf("'%d' is not a valid Color enum value", v)
@@ -308,12 +310,12 @@ var _ decoderFrom = (*Color2)(nil)
 // DecodeFrom decodes this value using the Decoder.
 func (e *Color2) DecodeFrom(d *xdr.Decoder, maxDepth uint) (int, error) {
   if maxDepth == 0 {
-    return 0, errors.New("decoding Color2: maximum decoding depth reached")
+    return 0, fmt.Errorf("decoding Color2: %w", ErrMaxDecodingDepthReached)
   }
   maxDepth -= 1
   v, n, err := d.DecodeInt()
   if err != nil {
-    return n, fmt.Errorf("decoding Color2: %s", err)
+    return n, fmt.Errorf("decoding Color2: %w", err)
   }
   if _, ok := color2Map[v]; !ok {
     return n, fmt.Errorf("'%d' is not a valid Color2 enum value", v)

@@ -23,6 +23,8 @@ var XdrFilesSHA256 = map[string]string{
   "spec/fixtures/generator/optional.x": "3241e832fcf00bca4315ecb6c259621dafb0e302a63a993f5504b0b5cebb6bd7",
 }
 
+var ErrMaxDecodingDepthReached = errors.New("maximum decoding depth reached")
+
 type xdrType interface {
   xdrType()
 }
@@ -74,7 +76,7 @@ var _ decoderFrom = (*Arr)(nil)
 // DecodeFrom decodes this value using the Decoder.
 func (s *Arr) DecodeFrom(d *xdr.Decoder, maxDepth uint) (int, error) {
   if maxDepth == 0 {
-    return 0, errors.New("decoding Arr: maximum decoding depth reached")
+    return 0, fmt.Errorf("decoding Arr: %w", ErrMaxDecodingDepthReached)
   }
   maxDepth -= 1
   var err error
@@ -83,7 +85,7 @@ func (s *Arr) DecodeFrom(d *xdr.Decoder, maxDepth uint) (int, error) {
   v, nTmp, err = d.DecodeInt()
 n += nTmp
 if err != nil {
-  return n, fmt.Errorf("decoding Int: %s", err)
+  return n, fmt.Errorf("decoding Int: %w", err)
 }
   *s = Arr(v)
   return n, nil
@@ -165,7 +167,7 @@ var _ decoderFrom = (*HasOptions)(nil)
 // DecodeFrom decodes this value using the Decoder.
 func (s *HasOptions) DecodeFrom(d *xdr.Decoder, maxDepth uint) (int, error) {
   if maxDepth == 0 {
-    return 0, errors.New("maximum decoding depth reached")
+    return 0, fmt.Errorf("decoding HasOptions: %w", ErrMaxDecodingDepthReached)
   }
   maxDepth -= 1
   var err error
@@ -174,7 +176,7 @@ func (s *HasOptions) DecodeFrom(d *xdr.Decoder, maxDepth uint) (int, error) {
   b, nTmp, err = d.DecodeBool()
 n += nTmp
 if err != nil {
-  return n, fmt.Errorf("decoding Int: %s", err)
+  return n, fmt.Errorf("decoding Int: %w", err)
 }
   s.FirstOption = nil
   if b {
@@ -182,13 +184,13 @@ if err != nil {
   s.FirstOption, nTmp, err = d.DecodeInt()
 n += nTmp
 if err != nil {
-  return n, fmt.Errorf("decoding Int: %s", err)
+  return n, fmt.Errorf("decoding Int: %w", err)
 }
   }
   b, nTmp, err = d.DecodeBool()
 n += nTmp
 if err != nil {
-  return n, fmt.Errorf("decoding Int: %s", err)
+  return n, fmt.Errorf("decoding Int: %w", err)
 }
   s.SecondOption = nil
   if b {
@@ -196,13 +198,13 @@ if err != nil {
   s.SecondOption, nTmp, err = d.DecodeInt()
 n += nTmp
 if err != nil {
-  return n, fmt.Errorf("decoding Int: %s", err)
+  return n, fmt.Errorf("decoding Int: %w", err)
 }
   }
   b, nTmp, err = d.DecodeBool()
 n += nTmp
 if err != nil {
-  return n, fmt.Errorf("decoding Arr: %s", err)
+  return n, fmt.Errorf("decoding Arr: %w", err)
 }
   s.ThirdOption = nil
   if b {
@@ -210,7 +212,7 @@ if err != nil {
   nTmp, err = s.ThirdOption.DecodeFrom(d, maxDepth)
 n += nTmp
 if err != nil {
-  return n, fmt.Errorf("decoding Arr: %s", err)
+  return n, fmt.Errorf("decoding Arr: %w", err)
 }
   }
   return n, nil

@@ -23,6 +23,8 @@ var XdrFilesSHA256 = map[string]string{
   "spec/fixtures/generator/const.x": "0bff3b37592fcc16cad2fe10b9a72f5d39d033a114917c24e86a9ebd9cda9c37",
 }
 
+var ErrMaxDecodingDepthReached = errors.New("maximum decoding depth reached")
+
 type xdrType interface {
   xdrType()
 }
@@ -80,7 +82,7 @@ var _ decoderFrom = (*TestArray)(nil)
 // DecodeFrom decodes this value using the Decoder.
 func (s *TestArray) DecodeFrom(d *xdr.Decoder, maxDepth uint) (int, error) {
   if maxDepth == 0 {
-    return 0, errors.New("decoding TestArray: maximum decoding depth reached")
+    return 0, fmt.Errorf("decoding TestArray: %w", ErrMaxDecodingDepthReached)
   }
   maxDepth -= 1
   var err error
@@ -89,7 +91,7 @@ func (s *TestArray) DecodeFrom(d *xdr.Decoder, maxDepth uint) (int, error) {
   v, nTmp, err = d.DecodeInt()
 n += nTmp
 if err != nil {
-  return n, fmt.Errorf("decoding Int: %s", err)
+  return n, fmt.Errorf("decoding Int: %w", err)
 }
   *s = TestArray(v)
   return n, nil
@@ -144,7 +146,7 @@ var _ decoderFrom = (*TestArray2)(nil)
 // DecodeFrom decodes this value using the Decoder.
 func (s *TestArray2) DecodeFrom(d *xdr.Decoder, maxDepth uint) (int, error) {
   if maxDepth == 0 {
-    return 0, errors.New("decoding TestArray2: maximum decoding depth reached")
+    return 0, fmt.Errorf("decoding TestArray2: %w", ErrMaxDecodingDepthReached)
   }
   maxDepth -= 1
   var err error
@@ -153,7 +155,7 @@ func (s *TestArray2) DecodeFrom(d *xdr.Decoder, maxDepth uint) (int, error) {
   v, nTmp, err = d.DecodeInt()
 n += nTmp
 if err != nil {
-  return n, fmt.Errorf("decoding Int: %s", err)
+  return n, fmt.Errorf("decoding Int: %w", err)
 }
   *s = TestArray2(v)
   return n, nil

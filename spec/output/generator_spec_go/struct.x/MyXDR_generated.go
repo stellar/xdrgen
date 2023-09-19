@@ -23,6 +23,8 @@ var XdrFilesSHA256 = map[string]string{
   "spec/fixtures/generator/struct.x": "c6911a83390e3b499c078fd0c579132eacce88a4a0538d3b8b5e57747a58db4a",
 }
 
+var ErrMaxDecodingDepthReached = errors.New("maximum decoding depth reached")
+
 type xdrType interface {
   xdrType()
 }
@@ -75,7 +77,7 @@ var _ decoderFrom = (*Int64)(nil)
 // DecodeFrom decodes this value using the Decoder.
 func (s *Int64) DecodeFrom(d *xdr.Decoder, maxDepth uint) (int, error) {
   if maxDepth == 0 {
-    return 0, errors.New("decoding Int64: maximum decoding depth reached")
+    return 0, fmt.Errorf("decoding Int64: %w", ErrMaxDecodingDepthReached)
   }
   maxDepth -= 1
   var err error
@@ -84,7 +86,7 @@ func (s *Int64) DecodeFrom(d *xdr.Decoder, maxDepth uint) (int, error) {
   v, nTmp, err = d.DecodeHyper()
 n += nTmp
 if err != nil {
-  return n, fmt.Errorf("decoding Hyper: %s", err)
+  return n, fmt.Errorf("decoding Hyper: %w", err)
 }
   *s = Int64(v)
   return n, nil
@@ -161,7 +163,7 @@ var _ decoderFrom = (*MyStruct)(nil)
 // DecodeFrom decodes this value using the Decoder.
 func (s *MyStruct) DecodeFrom(d *xdr.Decoder, maxDepth uint) (int, error) {
   if maxDepth == 0 {
-    return 0, errors.New("maximum decoding depth reached")
+    return 0, fmt.Errorf("decoding MyStruct: %w", ErrMaxDecodingDepthReached)
   }
   maxDepth -= 1
   var err error
@@ -169,27 +171,27 @@ func (s *MyStruct) DecodeFrom(d *xdr.Decoder, maxDepth uint) (int, error) {
   s.SomeInt, nTmp, err = d.DecodeInt()
 n += nTmp
 if err != nil {
-  return n, fmt.Errorf("decoding Int: %s", err)
+  return n, fmt.Errorf("decoding Int: %w", err)
 }
   nTmp, err = s.ABigInt.DecodeFrom(d, maxDepth)
 n += nTmp
 if err != nil {
-  return n, fmt.Errorf("decoding Int64: %s", err)
+  return n, fmt.Errorf("decoding Int64: %w", err)
 }
   nTmp, err = d.DecodeFixedOpaqueInplace(s.SomeOpaque[:])
 n += nTmp
 if err != nil {
-  return n, fmt.Errorf("decoding SomeOpaque: %s", err)
+  return n, fmt.Errorf("decoding SomeOpaque: %w", err)
 }
   s.SomeString, nTmp, err = d.DecodeString(0)
 n += nTmp
 if err != nil {
-  return n, fmt.Errorf("decoding SomeString: %s", err)
+  return n, fmt.Errorf("decoding SomeString: %w", err)
 }
   s.MaxString, nTmp, err = d.DecodeString(100)
 n += nTmp
 if err != nil {
-  return n, fmt.Errorf("decoding MaxString: %s", err)
+  return n, fmt.Errorf("decoding MaxString: %w", err)
 }
   return n, nil
 }
