@@ -536,7 +536,11 @@ module Xdrgen
       def render_struct_decode_from_interface(out, struct)
         name = name(struct)
         out.puts "// DecodeFrom decodes this value using the Decoder."
-        out.puts "func (s *#{name}) DecodeFrom(d *xdr.Decoder) (int, error) {"
+        out.puts "func (s *#{name}) DecodeFrom(d *xdr.Decoder, maxDepth uint) (int, error) {"
+        out.puts "  if maxDepth == 0 {"
+        out.puts "    return 0, fmt.Errorf(\"decoding #{name}: %w\", ErrMaxDecodingDepthReached)"
+        out.puts "  }"
+        out.puts "  maxDepth -= 1"
         out.puts "  var err error"
         out.puts "  var n, nTmp int"
         declared_variables = []
@@ -552,7 +556,11 @@ module Xdrgen
       def render_union_decode_from_interface(out, union)
         name = name(union)
         out.puts "// DecodeFrom decodes this value using the Decoder."
-        out.puts "func (u *#{name}) DecodeFrom(d *xdr.Decoder) (int, error) {"
+        out.puts "func (u *#{name}) DecodeFrom(d *xdr.Decoder, maxDepth uint) (int, error) {"
+        out.puts "  if maxDepth == 0 {"
+        out.puts "    return 0, fmt.Errorf(\"decoding #{name}: %w\", ErrMaxDecodingDepthReached)"
+        out.puts "  }"
+        out.puts "  maxDepth -= 1"
         out.puts "  var err error"
         out.puts "  var n, nTmp int"
         render_decode_from_body(out, "u.#{name(union.discriminant)}", union.discriminant.type, declared_variables: [], self_encode: false)
@@ -581,10 +589,14 @@ module Xdrgen
         type = typedef
         out.puts <<-EOS.strip_heredoc
         // DecodeFrom decodes this value using the Decoder.
-        func (e *#{name}) DecodeFrom(d *xdr.Decoder) (int, error) {
+        func (e *#{name}) DecodeFrom(d *xdr.Decoder, maxDepth uint) (int, error) {
+          if maxDepth == 0 {
+            return 0, fmt.Errorf("decoding #{name}: %w", ErrMaxDecodingDepthReached)
+          }
+          maxDepth -= 1
           v, n, err := d.DecodeInt()
           if err != nil {
-            return n, fmt.Errorf("decoding #{name}: %s", err)
+            return n, fmt.Errorf("decoding #{name}: %w", err)
           }
           if _, ok := #{private_name type}Map[v]; !ok {
             return n, fmt.Errorf("'%d' is not a valid #{name} enum value", v)
@@ -599,7 +611,11 @@ module Xdrgen
         name = name(typedef)
         type = typedef.declaration.type
         out.puts "// DecodeFrom decodes this value using the Decoder."
-        out.puts "func (s *#{name}) DecodeFrom(d *xdr.Decoder) (int, error) {"
+        out.puts "func (s *#{name}) DecodeFrom(d *xdr.Decoder, maxDepth uint) (int, error) {"
+        out.puts "  if maxDepth == 0 {"
+        out.puts "    return 0, fmt.Errorf(\"decoding #{name}: %w\", ErrMaxDecodingDepthReached)"
+        out.puts "  }"
+        out.puts "  maxDepth -= 1"
         out.puts "  var err error"
         out.puts "  var n, nTmp int"
         var = "s"
@@ -636,7 +652,7 @@ module Xdrgen
         tail = <<-EOS.strip_heredoc
           n += nTmp
           if err != nil {
-            return n, fmt.Errorf("decoding #{name type}: %s", err)
+            return n, fmt.Errorf("decoding #{name type}: %w", err)
           }
         EOS
         optional = type.sub_type == :optional
@@ -692,7 +708,7 @@ module Xdrgen
               out.puts "     #{var} = new(#{name type.resolved_type.declaration.type})"
             end
             var = "(*#{name type})(#{var})" if self_encode
-            out.puts "  nTmp, err = #{var}.DecodeFrom(d)"
+            out.puts "  nTmp, err = #{var}.DecodeFrom(d, maxDepth)"
             out.puts tail
             if optional_within
               out.puts "  }"
@@ -709,7 +725,7 @@ module Xdrgen
               out.puts "    if eb {"
               var = "(*#{element_var})"
             end
-            out.puts "      nTmp, err = #{element_var}.DecodeFrom(d)"
+            out.puts "      nTmp, err = #{element_var}.DecodeFrom(d, maxDepth)"
             out.puts tail
             if optional_within
               out.puts "    }"
@@ -739,7 +755,7 @@ module Xdrgen
               out.puts "         #{element_var} = new(#{name type.resolved_type.declaration.type})"
               var = "(*#{element_var})"
             end
-            out.puts "      nTmp, err = #{element_var}.DecodeFrom(d)"
+            out.puts "      nTmp, err = #{element_var}.DecodeFrom(d, maxDepth)"
             out.puts tail
             if optional_within
               out.puts "    }"
@@ -751,13 +767,13 @@ module Xdrgen
           end
         when AST::Definitions::Base
           if self_encode
-            out.puts "  nTmp, err = #{name type}(#{var}).DecodeFrom(d)"
+            out.puts "  nTmp, err = #{name type}(#{var}).DecodeFrom(d, maxDepth)"
           else
-            out.puts "  nTmp, err = #{var}.DecodeFrom(d)"
+            out.puts "  nTmp, err = #{var}.DecodeFrom(d, maxDepth)"
           end
           out.puts tail
         else
-          out.puts "  nTmp, err = d.Decode(&#{var})"
+          out.puts "  nTmp, err = d.DecodeWithMaxDepth(&#{var}, maxDepth)"
           out.puts tail
         end
         if optional
@@ -778,7 +794,7 @@ module Xdrgen
         out.puts "func (s *#{name}) UnmarshalBinary(inp []byte) error {"
         out.puts "  r := bytes.NewReader(inp)"
         out.puts "  d := xdr.NewDecoder(r)"
-        out.puts "  _, err := s.DecodeFrom(d)"
+        out.puts "  _, err := s.DecodeFrom(d, xdr.DecodeDefaultMaxDepth)"
         out.puts "  return err"
         out.puts "}"
         out.break
@@ -817,6 +833,7 @@ module Xdrgen
           import (
             "bytes"
             "encoding"
+            "errors"
             "io"
             "fmt"
 
@@ -832,19 +849,21 @@ module Xdrgen
         EOS
         out.break
         out.puts <<-EOS.strip_heredoc
+          var ErrMaxDecodingDepthReached = errors.New("maximum decoding depth reached")
+
           type xdrType interface {
             xdrType()
           }
 
           type decoderFrom interface {
-            DecodeFrom(d *xdr.Decoder) (int, error)
+            DecodeFrom(d *xdr.Decoder, maxDepth uint) (int, error)
           }
 
           // Unmarshal reads an xdr element from `r` into `v`.
           func Unmarshal(r io.Reader, v interface{}) (int, error) {
             if decodable, ok := v.(decoderFrom); ok {
               d := xdr.NewDecoder(r)
-              return decodable.DecodeFrom(d)
+              return decodable.DecodeFrom(d, xdr.DecodeDefaultMaxDepth)
             }
             // delegate to xdr package's Unmarshal
           	return xdr.Unmarshal(r, v)
@@ -979,7 +998,7 @@ module Xdrgen
             <<-EOS
             tv, ok := value.(#{reference arm.type})
             if !ok {
-              err = fmt.Errorf("invalid value, must be #{reference arm.type}")
+              err = errors.New("invalid value, must be #{reference arm.type}")
               return
             }
             result.#{name arm} = &tv

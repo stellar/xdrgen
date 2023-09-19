@@ -11,6 +11,7 @@ package MyXDR
 import (
   "bytes"
   "encoding"
+  "errors"
   "io"
   "fmt"
 
@@ -22,19 +23,21 @@ var XdrFilesSHA256 = map[string]string{
   "spec/fixtures/generator/optional.x": "3241e832fcf00bca4315ecb6c259621dafb0e302a63a993f5504b0b5cebb6bd7",
 }
 
+var ErrMaxDecodingDepthReached = errors.New("maximum decoding depth reached")
+
 type xdrType interface {
   xdrType()
 }
 
 type decoderFrom interface {
-  DecodeFrom(d *xdr.Decoder) (int, error)
+  DecodeFrom(d *xdr.Decoder, maxDepth uint) (int, error)
 }
 
 // Unmarshal reads an xdr element from `r` into `v`.
 func Unmarshal(r io.Reader, v interface{}) (int, error) {
   if decodable, ok := v.(decoderFrom); ok {
     d := xdr.NewDecoder(r)
-    return decodable.DecodeFrom(d)
+    return decodable.DecodeFrom(d, xdr.DecodeDefaultMaxDepth)
   }
   // delegate to xdr package's Unmarshal
 	return xdr.Unmarshal(r, v)
@@ -71,14 +74,18 @@ if _, err = e.EncodeInt(int32(s)); err != nil {
 
 var _ decoderFrom = (*Arr)(nil)
 // DecodeFrom decodes this value using the Decoder.
-func (s *Arr) DecodeFrom(d *xdr.Decoder) (int, error) {
+func (s *Arr) DecodeFrom(d *xdr.Decoder, maxDepth uint) (int, error) {
+  if maxDepth == 0 {
+    return 0, fmt.Errorf("decoding Arr: %w", ErrMaxDecodingDepthReached)
+  }
+  maxDepth -= 1
   var err error
   var n, nTmp int
   var v [2]int32
   v, nTmp, err = d.DecodeInt()
 n += nTmp
 if err != nil {
-  return n, fmt.Errorf("decoding Int: %s", err)
+  return n, fmt.Errorf("decoding Int: %w", err)
 }
   *s = Arr(v)
   return n, nil
@@ -96,7 +103,7 @@ func (s Arr) MarshalBinary() ([]byte, error) {
 func (s *Arr) UnmarshalBinary(inp []byte) error {
   r := bytes.NewReader(inp)
   d := xdr.NewDecoder(r)
-  _, err := s.DecodeFrom(d)
+  _, err := s.DecodeFrom(d, xdr.DecodeDefaultMaxDepth)
   return err
 }
 
@@ -158,14 +165,18 @@ if   err = (*s.ThirdOption).EncodeTo(e); err != nil {
 
 var _ decoderFrom = (*HasOptions)(nil)
 // DecodeFrom decodes this value using the Decoder.
-func (s *HasOptions) DecodeFrom(d *xdr.Decoder) (int, error) {
+func (s *HasOptions) DecodeFrom(d *xdr.Decoder, maxDepth uint) (int, error) {
+  if maxDepth == 0 {
+    return 0, fmt.Errorf("decoding HasOptions: %w", ErrMaxDecodingDepthReached)
+  }
+  maxDepth -= 1
   var err error
   var n, nTmp int
   var b bool
   b, nTmp, err = d.DecodeBool()
 n += nTmp
 if err != nil {
-  return n, fmt.Errorf("decoding Int: %s", err)
+  return n, fmt.Errorf("decoding Int: %w", err)
 }
   s.FirstOption = nil
   if b {
@@ -173,13 +184,13 @@ if err != nil {
   s.FirstOption, nTmp, err = d.DecodeInt()
 n += nTmp
 if err != nil {
-  return n, fmt.Errorf("decoding Int: %s", err)
+  return n, fmt.Errorf("decoding Int: %w", err)
 }
   }
   b, nTmp, err = d.DecodeBool()
 n += nTmp
 if err != nil {
-  return n, fmt.Errorf("decoding Int: %s", err)
+  return n, fmt.Errorf("decoding Int: %w", err)
 }
   s.SecondOption = nil
   if b {
@@ -187,21 +198,21 @@ if err != nil {
   s.SecondOption, nTmp, err = d.DecodeInt()
 n += nTmp
 if err != nil {
-  return n, fmt.Errorf("decoding Int: %s", err)
+  return n, fmt.Errorf("decoding Int: %w", err)
 }
   }
   b, nTmp, err = d.DecodeBool()
 n += nTmp
 if err != nil {
-  return n, fmt.Errorf("decoding Arr: %s", err)
+  return n, fmt.Errorf("decoding Arr: %w", err)
 }
   s.ThirdOption = nil
   if b {
      s.ThirdOption = new(Arr)
-  nTmp, err = s.ThirdOption.DecodeFrom(d)
+  nTmp, err = s.ThirdOption.DecodeFrom(d, maxDepth)
 n += nTmp
 if err != nil {
-  return n, fmt.Errorf("decoding Arr: %s", err)
+  return n, fmt.Errorf("decoding Arr: %w", err)
 }
   }
   return n, nil
@@ -219,7 +230,7 @@ func (s HasOptions) MarshalBinary() ([]byte, error) {
 func (s *HasOptions) UnmarshalBinary(inp []byte) error {
   r := bytes.NewReader(inp)
   d := xdr.NewDecoder(r)
-  _, err := s.DecodeFrom(d)
+  _, err := s.DecodeFrom(d, xdr.DecodeDefaultMaxDepth)
   return err
 }
 
