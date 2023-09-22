@@ -6,7 +6,7 @@ package MyXDR;
 import java.io.IOException;
 
 import static MyXDR.Constants.*;
-import java.util.Base64;
+import org.stellar.sdk.Base64;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.util.Arrays;
@@ -65,7 +65,7 @@ public class Uint512 implements XdrElement {
   }
   @Override
   public String toXdrBase64() throws IOException {
-    return Base64.getEncoder().encodeToString(toXdrByteArray());
+    return Base64.encodeToString(toXdrByteArray());
   }
 
   @Override
@@ -77,7 +77,7 @@ public class Uint512 implements XdrElement {
   }
 
   public static Uint512 fromXdrBase64(String xdr) throws IOException {
-    byte[] bytes = Base64.getDecoder().decode(xdr);
+    byte[] bytes = Base64.decode(xdr);
     return fromXdrByteArray(bytes);
   }
 

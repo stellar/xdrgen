@@ -6,7 +6,7 @@ package MyXDR;
 import java.io.IOException;
 
 import static MyXDR.Constants.*;
-import java.util.Base64;
+import org.stellar.sdk.Base64;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.util.Objects;
@@ -70,7 +70,7 @@ public class OptHash1 implements XdrElement {
   }
   @Override
   public String toXdrBase64() throws IOException {
-    return Base64.getEncoder().encodeToString(toXdrByteArray());
+    return Base64.encodeToString(toXdrByteArray());
   }
 
   @Override
@@ -82,7 +82,7 @@ public class OptHash1 implements XdrElement {
   }
 
   public static OptHash1 fromXdrBase64(String xdr) throws IOException {
-    byte[] bytes = Base64.getDecoder().decode(xdr);
+    byte[] bytes = Base64.decode(xdr);
     return fromXdrByteArray(bytes);
   }
 
