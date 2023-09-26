@@ -43,7 +43,7 @@ module Xdrgen
       end
 
       def add_imports_for_definition(defn, imports)
-        imports.add("org.stellar.sdk.Base64")
+        imports.add("org.stellar.sdk.Base64Factory")
         imports.add("java.io.ByteArrayInputStream")
         imports.add("java.io.ByteArrayOutputStream")
 
@@ -716,7 +716,7 @@ module Xdrgen
         out.puts <<-EOS.strip_heredoc
           @Override
           public String toXdrBase64() throws IOException {
-            return Base64.encodeToString(toXdrByteArray());
+            return Base64Factory.getInstance().encodeToString(toXdrByteArray());
           }
 
           @Override
@@ -728,7 +728,7 @@ module Xdrgen
           }
 
           public static #{return_type} fromXdrBase64(String xdr) throws IOException {
-            byte[] bytes = Base64.decode(xdr);
+            byte[] bytes = Base64Factory.getInstance().decode(xdr);
             return fromXdrByteArray(bytes);
           }
 
