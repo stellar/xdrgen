@@ -2839,6 +2839,16 @@ TypeVariant::Color2 => Box::new(ReadXdrIter::<_, Color2>::new(dec, r.depth_remai
                 Ok(t)
             }
 
+            #[cfg(feature = "std")]
+            #[allow(clippy::too_many_lines)]
+            pub fn from_json(v: TypeVariant, s: &str) -> Result<Self> {
+                match v {
+                    TypeVariant::MessageType => Ok(Self::MessageType(Box::new(serde_json.from_str(s)?))),
+TypeVariant::Color => Ok(Self::Color(Box::new(serde_json.from_str(s)?))),
+TypeVariant::Color2 => Ok(Self::Color2(Box::new(serde_json.from_str(s)?))),
+                }
+            }
+
             #[cfg(feature = "alloc")]
             #[must_use]
             #[allow(clippy::too_many_lines)]

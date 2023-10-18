@@ -2862,6 +2862,19 @@ TypeVariant::IntUnion2 => Box::new(ReadXdrIter::<_, IntUnion2>::new(dec, r.depth
                 Ok(t)
             }
 
+            #[cfg(feature = "std")]
+            #[allow(clippy::too_many_lines)]
+            pub fn from_json(v: TypeVariant, s: &str) -> Result<Self> {
+                match v {
+                    TypeVariant::SError => Ok(Self::SError(Box::new(serde_json.from_str(s)?))),
+TypeVariant::Multi => Ok(Self::Multi(Box::new(serde_json.from_str(s)?))),
+TypeVariant::UnionKey => Ok(Self::UnionKey(Box::new(serde_json.from_str(s)?))),
+TypeVariant::MyUnion => Ok(Self::MyUnion(Box::new(serde_json.from_str(s)?))),
+TypeVariant::IntUnion => Ok(Self::IntUnion(Box::new(serde_json.from_str(s)?))),
+TypeVariant::IntUnion2 => Ok(Self::IntUnion2(Box::new(serde_json.from_str(s)?))),
+                }
+            }
+
             #[cfg(feature = "alloc")]
             #[must_use]
             #[allow(clippy::too_many_lines)]

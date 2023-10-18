@@ -2519,6 +2519,14 @@ impl Type {
         Ok(t)
     }
 
+    #[cfg(feature = "std")]
+    #[allow(clippy::too_many_lines)]
+    pub fn from_json(v: TypeVariant, s: &str) -> Result<Self> {
+        match v {
+            TypeVariant::AccountFlags => Ok(Self::AccountFlags(Box::new(serde_json.from_str(s)?))),
+        }
+    }
+
     #[cfg(feature = "alloc")]
     #[must_use]
     #[allow(clippy::too_many_lines)]

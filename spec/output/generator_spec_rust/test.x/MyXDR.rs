@@ -4255,6 +4255,36 @@ TypeVariant::NesterNestedUnion => Box::new(ReadXdrIter::<_, NesterNestedUnion>::
                 Ok(t)
             }
 
+            #[cfg(feature = "std")]
+            #[allow(clippy::too_many_lines)]
+            pub fn from_json(v: TypeVariant, s: &str) -> Result<Self> {
+                match v {
+                    TypeVariant::Uint512 => Ok(Self::Uint512(Box::new(serde_json.from_str(s)?))),
+TypeVariant::Uint513 => Ok(Self::Uint513(Box::new(serde_json.from_str(s)?))),
+TypeVariant::Uint514 => Ok(Self::Uint514(Box::new(serde_json.from_str(s)?))),
+TypeVariant::Str => Ok(Self::Str(Box::new(serde_json.from_str(s)?))),
+TypeVariant::Str2 => Ok(Self::Str2(Box::new(serde_json.from_str(s)?))),
+TypeVariant::Hash => Ok(Self::Hash(Box::new(serde_json.from_str(s)?))),
+TypeVariant::Hashes1 => Ok(Self::Hashes1(Box::new(serde_json.from_str(s)?))),
+TypeVariant::Hashes2 => Ok(Self::Hashes2(Box::new(serde_json.from_str(s)?))),
+TypeVariant::Hashes3 => Ok(Self::Hashes3(Box::new(serde_json.from_str(s)?))),
+TypeVariant::OptHash1 => Ok(Self::OptHash1(Box::new(serde_json.from_str(s)?))),
+TypeVariant::OptHash2 => Ok(Self::OptHash2(Box::new(serde_json.from_str(s)?))),
+TypeVariant::Int1 => Ok(Self::Int1(Box::new(serde_json.from_str(s)?))),
+TypeVariant::Int2 => Ok(Self::Int2(Box::new(serde_json.from_str(s)?))),
+TypeVariant::Int3 => Ok(Self::Int3(Box::new(serde_json.from_str(s)?))),
+TypeVariant::Int4 => Ok(Self::Int4(Box::new(serde_json.from_str(s)?))),
+TypeVariant::MyStruct => Ok(Self::MyStruct(Box::new(serde_json.from_str(s)?))),
+TypeVariant::LotsOfMyStructs => Ok(Self::LotsOfMyStructs(Box::new(serde_json.from_str(s)?))),
+TypeVariant::HasStuff => Ok(Self::HasStuff(Box::new(serde_json.from_str(s)?))),
+TypeVariant::Color => Ok(Self::Color(Box::new(serde_json.from_str(s)?))),
+TypeVariant::Nester => Ok(Self::Nester(Box::new(serde_json.from_str(s)?))),
+TypeVariant::NesterNestedEnum => Ok(Self::NesterNestedEnum(Box::new(serde_json.from_str(s)?))),
+TypeVariant::NesterNestedStruct => Ok(Self::NesterNestedStruct(Box::new(serde_json.from_str(s)?))),
+TypeVariant::NesterNestedUnion => Ok(Self::NesterNestedUnion(Box::new(serde_json.from_str(s)?))),
+                }
+            }
+
             #[cfg(feature = "alloc")]
             #[must_use]
             #[allow(clippy::too_many_lines)]
