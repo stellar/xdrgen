@@ -238,7 +238,7 @@ module Xdrgen
                 Ok(t)
             }
 
-            #[cfg(feature = "serde_json")]
+            #[cfg(all(feature = "std", feature = "serde_json"))]
             #[allow(clippy::too_many_lines)]
             pub fn read_json(v: TypeVariant, r: impl Read) -> Result<Self> {
                 match v {
