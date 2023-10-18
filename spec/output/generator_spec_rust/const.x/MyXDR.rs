@@ -2454,12 +2454,12 @@ TypeVariant::TestArray2 => Box::new(ReadXdrIter::<_, TestArray2>::new(dec, r.dep
                 Ok(t)
             }
 
-            #[cfg(feature = "std")]
+            #[cfg(feature = "serde_json")]
             #[allow(clippy::too_many_lines)]
             pub fn from_json(v: TypeVariant, s: &str) -> Result<Self> {
                 match v {
-                    TypeVariant::TestArray => Ok(Self::TestArray(Box::new(serde_json.from_str(s)?))),
-TypeVariant::TestArray2 => Ok(Self::TestArray2(Box::new(serde_json.from_str(s)?))),
+                    TypeVariant::TestArray => Ok(Self::TestArray(Box::new(serde_json::from_str(s)?))),
+TypeVariant::TestArray2 => Ok(Self::TestArray2(Box::new(serde_json::from_str(s)?))),
                 }
             }
 

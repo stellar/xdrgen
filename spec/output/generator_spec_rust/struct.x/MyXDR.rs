@@ -2493,12 +2493,12 @@ TypeVariant::MyStruct => Box::new(ReadXdrIter::<_, MyStruct>::new(dec, r.depth_r
                 Ok(t)
             }
 
-            #[cfg(feature = "std")]
+            #[cfg(feature = "serde_json")]
             #[allow(clippy::too_many_lines)]
             pub fn from_json(v: TypeVariant, s: &str) -> Result<Self> {
                 match v {
-                    TypeVariant::Int64 => Ok(Self::Int64(Box::new(serde_json.from_str(s)?))),
-TypeVariant::MyStruct => Ok(Self::MyStruct(Box::new(serde_json.from_str(s)?))),
+                    TypeVariant::Int64 => Ok(Self::Int64(Box::new(serde_json::from_str(s)?))),
+TypeVariant::MyStruct => Ok(Self::MyStruct(Box::new(serde_json::from_str(s)?))),
                 }
             }
 

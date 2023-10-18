@@ -238,11 +238,11 @@ module Xdrgen
                 Ok(t)
             }
 
-            #[cfg(feature = "std")]
+            #[cfg(feature = "serde_json")]
             #[allow(clippy::too_many_lines)]
             pub fn from_json(v: TypeVariant, s: &str) -> Result<Self> {
                 match v {
-                    #{types.map { |t| "TypeVariant::#{t} => Ok(Self::#{t}(Box::new(serde_json.from_str(s)?)))," }.join("\n")}
+                    #{types.map { |t| "TypeVariant::#{t} => Ok(Self::#{t}(Box::new(serde_json::from_str(s)?)))," }.join("\n")}
                 }
             }
 
