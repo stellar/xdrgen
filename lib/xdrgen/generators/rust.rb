@@ -294,6 +294,7 @@ module Xdrgen
 
         impl WriteXdr for Type {
             #[cfg(feature = "std")]
+            #[allow(clippy::too_many_lines)]
             fn write_xdr<W: Write>(&self, w: &mut DepthLimitedWrite<W>) -> Result<()> {
                 match self {
                     #{types.map { |t| "Self::#{t}(v) => v.write_xdr(w)," }.join("\n")}
