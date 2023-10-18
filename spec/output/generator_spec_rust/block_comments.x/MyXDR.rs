@@ -2551,6 +2551,16 @@ impl Type {
         }
     }
 
+    #[cfg(feature = "alloc")]
+    #[must_use]
+    #[allow(clippy::too_many_lines)]
+    pub fn value_as_write_xdr(&self) -> &dyn WriteXdr {
+        #[allow(clippy::match_same_arms)]
+        match self {
+            Self::AccountFlags(ref v) => v.as_ref(),
+        }
+    }
+
     #[must_use]
     #[allow(clippy::too_many_lines)]
     pub const fn name(&self) -> &'static str {

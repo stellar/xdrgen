@@ -4331,6 +4331,38 @@ Self::NesterNestedUnion(ref v) => v.as_ref(),
                 }
             }
 
+            #[cfg(feature = "alloc")]
+            #[must_use]
+            #[allow(clippy::too_many_lines)]
+            pub fn value_as_write_xdr(&self) -> &dyn WriteXdr {
+                #[allow(clippy::match_same_arms)]
+                match self {
+                    Self::Uint512(ref v) => v.as_ref(),
+Self::Uint513(ref v) => v.as_ref(),
+Self::Uint514(ref v) => v.as_ref(),
+Self::Str(ref v) => v.as_ref(),
+Self::Str2(ref v) => v.as_ref(),
+Self::Hash(ref v) => v.as_ref(),
+Self::Hashes1(ref v) => v.as_ref(),
+Self::Hashes2(ref v) => v.as_ref(),
+Self::Hashes3(ref v) => v.as_ref(),
+Self::OptHash1(ref v) => v.as_ref(),
+Self::OptHash2(ref v) => v.as_ref(),
+Self::Int1(ref v) => v.as_ref(),
+Self::Int2(ref v) => v.as_ref(),
+Self::Int3(ref v) => v.as_ref(),
+Self::Int4(ref v) => v.as_ref(),
+Self::MyStruct(ref v) => v.as_ref(),
+Self::LotsOfMyStructs(ref v) => v.as_ref(),
+Self::HasStuff(ref v) => v.as_ref(),
+Self::Color(ref v) => v.as_ref(),
+Self::Nester(ref v) => v.as_ref(),
+Self::NesterNestedEnum(ref v) => v.as_ref(),
+Self::NesterNestedStruct(ref v) => v.as_ref(),
+Self::NesterNestedUnion(ref v) => v.as_ref(),
+                }
+            }
+
             #[must_use]
             #[allow(clippy::too_many_lines)]
             pub const fn name(&self) -> &'static str {
