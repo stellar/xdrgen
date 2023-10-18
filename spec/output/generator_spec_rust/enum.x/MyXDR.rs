@@ -75,6 +75,8 @@ pub enum Error {
     #[cfg(feature = "std")]
     Io(io::Error),
     DepthLimitExceeded,
+    #[cfg(feature = "serde_json")]
+    Json(serde_json::Error),
 }
 
 impl PartialEq for Error {
@@ -149,6 +151,14 @@ impl From<io::Error> for Error {
     #[must_use]
     fn from(e: io::Error) -> Self {
         Error::Io(e)
+    }
+}
+
+#[cfg(feature = "serde_json")]
+impl From<serde_json::Error> for Error {
+    #[must_use]
+    fn from(e: serde_json::Error) -> Self {
+        Error::Json(e)
     }
 }
 
