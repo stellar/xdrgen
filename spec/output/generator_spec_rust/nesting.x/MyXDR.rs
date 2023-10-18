@@ -2819,20 +2819,6 @@ Self::MyUnionTwo(ref v) => v.as_ref(),
                 }
             }
 
-            #[cfg(feature = "alloc")]
-            #[must_use]
-            #[allow(clippy::too_many_lines)]
-            pub fn value_as_write_xdr(&self) -> Box<&dyn WriteXdr> {
-                #[allow(clippy::match_same_arms)]
-                match self {
-                    Self::UnionKey(ref v) => Box::new(v.as_ref()),
-Self::Foo(ref v) => Box::new(v.as_ref()),
-Self::MyUnion(ref v) => Box::new(v.as_ref()),
-Self::MyUnionOne(ref v) => Box::new(v.as_ref()),
-Self::MyUnionTwo(ref v) => Box::new(v.as_ref()),
-                }
-            }
-
             #[must_use]
             #[allow(clippy::too_many_lines)]
             pub const fn name(&self) -> &'static str {

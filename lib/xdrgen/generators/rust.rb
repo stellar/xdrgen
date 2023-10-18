@@ -256,16 +256,6 @@ module Xdrgen
                 }
             }
 
-            #[cfg(feature = "alloc")]
-            #[must_use]
-            #[allow(clippy::too_many_lines)]
-            pub fn value_as_write_xdr(&self) -> Box<&dyn WriteXdr> {
-                #[allow(clippy::match_same_arms)]
-                match self {
-                    #{types.map { |t| "Self::#{t}(ref v) => Box::new(v.as_ref())," }.join("\n")}
-                }
-            }
-
             #[must_use]
             #[allow(clippy::too_many_lines)]
             pub const fn name(&self) -> &'static str {
