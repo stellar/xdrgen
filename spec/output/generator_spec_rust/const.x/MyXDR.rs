@@ -102,6 +102,8 @@ impl error::Error for Error {
     fn source(&self) -> Option<&(dyn error::Error + 'static)> {
         match self {
             Self::Io(e) => Some(e),
+            #[cfg(feature = "serde_json")]
+            Self::Json(e) => Some(e),
             _ => None,
         }
     }
@@ -121,6 +123,8 @@ impl fmt::Display for Error {
             #[cfg(feature = "std")]
             Error::Io(e) => write!(f, "{e}"),
             Error::DepthLimitExceeded => write!(f, "depth limit exceeded"),
+            #[cfg(feature = "serde_json")]
+            Error::Json(e) => write!(f, "{e}"),
         }
     }
 }
