@@ -2487,10 +2487,10 @@ TypeVariant::HasOptions => Box::new(ReadXdrIter::<_, HasOptions>::new(dec, r.dep
 
             #[cfg(feature = "serde_json")]
             #[allow(clippy::too_many_lines)]
-            pub fn from_json(v: TypeVariant, s: &str) -> Result<Self> {
+            pub fn read_json(v: TypeVariant, r: impl Read) -> Result<Self> {
                 match v {
-                    TypeVariant::Arr => Ok(Self::Arr(Box::new(serde_json::from_str(s)?))),
-TypeVariant::HasOptions => Ok(Self::HasOptions(Box::new(serde_json::from_str(s)?))),
+                    TypeVariant::Arr => Ok(Self::Arr(Box::new(serde_json::from_reader(r)?))),
+TypeVariant::HasOptions => Ok(Self::HasOptions(Box::new(serde_json::from_reader(r)?))),
                 }
             }
 

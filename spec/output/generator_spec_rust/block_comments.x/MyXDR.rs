@@ -2521,9 +2521,9 @@ impl Type {
 
     #[cfg(feature = "serde_json")]
     #[allow(clippy::too_many_lines)]
-    pub fn from_json(v: TypeVariant, s: &str) -> Result<Self> {
+    pub fn read_json(v: TypeVariant, r: impl Read) -> Result<Self> {
         match v {
-            TypeVariant::AccountFlags => Ok(Self::AccountFlags(Box::new(serde_json::from_str(s)?))),
+            TypeVariant::AccountFlags => Ok(Self::AccountFlags(Box::new(serde_json::from_reader(r)?))),
         }
     }
 

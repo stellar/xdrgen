@@ -2781,13 +2781,13 @@ TypeVariant::MyUnionTwo => Box::new(ReadXdrIter::<_, MyUnionTwo>::new(dec, r.dep
 
             #[cfg(feature = "serde_json")]
             #[allow(clippy::too_many_lines)]
-            pub fn from_json(v: TypeVariant, s: &str) -> Result<Self> {
+            pub fn read_json(v: TypeVariant, r: impl Read) -> Result<Self> {
                 match v {
-                    TypeVariant::UnionKey => Ok(Self::UnionKey(Box::new(serde_json::from_str(s)?))),
-TypeVariant::Foo => Ok(Self::Foo(Box::new(serde_json::from_str(s)?))),
-TypeVariant::MyUnion => Ok(Self::MyUnion(Box::new(serde_json::from_str(s)?))),
-TypeVariant::MyUnionOne => Ok(Self::MyUnionOne(Box::new(serde_json::from_str(s)?))),
-TypeVariant::MyUnionTwo => Ok(Self::MyUnionTwo(Box::new(serde_json::from_str(s)?))),
+                    TypeVariant::UnionKey => Ok(Self::UnionKey(Box::new(serde_json::from_reader(r)?))),
+TypeVariant::Foo => Ok(Self::Foo(Box::new(serde_json::from_reader(r)?))),
+TypeVariant::MyUnion => Ok(Self::MyUnion(Box::new(serde_json::from_reader(r)?))),
+TypeVariant::MyUnionOne => Ok(Self::MyUnionOne(Box::new(serde_json::from_reader(r)?))),
+TypeVariant::MyUnionTwo => Ok(Self::MyUnionTwo(Box::new(serde_json::from_reader(r)?))),
                 }
             }
 

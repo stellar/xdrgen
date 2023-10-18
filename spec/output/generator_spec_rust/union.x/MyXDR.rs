@@ -2864,14 +2864,14 @@ TypeVariant::IntUnion2 => Box::new(ReadXdrIter::<_, IntUnion2>::new(dec, r.depth
 
             #[cfg(feature = "serde_json")]
             #[allow(clippy::too_many_lines)]
-            pub fn from_json(v: TypeVariant, s: &str) -> Result<Self> {
+            pub fn read_json(v: TypeVariant, r: impl Read) -> Result<Self> {
                 match v {
-                    TypeVariant::SError => Ok(Self::SError(Box::new(serde_json::from_str(s)?))),
-TypeVariant::Multi => Ok(Self::Multi(Box::new(serde_json::from_str(s)?))),
-TypeVariant::UnionKey => Ok(Self::UnionKey(Box::new(serde_json::from_str(s)?))),
-TypeVariant::MyUnion => Ok(Self::MyUnion(Box::new(serde_json::from_str(s)?))),
-TypeVariant::IntUnion => Ok(Self::IntUnion(Box::new(serde_json::from_str(s)?))),
-TypeVariant::IntUnion2 => Ok(Self::IntUnion2(Box::new(serde_json::from_str(s)?))),
+                    TypeVariant::SError => Ok(Self::SError(Box::new(serde_json::from_reader(r)?))),
+TypeVariant::Multi => Ok(Self::Multi(Box::new(serde_json::from_reader(r)?))),
+TypeVariant::UnionKey => Ok(Self::UnionKey(Box::new(serde_json::from_reader(r)?))),
+TypeVariant::MyUnion => Ok(Self::MyUnion(Box::new(serde_json::from_reader(r)?))),
+TypeVariant::IntUnion => Ok(Self::IntUnion(Box::new(serde_json::from_reader(r)?))),
+TypeVariant::IntUnion2 => Ok(Self::IntUnion2(Box::new(serde_json::from_reader(r)?))),
                 }
             }
 
