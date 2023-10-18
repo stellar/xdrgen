@@ -2530,11 +2530,11 @@ Self::MyStruct(ref v) => v.as_ref(),
             #[cfg(feature = "alloc")]
             #[must_use]
             #[allow(clippy::too_many_lines)]
-            pub fn value_as_write_xdr(&self) -> &dyn WriteXdr {
+            pub fn value_as_write_xdr(&self) -> Box<&dyn WriteXdr> {
                 #[allow(clippy::match_same_arms)]
                 match self {
-                    Self::Int64(ref v) => v.as_ref(),
-Self::MyStruct(ref v) => v.as_ref(),
+                    Self::Int64(ref v) => Box::new(v.as_ref()),
+Self::MyStruct(ref v) => Box::new(v.as_ref()),
                 }
             }
 
