@@ -75,6 +75,8 @@ pub enum Error {
     #[cfg(feature = "std")]
     Io(io::Error),
     DepthLimitExceeded,
+    #[cfg(feature = "serde_json")]
+    Json(serde_json::Error),
 }
 
 impl PartialEq for Error {
@@ -100,6 +102,8 @@ impl error::Error for Error {
     fn source(&self) -> Option<&(dyn error::Error + 'static)> {
         match self {
             Self::Io(e) => Some(e),
+            #[cfg(feature = "serde_json")]
+            Self::Json(e) => Some(e),
             _ => None,
         }
     }
@@ -119,6 +123,8 @@ impl fmt::Display for Error {
             #[cfg(feature = "std")]
             Error::Io(e) => write!(f, "{e}"),
             Error::DepthLimitExceeded => write!(f, "depth limit exceeded"),
+            #[cfg(feature = "serde_json")]
+            Error::Json(e) => write!(f, "{e}"),
         }
     }
 }
@@ -149,6 +155,14 @@ impl From<io::Error> for Error {
     #[must_use]
     fn from(e: io::Error) -> Self {
         Error::Io(e)
+    }
+}
+
+#[cfg(feature = "serde_json")]
+impl From<serde_json::Error> for Error {
+    #[must_use]
+    fn from(e: serde_json::Error) -> Self {
+        Error::Json(e)
     }
 }
 
@@ -2519,6 +2533,14 @@ impl Type {
         Ok(t)
     }
 
+    #[cfg(all(feature = "std", feature = "serde_json"))]
+    #[allow(clippy::too_many_lines)]
+    pub fn read_json(v: TypeVariant, r: impl Read) -> Result<Self> {
+        match v {
+            TypeVariant::AccountFlags => Ok(Self::AccountFlags(Box::new(serde_json::from_reader(r)?))),
+        }
+    }
+
     #[cfg(feature = "alloc")]
     #[must_use]
     #[allow(clippy::too_many_lines)]
@@ -2562,5 +2584,15 @@ impl Name for Type {
 impl Variants<TypeVariant> for Type {
     fn variants() -> slice::Iter<'static, TypeVariant> {
         Self::VARIANTS.iter()
+    }
+}
+
+impl WriteXdr for Type {
+    #[cfg(feature = "std")]
+    #[allow(clippy::too_many_lines)]
+    fn write_xdr<W: Write>(&self, w: &mut DepthLimitedWrite<W>) -> Result<()> {
+        match self {
+            Self::AccountFlags(v) => v.write_xdr(w),
+        }
     }
 }

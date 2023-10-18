@@ -75,6 +75,8 @@ pub enum Error {
     #[cfg(feature = "std")]
     Io(io::Error),
     DepthLimitExceeded,
+    #[cfg(feature = "serde_json")]
+    Json(serde_json::Error),
 }
 
 impl PartialEq for Error {
@@ -100,6 +102,8 @@ impl error::Error for Error {
     fn source(&self) -> Option<&(dyn error::Error + 'static)> {
         match self {
             Self::Io(e) => Some(e),
+            #[cfg(feature = "serde_json")]
+            Self::Json(e) => Some(e),
             _ => None,
         }
     }
@@ -119,6 +123,8 @@ impl fmt::Display for Error {
             #[cfg(feature = "std")]
             Error::Io(e) => write!(f, "{e}"),
             Error::DepthLimitExceeded => write!(f, "depth limit exceeded"),
+            #[cfg(feature = "serde_json")]
+            Error::Json(e) => write!(f, "{e}"),
         }
     }
 }
@@ -149,6 +155,14 @@ impl From<io::Error> for Error {
     #[must_use]
     fn from(e: io::Error) -> Self {
         Error::Io(e)
+    }
+}
+
+#[cfg(feature = "serde_json")]
+impl From<serde_json::Error> for Error {
+    #[must_use]
+    fn from(e: serde_json::Error) -> Self {
+        Error::Json(e)
     }
 }
 
@@ -4255,6 +4269,36 @@ TypeVariant::NesterNestedUnion => Box::new(ReadXdrIter::<_, NesterNestedUnion>::
                 Ok(t)
             }
 
+            #[cfg(all(feature = "std", feature = "serde_json"))]
+            #[allow(clippy::too_many_lines)]
+            pub fn read_json(v: TypeVariant, r: impl Read) -> Result<Self> {
+                match v {
+                    TypeVariant::Uint512 => Ok(Self::Uint512(Box::new(serde_json::from_reader(r)?))),
+TypeVariant::Uint513 => Ok(Self::Uint513(Box::new(serde_json::from_reader(r)?))),
+TypeVariant::Uint514 => Ok(Self::Uint514(Box::new(serde_json::from_reader(r)?))),
+TypeVariant::Str => Ok(Self::Str(Box::new(serde_json::from_reader(r)?))),
+TypeVariant::Str2 => Ok(Self::Str2(Box::new(serde_json::from_reader(r)?))),
+TypeVariant::Hash => Ok(Self::Hash(Box::new(serde_json::from_reader(r)?))),
+TypeVariant::Hashes1 => Ok(Self::Hashes1(Box::new(serde_json::from_reader(r)?))),
+TypeVariant::Hashes2 => Ok(Self::Hashes2(Box::new(serde_json::from_reader(r)?))),
+TypeVariant::Hashes3 => Ok(Self::Hashes3(Box::new(serde_json::from_reader(r)?))),
+TypeVariant::OptHash1 => Ok(Self::OptHash1(Box::new(serde_json::from_reader(r)?))),
+TypeVariant::OptHash2 => Ok(Self::OptHash2(Box::new(serde_json::from_reader(r)?))),
+TypeVariant::Int1 => Ok(Self::Int1(Box::new(serde_json::from_reader(r)?))),
+TypeVariant::Int2 => Ok(Self::Int2(Box::new(serde_json::from_reader(r)?))),
+TypeVariant::Int3 => Ok(Self::Int3(Box::new(serde_json::from_reader(r)?))),
+TypeVariant::Int4 => Ok(Self::Int4(Box::new(serde_json::from_reader(r)?))),
+TypeVariant::MyStruct => Ok(Self::MyStruct(Box::new(serde_json::from_reader(r)?))),
+TypeVariant::LotsOfMyStructs => Ok(Self::LotsOfMyStructs(Box::new(serde_json::from_reader(r)?))),
+TypeVariant::HasStuff => Ok(Self::HasStuff(Box::new(serde_json::from_reader(r)?))),
+TypeVariant::Color => Ok(Self::Color(Box::new(serde_json::from_reader(r)?))),
+TypeVariant::Nester => Ok(Self::Nester(Box::new(serde_json::from_reader(r)?))),
+TypeVariant::NesterNestedEnum => Ok(Self::NesterNestedEnum(Box::new(serde_json::from_reader(r)?))),
+TypeVariant::NesterNestedStruct => Ok(Self::NesterNestedStruct(Box::new(serde_json::from_reader(r)?))),
+TypeVariant::NesterNestedUnion => Ok(Self::NesterNestedUnion(Box::new(serde_json::from_reader(r)?))),
+                }
+            }
+
             #[cfg(feature = "alloc")]
             #[must_use]
             #[allow(clippy::too_many_lines)]
@@ -4364,5 +4408,37 @@ Self::NesterNestedUnion(_) => TypeVariant::NesterNestedUnion,
         impl Variants<TypeVariant> for Type {
             fn variants() -> slice::Iter<'static, TypeVariant> {
                 Self::VARIANTS.iter()
+            }
+        }
+
+        impl WriteXdr for Type {
+            #[cfg(feature = "std")]
+            #[allow(clippy::too_many_lines)]
+            fn write_xdr<W: Write>(&self, w: &mut DepthLimitedWrite<W>) -> Result<()> {
+                match self {
+                    Self::Uint512(v) => v.write_xdr(w),
+Self::Uint513(v) => v.write_xdr(w),
+Self::Uint514(v) => v.write_xdr(w),
+Self::Str(v) => v.write_xdr(w),
+Self::Str2(v) => v.write_xdr(w),
+Self::Hash(v) => v.write_xdr(w),
+Self::Hashes1(v) => v.write_xdr(w),
+Self::Hashes2(v) => v.write_xdr(w),
+Self::Hashes3(v) => v.write_xdr(w),
+Self::OptHash1(v) => v.write_xdr(w),
+Self::OptHash2(v) => v.write_xdr(w),
+Self::Int1(v) => v.write_xdr(w),
+Self::Int2(v) => v.write_xdr(w),
+Self::Int3(v) => v.write_xdr(w),
+Self::Int4(v) => v.write_xdr(w),
+Self::MyStruct(v) => v.write_xdr(w),
+Self::LotsOfMyStructs(v) => v.write_xdr(w),
+Self::HasStuff(v) => v.write_xdr(w),
+Self::Color(v) => v.write_xdr(w),
+Self::Nester(v) => v.write_xdr(w),
+Self::NesterNestedEnum(v) => v.write_xdr(w),
+Self::NesterNestedStruct(v) => v.write_xdr(w),
+Self::NesterNestedUnion(v) => v.write_xdr(w),
+                }
             }
         }
