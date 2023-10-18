@@ -4269,7 +4269,7 @@ TypeVariant::NesterNestedUnion => Box::new(ReadXdrIter::<_, NesterNestedUnion>::
                 Ok(t)
             }
 
-            #[cfg(feature = "serde_json")]
+            #[cfg(all(feature = "std", feature = "serde_json"))]
             #[allow(clippy::too_many_lines)]
             pub fn read_json(v: TypeVariant, r: impl Read) -> Result<Self> {
                 match v {
@@ -4408,5 +4408,37 @@ Self::NesterNestedUnion(_) => TypeVariant::NesterNestedUnion,
         impl Variants<TypeVariant> for Type {
             fn variants() -> slice::Iter<'static, TypeVariant> {
                 Self::VARIANTS.iter()
+            }
+        }
+
+        impl WriteXdr for Type {
+            #[cfg(feature = "std")]
+            #[allow(clippy::too_many_lines)]
+            fn write_xdr<W: Write>(&self, w: &mut DepthLimitedWrite<W>) -> Result<()> {
+                match self {
+                    Self::Uint512(v) => v.write_xdr(w),
+Self::Uint513(v) => v.write_xdr(w),
+Self::Uint514(v) => v.write_xdr(w),
+Self::Str(v) => v.write_xdr(w),
+Self::Str2(v) => v.write_xdr(w),
+Self::Hash(v) => v.write_xdr(w),
+Self::Hashes1(v) => v.write_xdr(w),
+Self::Hashes2(v) => v.write_xdr(w),
+Self::Hashes3(v) => v.write_xdr(w),
+Self::OptHash1(v) => v.write_xdr(w),
+Self::OptHash2(v) => v.write_xdr(w),
+Self::Int1(v) => v.write_xdr(w),
+Self::Int2(v) => v.write_xdr(w),
+Self::Int3(v) => v.write_xdr(w),
+Self::Int4(v) => v.write_xdr(w),
+Self::MyStruct(v) => v.write_xdr(w),
+Self::LotsOfMyStructs(v) => v.write_xdr(w),
+Self::HasStuff(v) => v.write_xdr(w),
+Self::Color(v) => v.write_xdr(w),
+Self::Nester(v) => v.write_xdr(w),
+Self::NesterNestedEnum(v) => v.write_xdr(w),
+Self::NesterNestedStruct(v) => v.write_xdr(w),
+Self::NesterNestedUnion(v) => v.write_xdr(w),
+                }
             }
         }

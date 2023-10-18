@@ -2793,7 +2793,7 @@ TypeVariant::MyUnionTwo => Box::new(ReadXdrIter::<_, MyUnionTwo>::new(dec, r.dep
                 Ok(t)
             }
 
-            #[cfg(feature = "serde_json")]
+            #[cfg(all(feature = "std", feature = "serde_json"))]
             #[allow(clippy::too_many_lines)]
             pub fn read_json(v: TypeVariant, r: impl Read) -> Result<Self> {
                 match v {
@@ -2860,5 +2860,19 @@ Self::MyUnionTwo(_) => TypeVariant::MyUnionTwo,
         impl Variants<TypeVariant> for Type {
             fn variants() -> slice::Iter<'static, TypeVariant> {
                 Self::VARIANTS.iter()
+            }
+        }
+
+        impl WriteXdr for Type {
+            #[cfg(feature = "std")]
+            #[allow(clippy::too_many_lines)]
+            fn write_xdr<W: Write>(&self, w: &mut DepthLimitedWrite<W>) -> Result<()> {
+                match self {
+                    Self::UnionKey(v) => v.write_xdr(w),
+Self::Foo(v) => v.write_xdr(w),
+Self::MyUnion(v) => v.write_xdr(w),
+Self::MyUnionOne(v) => v.write_xdr(w),
+Self::MyUnionTwo(v) => v.write_xdr(w),
+                }
             }
         }
