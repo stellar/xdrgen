@@ -1258,7 +1258,7 @@ impl<T: ReadXdr, const MAX: u32> ReadXdr for VecM<T, MAX> {
                 return Err(Error::LengthExceedsMax);
             }
 
-            let mut vec = Vec::with_capacity(len as usize);
+            let mut vec = Vec::new(len as usize);
             for _ in 0..len {
                 let t = T::read_xdr(r)?;
                 vec.push(t);
