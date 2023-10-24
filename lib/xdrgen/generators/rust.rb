@@ -668,7 +668,7 @@ module Xdrgen
         if is_builtin_type(typedef.type)
           out.puts "pub type #{name typedef} = #{reference(typedef, typedef.type)};"
         else
-          out.puts "#[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]"
+          out.puts "#[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]"
           out.puts %{#[cfg_attr(feature = "arbitrary", derive(Arbitrary))]}
           out.puts "#[derive(Default)]" if is_var_array_type(typedef.type)
           if is_fixed_array_opaque(typedef.type) || @options[:rust_types_custom_str_impl].include?(name typedef)
@@ -676,20 +676,13 @@ module Xdrgen
           else
             out.puts %{#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]}
           end
+          if !is_fixed_array_opaque(typedef.type)
+            out.puts "#[derive(Debug)]"
+          end
           out.puts "pub struct #{name typedef}(pub #{reference(typedef, typedef.type)});"
           out.puts ""
-          if is_fixed_array_opaque(typedef.type) && !@options[:rust_types_custom_str_impl].include?(name typedef)
+          if is_fixed_array_opaque(typedef.type)
           out.puts <<-EOS.strip_heredoc
-          impl core::fmt::Display for #{name typedef} {
-            fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-                let v = &self.0;
-                for b in v {
-                    write!(f, "{b:02x}")?;
-                }
-                Ok(())
-            }
-          }
-
           impl core::fmt::Debug for #{name typedef} {
             fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
                 let v = &self.0;
@@ -698,6 +691,19 @@ module Xdrgen
                     write!(f, "{b:02x}")?;
                 }
                 write!(f, ")")?;
+                Ok(())
+            }
+          }
+          EOS
+          end
+          if is_fixed_array_opaque(typedef.type) && !@options[:rust_types_custom_str_impl].include?(name typedef)
+          out.puts <<-EOS.strip_heredoc
+          impl core::fmt::Display for #{name typedef} {
+            fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+                let v = &self.0;
+                for b in v {
+                    write!(f, "{b:02x}")?;
+                }
                 Ok(())
             }
           }

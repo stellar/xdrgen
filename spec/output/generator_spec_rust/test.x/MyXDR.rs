@@ -2300,20 +2300,10 @@ mod test {
 //
 //   typedef opaque uint512[64];
 //
-#[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr))]
 pub struct Uint512(pub [u8; 64]);
-
-impl core::fmt::Display for Uint512 {
-  fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-      let v = &self.0;
-      for b in v {
-          write!(f, "{b:02x}")?;
-      }
-      Ok(())
-  }
-}
 
 impl core::fmt::Debug for Uint512 {
   fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
@@ -2323,6 +2313,15 @@ impl core::fmt::Debug for Uint512 {
           write!(f, "{b:02x}")?;
       }
       write!(f, ")")?;
+      Ok(())
+  }
+}
+impl core::fmt::Display for Uint512 {
+  fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+      let v = &self.0;
+      for b in v {
+          write!(f, "{b:02x}")?;
+      }
       Ok(())
   }
 }
@@ -2414,10 +2413,11 @@ impl AsRef<[u8]> for Uint512 {
 //
 //   typedef opaque uint513<64>;
 //
-#[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[derive(Default)]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
+#[derive(Debug)]
 pub struct Uint513(pub BytesM::<64>);
 
 impl From<Uint513> for BytesM::<64> {
@@ -2512,10 +2512,11 @@ impl AsRef<[u8]> for Uint513 {
 //
 //   typedef opaque uint514<>;
 //
-#[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[derive(Default)]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
+#[derive(Debug)]
 pub struct Uint514(pub BytesM);
 
 impl From<Uint514> for BytesM {
@@ -2610,10 +2611,11 @@ impl AsRef<[u8]> for Uint514 {
 //
 //   typedef string str<64>;
 //
-#[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[derive(Default)]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
+#[derive(Debug)]
 pub struct Str(pub StringM::<64>);
 
 impl From<Str> for StringM::<64> {
@@ -2708,10 +2710,11 @@ impl AsRef<[u8]> for Str {
 //
 //   typedef string str2<>;
 //
-#[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[derive(Default)]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
+#[derive(Debug)]
 pub struct Str2(pub StringM);
 
 impl From<Str2> for StringM {
@@ -2806,20 +2809,10 @@ impl AsRef<[u8]> for Str2 {
 //
 //   typedef opaque Hash[32];
 //
-#[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr))]
 pub struct Hash(pub [u8; 32]);
-
-impl core::fmt::Display for Hash {
-  fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-      let v = &self.0;
-      for b in v {
-          write!(f, "{b:02x}")?;
-      }
-      Ok(())
-  }
-}
 
 impl core::fmt::Debug for Hash {
   fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
@@ -2829,6 +2822,15 @@ impl core::fmt::Debug for Hash {
           write!(f, "{b:02x}")?;
       }
       write!(f, ")")?;
+      Ok(())
+  }
+}
+impl core::fmt::Display for Hash {
+  fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+      let v = &self.0;
+      for b in v {
+          write!(f, "{b:02x}")?;
+      }
       Ok(())
   }
 }
@@ -2920,9 +2922,10 @@ impl AsRef<[u8]> for Hash {
 //
 //   typedef Hash Hashes1[12];
 //
-#[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
+#[derive(Debug)]
 pub struct Hashes1(pub [Hash; 12]);
 
 impl From<Hashes1> for [Hash; 12] {
@@ -3005,10 +3008,11 @@ impl AsRef<[Hash]> for Hashes1 {
 //
 //   typedef Hash Hashes2<12>;
 //
-#[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[derive(Default)]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
+#[derive(Debug)]
 pub struct Hashes2(pub VecM::<Hash, 12>);
 
 impl From<Hashes2> for VecM::<Hash, 12> {
@@ -3103,10 +3107,11 @@ impl AsRef<[Hash]> for Hashes2 {
 //
 //   typedef Hash Hashes3<>;
 //
-#[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[derive(Default)]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
+#[derive(Debug)]
 pub struct Hashes3(pub VecM::<Hash>);
 
 impl From<Hashes3> for VecM::<Hash> {
@@ -3201,9 +3206,10 @@ impl AsRef<[Hash]> for Hashes3 {
 //
 //   typedef Hash *optHash1;
 //
-#[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
+#[derive(Debug)]
 pub struct OptHash1(pub Option<Hash>);
 
 impl From<OptHash1> for Option<Hash> {
@@ -3249,9 +3255,10 @@ impl WriteXdr for OptHash1 {
 //
 //   typedef Hash* optHash2;
 //
-#[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
+#[derive(Debug)]
 pub struct OptHash2(pub Option<Hash>);
 
 impl From<OptHash2> for Option<Hash> {
