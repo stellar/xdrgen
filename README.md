@@ -40,6 +40,12 @@ The command line:
 
 `xdrgen [-o OUTPUT_DIR] [-l LANGUAGE] [-n NAMESPACE] [INPUT_FILES ...]`
 
+### Language Specific Options
+
+### Rust
+
+`--rust-types-custom-str-impl`: Used to specify a comma-separated list of type names that should not have string conversion code generated as it will be provided by custom implementations provided by the developer using the generated code.
+
 ## Usage as a library
 
 Add this line to your application's Gemfile:
@@ -63,7 +69,10 @@ c = Xdrgen::Compilation.new(
   ["MyProgram.x"],
   output_dir:"src/generated",
   language: :ruby,
-  namespace: "MyProgram::XDR"
+  namespace: "MyProgram::XDR",
+  options: {
+    rust_types_custom_str_impl: [],
+  },
 )
 
 # then run compile
