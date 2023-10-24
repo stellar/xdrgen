@@ -2629,9 +2629,8 @@ Self::V1(v) => v.write_xdr(w)?,
 //
 //   typedef IntUnion IntUnion2;
 //
-#[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
-#[derive(Debug)]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
 pub struct IntUnion2(pub IntUnion);
 

@@ -668,13 +668,12 @@ module Xdrgen
         if is_builtin_type(typedef.type)
           out.puts "pub type #{name typedef} = #{reference(typedef, typedef.type)};"
         else
-          out.puts "#[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]"
+          out.puts "#[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]"
           out.puts %{#[cfg_attr(feature = "arbitrary", derive(Arbitrary))]}
           out.puts "#[derive(Default)]" if is_var_array_type(typedef.type)
           if is_fixed_array_opaque(typedef.type) || @options[:rust_types_custom_str_impl].include?(name typedef)
             out.puts %{#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr))]}
           else
-            out.puts "#[derive(Debug)]"
             out.puts %{#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]}
           end
           out.puts "pub struct #{name typedef}(pub #{reference(typedef, typedef.type)});"

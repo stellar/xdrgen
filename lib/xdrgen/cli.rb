@@ -21,7 +21,7 @@ module Xdrgen
         language:   opts[:language].to_sym,
         namespace:  opts[:namespace],
         options:    {
-          rust_types_custom_str_impl: opts[:rust_types_custom_str_impl]&.split(',') || [],
+          rust_types_custom_str_impl: opts[:"rust-types-custom-str-impl"]&.split(',') || [],
         },
       )
       compilation.compile
