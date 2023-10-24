@@ -362,7 +362,11 @@ module Xdrgen
       def render_struct(out, struct)
         out.puts "#[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]"
         out.puts %{#[cfg_attr(feature = "arbitrary", derive(Arbitrary))]}
-        out.puts %{#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]}
+        if @options[:rust_types_custom_str_impl].include?(name struct)
+          out.puts %{#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr))]}
+        else
+          out.puts %{#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]}
+        end
         out.puts "pub struct #{name struct} {"
         out.indent do
           struct.members.each do |m|
@@ -404,7 +408,11 @@ module Xdrgen
         out.puts "// enum"
         out.puts "#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]"
         out.puts %{#[cfg_attr(feature = "arbitrary", derive(Arbitrary))]}
-        out.puts %{#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]}
+        if @options[:rust_types_custom_str_impl].include?(name enum)
+          out.puts %{#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr))]}
+        else
+          out.puts %{#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]}
+        end
         out.puts "#[repr(i32)]"
         out.puts "pub enum #{name enum} {"
         out.indent do
@@ -529,7 +537,11 @@ module Xdrgen
         out.puts "// union with discriminant #{discriminant_type}"
         out.puts "#[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]"
         out.puts %{#[cfg_attr(feature = "arbitrary", derive(Arbitrary))]}
-        out.puts %{#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]}
+        if @options[:rust_types_custom_str_impl].include?(name union)
+          out.puts %{#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr))]}
+        else
+          out.puts %{#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]}
+        end
         out.puts "#[allow(clippy::large_enum_variant)]"
         out.puts "pub enum #{name union} {"
         union_case_count = 0
@@ -659,26 +671,18 @@ module Xdrgen
           out.puts "#[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]"
           out.puts %{#[cfg_attr(feature = "arbitrary", derive(Arbitrary))]}
           out.puts "#[derive(Default)]" if is_var_array_type(typedef.type)
-          if is_fixed_array_opaque(typedef.type)
-          out.puts %{#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr))]}
+          if is_fixed_array_opaque(typedef.type) || @options[:rust_types_custom_str_impl].include?(name typedef)
+            out.puts %{#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr))]}
           else
-          out.puts "#[derive(Debug)]"
-          out.puts %{#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]}
+            out.puts %{#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]}
+          end
+          if !is_fixed_array_opaque(typedef.type)
+            out.puts "#[derive(Debug)]"
           end
           out.puts "pub struct #{name typedef}(pub #{reference(typedef, typedef.type)});"
           out.puts ""
           if is_fixed_array_opaque(typedef.type)
           out.puts <<-EOS.strip_heredoc
-          impl core::fmt::Display for #{name typedef} {
-            fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-                let v = &self.0;
-                for b in v {
-                    write!(f, "{b:02x}")?;
-                }
-                Ok(())
-            }
-          }
-
           impl core::fmt::Debug for #{name typedef} {
             fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
                 let v = &self.0;
@@ -687,6 +691,19 @@ module Xdrgen
                     write!(f, "{b:02x}")?;
                 }
                 write!(f, ")")?;
+                Ok(())
+            }
+          }
+          EOS
+          end
+          if is_fixed_array_opaque(typedef.type) && !@options[:rust_types_custom_str_impl].include?(name typedef)
+          out.puts <<-EOS.strip_heredoc
+          impl core::fmt::Display for #{name typedef} {
+            fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+                let v = &self.0;
+                for b in v {
+                    write!(f, "{b:02x}")?;
+                }
                 Ok(())
             }
           }

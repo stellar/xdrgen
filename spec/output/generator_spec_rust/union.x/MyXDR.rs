@@ -2631,8 +2631,8 @@ Self::V1(v) => v.write_xdr(w)?,
 //
 #[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
-#[derive(Debug)]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
+#[derive(Debug)]
 pub struct IntUnion2(pub IntUnion);
 
 impl From<IntUnion2> for IntUnion {
