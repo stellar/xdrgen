@@ -3,6 +3,7 @@ use core::{array::TryFromSliceError, fmt, fmt::Debug, marker::Sized, ops::Deref,
 #[cfg(feature = "std")]
 use core::marker::PhantomData;
 
+#[cfg(feature = "std")]
 const MAX_PREALLOCATED_BYTES_READ: usize = 1024; // 1KB
 
 // When feature alloc is turned off use static lifetime Box and Vec types.
