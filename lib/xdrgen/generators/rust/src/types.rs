@@ -653,6 +653,35 @@ fn pad_len(len: usize) -> usize {
     (4 - (len % 4)) % 4
 }
 
+/// Read exactly the specified length of bytes from the read into a new Vec that
+/// is returned in batches. The function will preallocate only the memory
+/// required for each batch as it goes while reading so that no large
+/// preallocation occurs without the message data being available.
+#[cfg(feature = "std")]
+fn read_exact_in_batches<R: Read>(r: R, len: usize, batch_size: usize) -> Vec<u8> {
+    let mut vec = vec![0u8; 0];
+    let mut len_remaining = len as usize;
+
+    // Read one batch at a time.
+    while len_remaining > 0 {
+        let len_read = core::cmp::min(len_remaining, batch_size);
+        let offset = vec.len();
+        let len_new = vec.len() + len_read;
+
+        // Reserve exactly the new space required. Reserving exact prevents vec
+        // from increasing the allocated memory 2x which could result with large
+        // unnecessary allocations.
+        vec.reserve_exact(len_new);
+
+        // Resize the vec so that the read can read into the next batch of space.
+        vec.resize(len_new, 0);
+
+        r.read_exact(&mut vec[offset..])?;
+        len_remaining -= len_read;
+    }
+    vec
+}
+
 impl ReadXdr for i32 {
     #[cfg(feature = "std")]
     fn read_xdr<R: Read>(r: &mut DepthLimitedRead<R>) -> Result<Self> {
@@ -1222,15 +1251,7 @@ impl<const MAX: u32> ReadXdr for VecM<u8, MAX> {
                 return Err(Error::LengthExceedsMax);
             }
 
-            let mut vec = vec![0u8; 0];
-            let mut len_remaining = len as usize;
-            while len_remaining > 0 {
-                let len_read = core::cmp::min(len_remaining, MAX_PREALLOCATED_BYTES_READ);
-                let offset = vec.len();
-                vec.resize(vec.len() + len_read, 0);
-                r.read_exact(&mut vec[offset..])?;
-                len_remaining -= len_read;
-            }
+            let mut vec = read_exact_in_batches(r, len as usize, MAX_PREALLOCATED_BYTES_READ);
 
             let pad = &mut [0u8; 3][..pad_len(len as usize)];
             r.read_exact(pad)?;
@@ -1627,15 +1648,7 @@ impl<const MAX: u32> ReadXdr for BytesM<MAX> {
                 return Err(Error::LengthExceedsMax);
             }
 
-            let mut vec = vec![0u8; 0];
-            let mut len_remaining = len as usize;
-            while len_remaining > 0 {
-                let len_read = core::cmp::min(len_remaining, MAX_PREALLOCATED_BYTES_READ);
-                let offset = vec.len();
-                vec.resize(vec.len() + len_read, 0);
-                r.read_exact(&mut vec[offset..])?;
-                len_remaining -= len_read;
-            }
+            let mut vec = read_exact_in_batches(r, len as usize, MAX_PREALLOCATED_BYTES_READ);
 
             let pad = &mut [0u8; 3][..pad_len(len as usize)];
             r.read_exact(pad)?;
@@ -2017,15 +2030,7 @@ impl<const MAX: u32> ReadXdr for StringM<MAX> {
                 return Err(Error::LengthExceedsMax);
             }
 
-            let mut vec = vec![0u8; 0];
-            let mut len_remaining = len as usize;
-            while len_remaining > 0 {
-                let len_read = core::cmp::min(len_remaining, MAX_PREALLOCATED_BYTES_READ);
-                let offset = vec.len();
-                vec.resize(vec.len() + len_read, 0);
-                r.read_exact(&mut vec[offset..])?;
-                len_remaining -= len_read;
-            }
+            let mut vec = read_exact_in_batches(r, len as usize, MAX_PREALLOCATED_BYTES_READ);
 
             let pad = &mut [0u8; 3][..pad_len(len as usize)];
             r.read_exact(pad)?;
