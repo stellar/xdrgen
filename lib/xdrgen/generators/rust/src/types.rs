@@ -201,14 +201,17 @@ pub struct Limits {
     /// [Rust documentation](https://doc.rust-lang.org/std/thread/#stack-size).
     pub depth: u32,
 
-    /// Defines the maximum number of bytes that will be read.
+    /// Defines the maximum number of bytes that will be read or read.
     pub len: usize,
 }
 
 #[cfg(feature = "std")]
 impl Default for Limits {
     fn default() -> Self {
-        Self { depth: 500, len: 0 }
+        Self {
+            depth: 500,
+            len: usize::MAX,
+        }
     }
 }
 
