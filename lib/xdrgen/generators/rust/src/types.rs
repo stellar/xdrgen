@@ -2188,7 +2188,7 @@ mod test {
             Vec::new(),
             Limits {
                 depth: 4,
-                len: usize::MAX,
+                ..Limits::default()
             },
         );
         a.write_xdr(&mut buf).unwrap();
@@ -2197,7 +2197,7 @@ mod test {
             Cursor::new(buf.inner.as_slice()),
             Limits {
                 depth: 4,
-                len: usize::MAX,
+                ..Limits::default()
             },
         );
         let a_back: Option<Option<Option<u32>>> = ReadXdr::read_xdr(&mut dlr).unwrap();
@@ -2225,11 +2225,11 @@ mod test {
     fn read_over_depth_limit_fail() {
         let read_limits = Limits {
             depth: 3,
-            len: usize::MAX,
+            ..Limits::default()
         };
         let write_limits = Limits {
             depth: 5,
-            len: usize::MAX,
+            ..Limits::default()
         };
         let a: Option<Option<Option<u32>>> = Some(Some(Some(5)));
         let mut buf = Limited::new(Vec::new(), read_limits);
