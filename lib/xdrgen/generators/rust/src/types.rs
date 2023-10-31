@@ -263,12 +263,12 @@ impl<L> Limited<L> {
     {
         if let Some(depth) = self.limits.depth.checked_sub(1) {
             self.limits.depth = depth;
+            let res = f(self);
+            self.limits.depth = self.limits.depth.saturating_add(1);
+            res
         } else {
-            return Err(Error::DepthLimitExceeded);
+            Err(Error::DepthLimitExceeded)
         }
-        let res = f(self);
-        self.limits.depth = self.limits.depth.saturating_add(1);
-        res
     }
 }
 
