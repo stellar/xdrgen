@@ -203,15 +203,17 @@ where
 #[cfg(feature = "std")]
 #[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Limits {
-    /// Defines the maximum depth for recursive calls in `Read/WriteXdr` to prevent stack overflow.
+    /// Defines the maximum depth for recursive calls in `Read/WriteXdr` to
+    /// prevent stack overflow.
     ///
-    /// The depth limit is akin to limiting stack depth. Its purpose is to prevent the program from
-    /// hitting the maximum stack size allowed by Rust, which would result in an unrecoverable `SIGABRT`.
-    /// For more information about Rust's stack size limit, refer to the
-    /// [Rust documentation](https://doc.rust-lang.org/std/thread/#stack-size).
+    /// The depth limit is akin to limiting stack depth. Its purpose is to
+    /// prevent the program from hitting the maximum stack size allowed by Rust,
+    /// which would result in an unrecoverable `SIGABRT`.  For more information
+    /// about Rust's stack size limit, refer to the [Rust
+    /// documentation](https://doc.rust-lang.org/std/thread/#stack-size).
     pub depth: u32,
 
-    /// Defines the maximum number of bytes that will be read or read.
+    /// Defines the maximum number of bytes that will be read or written.
     pub len: usize,
 }
 
@@ -226,6 +228,9 @@ impl Default for Limits {
 }
 
 /// `Limited` wraps an object and provides functions for enforcing limits.
+///
+/// Intended for use with readers and writers and limiting their reads and
+/// writes.
 #[cfg(feature = "std")]
 pub struct Limited<L> {
     pub inner: L,
@@ -236,12 +241,18 @@ pub struct Limited<L> {
 impl<L> Limited<L> {
     /// Constructs a new `Limited`.
     ///
-    /// - `inner`: The object implementing the `Read` trait.
-    /// - `depth_limit`: The maximum allowed recursion depth.
+    /// - `inner`: The value being limited.
+    /// - `limits`: The limits to enforce.
     pub fn new(inner: L, limits: Limits) -> Self {
         Limited { inner, limits }
     }
 
+    /// Consume the given length from the internal remaining length limit.
+    ///
+    /// ### Errors
+    ///
+    /// If the length would consume more length than the remaining length limit
+    /// allows.
     pub(crate) fn consume_len(&mut self, len: usize) -> Result<()> {
         if let Some(len) = self.limits.len.checked_sub(len) {
             self.limits.len = len;
@@ -251,6 +262,11 @@ impl<L> Limited<L> {
         }
     }
 
+    /// Consumes a single depth for the duration of the given function.
+    ///
+    /// ### Errors
+    ///
+    /// If the depth limit is already exhausted.
     pub(crate) fn with_limited_depth<T, F>(&mut self, f: F) -> Result<T>
     where
         F: FnOnce(&mut Self) -> Result<T>,
