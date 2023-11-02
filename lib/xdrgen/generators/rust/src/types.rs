@@ -2258,6 +2258,68 @@ mod test {
             _ => panic!("expected DepthLimitExceeded got {res:?}"),
         }
     }
+
+    #[test]
+    fn length_limited_read_write_under_the_limit_success() {
+        let a: Option<Option<Option<u32>>> = Some(Some(Some(5)));
+        let mut buf = Limited::new(
+            Vec::new(),
+            Limits {
+                len: 16,
+                ..Limits::default()
+            },
+        );
+        a.write_xdr(&mut buf).unwrap();
+
+        let mut lr = Limited::new(
+            Cursor::new(buf.inner.as_slice()),
+            Limits {
+                len: 16,
+                ..Limits::default()
+            },
+        );
+        let a_back: Option<Option<Option<u32>>> = ReadXdr::read_xdr(&mut lr).unwrap();
+        assert_eq!(a, a_back);
+    }
+
+    #[test]
+    fn write_over_length_limit_fail() {
+        let a: Option<Option<Option<u32>>> = Some(Some(Some(5)));
+        let mut buf = Limited::new(
+            Vec::new(),
+            Limits {
+                len: 15,
+                ..Limits::default()
+            },
+        );
+        let res = a.write_xdr(&mut buf);
+        match res {
+            Err(Error::LengthLimitExceeded) => (),
+            _ => panic!("expected LengthLimitExceeded got {res:?}"),
+        }
+    }
+
+    #[test]
+    fn read_over_length_limit_fail() {
+        let read_limits = Limits {
+            len: 15,
+            ..Limits::default()
+        };
+        let write_limits = Limits {
+            len: 16,
+            ..Limits::default()
+        };
+        let a: Option<Option<Option<u32>>> = Some(Some(Some(5)));
+        let mut buf = Limited::new(Vec::new(), read_limits);
+        a.write_xdr(&mut buf).unwrap();
+
+        let mut dlr = Limited::new(Cursor::new(buf.inner.as_slice()), write_limits);
+        let res: Result<Option<Option<Option<u32>>>> = ReadXdr::read_xdr(&mut dlr);
+        match res {
+            Err(Error::LengthLimitExceeded) => (),
+            _ => panic!("expected DepthLimitExceeded got {res:?}"),
+        }
+    }
 }
 
 #[cfg(all(test, not(feature = "alloc")))]
