@@ -218,11 +218,25 @@ pub struct Limits {
 }
 
 #[cfg(feature = "std")]
-impl Default for Limits {
-    fn default() -> Self {
+impl Limits {
+    fn none() -> Self {
         Self {
-            depth: 500,
+            depth: u32::MAX,
             len: usize::MAX,
+        }
+    }
+
+    fn depth(depth: u32) -> Self {
+        Limits {
+            depth,
+            ..Limits::none()
+        }
+    }
+
+    fn len(len: usize) -> Self {
+        Limits {
+            len,
+            ..Limits::none()
         }
     }
 }
@@ -2062,21 +2076,21 @@ mod tests {
     #[test]
     pub fn vec_u8_read_without_padding() {
         let buf = Cursor::new(vec![0, 0, 0, 4, 2, 2, 2, 2]);
-        let v = VecM::<u8, 8>::read_xdr(&mut Limited::new(buf, Limits::default())).unwrap();
+        let v = VecM::<u8, 8>::read_xdr(&mut Limited::new(buf, Limits::none())).unwrap();
         assert_eq!(v.to_vec(), vec![2, 2, 2, 2]);
     }
 
     #[test]
     pub fn vec_u8_read_with_padding() {
         let buf = Cursor::new(vec![0, 0, 0, 1, 2, 0, 0, 0]);
-        let v = VecM::<u8, 8>::read_xdr(&mut Limited::new(buf, Limits::default())).unwrap();
+        let v = VecM::<u8, 8>::read_xdr(&mut Limited::new(buf, Limits::none())).unwrap();
         assert_eq!(v.to_vec(), vec![2]);
     }
 
     #[test]
     pub fn vec_u8_read_with_insufficient_padding() {
         let buf = Cursor::new(vec![0, 0, 0, 1, 2, 0, 0]);
-        let res = VecM::<u8, 8>::read_xdr(&mut Limited::new(buf, Limits::default()));
+        let res = VecM::<u8, 8>::read_xdr(&mut Limited::new(buf, Limits::none()));
         match res {
             Err(Error::Io(_)) => (),
             _ => panic!("expected IO error got {res:?}"),
@@ -2086,7 +2100,7 @@ mod tests {
     #[test]
     pub fn vec_u8_read_with_non_zero_padding() {
         let buf = Cursor::new(vec![0, 0, 0, 1, 2, 3, 0, 0]);
-        let res = VecM::<u8, 8>::read_xdr(&mut Limited::new(buf, Limits::default()));
+        let res = VecM::<u8, 8>::read_xdr(&mut Limited::new(buf, Limits::none()));
         match res {
             Err(Error::NonZeroPadding) => (),
             _ => panic!("expected NonZeroPadding got {res:?}"),
@@ -2098,7 +2112,7 @@ mod tests {
         let mut buf = vec![];
         let v: VecM<u8, 8> = vec![2, 2, 2, 2].try_into().unwrap();
 
-        v.write_xdr(&mut Limited::new(Cursor::new(&mut buf), Limits::default()))
+        v.write_xdr(&mut Limited::new(Cursor::new(&mut buf), Limits::none()))
             .unwrap();
         assert_eq!(buf, vec![0, 0, 0, 4, 2, 2, 2, 2]);
     }
@@ -2107,7 +2121,7 @@ mod tests {
     pub fn vec_u8_write_with_padding() {
         let mut buf = vec![];
         let v: VecM<u8, 8> = vec![2].try_into().unwrap();
-        v.write_xdr(&mut Limited::new(Cursor::new(&mut buf), Limits::default()))
+        v.write_xdr(&mut Limited::new(Cursor::new(&mut buf), Limits::none()))
             .unwrap();
         assert_eq!(buf, vec![0, 0, 0, 1, 2, 0, 0, 0]);
     }
@@ -2115,21 +2129,21 @@ mod tests {
     #[test]
     pub fn arr_u8_read_without_padding() {
         let buf = Cursor::new(vec![2, 2, 2, 2]);
-        let v = <[u8; 4]>::read_xdr(&mut Limited::new(buf, Limits::default())).unwrap();
+        let v = <[u8; 4]>::read_xdr(&mut Limited::new(buf, Limits::none())).unwrap();
         assert_eq!(v, [2, 2, 2, 2]);
     }
 
     #[test]
     pub fn arr_u8_read_with_padding() {
         let buf = Cursor::new(vec![2, 0, 0, 0]);
-        let v = <[u8; 1]>::read_xdr(&mut Limited::new(buf, Limits::default())).unwrap();
+        let v = <[u8; 1]>::read_xdr(&mut Limited::new(buf, Limits::none())).unwrap();
         assert_eq!(v, [2]);
     }
 
     #[test]
     pub fn arr_u8_read_with_insufficient_padding() {
         let buf = Cursor::new(vec![2, 0, 0]);
-        let res = <[u8; 1]>::read_xdr(&mut Limited::new(buf, Limits::default()));
+        let res = <[u8; 1]>::read_xdr(&mut Limited::new(buf, Limits::none()));
         match res {
             Err(Error::Io(_)) => (),
             _ => panic!("expected IO error got {res:?}"),
@@ -2139,7 +2153,7 @@ mod tests {
     #[test]
     pub fn arr_u8_read_with_non_zero_padding() {
         let buf = Cursor::new(vec![2, 3, 0, 0]);
-        let res = <[u8; 1]>::read_xdr(&mut Limited::new(buf, Limits::default()));
+        let res = <[u8; 1]>::read_xdr(&mut Limited::new(buf, Limits::none()));
         match res {
             Err(Error::NonZeroPadding) => (),
             _ => panic!("expected NonZeroPadding got {res:?}"),
@@ -2150,7 +2164,7 @@ mod tests {
     pub fn arr_u8_write_without_padding() {
         let mut buf = vec![];
         [2u8, 2, 2, 2]
-            .write_xdr(&mut Limited::new(Cursor::new(&mut buf), Limits::default()))
+            .write_xdr(&mut Limited::new(Cursor::new(&mut buf), Limits::none()))
             .unwrap();
         assert_eq!(buf, vec![2, 2, 2, 2]);
     }
@@ -2159,7 +2173,7 @@ mod tests {
     pub fn arr_u8_write_with_padding() {
         let mut buf = vec![];
         [2u8]
-            .write_xdr(&mut Limited::new(Cursor::new(&mut buf), Limits::default()))
+            .write_xdr(&mut Limited::new(Cursor::new(&mut buf), Limits::none()))
             .unwrap();
         assert_eq!(buf, vec![2, 0, 0, 0]);
     }
@@ -2196,22 +2210,10 @@ mod test {
     #[test]
     fn depth_limited_read_write_under_the_limit_success() {
         let a: Option<Option<Option<u32>>> = Some(Some(Some(5)));
-        let mut buf = Limited::new(
-            Vec::new(),
-            Limits {
-                depth: 4,
-                ..Limits::default()
-            },
-        );
+        let mut buf = Limited::new(Vec::new(), Limits::depth(4));
         a.write_xdr(&mut buf).unwrap();
 
-        let mut dlr = Limited::new(
-            Cursor::new(buf.inner.as_slice()),
-            Limits {
-                depth: 4,
-                ..Limits::default()
-            },
-        );
+        let mut dlr = Limited::new(Cursor::new(buf.inner.as_slice()), Limits::depth(4));
         let a_back: Option<Option<Option<u32>>> = ReadXdr::read_xdr(&mut dlr).unwrap();
         assert_eq!(a, a_back);
     }
@@ -2219,13 +2221,7 @@ mod test {
     #[test]
     fn write_over_depth_limit_fail() {
         let a: Option<Option<Option<u32>>> = Some(Some(Some(5)));
-        let mut buf = Limited::new(
-            Vec::new(),
-            Limits {
-                depth: 3,
-                len: usize::MAX,
-            },
-        );
+        let mut buf = Limited::new(Vec::new(), Limits::depth(3));
         let res = a.write_xdr(&mut buf);
         match res {
             Err(Error::DepthLimitExceeded) => (),
@@ -2235,19 +2231,13 @@ mod test {
 
     #[test]
     fn read_over_depth_limit_fail() {
-        let read_limits = Limits {
-            depth: 3,
-            ..Limits::default()
-        };
-        let write_limits = Limits {
-            depth: 5,
-            ..Limits::default()
-        };
+        let read_limits = Limits::depth(3);
+        let write_limits = Limits::depth(5);
         let a: Option<Option<Option<u32>>> = Some(Some(Some(5)));
-        let mut buf = Limited::new(Vec::new(), read_limits);
+        let mut buf = Limited::new(Vec::new(), write_limits);
         a.write_xdr(&mut buf).unwrap();
 
-        let mut dlr = Limited::new(Cursor::new(buf.inner.as_slice()), write_limits);
+        let mut dlr = Limited::new(Cursor::new(buf.inner.as_slice()), read_limits);
         let res: Result<Option<Option<Option<u32>>>> = ReadXdr::read_xdr(&mut dlr);
         match res {
             Err(Error::DepthLimitExceeded) => (),
@@ -2256,65 +2246,432 @@ mod test {
     }
 
     #[test]
-    fn length_limited_read_write_under_the_limit_success() {
-        let a: Option<Option<Option<u32>>> = Some(Some(Some(5)));
-        let mut buf = Limited::new(
-            Vec::new(),
-            Limits {
-                len: 16,
-                ..Limits::default()
-            },
-        );
-        a.write_xdr(&mut buf).unwrap();
+    fn length_limited_read_write_i32() {
+        // Exact limit, success
+        let v = 123i32;
+        let mut buf = Limited::new(Vec::new(), Limits::len(4));
+        v.write_xdr(&mut buf).unwrap();
+        assert_eq!(buf.limits.len, 0);
+        let mut lr = Limited::new(Cursor::new(buf.inner.as_slice()), Limits::len(4));
+        let v_back: i32 = ReadXdr::read_xdr(&mut lr).unwrap();
+        assert_eq!(buf.limits.len, 0);
+        assert_eq!(v, v_back);
 
-        let mut lr = Limited::new(
-            Cursor::new(buf.inner.as_slice()),
-            Limits {
-                len: 16,
-                ..Limits::default()
-            },
+        // Over limit, success
+        let v = 123i32;
+        let mut buf = Limited::new(Vec::new(), Limits::len(5));
+        v.write_xdr(&mut buf).unwrap();
+        assert_eq!(buf.limits.len, 1);
+        let mut lr = Limited::new(Cursor::new(buf.inner.as_slice()), Limits::len(5));
+        let v_back: i32 = ReadXdr::read_xdr(&mut lr).unwrap();
+        assert_eq!(buf.limits.len, 1);
+        assert_eq!(v, v_back);
+
+        // Write under limit, failure
+        let v = 123i32;
+        let mut buf = Limited::new(Vec::new(), Limits::len(3));
+        assert_eq!(v.write_xdr(&mut buf), Err(Error::LengthLimitExceeded));
+
+        // Read under limit, failure
+        let v = 123i32;
+        let mut buf = Limited::new(Vec::new(), Limits::len(4));
+        v.write_xdr(&mut buf).unwrap();
+        assert_eq!(buf.limits.len, 0);
+        let mut lr = Limited::new(Cursor::new(buf.inner.as_slice()), Limits::len(3));
+        assert_eq!(
+            <i32 as ReadXdr>::read_xdr(&mut lr),
+            Err(Error::LengthLimitExceeded)
         );
-        let a_back: Option<Option<Option<u32>>> = ReadXdr::read_xdr(&mut lr).unwrap();
-        assert_eq!(a, a_back);
     }
 
     #[test]
-    fn write_over_length_limit_fail() {
-        let a: Option<Option<Option<u32>>> = Some(Some(Some(5)));
-        let mut buf = Limited::new(
-            Vec::new(),
-            Limits {
-                len: 15,
-                ..Limits::default()
-            },
+    fn length_limited_read_write_u32() {
+        // Exact limit, success
+        let v = 123u32;
+        let mut buf = Limited::new(Vec::new(), Limits::len(4));
+        v.write_xdr(&mut buf).unwrap();
+        assert_eq!(buf.limits.len, 0);
+        let mut lr = Limited::new(Cursor::new(buf.inner.as_slice()), Limits::len(4));
+        let v_back: u32 = ReadXdr::read_xdr(&mut lr).unwrap();
+        assert_eq!(buf.limits.len, 0);
+        assert_eq!(v, v_back);
+
+        // Over limit, success
+        let v = 123u32;
+        let mut buf = Limited::new(Vec::new(), Limits::len(5));
+        v.write_xdr(&mut buf).unwrap();
+        assert_eq!(buf.limits.len, 1);
+        let mut lr = Limited::new(Cursor::new(buf.inner.as_slice()), Limits::len(5));
+        let v_back: u32 = ReadXdr::read_xdr(&mut lr).unwrap();
+        assert_eq!(buf.limits.len, 1);
+        assert_eq!(v, v_back);
+
+        // Write under limit, failure
+        let v = 123u32;
+        let mut buf = Limited::new(Vec::new(), Limits::len(3));
+        assert_eq!(v.write_xdr(&mut buf), Err(Error::LengthLimitExceeded));
+
+        // Read under limit, failure
+        let v = 123u32;
+        let mut buf = Limited::new(Vec::new(), Limits::len(4));
+        v.write_xdr(&mut buf).unwrap();
+        assert_eq!(buf.limits.len, 0);
+        let mut lr = Limited::new(Cursor::new(buf.inner.as_slice()), Limits::len(3));
+        assert_eq!(
+            <u32 as ReadXdr>::read_xdr(&mut lr),
+            Err(Error::LengthLimitExceeded)
         );
-        let res = a.write_xdr(&mut buf);
-        match res {
-            Err(Error::LengthLimitExceeded) => (),
-            _ => panic!("expected LengthLimitExceeded got {res:?}"),
-        }
     }
 
     #[test]
-    fn read_over_length_limit_fail() {
-        let read_limits = Limits {
-            len: 15,
-            ..Limits::default()
-        };
-        let write_limits = Limits {
-            len: 16,
-            ..Limits::default()
-        };
-        let a: Option<Option<Option<u32>>> = Some(Some(Some(5)));
-        let mut buf = Limited::new(Vec::new(), read_limits);
-        a.write_xdr(&mut buf).unwrap();
+    fn length_limited_read_write_i64() {
+        // Exact limit, success
+        let v = 123i64;
+        let mut buf = Limited::new(Vec::new(), Limits::len(8));
+        v.write_xdr(&mut buf).unwrap();
+        assert_eq!(buf.limits.len, 0);
+        let mut lr = Limited::new(Cursor::new(buf.inner.as_slice()), Limits::len(8));
+        let v_back: i64 = ReadXdr::read_xdr(&mut lr).unwrap();
+        assert_eq!(buf.limits.len, 0);
+        assert_eq!(v, v_back);
 
-        let mut dlr = Limited::new(Cursor::new(buf.inner.as_slice()), write_limits);
-        let res: Result<Option<Option<Option<u32>>>> = ReadXdr::read_xdr(&mut dlr);
-        match res {
-            Err(Error::LengthLimitExceeded) => (),
-            _ => panic!("expected DepthLimitExceeded got {res:?}"),
-        }
+        // Over limit, success
+        let v = 123i64;
+        let mut buf = Limited::new(Vec::new(), Limits::len(9));
+        v.write_xdr(&mut buf).unwrap();
+        assert_eq!(buf.limits.len, 1);
+        let mut lr = Limited::new(Cursor::new(buf.inner.as_slice()), Limits::len(9));
+        let v_back: i64 = ReadXdr::read_xdr(&mut lr).unwrap();
+        assert_eq!(buf.limits.len, 1);
+        assert_eq!(v, v_back);
+
+        // Write under limit, failure
+        let v = 123i64;
+        let mut buf = Limited::new(Vec::new(), Limits::len(7));
+        assert_eq!(v.write_xdr(&mut buf), Err(Error::LengthLimitExceeded));
+
+        // Read under limit, failure
+        let v = 123i64;
+        let mut buf = Limited::new(Vec::new(), Limits::len(8));
+        v.write_xdr(&mut buf).unwrap();
+        assert_eq!(buf.limits.len, 0);
+        let mut lr = Limited::new(Cursor::new(buf.inner.as_slice()), Limits::len(7));
+        assert_eq!(
+            <i64 as ReadXdr>::read_xdr(&mut lr),
+            Err(Error::LengthLimitExceeded)
+        );
+    }
+
+    #[test]
+    fn length_limited_read_write_u64() {
+        // Exact limit, success
+        let v = 123u64;
+        let mut buf = Limited::new(Vec::new(), Limits::len(8));
+        v.write_xdr(&mut buf).unwrap();
+        assert_eq!(buf.limits.len, 0);
+        let mut lr = Limited::new(Cursor::new(buf.inner.as_slice()), Limits::len(8));
+        let v_back: u64 = ReadXdr::read_xdr(&mut lr).unwrap();
+        assert_eq!(buf.limits.len, 0);
+        assert_eq!(v, v_back);
+
+        // Over limit, success
+        let v = 123u64;
+        let mut buf = Limited::new(Vec::new(), Limits::len(9));
+        v.write_xdr(&mut buf).unwrap();
+        assert_eq!(buf.limits.len, 1);
+        let mut lr = Limited::new(Cursor::new(buf.inner.as_slice()), Limits::len(9));
+        let v_back: u64 = ReadXdr::read_xdr(&mut lr).unwrap();
+        assert_eq!(buf.limits.len, 1);
+        assert_eq!(v, v_back);
+
+        // Write under limit, failure
+        let v = 123u64;
+        let mut buf = Limited::new(Vec::new(), Limits::len(7));
+        assert_eq!(v.write_xdr(&mut buf), Err(Error::LengthLimitExceeded));
+
+        // Read under limit, failure
+        let v = 123u64;
+        let mut buf = Limited::new(Vec::new(), Limits::len(8));
+        v.write_xdr(&mut buf).unwrap();
+        assert_eq!(buf.limits.len, 0);
+        let mut lr = Limited::new(Cursor::new(buf.inner.as_slice()), Limits::len(7));
+        assert_eq!(
+            <u64 as ReadXdr>::read_xdr(&mut lr),
+            Err(Error::LengthLimitExceeded)
+        );
+    }
+
+    #[test]
+    fn length_limited_read_write_bool() {
+        // Exact limit, success
+        let v = true;
+        let mut buf = Limited::new(Vec::new(), Limits::len(4));
+        v.write_xdr(&mut buf).unwrap();
+        assert_eq!(buf.limits.len, 0);
+        let mut lr = Limited::new(Cursor::new(buf.inner.as_slice()), Limits::len(4));
+        let v_back: bool = ReadXdr::read_xdr(&mut lr).unwrap();
+        assert_eq!(buf.limits.len, 0);
+        assert_eq!(v, v_back);
+
+        // Over limit, success
+        let v = true;
+        let mut buf = Limited::new(Vec::new(), Limits::len(5));
+        v.write_xdr(&mut buf).unwrap();
+        assert_eq!(buf.limits.len, 1);
+        let mut lr = Limited::new(Cursor::new(buf.inner.as_slice()), Limits::len(5));
+        let v_back: bool = ReadXdr::read_xdr(&mut lr).unwrap();
+        assert_eq!(buf.limits.len, 1);
+        assert_eq!(v, v_back);
+
+        // Write under limit, failure
+        let v = true;
+        let mut buf = Limited::new(Vec::new(), Limits::len(3));
+        assert_eq!(v.write_xdr(&mut buf), Err(Error::LengthLimitExceeded));
+
+        // Read under limit, failure
+        let v = true;
+        let mut buf = Limited::new(Vec::new(), Limits::len(4));
+        v.write_xdr(&mut buf).unwrap();
+        assert_eq!(buf.limits.len, 0);
+        let mut lr = Limited::new(Cursor::new(buf.inner.as_slice()), Limits::len(3));
+        assert_eq!(
+            <bool as ReadXdr>::read_xdr(&mut lr),
+            Err(Error::LengthLimitExceeded)
+        );
+    }
+
+    #[test]
+    fn length_limited_read_write_option() {
+        // Exact limit, success
+        let v = Some(true);
+        let mut buf = Limited::new(Vec::new(), Limits::len(8));
+        v.write_xdr(&mut buf).unwrap();
+        assert_eq!(buf.limits.len, 0);
+        let mut lr = Limited::new(Cursor::new(buf.inner.as_slice()), Limits::len(8));
+        let v_back: Option<bool> = ReadXdr::read_xdr(&mut lr).unwrap();
+        assert_eq!(buf.limits.len, 0);
+        assert_eq!(v, v_back);
+
+        // Over limit, success
+        let v = Some(true);
+        let mut buf = Limited::new(Vec::new(), Limits::len(9));
+        v.write_xdr(&mut buf).unwrap();
+        assert_eq!(buf.limits.len, 1);
+        let mut lr = Limited::new(Cursor::new(buf.inner.as_slice()), Limits::len(9));
+        let v_back: Option<bool> = ReadXdr::read_xdr(&mut lr).unwrap();
+        assert_eq!(buf.limits.len, 1);
+        assert_eq!(v, v_back);
+
+        // Write under limit, failure
+        let v = Some(true);
+        let mut buf = Limited::new(Vec::new(), Limits::len(7));
+        assert_eq!(v.write_xdr(&mut buf), Err(Error::LengthLimitExceeded));
+
+        // Read under limit, failure
+        let v = Some(true);
+        let mut buf = Limited::new(Vec::new(), Limits::len(8));
+        v.write_xdr(&mut buf).unwrap();
+        assert_eq!(buf.limits.len, 0);
+        let mut lr = Limited::new(Cursor::new(buf.inner.as_slice()), Limits::len(7));
+        assert_eq!(
+            <Option<bool> as ReadXdr>::read_xdr(&mut lr),
+            Err(Error::LengthLimitExceeded)
+        );
+    }
+
+    #[test]
+    fn length_limited_read_write_array_u8() {
+        // Exact limit, success
+        let v = [1u8, 2, 3];
+        let mut buf = Limited::new(Vec::new(), Limits::len(4));
+        v.write_xdr(&mut buf).unwrap();
+        assert_eq!(buf.limits.len, 0);
+        let mut lr = Limited::new(Cursor::new(buf.inner.as_slice()), Limits::len(4));
+        let v_back: [u8; 3] = ReadXdr::read_xdr(&mut lr).unwrap();
+        assert_eq!(buf.limits.len, 0);
+        assert_eq!(v, v_back);
+
+        // Over limit, success
+        let v = [1u8, 2, 3];
+        let mut buf = Limited::new(Vec::new(), Limits::len(5));
+        v.write_xdr(&mut buf).unwrap();
+        assert_eq!(buf.limits.len, 1);
+        let mut lr = Limited::new(Cursor::new(buf.inner.as_slice()), Limits::len(5));
+        let v_back: [u8; 3] = ReadXdr::read_xdr(&mut lr).unwrap();
+        assert_eq!(buf.limits.len, 1);
+        assert_eq!(v, v_back);
+
+        // Write under limit, failure
+        let v = [1u8, 2, 3];
+        let mut buf = Limited::new(Vec::new(), Limits::len(3));
+        assert_eq!(v.write_xdr(&mut buf), Err(Error::LengthLimitExceeded));
+
+        // Read under limit, failure
+        let v = [1u8, 2, 3];
+        let mut buf = Limited::new(Vec::new(), Limits::len(4));
+        v.write_xdr(&mut buf).unwrap();
+        assert_eq!(buf.limits.len, 0);
+        let mut lr = Limited::new(Cursor::new(buf.inner.as_slice()), Limits::len(3));
+        assert_eq!(
+            <[u8; 3] as ReadXdr>::read_xdr(&mut lr),
+            Err(Error::LengthLimitExceeded)
+        );
+    }
+
+    #[test]
+    fn length_limited_read_write_array_type() {
+        // Exact limit, success
+        let v = [true, false, true];
+        let mut buf = Limited::new(Vec::new(), Limits::len(12));
+        v.write_xdr(&mut buf).unwrap();
+        assert_eq!(buf.limits.len, 0);
+        let mut lr = Limited::new(Cursor::new(buf.inner.as_slice()), Limits::len(12));
+        let v_back: [bool; 3] = ReadXdr::read_xdr(&mut lr).unwrap();
+        assert_eq!(buf.limits.len, 0);
+        assert_eq!(v, v_back);
+
+        // Over limit, success
+        let v = [true, false, true];
+        let mut buf = Limited::new(Vec::new(), Limits::len(13));
+        v.write_xdr(&mut buf).unwrap();
+        assert_eq!(buf.limits.len, 1);
+        let mut lr = Limited::new(Cursor::new(buf.inner.as_slice()), Limits::len(13));
+        let v_back: [bool; 3] = ReadXdr::read_xdr(&mut lr).unwrap();
+        assert_eq!(buf.limits.len, 1);
+        assert_eq!(v, v_back);
+
+        // Write under limit, failure
+        let v = [true, false, true];
+        let mut buf = Limited::new(Vec::new(), Limits::len(11));
+        assert_eq!(v.write_xdr(&mut buf), Err(Error::LengthLimitExceeded));
+
+        // Read under limit, failure
+        let v = [true, false, true];
+        let mut buf = Limited::new(Vec::new(), Limits::len(12));
+        v.write_xdr(&mut buf).unwrap();
+        assert_eq!(buf.limits.len, 0);
+        let mut lr = Limited::new(Cursor::new(buf.inner.as_slice()), Limits::len(11));
+        assert_eq!(
+            <[bool; 3] as ReadXdr>::read_xdr(&mut lr),
+            Err(Error::LengthLimitExceeded)
+        );
+    }
+
+    #[test]
+    fn length_limited_read_write_vec() {
+        // Exact limit, success
+        let v = VecM::<i32, 3>::try_from([1i32, 2, 3]).unwrap();
+        let mut buf = Limited::new(Vec::new(), Limits::len(16));
+        v.write_xdr(&mut buf).unwrap();
+        assert_eq!(buf.limits.len, 0);
+        let mut lr = Limited::new(Cursor::new(buf.inner.as_slice()), Limits::len(16));
+        let v_back: VecM<i32, 3> = ReadXdr::read_xdr(&mut lr).unwrap();
+        assert_eq!(buf.limits.len, 0);
+        assert_eq!(v, v_back);
+
+        // Over limit, success
+        let v = VecM::<i32, 3>::try_from([1i32, 2, 3]).unwrap();
+        let mut buf = Limited::new(Vec::new(), Limits::len(17));
+        v.write_xdr(&mut buf).unwrap();
+        assert_eq!(buf.limits.len, 1);
+        let mut lr = Limited::new(Cursor::new(buf.inner.as_slice()), Limits::len(17));
+        let v_back: VecM<i32, 3> = ReadXdr::read_xdr(&mut lr).unwrap();
+        assert_eq!(buf.limits.len, 1);
+        assert_eq!(v, v_back);
+
+        // Write under limit, failure
+        let v = VecM::<i32, 3>::try_from([1i32, 2, 3]).unwrap();
+        let mut buf = Limited::new(Vec::new(), Limits::len(15));
+        assert_eq!(v.write_xdr(&mut buf), Err(Error::LengthLimitExceeded));
+
+        // Read under limit, failure
+        let v = VecM::<i32, 3>::try_from([1i32, 2, 3]).unwrap();
+        let mut buf = Limited::new(Vec::new(), Limits::len(16));
+        v.write_xdr(&mut buf).unwrap();
+        assert_eq!(buf.limits.len, 0);
+        let mut lr = Limited::new(Cursor::new(buf.inner.as_slice()), Limits::len(15));
+        assert_eq!(
+            <VecM<i32, 3> as ReadXdr>::read_xdr(&mut lr),
+            Err(Error::LengthLimitExceeded)
+        );
+    }
+
+    #[test]
+    fn length_limited_read_write_bytes() {
+        // Exact limit, success
+        let v = BytesM::<3>::try_from([1u8, 2, 3]).unwrap();
+        let mut buf = Limited::new(Vec::new(), Limits::len(8));
+        v.write_xdr(&mut buf).unwrap();
+        assert_eq!(buf.limits.len, 0);
+        let mut lr = Limited::new(Cursor::new(buf.inner.as_slice()), Limits::len(8));
+        let v_back: BytesM<3> = ReadXdr::read_xdr(&mut lr).unwrap();
+        assert_eq!(buf.limits.len, 0);
+        assert_eq!(v, v_back);
+
+        // Over limit, success
+        let v = BytesM::<3>::try_from([1u8, 2, 3]).unwrap();
+        let mut buf = Limited::new(Vec::new(), Limits::len(9));
+        v.write_xdr(&mut buf).unwrap();
+        assert_eq!(buf.limits.len, 1);
+        let mut lr = Limited::new(Cursor::new(buf.inner.as_slice()), Limits::len(9));
+        let v_back: BytesM<3> = ReadXdr::read_xdr(&mut lr).unwrap();
+        assert_eq!(buf.limits.len, 1);
+        assert_eq!(v, v_back);
+
+        // Write under limit, failure
+        let v = BytesM::<3>::try_from([1u8, 2, 3]).unwrap();
+        let mut buf = Limited::new(Vec::new(), Limits::len(7));
+        assert_eq!(v.write_xdr(&mut buf), Err(Error::LengthLimitExceeded));
+
+        // Read under limit, failure
+        let v = BytesM::<3>::try_from([1u8, 2, 3]).unwrap();
+        let mut buf = Limited::new(Vec::new(), Limits::len(8));
+        v.write_xdr(&mut buf).unwrap();
+        assert_eq!(buf.limits.len, 0);
+        let mut lr = Limited::new(Cursor::new(buf.inner.as_slice()), Limits::len(7));
+        assert_eq!(
+            <BytesM<3> as ReadXdr>::read_xdr(&mut lr),
+            Err(Error::LengthLimitExceeded)
+        );
+    }
+
+    #[test]
+    fn length_limited_read_write_string() {
+        // Exact limit, success
+        let v = StringM::<3>::try_from("123").unwrap();
+        let mut buf = Limited::new(Vec::new(), Limits::len(8));
+        v.write_xdr(&mut buf).unwrap();
+        assert_eq!(buf.limits.len, 0);
+        let mut lr = Limited::new(Cursor::new(buf.inner.as_slice()), Limits::len(8));
+        let v_back: StringM<3> = ReadXdr::read_xdr(&mut lr).unwrap();
+        assert_eq!(buf.limits.len, 0);
+        assert_eq!(v, v_back);
+
+        // Over limit, success
+        let v = StringM::<3>::try_from("123").unwrap();
+        let mut buf = Limited::new(Vec::new(), Limits::len(9));
+        v.write_xdr(&mut buf).unwrap();
+        assert_eq!(buf.limits.len, 1);
+        let mut lr = Limited::new(Cursor::new(buf.inner.as_slice()), Limits::len(9));
+        let v_back: StringM<3> = ReadXdr::read_xdr(&mut lr).unwrap();
+        assert_eq!(buf.limits.len, 1);
+        assert_eq!(v, v_back);
+
+        // Write under limit, failure
+        let v = StringM::<3>::try_from("123").unwrap();
+        let mut buf = Limited::new(Vec::new(), Limits::len(7));
+        assert_eq!(v.write_xdr(&mut buf), Err(Error::LengthLimitExceeded));
+
+        // Read under limit, failure
+        let v = StringM::<3>::try_from("123").unwrap();
+        let mut buf = Limited::new(Vec::new(), Limits::len(8));
+        v.write_xdr(&mut buf).unwrap();
+        assert_eq!(buf.limits.len, 0);
+        let mut lr = Limited::new(Cursor::new(buf.inner.as_slice()), Limits::len(7));
+        assert_eq!(
+            <StringM<3> as ReadXdr>::read_xdr(&mut lr),
+            Err(Error::LengthLimitExceeded)
+        );
     }
 }
 
