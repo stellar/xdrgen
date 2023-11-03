@@ -209,6 +209,7 @@ pub struct Limits {
 
 #[cfg(feature = "std")]
 impl Limits {
+    #[must_use]
     pub fn none() -> Self {
         Self {
             depth: u32::MAX,
@@ -216,6 +217,7 @@ impl Limits {
         }
     }
 
+    #[must_use]
     pub fn depth(depth: u32) -> Self {
         Limits {
             depth,
@@ -223,6 +225,7 @@ impl Limits {
         }
     }
 
+    #[must_use]
     pub fn len(len: usize) -> Self {
         Limits {
             len,
