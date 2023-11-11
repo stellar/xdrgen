@@ -231,7 +231,7 @@ module Xdrgen
             }
 
             #[cfg(feature = "base64")]
-            pub fn from_xdr_base64(v: TypeVariant, b64: String, limits: Limits) -> Result<Self> {
+            pub fn from_xdr_base64(v: TypeVariant, b64: impl AsRef<[u8]>, limits: Limits) -> Result<Self> {
                 let mut b64_reader = Cursor::new(b64);
                 let mut dec = Limited::new(base64::read::DecoderReader::new(&mut b64_reader, base64::STANDARD), limits);
                 let t = Self::read_xdr_to_end(v, &mut dec)?;
