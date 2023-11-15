@@ -536,7 +536,7 @@ module Xdrgen
       def render_struct_decode_from_interface(out, struct)
         name = name(struct)
         out.puts "// DecodeFrom decodes this value using the Decoder."
-        out.puts "func (s *#{name}) DecodeFrom(d *xdr.Decoder, maxDepth uint) (int, error) {"
+        out.puts "func (s *#{name}) DecodeFrom(d *xdr.Decoder, maxDepth uint, maxAllocSize int) (int, error) {"
         out.puts "  if maxDepth == 0 {"
         out.puts "    return 0, fmt.Errorf(\"decoding #{name}: %w\", ErrMaxDecodingDepthReached)"
         out.puts "  }"
@@ -556,7 +556,7 @@ module Xdrgen
       def render_union_decode_from_interface(out, union)
         name = name(union)
         out.puts "// DecodeFrom decodes this value using the Decoder."
-        out.puts "func (u *#{name}) DecodeFrom(d *xdr.Decoder, maxDepth uint) (int, error) {"
+        out.puts "func (u *#{name}) DecodeFrom(d *xdr.Decoder, maxDepth uint, maxAllocSize int) (int, error) {"
         out.puts "  if maxDepth == 0 {"
         out.puts "    return 0, fmt.Errorf(\"decoding #{name}: %w\", ErrMaxDecodingDepthReached)"
         out.puts "  }"
@@ -589,7 +589,7 @@ module Xdrgen
         type = typedef
         out.puts <<-EOS.strip_heredoc
         // DecodeFrom decodes this value using the Decoder.
-        func (e *#{name}) DecodeFrom(d *xdr.Decoder, maxDepth uint) (int, error) {
+        func (e *#{name}) DecodeFrom(d *xdr.Decoder, maxDepth uint, maxAllocSize int) (int, error) {
           if maxDepth == 0 {
             return 0, fmt.Errorf("decoding #{name}: %w", ErrMaxDecodingDepthReached)
           }
@@ -611,7 +611,7 @@ module Xdrgen
         name = name(typedef)
         type = typedef.declaration.type
         out.puts "// DecodeFrom decodes this value using the Decoder."
-        out.puts "func (s *#{name}) DecodeFrom(d *xdr.Decoder, maxDepth uint) (int, error) {"
+        out.puts "func (s *#{name}) DecodeFrom(d *xdr.Decoder, maxDepth uint, maxAllocSize int) (int, error) {"
         out.puts "  if maxDepth == 0 {"
         out.puts "    return 0, fmt.Errorf(\"decoding #{name}: %w\", ErrMaxDecodingDepthReached)"
         out.puts "  }"
@@ -681,8 +681,8 @@ module Xdrgen
           out.puts "  #{var}, nTmp, err = d.DecodeBool()"
           out.puts tail
         when AST::Typespecs::String
-          arg = "0"
-          arg = type.decl.resolved_size unless type.decl.resolved_size.nil?
+          arg = "maxAllocSize"
+          arg = "mergeMaxAllocSizeAndMaxSize(maxAllocSize, #{type.decl.resolved_size})"  unless type.decl.resolved_size.nil?
           out.puts "  #{var}, nTmp, err = d.DecodeString(#{arg})"
           out.puts tail
         when AST::Typespecs::Opaque
@@ -690,8 +690,8 @@ module Xdrgen
             out.puts "  nTmp, err = d.DecodeFixedOpaqueInplace(#{var}[:])"
             out.puts tail
           else
-            arg = "0"
-            arg = type.decl.resolved_size unless type.decl.resolved_size.nil?
+            arg = "maxAllocSize"
+            arg = "mergeMaxAllocSizeAndMaxSize(maxAllocSize, #{type.decl.resolved_size})"  unless type.decl.resolved_size.nil?
             out.puts "  #{var}, nTmp, err = d.DecodeOpaque(#{arg})"
             out.puts tail
           end
@@ -708,7 +708,7 @@ module Xdrgen
               out.puts "     #{var} = new(#{name type.resolved_type.declaration.type})"
             end
             var = "(*#{name type})(#{var})" if self_encode
-            out.puts "  nTmp, err = #{var}.DecodeFrom(d, maxDepth)"
+            out.puts "  nTmp, err = #{var}.DecodeFrom(d, maxDepth, maxAllocSize)"
             out.puts tail
             if optional_within
               out.puts "  }"
@@ -725,7 +725,7 @@ module Xdrgen
               out.puts "    if eb {"
               var = "(*#{element_var})"
             end
-            out.puts "      nTmp, err = #{element_var}.DecodeFrom(d, maxDepth)"
+            out.puts "      nTmp, err = #{element_var}.DecodeFrom(d, maxDepth, maxAllocSize)"
             out.puts tail
             if optional_within
               out.puts "    }"
@@ -740,6 +740,13 @@ module Xdrgen
                out.puts "    return n, fmt.Errorf(\"decoding #{name type}: data size (%d) exceeds size limit (#{type.decl.resolved_size})\", l)"
                out.puts "  }"
             end
+            out.puts "  if maxAllocSize > 0 {"
+            out.puts "    var phony #{name type}"
+            out.puts "    allocSize := unsafe.Sizeof(phony) * uintptr(l)"
+            out.puts "    if uintptr(maxAllocSize) < allocSize {"
+            out.puts "      return n, fmt.Errorf(\"decoding #{name type}: allocation size (%d) exceeds limit (%d)\", allocSize, maxAllocSize)"
+            out.puts "    }"
+            out.puts "  }"
             out.puts "  #{var} = nil"
             out.puts "  if l > 0 {"
             out.puts "    #{var} = make([]#{name type}, l)"
@@ -755,7 +762,7 @@ module Xdrgen
               out.puts "         #{element_var} = new(#{name type.resolved_type.declaration.type})"
               var = "(*#{element_var})"
             end
-            out.puts "      nTmp, err = #{element_var}.DecodeFrom(d, maxDepth)"
+            out.puts "      nTmp, err = #{element_var}.DecodeFrom(d, maxDepth, maxAllocSize)"
             out.puts tail
             if optional_within
               out.puts "    }"
@@ -767,13 +774,13 @@ module Xdrgen
           end
         when AST::Definitions::Base
           if self_encode
-            out.puts "  nTmp, err = #{name type}(#{var}).DecodeFrom(d, maxDepth)"
+            out.puts "  nTmp, err = #{name type}(#{var}).DecodeFrom(d, maxDepth, maxAllocSize)"
           else
-            out.puts "  nTmp, err = #{var}.DecodeFrom(d, maxDepth)"
+            out.puts "  nTmp, err = #{var}.DecodeFrom(d, maxDepth, maxAllocSize)"
           end
           out.puts tail
         else
-          out.puts "  nTmp, err = d.DecodeWithMaxDepth(&#{var}, maxDepth)"
+          out.puts "  nTmp, err = d.DecodeWithMaxDepth(&#{var}, maxDepth, maxAllocSize)"
           out.puts tail
         end
         if optional
@@ -794,7 +801,7 @@ module Xdrgen
         out.puts "func (s *#{name}) UnmarshalBinary(inp []byte) error {"
         out.puts "  r := bytes.NewReader(inp)"
         out.puts "  d := xdr.NewDecoder(r)"
-        out.puts "  _, err := s.DecodeFrom(d, xdr.DecodeDefaultMaxDepth)"
+        out.puts "  _, err := s.DecodeFrom(d, xdr.DecodeDefaultMaxDepth, 0)"
         out.puts "  return err"
         out.puts "}"
         out.break
@@ -836,12 +843,15 @@ module Xdrgen
             "errors"
             "io"
             "fmt"
+            "unsafe"
 
             "github.com/stellar/go-xdr/xdr3"
           )
         EOS
         out.break
         out.puts <<-EOS.strip_heredoc
+        // Needed since unsafe is not used in all cases
+        var _ = unsafe.Sizeof(0)
         // XdrFilesSHA256 is the SHA256 hashes of source files.
         var XdrFilesSHA256 = map[string]string{
           #{@output.relative_source_path_sha256_hashes.map(){ |path, hash| %{"#{path}": "#{hash}",} }.join("\n")}
@@ -856,18 +866,31 @@ module Xdrgen
           }
 
           type decoderFrom interface {
-            DecodeFrom(d *xdr.Decoder, maxDepth uint) (int, error)
+            DecodeFrom(d *xdr.Decoder, maxDepth uint, maxAllocSize int) (int, error)
           }
 
           // Unmarshal reads an xdr element from `r` into `v`.
           func Unmarshal(r io.Reader, v interface{}) (int, error) {
+            return UnmarshalWithMaxAllocSize(r, v, 0)
+          }
+
+          // Unmarshal reads an xdr element from `r` into `v`.
+          func UnmarshalWithMaxAllocSize(r io.Reader, v interface{}, maxAllocSize int) (int, error) {
             if decodable, ok := v.(decoderFrom); ok {
               d := xdr.NewDecoder(r)
-              return decodable.DecodeFrom(d, xdr.DecodeDefaultMaxDepth)
+              return decodable.DecodeFrom(d, xdr.DecodeDefaultMaxDepth, maxAllocSize)
             }
             // delegate to xdr package's Unmarshal
           	return xdr.Unmarshal(r, v)
           }
+
+          func mergeMaxAllocSizeAndMaxSize(maxAllocSize int, maxSize int) int {
+	          if maxAllocSize > 0 || maxAllocSize < maxSize {
+              return maxAllocSize
+	          }
+	          return maxSize
+          }
+
 
           // Marshal writes an xdr element `v` into `w`.
           func Marshal(w io.Writer, v interface{}) (int, error) {

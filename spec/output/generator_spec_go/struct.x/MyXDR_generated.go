@@ -14,49 +14,65 @@ import (
   "errors"
   "io"
   "fmt"
+  "unsafe"
 
   "github.com/stellar/go-xdr/xdr3"
 )
 
+// Needed since unsafe is not used in all cases
+var _ = unsafe.Sizeof(0)
 // XdrFilesSHA256 is the SHA256 hashes of source files.
 var XdrFilesSHA256 = map[string]string{
   "spec/fixtures/generator/struct.x": "c6911a83390e3b499c078fd0c579132eacce88a4a0538d3b8b5e57747a58db4a",
 }
 
-var ErrMaxDecodingDepthReached = errors.New("maximum decoding depth reached")
+          var ErrMaxDecodingDepthReached = errors.New("maximum decoding depth reached")
 
-type xdrType interface {
-  xdrType()
-}
+          type xdrType interface {
+            xdrType()
+          }
 
-type decoderFrom interface {
-  DecodeFrom(d *xdr.Decoder, maxDepth uint) (int, error)
-}
+          type decoderFrom interface {
+            DecodeFrom(d *xdr.Decoder, maxDepth uint, maxAllocSize int) (int, error)
+          }
 
-// Unmarshal reads an xdr element from `r` into `v`.
-func Unmarshal(r io.Reader, v interface{}) (int, error) {
-  if decodable, ok := v.(decoderFrom); ok {
-    d := xdr.NewDecoder(r)
-    return decodable.DecodeFrom(d, xdr.DecodeDefaultMaxDepth)
-  }
-  // delegate to xdr package's Unmarshal
-	return xdr.Unmarshal(r, v)
-}
+          // Unmarshal reads an xdr element from `r` into `v`.
+          func Unmarshal(r io.Reader, v interface{}) (int, error) {
+            return UnmarshalWithMaxAllocSize(r, v, 0)
+          }
 
-// Marshal writes an xdr element `v` into `w`.
-func Marshal(w io.Writer, v interface{}) (int, error) {
-  if _, ok := v.(xdrType); ok {
-    if bm, ok := v.(encoding.BinaryMarshaler); ok {
-      b, err := bm.MarshalBinary()
-      if err != nil {
-        return 0, err
-      }
-      return w.Write(b)
-    }
-  }
-  // delegate to xdr package's Marshal
-  return xdr.Marshal(w, v)
+          // Unmarshal reads an xdr element from `r` into `v`.
+          func UnmarshalWithMaxAllocSize(r io.Reader, v interface{}, maxAllocSize int) (int, error) {
+            if decodable, ok := v.(decoderFrom); ok {
+              d := xdr.NewDecoder(r)
+              return decodable.DecodeFrom(d, xdr.DecodeDefaultMaxDepth, maxAllocSize)
+            }
+            // delegate to xdr package's Unmarshal
+          	return xdr.Unmarshal(r, v)
+          }
+
+          func mergeMaxAllocSizeAndMaxSize(maxAllocSize int, maxSize int) int {
+if maxAllocSize > 0 || maxAllocSize < maxSize {
+              return maxAllocSize
 }
+return maxSize
+          }
+
+
+          // Marshal writes an xdr element `v` into `w`.
+          func Marshal(w io.Writer, v interface{}) (int, error) {
+            if _, ok := v.(xdrType); ok {
+              if bm, ok := v.(encoding.BinaryMarshaler); ok {
+                b, err := bm.MarshalBinary()
+                if err != nil {
+                  return 0, err
+                }
+                return w.Write(b)
+              }
+            }
+            // delegate to xdr package's Marshal
+            return xdr.Marshal(w, v)
+          }
 
 // Int64 is an XDR Typedef defines as:
 //
@@ -75,7 +91,7 @@ if _, err = e.EncodeHyper(int64(s)); err != nil {
 
 var _ decoderFrom = (*Int64)(nil)
 // DecodeFrom decodes this value using the Decoder.
-func (s *Int64) DecodeFrom(d *xdr.Decoder, maxDepth uint) (int, error) {
+func (s *Int64) DecodeFrom(d *xdr.Decoder, maxDepth uint, maxAllocSize int) (int, error) {
   if maxDepth == 0 {
     return 0, fmt.Errorf("decoding Int64: %w", ErrMaxDecodingDepthReached)
   }
@@ -104,7 +120,7 @@ func (s Int64) MarshalBinary() ([]byte, error) {
 func (s *Int64) UnmarshalBinary(inp []byte) error {
   r := bytes.NewReader(inp)
   d := xdr.NewDecoder(r)
-  _, err := s.DecodeFrom(d, xdr.DecodeDefaultMaxDepth)
+  _, err := s.DecodeFrom(d, xdr.DecodeDefaultMaxDepth, 0)
   return err
 }
 
@@ -161,7 +177,7 @@ if _, err = e.EncodeString(string(s.MaxString)); err != nil {
 
 var _ decoderFrom = (*MyStruct)(nil)
 // DecodeFrom decodes this value using the Decoder.
-func (s *MyStruct) DecodeFrom(d *xdr.Decoder, maxDepth uint) (int, error) {
+func (s *MyStruct) DecodeFrom(d *xdr.Decoder, maxDepth uint, maxAllocSize int) (int, error) {
   if maxDepth == 0 {
     return 0, fmt.Errorf("decoding MyStruct: %w", ErrMaxDecodingDepthReached)
   }
@@ -173,7 +189,7 @@ n += nTmp
 if err != nil {
   return n, fmt.Errorf("decoding Int: %w", err)
 }
-  nTmp, err = s.ABigInt.DecodeFrom(d, maxDepth)
+  nTmp, err = s.ABigInt.DecodeFrom(d, maxDepth, maxAllocSize)
 n += nTmp
 if err != nil {
   return n, fmt.Errorf("decoding Int64: %w", err)
@@ -183,12 +199,12 @@ n += nTmp
 if err != nil {
   return n, fmt.Errorf("decoding SomeOpaque: %w", err)
 }
-  s.SomeString, nTmp, err = d.DecodeString(0)
+  s.SomeString, nTmp, err = d.DecodeString(maxAllocSize)
 n += nTmp
 if err != nil {
   return n, fmt.Errorf("decoding SomeString: %w", err)
 }
-  s.MaxString, nTmp, err = d.DecodeString(100)
+  s.MaxString, nTmp, err = d.DecodeString(mergeMaxAllocSizeAndMaxSize(maxAllocSize, 100))
 n += nTmp
 if err != nil {
   return n, fmt.Errorf("decoding MaxString: %w", err)
@@ -208,7 +224,7 @@ func (s MyStruct) MarshalBinary() ([]byte, error) {
 func (s *MyStruct) UnmarshalBinary(inp []byte) error {
   r := bytes.NewReader(inp)
   d := xdr.NewDecoder(r)
-  _, err := s.DecodeFrom(d, xdr.DecodeDefaultMaxDepth)
+  _, err := s.DecodeFrom(d, xdr.DecodeDefaultMaxDepth, 0)
   return err
 }
 
