@@ -18,7 +18,7 @@ class Hashes3:
         typedef Hash Hashes3<>;
     """
     def __init__(self, hashes3: List[Hash]) -> None:
-        _expect_max_length = 2147483647
+        _expect_max_length = 4294967295
         if hashes3 and len(hashes3) > _expect_max_length:
             raise ValueError(f"The maximum length of `hashes3` should be {_expect_max_length}, but got {len(hashes3)}.")
         self.hashes3 = hashes3

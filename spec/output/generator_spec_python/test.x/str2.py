@@ -19,7 +19,7 @@ class Str2:
     def __init__(self, str2: bytes) -> None:
         self.str2 = str2
     def pack(self, packer: Packer) -> None:
-        String(self.str2, 2147483647).pack(packer)
+        String(self.str2, 4294967295).pack(packer)
     @classmethod
     def unpack(cls, unpacker: Unpacker) -> Str2:
         str2 = String.unpack(unpacker)

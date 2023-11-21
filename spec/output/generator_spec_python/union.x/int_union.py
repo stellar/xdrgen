@@ -31,7 +31,7 @@ class IntUnion:
         error: Error = None,
         things: List[Multi] = None,
     ) -> None:
-        _expect_max_length = 2147483647
+        _expect_max_length = 4294967295
         if things and len(things) > _expect_max_length:
             raise ValueError(f"The maximum length of `things` should be {_expect_max_length}, but got {len(things)}.")
         self.type = type

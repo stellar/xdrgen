@@ -41,7 +41,7 @@ class MyStruct:
         Integer(self.some_int).pack(packer)
         self.a_big_int.pack(packer)
         Opaque(self.some_opaque, 10, True).pack(packer)
-        String(self.some_string, 2147483647).pack(packer)
+        String(self.some_string, 4294967295).pack(packer)
         String(self.max_string, 100).pack(packer)
     @classmethod
     def unpack(cls, unpacker: Unpacker) -> MyStruct:

@@ -24,7 +24,7 @@ class LotsOfMyStructs:
         self,
         members: List[MyStruct],
     ) -> None:
-        _expect_max_length = 2147483647
+        _expect_max_length = 4294967295
         if members and len(members) > _expect_max_length:
             raise ValueError(f"The maximum length of `members` should be {_expect_max_length}, but got {len(members)}.")
         self.members = members
