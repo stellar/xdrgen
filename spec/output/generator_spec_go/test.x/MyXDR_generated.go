@@ -17,6 +17,11 @@ import (
   "github.com/stellar/go-xdr/xdr3"
 )
 
+// XdrFilesSHA256 is the SHA256 hashes of source files.
+var XdrFilesSHA256 = map[string]string{
+  "spec/fixtures/generator/test.x": "d29a98a6a3b9bf533a3e6712d928e0bed655e0f462ac4dae810c65d52ca9af41",
+}
+
 type xdrType interface {
   xdrType()
 }
@@ -468,7 +473,7 @@ func (e Hashes2) XDRMaxSize() int {
   return 12
 }
 // EncodeTo encodes this value using the Encoder.
-func (s *Hashes2) EncodeTo(e *xdr.Encoder) error {
+func (s Hashes2) EncodeTo(e *xdr.Encoder) error {
   var err error
 if _, err = e.EncodeUint(uint32(len(s))); err != nil {
   return err
@@ -542,7 +547,7 @@ var _ xdrType = (*Hashes2)(nil)
 //
 type Hashes3 []Hash
 // EncodeTo encodes this value using the Encoder.
-func (s *Hashes3) EncodeTo(e *xdr.Encoder) error {
+func (s Hashes3) EncodeTo(e *xdr.Encoder) error {
   var err error
 if _, err = e.EncodeUint(uint32(len(s))); err != nil {
   return err
@@ -894,7 +899,7 @@ if _, err = e.Encode(s.Field5); err != nil {
 if _, err = e.Encode(s.Field6); err != nil {
   return err
 }
-if _, err = e.Encode(s.Field7); err != nil {
+if _, err = e.EncodeBool(bool(s.Field7)); err != nil {
   return err
 }
   return nil
@@ -935,17 +940,17 @@ n += nTmp
 if err != nil {
   return n, fmt.Errorf("decoding Unsigned int: %s", err)
 }
-  nTmp, err = d.Decode(s.Field5)
+  nTmp, err = d.Decode(&s.Field5)
 n += nTmp
 if err != nil {
   return n, fmt.Errorf("decoding Float: %s", err)
 }
-  nTmp, err = d.Decode(s.Field6)
+  nTmp, err = d.Decode(&s.Field6)
 n += nTmp
 if err != nil {
   return n, fmt.Errorf("decoding Double: %s", err)
 }
-  nTmp, err = d.Decode(s.Field7)
+  s.Field7, nTmp, err = d.DecodeBool()
 n += nTmp
 if err != nil {
   return n, fmt.Errorf("decoding Bool: %s", err)

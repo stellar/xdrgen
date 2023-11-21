@@ -1,9 +1,11 @@
 # This is an automatically generated file.
 # DO NOT EDIT or your changes may be overwritten
+from __future__ import annotations
+
 import base64
 from enum import IntEnum
-from typing import List, Optional
-from xdrlib import Packer, Unpacker
+from typing import List, Optional, TYPE_CHECKING
+from xdrlib3 import Packer, Unpacker
 from .base import Integer, UnsignedInteger, Float, Double, Hyper, UnsignedHyper, Boolean, String, Opaque
 from .constants import *
 
@@ -35,7 +37,7 @@ class NesterNestedUnion:
             raise ValueError("blah2 should not be None.")
         Integer(self.blah2).pack(packer)
     @classmethod
-    def unpack(cls, unpacker: Unpacker) -> "NesterNestedUnion":
+    def unpack(cls, unpacker: Unpacker) -> NesterNestedUnion:
         color = Color.unpack(unpacker)
         if color == Color.RED:
             return cls(color=color)
@@ -47,7 +49,7 @@ class NesterNestedUnion:
         return packer.get_buffer()
 
     @classmethod
-    def from_xdr_bytes(cls, xdr: bytes) -> "NesterNestedUnion":
+    def from_xdr_bytes(cls, xdr: bytes) -> NesterNestedUnion:
         unpacker = Unpacker(xdr)
         return cls.unpack(unpacker)
 
@@ -56,9 +58,11 @@ class NesterNestedUnion:
         return base64.b64encode(xdr_bytes).decode()
 
     @classmethod
-    def from_xdr(cls, xdr: str) -> "NesterNestedUnion":
+    def from_xdr(cls, xdr: str) -> NesterNestedUnion:
         xdr_bytes = base64.b64decode(xdr.encode())
         return cls.from_xdr_bytes(xdr_bytes)
+    def __hash__(self):
+        return hash((self.color, self.blah2,))
     def __eq__(self, other: object):
         if not isinstance(other, self.__class__):
             return NotImplemented

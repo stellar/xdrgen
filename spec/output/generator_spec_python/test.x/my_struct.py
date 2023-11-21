@@ -1,9 +1,11 @@
 # This is an automatically generated file.
 # DO NOT EDIT or your changes may be overwritten
+from __future__ import annotations
+
 import base64
 from enum import IntEnum
-from typing import List, Optional
-from xdrlib import Packer, Unpacker
+from typing import List, Optional, TYPE_CHECKING
+from xdrlib3 import Packer, Unpacker
 from .base import Integer, UnsignedInteger, Float, Double, Hyper, UnsignedHyper, Boolean, String, Opaque
 from .constants import *
 
@@ -52,7 +54,7 @@ class MyStruct:
         Double(self.field6).pack(packer)
         Boolean(self.field7).pack(packer)
     @classmethod
-    def unpack(cls, unpacker: Unpacker) -> "MyStruct":
+    def unpack(cls, unpacker: Unpacker) -> MyStruct:
         field1 = Uint512.unpack(unpacker)
         field2 = OptHash1.unpack(unpacker)
         field3 = Int1.unpack(unpacker)
@@ -75,7 +77,7 @@ class MyStruct:
         return packer.get_buffer()
 
     @classmethod
-    def from_xdr_bytes(cls, xdr: bytes) -> "MyStruct":
+    def from_xdr_bytes(cls, xdr: bytes) -> MyStruct:
         unpacker = Unpacker(xdr)
         return cls.unpack(unpacker)
 
@@ -84,9 +86,11 @@ class MyStruct:
         return base64.b64encode(xdr_bytes).decode()
 
     @classmethod
-    def from_xdr(cls, xdr: str) -> "MyStruct":
+    def from_xdr(cls, xdr: str) -> MyStruct:
         xdr_bytes = base64.b64decode(xdr.encode())
         return cls.from_xdr_bytes(xdr_bytes)
+    def __hash__(self):
+        return hash((self.field1, self.field2, self.field3, self.field4, self.field5, self.field6, self.field7,))
     def __eq__(self, other: object):
         if not isinstance(other, self.__class__):
             return NotImplemented

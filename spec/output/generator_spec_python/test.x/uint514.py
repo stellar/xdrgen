@@ -1,9 +1,11 @@
 # This is an automatically generated file.
 # DO NOT EDIT or your changes may be overwritten
+from __future__ import annotations
+
 import base64
 from enum import IntEnum
-from typing import List, Optional
-from xdrlib import Packer, Unpacker
+from typing import List, Optional, TYPE_CHECKING
+from xdrlib3 import Packer, Unpacker
 from .base import Integer, UnsignedInteger, Float, Double, Hyper, UnsignedHyper, Boolean, String, Opaque
 from .constants import *
 
@@ -17,10 +19,10 @@ class Uint514:
     def __init__(self, uint514: bytes) -> None:
         self.uint514 = uint514
     def pack(self, packer: Packer) -> None:
-        Opaque(self.uint514, 2147483647, False).pack(packer)
+        Opaque(self.uint514, 4294967295, False).pack(packer)
     @classmethod
-    def unpack(cls, unpacker: Unpacker) -> "Uint514":
-        uint514 = Opaque.unpack(unpacker, 2147483647, False)
+    def unpack(cls, unpacker: Unpacker) -> Uint514:
+        uint514 = Opaque.unpack(unpacker, 4294967295, False)
         return cls(uint514)
     def to_xdr_bytes(self) -> bytes:
         packer = Packer()
@@ -28,7 +30,7 @@ class Uint514:
         return packer.get_buffer()
 
     @classmethod
-    def from_xdr_bytes(cls, xdr: bytes) -> "Uint514":
+    def from_xdr_bytes(cls, xdr: bytes) -> Uint514:
         unpacker = Unpacker(xdr)
         return cls.unpack(unpacker)
 
@@ -37,9 +39,11 @@ class Uint514:
         return base64.b64encode(xdr_bytes).decode()
 
     @classmethod
-    def from_xdr(cls, xdr: str) -> "Uint514":
+    def from_xdr(cls, xdr: str) -> Uint514:
         xdr_bytes = base64.b64decode(xdr.encode())
         return cls.from_xdr_bytes(xdr_bytes)
+    def __hash__(self):
+        return hash(self.uint514)
     def __eq__(self, other: object):
         if not isinstance(other, self.__class__):
             return NotImplemented

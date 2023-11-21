@@ -1,9 +1,11 @@
 # This is an automatically generated file.
 # DO NOT EDIT or your changes may be overwritten
+from __future__ import annotations
+
 import base64
 from enum import IntEnum
-from typing import List, Optional
-from xdrlib import Packer, Unpacker
+from typing import List, Optional, TYPE_CHECKING
+from xdrlib3 import Packer, Unpacker
 from .base import Integer, UnsignedInteger, Float, Double, Hyper, UnsignedHyper, Boolean, String, Opaque
 from .constants import *
 
@@ -42,7 +44,7 @@ class MyStruct:
         String(self.some_string, 2147483647).pack(packer)
         String(self.max_string, 100).pack(packer)
     @classmethod
-    def unpack(cls, unpacker: Unpacker) -> "MyStruct":
+    def unpack(cls, unpacker: Unpacker) -> MyStruct:
         some_int = Integer.unpack(unpacker)
         a_big_int = Int64.unpack(unpacker)
         some_opaque = Opaque.unpack(unpacker, 10, True)
@@ -61,7 +63,7 @@ class MyStruct:
         return packer.get_buffer()
 
     @classmethod
-    def from_xdr_bytes(cls, xdr: bytes) -> "MyStruct":
+    def from_xdr_bytes(cls, xdr: bytes) -> MyStruct:
         unpacker = Unpacker(xdr)
         return cls.unpack(unpacker)
 
@@ -70,9 +72,11 @@ class MyStruct:
         return base64.b64encode(xdr_bytes).decode()
 
     @classmethod
-    def from_xdr(cls, xdr: str) -> "MyStruct":
+    def from_xdr(cls, xdr: str) -> MyStruct:
         xdr_bytes = base64.b64decode(xdr.encode())
         return cls.from_xdr_bytes(xdr_bytes)
+    def __hash__(self):
+        return hash((self.some_int, self.a_big_int, self.some_opaque, self.some_string, self.max_string,))
     def __eq__(self, other: object):
         if not isinstance(other, self.__class__):
             return NotImplemented

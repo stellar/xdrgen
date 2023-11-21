@@ -1,0 +1,96 @@
+PATH
+  remote: .
+  specs:
+    xdrgen (0.1.1)
+      activesupport (~> 6)
+      memoist (~> 0.11.0)
+      slop (~> 3.4)
+      treetop (~> 1.5.3)
+
+GEM
+  remote: https://rubygems.org/
+  specs:
+    activesupport (6.1.6.1)
+      concurrent-ruby (~> 1.0, >= 1.0.2)
+      i18n (>= 1.6, < 2)
+      minitest (>= 5.1)
+      tzinfo (~> 2.0)
+      zeitwerk (~> 2.3)
+    coderay (1.1.3)
+    concurrent-ruby (1.1.10)
+    diff-lcs (1.5.0)
+    ffi (1.15.5)
+    formatador (1.1.0)
+    guard (2.18.0)
+      formatador (>= 0.2.4)
+      listen (>= 2.7, < 4.0)
+      lumberjack (>= 1.0.12, < 2.0)
+      nenv (~> 0.1)
+      notiffany (~> 0.0)
+      pry (>= 0.13.0)
+      shellany (~> 0.0)
+      thor (>= 0.18.1)
+    guard-compat (1.2.1)
+    guard-rspec (4.7.3)
+      guard (~> 2.1)
+      guard-compat (~> 1.1)
+      rspec (>= 2.99.0, < 4.0)
+    i18n (1.12.0)
+      concurrent-ruby (~> 1.0)
+    listen (3.7.1)
+      rb-fsevent (~> 0.10, >= 0.10.3)
+      rb-inotify (~> 0.9, >= 0.9.10)
+    lumberjack (1.2.8)
+    memoist (0.11.0)
+    method_source (1.0.0)
+    minitest (5.16.3)
+    nenv (0.3.0)
+    notiffany (0.1.3)
+      nenv (~> 0.1)
+      shellany (~> 0.0)
+    polyglot (0.3.5)
+    pry (0.14.1)
+      coderay (~> 1.1)
+      method_source (~> 1.0)
+    rake (12.3.3)
+    rb-fsevent (0.11.1)
+    rb-inotify (0.10.1)
+      ffi (~> 1.0)
+    rspec (3.11.0)
+      rspec-core (~> 3.11.0)
+      rspec-expectations (~> 3.11.0)
+      rspec-mocks (~> 3.11.0)
+    rspec-core (3.11.0)
+      rspec-support (~> 3.11.0)
+    rspec-expectations (3.11.0)
+      diff-lcs (>= 1.2.0, < 2.0)
+      rspec-support (~> 3.11.0)
+    rspec-mocks (3.11.1)
+      diff-lcs (>= 1.2.0, < 2.0)
+      rspec-support (~> 3.11.0)
+    rspec-support (3.11.0)
+    shellany (0.0.1)
+    slop (3.6.0)
+    thor (1.2.1)
+    treetop (1.5.3)
+      polyglot (~> 0.3)
+    tzinfo (2.0.5)
+      concurrent-ruby (~> 1.0)
+    zeitwerk (2.6.0)
+
+PLATFORMS
+  aarch64-linux
+  arm-linux
+  universal-darwin-21
+  x86_64-linux
+
+DEPENDENCIES
+  bundler (~> 2)
+  guard-rspec
+  pry
+  rake (~> 12.0)
+  rspec (~> 3.1)
+  xdrgen!
+
+BUNDLED WITH
+   2.3.7

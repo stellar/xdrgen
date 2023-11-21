@@ -1,9 +1,11 @@
 # This is an automatically generated file.
 # DO NOT EDIT or your changes may be overwritten
+from __future__ import annotations
+
 import base64
 from enum import IntEnum
-from typing import List, Optional
-from xdrlib import Packer, Unpacker
+from typing import List, Optional, TYPE_CHECKING
+from xdrlib3 import Packer, Unpacker
 from .base import Integer, UnsignedInteger, Float, Double, Hyper, UnsignedHyper, Boolean, String, Opaque
 from .constants import *
 
@@ -50,7 +52,7 @@ class Nester:
         self.nested_struct.pack(packer)
         self.nested_union.pack(packer)
     @classmethod
-    def unpack(cls, unpacker: Unpacker) -> "Nester":
+    def unpack(cls, unpacker: Unpacker) -> Nester:
         nested_enum = NesterNestedEnum.unpack(unpacker)
         nested_struct = NesterNestedStruct.unpack(unpacker)
         nested_union = NesterNestedUnion.unpack(unpacker)
@@ -65,7 +67,7 @@ class Nester:
         return packer.get_buffer()
 
     @classmethod
-    def from_xdr_bytes(cls, xdr: bytes) -> "Nester":
+    def from_xdr_bytes(cls, xdr: bytes) -> Nester:
         unpacker = Unpacker(xdr)
         return cls.unpack(unpacker)
 
@@ -74,9 +76,11 @@ class Nester:
         return base64.b64encode(xdr_bytes).decode()
 
     @classmethod
-    def from_xdr(cls, xdr: str) -> "Nester":
+    def from_xdr(cls, xdr: str) -> Nester:
         xdr_bytes = base64.b64decode(xdr.encode())
         return cls.from_xdr_bytes(xdr_bytes)
+    def __hash__(self):
+        return hash((self.nested_enum, self.nested_struct, self.nested_union,))
     def __eq__(self, other: object):
         if not isinstance(other, self.__class__):
             return NotImplemented

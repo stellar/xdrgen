@@ -1,9 +1,11 @@
 # This is an automatically generated file.
 # DO NOT EDIT or your changes may be overwritten
+from __future__ import annotations
+
 import base64
 from enum import IntEnum
-from typing import List, Optional
-from xdrlib import Packer, Unpacker
+from typing import List, Optional, TYPE_CHECKING
+from xdrlib3 import Packer, Unpacker
 from .base import Integer, UnsignedInteger, Float, Double, Hyper, UnsignedHyper, Boolean, String, Opaque
 from .constants import *
 
@@ -24,7 +26,7 @@ class TestArray2:
         for test_array2_item in self.test_array2:
             Integer(test_array2_item).pack(packer)
     @classmethod
-    def unpack(cls, unpacker: Unpacker) -> "TestArray2":
+    def unpack(cls, unpacker: Unpacker) -> TestArray2:
         length = unpacker.unpack_uint()
         test_array2 = []
         for _ in range(length):
@@ -36,7 +38,7 @@ class TestArray2:
         return packer.get_buffer()
 
     @classmethod
-    def from_xdr_bytes(cls, xdr: bytes) -> "TestArray2":
+    def from_xdr_bytes(cls, xdr: bytes) -> TestArray2:
         unpacker = Unpacker(xdr)
         return cls.unpack(unpacker)
 
@@ -45,9 +47,11 @@ class TestArray2:
         return base64.b64encode(xdr_bytes).decode()
 
     @classmethod
-    def from_xdr(cls, xdr: str) -> "TestArray2":
+    def from_xdr(cls, xdr: str) -> TestArray2:
         xdr_bytes = base64.b64decode(xdr.encode())
         return cls.from_xdr_bytes(xdr_bytes)
+    def __hash__(self):
+        return hash(self.test_array2)
     def __eq__(self, other: object):
         if not isinstance(other, self.__class__):
             return NotImplemented

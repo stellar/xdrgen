@@ -3,9 +3,12 @@
 
 package MyXDR;
 
-
 import java.io.IOException;
 
+import static MyXDR.Constants.*;
+import com.google.common.io.BaseEncoding;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import com.google.common.base.Objects;
 import java.util.Arrays;
 
@@ -76,7 +79,7 @@ public class MyStruct implements XdrElement {
     int someOpaquesize = 10;
     decodedMyStruct.someOpaque = new byte[someOpaquesize];
     stream.read(decodedMyStruct.someOpaque, 0, someOpaquesize);
-    decodedMyStruct.someString = XdrString.decode(stream, );
+    decodedMyStruct.someString = XdrString.decode(stream, Integer.MAX_VALUE);
     decodedMyStruct.maxString = XdrString.decode(stream, 100);
     return decodedMyStruct;
   }
@@ -94,6 +97,31 @@ public class MyStruct implements XdrElement {
     return Objects.equal(this.someInt, other.someInt) && Objects.equal(this.aBigInt, other.aBigInt) && Arrays.equals(this.someOpaque, other.someOpaque) && Objects.equal(this.someString, other.someString) && Objects.equal(this.maxString, other.maxString);
   }
 
+  @Override
+  public String toXdrBase64() throws IOException {
+    BaseEncoding base64Encoding = BaseEncoding.base64();
+    return base64Encoding.encode(toXdrByteArray());
+  }
+
+  @Override
+  public byte[] toXdrByteArray() throws IOException {
+    ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+    XdrDataOutputStream xdrDataOutputStream = new XdrDataOutputStream(byteArrayOutputStream);
+    encode(xdrDataOutputStream);
+    return byteArrayOutputStream.toByteArray();
+  }
+
+  public static MyStruct fromXdrBase64(String xdr) throws IOException {
+    BaseEncoding base64Encoding = BaseEncoding.base64();
+    byte[] bytes = base64Encoding.decode(xdr);
+    return fromXdrByteArray(bytes);
+  }
+
+  public static MyStruct fromXdrByteArray(byte[] xdr) throws IOException {
+    ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(xdr);
+    XdrDataInputStream xdrDataInputStream = new XdrDataInputStream(byteArrayInputStream);
+    return decode(xdrDataInputStream);
+  }
   public static final class Builder {
     private Integer someInt;
     private Int64 aBigInt;
@@ -128,11 +156,11 @@ public class MyStruct implements XdrElement {
 
     public MyStruct build() {
       MyStruct val = new MyStruct();
-      val.setSomeInt(someInt);
-      val.setABigInt(aBigInt);
-      val.setSomeOpaque(someOpaque);
-      val.setSomeString(someString);
-      val.setMaxString(maxString);
+      val.setSomeInt(this.someInt);
+      val.setABigInt(this.aBigInt);
+      val.setSomeOpaque(this.someOpaque);
+      val.setSomeString(this.someString);
+      val.setMaxString(this.maxString);
       return val;
     }
   }

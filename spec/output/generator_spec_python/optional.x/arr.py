@@ -1,9 +1,11 @@
 # This is an automatically generated file.
 # DO NOT EDIT or your changes may be overwritten
+from __future__ import annotations
+
 import base64
 from enum import IntEnum
-from typing import List, Optional
-from xdrlib import Packer, Unpacker
+from typing import List, Optional, TYPE_CHECKING
+from xdrlib3 import Packer, Unpacker
 from .base import Integer, UnsignedInteger, Float, Double, Hyper, UnsignedHyper, Boolean, String, Opaque
 from .constants import *
 
@@ -23,7 +25,7 @@ class Arr:
         for arr_item in self.arr:
             Integer(arr_item).pack(packer)
     @classmethod
-    def unpack(cls, unpacker: Unpacker) -> "Arr":
+    def unpack(cls, unpacker: Unpacker) -> Arr:
         length = 2
         arr = []
         for _ in range(length):
@@ -35,7 +37,7 @@ class Arr:
         return packer.get_buffer()
 
     @classmethod
-    def from_xdr_bytes(cls, xdr: bytes) -> "Arr":
+    def from_xdr_bytes(cls, xdr: bytes) -> Arr:
         unpacker = Unpacker(xdr)
         return cls.unpack(unpacker)
 
@@ -44,9 +46,11 @@ class Arr:
         return base64.b64encode(xdr_bytes).decode()
 
     @classmethod
-    def from_xdr(cls, xdr: str) -> "Arr":
+    def from_xdr(cls, xdr: str) -> Arr:
         xdr_bytes = base64.b64decode(xdr.encode())
         return cls.from_xdr_bytes(xdr_bytes)
+    def __hash__(self):
+        return hash(self.arr)
     def __eq__(self, other: object):
         if not isinstance(other, self.__class__):
             return NotImplemented

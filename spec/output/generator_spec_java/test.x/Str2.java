@@ -3,9 +3,12 @@
 
 package MyXDR;
 
-
 import java.io.IOException;
 
+import static MyXDR.Constants.*;
+import com.google.common.io.BaseEncoding;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import com.google.common.base.Objects;
 
 // === xdr source ============================================================
@@ -39,7 +42,7 @@ public class Str2 implements XdrElement {
   }
   public static Str2 decode(XdrDataInputStream stream) throws IOException {
     Str2 decodedStr2 = new Str2();
-    decodedStr2.str2 = XdrString.decode(stream, );
+    decodedStr2.str2 = XdrString.decode(stream, Integer.MAX_VALUE);
     return decodedStr2;
   }
 
@@ -56,5 +59,30 @@ public class Str2 implements XdrElement {
 
     Str2 other = (Str2) object;
     return Objects.equal(this.str2, other.str2);
+  }
+  @Override
+  public String toXdrBase64() throws IOException {
+    BaseEncoding base64Encoding = BaseEncoding.base64();
+    return base64Encoding.encode(toXdrByteArray());
+  }
+
+  @Override
+  public byte[] toXdrByteArray() throws IOException {
+    ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+    XdrDataOutputStream xdrDataOutputStream = new XdrDataOutputStream(byteArrayOutputStream);
+    encode(xdrDataOutputStream);
+    return byteArrayOutputStream.toByteArray();
+  }
+
+  public static Str2 fromXdrBase64(String xdr) throws IOException {
+    BaseEncoding base64Encoding = BaseEncoding.base64();
+    byte[] bytes = base64Encoding.decode(xdr);
+    return fromXdrByteArray(bytes);
+  }
+
+  public static Str2 fromXdrByteArray(byte[] xdr) throws IOException {
+    ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(xdr);
+    XdrDataInputStream xdrDataInputStream = new XdrDataInputStream(byteArrayInputStream);
+    return decode(xdrDataInputStream);
   }
 }

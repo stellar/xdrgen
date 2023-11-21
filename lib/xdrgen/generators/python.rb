@@ -10,7 +10,8 @@
 module Xdrgen
   module Generators
     class Python < Xdrgen::Generators::Base
-      MAX_SIZE = (2 ** 31) - 1
+      MAX_SIZE = (2 ** 32) - 1
+      CIRCLE_IMPORT_UNION = %w[SCVal SCSpecTypeDef]
 
       def generate
         @constants_out = @output.open("constants.py")
@@ -51,7 +52,11 @@ module Xdrgen
         when AST::Definitions::Enum
           render_enum defn
         when AST::Definitions::Union;
-          render_union defn
+          if CIRCLE_IMPORT_UNION.include?(defn.name)
+            render_union defn, true
+          else
+            render_union defn
+          end
         when AST::Definitions::Typedef
           render_typedef defn
         when AST::Definitions::Const
@@ -87,7 +92,7 @@ module Xdrgen
                 packer.pack_int(self.value)
   
             @classmethod
-            def unpack(cls, unpacker: Unpacker) -> "#{enum_name}":
+            def unpack(cls, unpacker: Unpacker) -> #{enum_name}:
                 value = unpacker.unpack_int()
                 return cls(value)
           HEREDOC
@@ -126,13 +131,15 @@ module Xdrgen
           end
 
           out.puts "@classmethod"
-          out.puts "def unpack(cls, unpacker: Unpacker) -> \"#{typedef_name}\":"
+          out.puts "def unpack(cls, unpacker: Unpacker) -> #{typedef_name}:"
           out.indent(2) do
             decode_member typedef, out
             out.puts "return cls(#{typedef_name_underscore})"
           end
           render_xdr_utils(out, typedef_name)
           out.puts <<~HEREDOC
+            def __hash__(self):
+                return hash(self.#{typedef_name_underscore})
             def __eq__(self, other: object):
                 if not isinstance(other, self.__class__):
                     return NotImplemented
@@ -152,7 +159,7 @@ module Xdrgen
         end
       end
 
-      def render_union(union)
+      def render_union(union, render_import_in_func = false)
         union_name = name union
         union_name_underscore = union_name.underscore
         @init_out.puts "from .#{union_name_underscore} import #{union_name}"
@@ -163,10 +170,21 @@ module Xdrgen
 
         render_import out, union.discriminant, union_name
 
-        union.arms.each do |arm|
-          next if arm.void?
-          # This may cause duplicate imports, we can remove it with autoflake
-          render_import out, arm.declaration, union_name
+        if render_import_in_func
+          out.puts "if TYPE_CHECKING:"
+          out.indent(2) do
+            union.arms.each do |arm|
+              next if arm.void?
+              # This may cause duplicate imports, we can remove it with autoflake
+              render_import out, arm.declaration, union_name
+            end
+          end
+        else
+          union.arms.each do |arm|
+            next if arm.void?
+            # This may cause duplicate imports, we can remove it with autoflake
+            render_import out, arm.declaration, union_name
+          end
         end
 
         out.puts "__all__ = ['#{union_name}']"
@@ -202,6 +220,7 @@ module Xdrgen
               out.puts "self.#{arm_name_underscore} = #{arm_name_underscore}"
             end
           end
+
           out.puts "def pack(self, packer: Packer) -> None:"
           out.indent(2) do
             out.puts "#{encode_type union.discriminant, 'self.' + union_discriminant_name_underscore}"
@@ -226,7 +245,7 @@ module Xdrgen
           end
 
           out.puts "@classmethod"
-          out.puts "def unpack(cls, unpacker: Unpacker) -> \"#{union_name}\":"
+          out.puts "def unpack(cls, unpacker: Unpacker) -> #{union_name}:"
           out.indent(2) do
             out.puts "#{union_discriminant_name_underscore} = #{decode_type union.discriminant}"
             union.normal_arms.each do |arm|
@@ -240,6 +259,10 @@ module Xdrgen
                   if arm.void?
                     out.puts "return cls(#{union_discriminant_name_underscore}=#{union_discriminant_name_underscore})"
                   else
+                    if render_import_in_func
+                      render_import out, arm.declaration, union_name
+                    end
+
                     decode_member arm, out
                     arm_name_underscore = arm.name.underscore
                     out.puts "return cls(#{union_discriminant_name_underscore}=#{union_discriminant_name_underscore}, #{arm_name_underscore}=#{arm_name_underscore})"
@@ -265,6 +288,8 @@ module Xdrgen
             attribute_names.push(arm.name.underscore)
           end
           out.puts <<~HEREDOC
+            def __hash__(self):
+                return hash((#{attribute_names.map { |m| 'self.' + m }.join(", ")},))
             def __eq__(self, other: object):
                 if not isinstance(other, self.__class__):
                     return NotImplemented
@@ -334,7 +359,7 @@ module Xdrgen
           end
 
           out.puts "@classmethod"
-          out.puts "def unpack(cls, unpacker: Unpacker) -> \"#{struct_name}\":"
+          out.puts "def unpack(cls, unpacker: Unpacker) -> #{struct_name}:"
           out.indent(2) do
             struct.members.each do |member|
               decode_member member, out
@@ -356,6 +381,8 @@ module Xdrgen
             attribute_names.push(member.name.underscore)
           end
           out.puts <<~HEREDOC
+            def __hash__(self):
+                return hash((#{attribute_names.map { |m| 'self.' + m }.join(", ")},))
             def __eq__(self, other: object):
                 if not isinstance(other, self.__class__):
                     return NotImplemented
@@ -450,10 +477,12 @@ module Xdrgen
         out.puts <<-EOS.strip_heredoc
           # This is an automatically generated file.
           # DO NOT EDIT or your changes may be overwritten
+          from __future__ import annotations
+
           import base64
           from enum import IntEnum
-          from typing import List, Optional
-          from xdrlib import Packer, Unpacker
+          from typing import List, Optional, TYPE_CHECKING
+          from xdrlib3 import Packer, Unpacker
           from .base import Integer, UnsignedInteger, Float, Double, Hyper, UnsignedHyper, Boolean, String, Opaque
           from .constants import *
         EOS
@@ -489,7 +518,7 @@ module Xdrgen
               return packer.get_buffer()
 
           @classmethod
-          def from_xdr_bytes(cls, xdr: bytes) -> "#{name}":
+          def from_xdr_bytes(cls, xdr: bytes) -> #{name}:
               unpacker = Unpacker(xdr)
               return cls.unpack(unpacker)
 
@@ -498,7 +527,7 @@ module Xdrgen
               return base64.b64encode(xdr_bytes).decode()
 
           @classmethod
-          def from_xdr(cls, xdr: str) -> "#{name}":
+          def from_xdr(cls, xdr: str) -> #{name}:
               xdr_bytes = base64.b64decode(xdr.encode())
               return cls.from_xdr_bytes(xdr_bytes)
         HEREDOC
