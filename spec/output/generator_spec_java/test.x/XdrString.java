@@ -1,12 +1,12 @@
 package MyXDR;
 
-import com.google.common.io.BaseEncoding;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InvalidClassException;
 import java.nio.charset.Charset;
 import java.util.Arrays;
+import org.stellar.sdk.Base64Factory;
 
 public class XdrString implements XdrElement {
     private byte[] bytes;
@@ -41,8 +41,7 @@ public class XdrString implements XdrElement {
 
     @Override
     public String toXdrBase64() throws IOException {
-        BaseEncoding base64Encoding = BaseEncoding.base64();
-        return base64Encoding.encode(toXdrByteArray());
+        return Base64Factory.getInstance().encodeToString(toXdrByteArray());
     }
     
     @Override
@@ -54,8 +53,7 @@ public class XdrString implements XdrElement {
     }
     
     public static XdrString fromXdrBase64(String xdr, int maxSize) throws IOException {
-        BaseEncoding base64Encoding = BaseEncoding.base64();
-        byte[] bytes = base64Encoding.decode(xdr);
+        byte[] bytes = Base64Factory.getInstance().decode(xdr);
         return fromXdrByteArray(bytes, maxSize);
     }
     

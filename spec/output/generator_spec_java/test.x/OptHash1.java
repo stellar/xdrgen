@@ -6,10 +6,10 @@ package MyXDR;
 import java.io.IOException;
 
 import static MyXDR.Constants.*;
-import com.google.common.io.BaseEncoding;
+import org.stellar.sdk.Base64Factory;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import com.google.common.base.Objects;
+import java.util.Objects;
 
 // === xdr source ============================================================
 
@@ -56,7 +56,7 @@ public class OptHash1 implements XdrElement {
 
   @Override
   public int hashCode() {
-    return Objects.hashCode(this.optHash1);
+    return Objects.hash(this.optHash1);
   }
 
   @Override
@@ -66,12 +66,11 @@ public class OptHash1 implements XdrElement {
     }
 
     OptHash1 other = (OptHash1) object;
-    return Objects.equal(this.optHash1, other.optHash1);
+    return Objects.equals(this.optHash1, other.optHash1);
   }
   @Override
   public String toXdrBase64() throws IOException {
-    BaseEncoding base64Encoding = BaseEncoding.base64();
-    return base64Encoding.encode(toXdrByteArray());
+    return Base64Factory.getInstance().encodeToString(toXdrByteArray());
   }
 
   @Override
@@ -83,8 +82,7 @@ public class OptHash1 implements XdrElement {
   }
 
   public static OptHash1 fromXdrBase64(String xdr) throws IOException {
-    BaseEncoding base64Encoding = BaseEncoding.base64();
-    byte[] bytes = base64Encoding.decode(xdr);
+    byte[] bytes = Base64Factory.getInstance().decode(xdr);
     return fromXdrByteArray(bytes);
   }
 

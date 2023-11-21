@@ -2,11 +2,12 @@ module Xdrgen
   class Compilation
     extend Memoist
 
-    def initialize(source_paths, output_dir:".", language: :ruby, namespace: nil)
+    def initialize(source_paths, output_dir:".", language: :ruby, namespace: nil, options: {})
       @source_paths = source_paths
       @output_dir  = output_dir
       @namespace   = namespace
       @language    = language
+      @options     = options
     end
 
     memoize def source
@@ -22,7 +23,7 @@ module Xdrgen
       output = Output.new(@source_paths, @output_dir)
 
       
-      generator = Generators.for_language(@language).new(ast, output, @namespace)
+      generator = Generators.for_language(@language).new(ast, output, @namespace, @options)
       generator.generate
     ensure
       output.close

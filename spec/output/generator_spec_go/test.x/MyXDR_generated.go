@@ -11,6 +11,7 @@ package MyXDR
 import (
   "bytes"
   "encoding"
+  "errors"
   "io"
   "fmt"
 
@@ -22,19 +23,21 @@ var XdrFilesSHA256 = map[string]string{
   "spec/fixtures/generator/test.x": "d29a98a6a3b9bf533a3e6712d928e0bed655e0f462ac4dae810c65d52ca9af41",
 }
 
+var ErrMaxDecodingDepthReached = errors.New("maximum decoding depth reached")
+
 type xdrType interface {
   xdrType()
 }
 
 type decoderFrom interface {
-  DecodeFrom(d *xdr.Decoder) (int, error)
+  DecodeFrom(d *xdr.Decoder, maxDepth uint) (int, error)
 }
 
 // Unmarshal reads an xdr element from `r` into `v`.
 func Unmarshal(r io.Reader, v interface{}) (int, error) {
   if decodable, ok := v.(decoderFrom); ok {
     d := xdr.NewDecoder(r)
-    return decodable.DecodeFrom(d)
+    return decodable.DecodeFrom(d, xdr.DecodeDefaultMaxDepth)
   }
   // delegate to xdr package's Unmarshal
 	return xdr.Unmarshal(r, v)
@@ -76,13 +79,17 @@ if _, err = e.EncodeFixedOpaque(s[:]); err != nil {
 
 var _ decoderFrom = (*Uint512)(nil)
 // DecodeFrom decodes this value using the Decoder.
-func (s *Uint512) DecodeFrom(d *xdr.Decoder) (int, error) {
+func (s *Uint512) DecodeFrom(d *xdr.Decoder, maxDepth uint) (int, error) {
+  if maxDepth == 0 {
+    return 0, fmt.Errorf("decoding Uint512: %w", ErrMaxDecodingDepthReached)
+  }
+  maxDepth -= 1
   var err error
   var n, nTmp int
   nTmp, err = d.DecodeFixedOpaqueInplace(s[:])
 n += nTmp
 if err != nil {
-  return n, fmt.Errorf("decoding Uint512: %s", err)
+  return n, fmt.Errorf("decoding Uint512: %w", err)
 }
   return n, nil
 }
@@ -99,7 +106,7 @@ func (s Uint512) MarshalBinary() ([]byte, error) {
 func (s *Uint512) UnmarshalBinary(inp []byte) error {
   r := bytes.NewReader(inp)
   d := xdr.NewDecoder(r)
-  _, err := s.DecodeFrom(d)
+  _, err := s.DecodeFrom(d, xdr.DecodeDefaultMaxDepth)
   return err
 }
 
@@ -135,13 +142,17 @@ if _, err = e.EncodeOpaque(s[:]); err != nil {
 
 var _ decoderFrom = (*Uint513)(nil)
 // DecodeFrom decodes this value using the Decoder.
-func (s *Uint513) DecodeFrom(d *xdr.Decoder) (int, error) {
+func (s *Uint513) DecodeFrom(d *xdr.Decoder, maxDepth uint) (int, error) {
+  if maxDepth == 0 {
+    return 0, fmt.Errorf("decoding Uint513: %w", ErrMaxDecodingDepthReached)
+  }
+  maxDepth -= 1
   var err error
   var n, nTmp int
   (*s), nTmp, err = d.DecodeOpaque(64)
 n += nTmp
 if err != nil {
-  return n, fmt.Errorf("decoding Uint513: %s", err)
+  return n, fmt.Errorf("decoding Uint513: %w", err)
 }
   return n, nil
 }
@@ -158,7 +169,7 @@ func (s Uint513) MarshalBinary() ([]byte, error) {
 func (s *Uint513) UnmarshalBinary(inp []byte) error {
   r := bytes.NewReader(inp)
   d := xdr.NewDecoder(r)
-  _, err := s.DecodeFrom(d)
+  _, err := s.DecodeFrom(d, xdr.DecodeDefaultMaxDepth)
   return err
 }
 
@@ -190,13 +201,17 @@ if _, err = e.EncodeOpaque(s[:]); err != nil {
 
 var _ decoderFrom = (*Uint514)(nil)
 // DecodeFrom decodes this value using the Decoder.
-func (s *Uint514) DecodeFrom(d *xdr.Decoder) (int, error) {
+func (s *Uint514) DecodeFrom(d *xdr.Decoder, maxDepth uint) (int, error) {
+  if maxDepth == 0 {
+    return 0, fmt.Errorf("decoding Uint514: %w", ErrMaxDecodingDepthReached)
+  }
+  maxDepth -= 1
   var err error
   var n, nTmp int
   (*s), nTmp, err = d.DecodeOpaque(0)
 n += nTmp
 if err != nil {
-  return n, fmt.Errorf("decoding Uint514: %s", err)
+  return n, fmt.Errorf("decoding Uint514: %w", err)
 }
   return n, nil
 }
@@ -213,7 +228,7 @@ func (s Uint514) MarshalBinary() ([]byte, error) {
 func (s *Uint514) UnmarshalBinary(inp []byte) error {
   r := bytes.NewReader(inp)
   d := xdr.NewDecoder(r)
-  _, err := s.DecodeFrom(d)
+  _, err := s.DecodeFrom(d, xdr.DecodeDefaultMaxDepth)
   return err
 }
 
@@ -249,14 +264,18 @@ if _, err = e.EncodeString(string(s)); err != nil {
 
 var _ decoderFrom = (*Str)(nil)
 // DecodeFrom decodes this value using the Decoder.
-func (s *Str) DecodeFrom(d *xdr.Decoder) (int, error) {
+func (s *Str) DecodeFrom(d *xdr.Decoder, maxDepth uint) (int, error) {
+  if maxDepth == 0 {
+    return 0, fmt.Errorf("decoding Str: %w", ErrMaxDecodingDepthReached)
+  }
+  maxDepth -= 1
   var err error
   var n, nTmp int
   var v string
   v, nTmp, err = d.DecodeString(64)
 n += nTmp
 if err != nil {
-  return n, fmt.Errorf("decoding Str: %s", err)
+  return n, fmt.Errorf("decoding Str: %w", err)
 }
   *s = Str(v)
   return n, nil
@@ -274,7 +293,7 @@ func (s Str) MarshalBinary() ([]byte, error) {
 func (s *Str) UnmarshalBinary(inp []byte) error {
   r := bytes.NewReader(inp)
   d := xdr.NewDecoder(r)
-  _, err := s.DecodeFrom(d)
+  _, err := s.DecodeFrom(d, xdr.DecodeDefaultMaxDepth)
   return err
 }
 
@@ -306,14 +325,18 @@ if _, err = e.EncodeString(string(s)); err != nil {
 
 var _ decoderFrom = (*Str2)(nil)
 // DecodeFrom decodes this value using the Decoder.
-func (s *Str2) DecodeFrom(d *xdr.Decoder) (int, error) {
+func (s *Str2) DecodeFrom(d *xdr.Decoder, maxDepth uint) (int, error) {
+  if maxDepth == 0 {
+    return 0, fmt.Errorf("decoding Str2: %w", ErrMaxDecodingDepthReached)
+  }
+  maxDepth -= 1
   var err error
   var n, nTmp int
   var v string
   v, nTmp, err = d.DecodeString(0)
 n += nTmp
 if err != nil {
-  return n, fmt.Errorf("decoding Str2: %s", err)
+  return n, fmt.Errorf("decoding Str2: %w", err)
 }
   *s = Str2(v)
   return n, nil
@@ -331,7 +354,7 @@ func (s Str2) MarshalBinary() ([]byte, error) {
 func (s *Str2) UnmarshalBinary(inp []byte) error {
   r := bytes.NewReader(inp)
   d := xdr.NewDecoder(r)
-  _, err := s.DecodeFrom(d)
+  _, err := s.DecodeFrom(d, xdr.DecodeDefaultMaxDepth)
   return err
 }
 
@@ -367,13 +390,17 @@ if _, err = e.EncodeFixedOpaque(s[:]); err != nil {
 
 var _ decoderFrom = (*Hash)(nil)
 // DecodeFrom decodes this value using the Decoder.
-func (s *Hash) DecodeFrom(d *xdr.Decoder) (int, error) {
+func (s *Hash) DecodeFrom(d *xdr.Decoder, maxDepth uint) (int, error) {
+  if maxDepth == 0 {
+    return 0, fmt.Errorf("decoding Hash: %w", ErrMaxDecodingDepthReached)
+  }
+  maxDepth -= 1
   var err error
   var n, nTmp int
   nTmp, err = d.DecodeFixedOpaqueInplace(s[:])
 n += nTmp
 if err != nil {
-  return n, fmt.Errorf("decoding Hash: %s", err)
+  return n, fmt.Errorf("decoding Hash: %w", err)
 }
   return n, nil
 }
@@ -390,7 +417,7 @@ func (s Hash) MarshalBinary() ([]byte, error) {
 func (s *Hash) UnmarshalBinary(inp []byte) error {
   r := bytes.NewReader(inp)
   d := xdr.NewDecoder(r)
-  _, err := s.DecodeFrom(d)
+  _, err := s.DecodeFrom(d, xdr.DecodeDefaultMaxDepth)
   return err
 }
 
@@ -423,14 +450,18 @@ if err = s[i].EncodeTo(e); err != nil {
 
 var _ decoderFrom = (*Hashes1)(nil)
 // DecodeFrom decodes this value using the Decoder.
-func (s *Hashes1) DecodeFrom(d *xdr.Decoder) (int, error) {
+func (s *Hashes1) DecodeFrom(d *xdr.Decoder, maxDepth uint) (int, error) {
+  if maxDepth == 0 {
+    return 0, fmt.Errorf("decoding Hashes1: %w", ErrMaxDecodingDepthReached)
+  }
+  maxDepth -= 1
   var err error
   var n, nTmp int
   for i := 0; i < len(s); i++ {
-      nTmp, err = s[i].DecodeFrom(d)
+      nTmp, err = s[i].DecodeFrom(d, maxDepth)
 n += nTmp
 if err != nil {
-  return n, fmt.Errorf("decoding Hash: %s", err)
+  return n, fmt.Errorf("decoding Hash: %w", err)
 }
   }
   return n, nil
@@ -448,7 +479,7 @@ func (s Hashes1) MarshalBinary() ([]byte, error) {
 func (s *Hashes1) UnmarshalBinary(inp []byte) error {
   r := bytes.NewReader(inp)
   d := xdr.NewDecoder(r)
-  _, err := s.DecodeFrom(d)
+  _, err := s.DecodeFrom(d, xdr.DecodeDefaultMaxDepth)
   return err
 }
 
@@ -488,14 +519,18 @@ if err = s[i].EncodeTo(e); err != nil {
 
 var _ decoderFrom = (*Hashes2)(nil)
 // DecodeFrom decodes this value using the Decoder.
-func (s *Hashes2) DecodeFrom(d *xdr.Decoder) (int, error) {
+func (s *Hashes2) DecodeFrom(d *xdr.Decoder, maxDepth uint) (int, error) {
+  if maxDepth == 0 {
+    return 0, fmt.Errorf("decoding Hashes2: %w", ErrMaxDecodingDepthReached)
+  }
+  maxDepth -= 1
   var err error
   var n, nTmp int
   var l uint32
   l, nTmp, err = d.DecodeUint()
 n += nTmp
 if err != nil {
-  return n, fmt.Errorf("decoding Hash: %s", err)
+  return n, fmt.Errorf("decoding Hash: %w", err)
 }
   if l > 12 {
     return n, fmt.Errorf("decoding Hash: data size (%d) exceeds size limit (12)", l)
@@ -504,10 +539,10 @@ if err != nil {
   if l > 0 {
     (*s) = make([]Hash, l)
     for i := uint32(0); i < l; i++ {
-      nTmp, err = (*s)[i].DecodeFrom(d)
+      nTmp, err = (*s)[i].DecodeFrom(d, maxDepth)
 n += nTmp
 if err != nil {
-  return n, fmt.Errorf("decoding Hash: %s", err)
+  return n, fmt.Errorf("decoding Hash: %w", err)
 }
     }
   }
@@ -526,7 +561,7 @@ func (s Hashes2) MarshalBinary() ([]byte, error) {
 func (s *Hashes2) UnmarshalBinary(inp []byte) error {
   r := bytes.NewReader(inp)
   d := xdr.NewDecoder(r)
-  _, err := s.DecodeFrom(d)
+  _, err := s.DecodeFrom(d, xdr.DecodeDefaultMaxDepth)
   return err
 }
 
@@ -562,23 +597,27 @@ if err = s[i].EncodeTo(e); err != nil {
 
 var _ decoderFrom = (*Hashes3)(nil)
 // DecodeFrom decodes this value using the Decoder.
-func (s *Hashes3) DecodeFrom(d *xdr.Decoder) (int, error) {
+func (s *Hashes3) DecodeFrom(d *xdr.Decoder, maxDepth uint) (int, error) {
+  if maxDepth == 0 {
+    return 0, fmt.Errorf("decoding Hashes3: %w", ErrMaxDecodingDepthReached)
+  }
+  maxDepth -= 1
   var err error
   var n, nTmp int
   var l uint32
   l, nTmp, err = d.DecodeUint()
 n += nTmp
 if err != nil {
-  return n, fmt.Errorf("decoding Hash: %s", err)
+  return n, fmt.Errorf("decoding Hash: %w", err)
 }
   (*s) = nil
   if l > 0 {
     (*s) = make([]Hash, l)
     for i := uint32(0); i < l; i++ {
-      nTmp, err = (*s)[i].DecodeFrom(d)
+      nTmp, err = (*s)[i].DecodeFrom(d, maxDepth)
 n += nTmp
 if err != nil {
-  return n, fmt.Errorf("decoding Hash: %s", err)
+  return n, fmt.Errorf("decoding Hash: %w", err)
 }
     }
   }
@@ -597,7 +636,7 @@ func (s Hashes3) MarshalBinary() ([]byte, error) {
 func (s *Hashes3) UnmarshalBinary(inp []byte) error {
   r := bytes.NewReader(inp)
   d := xdr.NewDecoder(r)
-  _, err := s.DecodeFrom(d)
+  _, err := s.DecodeFrom(d, xdr.DecodeDefaultMaxDepth)
   return err
 }
 
@@ -639,14 +678,18 @@ if _, err = e.EncodeInt(int32(s)); err != nil {
 
 var _ decoderFrom = (*Int1)(nil)
 // DecodeFrom decodes this value using the Decoder.
-func (s *Int1) DecodeFrom(d *xdr.Decoder) (int, error) {
+func (s *Int1) DecodeFrom(d *xdr.Decoder, maxDepth uint) (int, error) {
+  if maxDepth == 0 {
+    return 0, fmt.Errorf("decoding Int1: %w", ErrMaxDecodingDepthReached)
+  }
+  maxDepth -= 1
   var err error
   var n, nTmp int
   var v int32
   v, nTmp, err = d.DecodeInt()
 n += nTmp
 if err != nil {
-  return n, fmt.Errorf("decoding Int: %s", err)
+  return n, fmt.Errorf("decoding Int: %w", err)
 }
   *s = Int1(v)
   return n, nil
@@ -664,7 +707,7 @@ func (s Int1) MarshalBinary() ([]byte, error) {
 func (s *Int1) UnmarshalBinary(inp []byte) error {
   r := bytes.NewReader(inp)
   d := xdr.NewDecoder(r)
-  _, err := s.DecodeFrom(d)
+  _, err := s.DecodeFrom(d, xdr.DecodeDefaultMaxDepth)
   return err
 }
 
@@ -696,14 +739,18 @@ if _, err = e.EncodeHyper(int64(s)); err != nil {
 
 var _ decoderFrom = (*Int2)(nil)
 // DecodeFrom decodes this value using the Decoder.
-func (s *Int2) DecodeFrom(d *xdr.Decoder) (int, error) {
+func (s *Int2) DecodeFrom(d *xdr.Decoder, maxDepth uint) (int, error) {
+  if maxDepth == 0 {
+    return 0, fmt.Errorf("decoding Int2: %w", ErrMaxDecodingDepthReached)
+  }
+  maxDepth -= 1
   var err error
   var n, nTmp int
   var v int64
   v, nTmp, err = d.DecodeHyper()
 n += nTmp
 if err != nil {
-  return n, fmt.Errorf("decoding Hyper: %s", err)
+  return n, fmt.Errorf("decoding Hyper: %w", err)
 }
   *s = Int2(v)
   return n, nil
@@ -721,7 +768,7 @@ func (s Int2) MarshalBinary() ([]byte, error) {
 func (s *Int2) UnmarshalBinary(inp []byte) error {
   r := bytes.NewReader(inp)
   d := xdr.NewDecoder(r)
-  _, err := s.DecodeFrom(d)
+  _, err := s.DecodeFrom(d, xdr.DecodeDefaultMaxDepth)
   return err
 }
 
@@ -753,14 +800,18 @@ if _, err = e.EncodeUint(uint32(s)); err != nil {
 
 var _ decoderFrom = (*Int3)(nil)
 // DecodeFrom decodes this value using the Decoder.
-func (s *Int3) DecodeFrom(d *xdr.Decoder) (int, error) {
+func (s *Int3) DecodeFrom(d *xdr.Decoder, maxDepth uint) (int, error) {
+  if maxDepth == 0 {
+    return 0, fmt.Errorf("decoding Int3: %w", ErrMaxDecodingDepthReached)
+  }
+  maxDepth -= 1
   var err error
   var n, nTmp int
   var v uint32
   v, nTmp, err = d.DecodeUint()
 n += nTmp
 if err != nil {
-  return n, fmt.Errorf("decoding Unsigned int: %s", err)
+  return n, fmt.Errorf("decoding Unsigned int: %w", err)
 }
   *s = Int3(v)
   return n, nil
@@ -778,7 +829,7 @@ func (s Int3) MarshalBinary() ([]byte, error) {
 func (s *Int3) UnmarshalBinary(inp []byte) error {
   r := bytes.NewReader(inp)
   d := xdr.NewDecoder(r)
-  _, err := s.DecodeFrom(d)
+  _, err := s.DecodeFrom(d, xdr.DecodeDefaultMaxDepth)
   return err
 }
 
@@ -810,14 +861,18 @@ if   _, err = e.EncodeUhyper(uint64(s)); err != nil {
 
 var _ decoderFrom = (*Int4)(nil)
 // DecodeFrom decodes this value using the Decoder.
-func (s *Int4) DecodeFrom(d *xdr.Decoder) (int, error) {
+func (s *Int4) DecodeFrom(d *xdr.Decoder, maxDepth uint) (int, error) {
+  if maxDepth == 0 {
+    return 0, fmt.Errorf("decoding Int4: %w", ErrMaxDecodingDepthReached)
+  }
+  maxDepth -= 1
   var err error
   var n, nTmp int
   var v uint64
   v, nTmp, err = d.DecodeUhyper()
 n += nTmp
 if err != nil {
-  return n, fmt.Errorf("decoding Unsigned hyper: %s", err)
+  return n, fmt.Errorf("decoding Unsigned hyper: %w", err)
 }
   *s = Int4(v)
   return n, nil
@@ -835,7 +890,7 @@ func (s Int4) MarshalBinary() ([]byte, error) {
 func (s *Int4) UnmarshalBinary(inp []byte) error {
   r := bytes.NewReader(inp)
   d := xdr.NewDecoder(r)
-  _, err := s.DecodeFrom(d)
+  _, err := s.DecodeFrom(d, xdr.DecodeDefaultMaxDepth)
   return err
 }
 
@@ -907,53 +962,57 @@ if _, err = e.EncodeBool(bool(s.Field7)); err != nil {
 
 var _ decoderFrom = (*MyStruct)(nil)
 // DecodeFrom decodes this value using the Decoder.
-func (s *MyStruct) DecodeFrom(d *xdr.Decoder) (int, error) {
+func (s *MyStruct) DecodeFrom(d *xdr.Decoder, maxDepth uint) (int, error) {
+  if maxDepth == 0 {
+    return 0, fmt.Errorf("decoding MyStruct: %w", ErrMaxDecodingDepthReached)
+  }
+  maxDepth -= 1
   var err error
   var n, nTmp int
-  nTmp, err = s.Field1.DecodeFrom(d)
+  nTmp, err = s.Field1.DecodeFrom(d, maxDepth)
 n += nTmp
 if err != nil {
-  return n, fmt.Errorf("decoding Uint512: %s", err)
+  return n, fmt.Errorf("decoding Uint512: %w", err)
 }
   var b bool
   b, nTmp, err = d.DecodeBool()
 n += nTmp
 if err != nil {
-  return n, fmt.Errorf("decoding OptHash1: %s", err)
+  return n, fmt.Errorf("decoding OptHash1: %w", err)
 }
   s.Field2 = nil
   if b {
      s.Field2 = new(Hash)
-  nTmp, err = s.Field2.DecodeFrom(d)
+  nTmp, err = s.Field2.DecodeFrom(d, maxDepth)
 n += nTmp
 if err != nil {
-  return n, fmt.Errorf("decoding OptHash1: %s", err)
+  return n, fmt.Errorf("decoding OptHash1: %w", err)
 }
   }
-  nTmp, err = s.Field3.DecodeFrom(d)
+  nTmp, err = s.Field3.DecodeFrom(d, maxDepth)
 n += nTmp
 if err != nil {
-  return n, fmt.Errorf("decoding Int1: %s", err)
+  return n, fmt.Errorf("decoding Int1: %w", err)
 }
   s.Field4, nTmp, err = d.DecodeUint()
 n += nTmp
 if err != nil {
-  return n, fmt.Errorf("decoding Unsigned int: %s", err)
+  return n, fmt.Errorf("decoding Unsigned int: %w", err)
 }
-  nTmp, err = d.Decode(&s.Field5)
+  nTmp, err = d.DecodeWithMaxDepth(&s.Field5, maxDepth)
 n += nTmp
 if err != nil {
-  return n, fmt.Errorf("decoding Float: %s", err)
+  return n, fmt.Errorf("decoding Float: %w", err)
 }
-  nTmp, err = d.Decode(&s.Field6)
+  nTmp, err = d.DecodeWithMaxDepth(&s.Field6, maxDepth)
 n += nTmp
 if err != nil {
-  return n, fmt.Errorf("decoding Double: %s", err)
+  return n, fmt.Errorf("decoding Double: %w", err)
 }
   s.Field7, nTmp, err = d.DecodeBool()
 n += nTmp
 if err != nil {
-  return n, fmt.Errorf("decoding Bool: %s", err)
+  return n, fmt.Errorf("decoding Bool: %w", err)
 }
   return n, nil
 }
@@ -970,7 +1029,7 @@ func (s MyStruct) MarshalBinary() ([]byte, error) {
 func (s *MyStruct) UnmarshalBinary(inp []byte) error {
   r := bytes.NewReader(inp)
   d := xdr.NewDecoder(r)
-  _, err := s.DecodeFrom(d)
+  _, err := s.DecodeFrom(d, xdr.DecodeDefaultMaxDepth)
   return err
 }
 
@@ -1012,23 +1071,27 @@ if err = s.Members[i].EncodeTo(e); err != nil {
 
 var _ decoderFrom = (*LotsOfMyStructs)(nil)
 // DecodeFrom decodes this value using the Decoder.
-func (s *LotsOfMyStructs) DecodeFrom(d *xdr.Decoder) (int, error) {
+func (s *LotsOfMyStructs) DecodeFrom(d *xdr.Decoder, maxDepth uint) (int, error) {
+  if maxDepth == 0 {
+    return 0, fmt.Errorf("decoding LotsOfMyStructs: %w", ErrMaxDecodingDepthReached)
+  }
+  maxDepth -= 1
   var err error
   var n, nTmp int
   var l uint32
   l, nTmp, err = d.DecodeUint()
 n += nTmp
 if err != nil {
-  return n, fmt.Errorf("decoding MyStruct: %s", err)
+  return n, fmt.Errorf("decoding MyStruct: %w", err)
 }
   s.Members = nil
   if l > 0 {
     s.Members = make([]MyStruct, l)
     for i := uint32(0); i < l; i++ {
-      nTmp, err = s.Members[i].DecodeFrom(d)
+      nTmp, err = s.Members[i].DecodeFrom(d, maxDepth)
 n += nTmp
 if err != nil {
-  return n, fmt.Errorf("decoding MyStruct: %s", err)
+  return n, fmt.Errorf("decoding MyStruct: %w", err)
 }
     }
   }
@@ -1047,7 +1110,7 @@ func (s LotsOfMyStructs) MarshalBinary() ([]byte, error) {
 func (s *LotsOfMyStructs) UnmarshalBinary(inp []byte) error {
   r := bytes.NewReader(inp)
   d := xdr.NewDecoder(r)
-  _, err := s.DecodeFrom(d)
+  _, err := s.DecodeFrom(d, xdr.DecodeDefaultMaxDepth)
   return err
 }
 
@@ -1084,13 +1147,17 @@ if   err = s.Data.EncodeTo(e); err != nil {
 
 var _ decoderFrom = (*HasStuff)(nil)
 // DecodeFrom decodes this value using the Decoder.
-func (s *HasStuff) DecodeFrom(d *xdr.Decoder) (int, error) {
+func (s *HasStuff) DecodeFrom(d *xdr.Decoder, maxDepth uint) (int, error) {
+  if maxDepth == 0 {
+    return 0, fmt.Errorf("decoding HasStuff: %w", ErrMaxDecodingDepthReached)
+  }
+  maxDepth -= 1
   var err error
   var n, nTmp int
-  nTmp, err = s.Data.DecodeFrom(d)
+  nTmp, err = s.Data.DecodeFrom(d, maxDepth)
 n += nTmp
 if err != nil {
-  return n, fmt.Errorf("decoding LotsOfMyStructs: %s", err)
+  return n, fmt.Errorf("decoding LotsOfMyStructs: %w", err)
 }
   return n, nil
 }
@@ -1107,7 +1174,7 @@ func (s HasStuff) MarshalBinary() ([]byte, error) {
 func (s *HasStuff) UnmarshalBinary(inp []byte) error {
   r := bytes.NewReader(inp)
   d := xdr.NewDecoder(r)
-  _, err := s.DecodeFrom(d)
+  _, err := s.DecodeFrom(d, xdr.DecodeDefaultMaxDepth)
   return err
 }
 
@@ -1164,10 +1231,14 @@ func (e Color) EncodeTo(enc *xdr.Encoder) error {
 }
 var _ decoderFrom = (*Color)(nil)
 // DecodeFrom decodes this value using the Decoder.
-func (e *Color) DecodeFrom(d *xdr.Decoder) (int, error) {
+func (e *Color) DecodeFrom(d *xdr.Decoder, maxDepth uint) (int, error) {
+  if maxDepth == 0 {
+    return 0, fmt.Errorf("decoding Color: %w", ErrMaxDecodingDepthReached)
+  }
+  maxDepth -= 1
   v, n, err := d.DecodeInt()
   if err != nil {
-    return n, fmt.Errorf("decoding Color: %s", err)
+    return n, fmt.Errorf("decoding Color: %w", err)
   }
   if _, ok := colorMap[v]; !ok {
     return n, fmt.Errorf("'%d' is not a valid Color enum value", v)
@@ -1187,7 +1258,7 @@ func (s Color) MarshalBinary() ([]byte, error) {
 func (s *Color) UnmarshalBinary(inp []byte) error {
   r := bytes.NewReader(inp)
   d := xdr.NewDecoder(r)
-  _, err := s.DecodeFrom(d)
+  _, err := s.DecodeFrom(d, xdr.DecodeDefaultMaxDepth)
   return err
 }
 
@@ -1253,10 +1324,14 @@ func (e NesterNestedEnum) EncodeTo(enc *xdr.Encoder) error {
 }
 var _ decoderFrom = (*NesterNestedEnum)(nil)
 // DecodeFrom decodes this value using the Decoder.
-func (e *NesterNestedEnum) DecodeFrom(d *xdr.Decoder) (int, error) {
+func (e *NesterNestedEnum) DecodeFrom(d *xdr.Decoder, maxDepth uint) (int, error) {
+  if maxDepth == 0 {
+    return 0, fmt.Errorf("decoding NesterNestedEnum: %w", ErrMaxDecodingDepthReached)
+  }
+  maxDepth -= 1
   v, n, err := d.DecodeInt()
   if err != nil {
-    return n, fmt.Errorf("decoding NesterNestedEnum: %s", err)
+    return n, fmt.Errorf("decoding NesterNestedEnum: %w", err)
   }
   if _, ok := nestedEnumMap[v]; !ok {
     return n, fmt.Errorf("'%d' is not a valid NesterNestedEnum enum value", v)
@@ -1276,7 +1351,7 @@ func (s NesterNestedEnum) MarshalBinary() ([]byte, error) {
 func (s *NesterNestedEnum) UnmarshalBinary(inp []byte) error {
   r := bytes.NewReader(inp)
   d := xdr.NewDecoder(r)
-  _, err := s.DecodeFrom(d)
+  _, err := s.DecodeFrom(d, xdr.DecodeDefaultMaxDepth)
   return err
 }
 
@@ -1312,13 +1387,17 @@ if _, err = e.EncodeInt(int32(s.Blah)); err != nil {
 
 var _ decoderFrom = (*NesterNestedStruct)(nil)
 // DecodeFrom decodes this value using the Decoder.
-func (s *NesterNestedStruct) DecodeFrom(d *xdr.Decoder) (int, error) {
+func (s *NesterNestedStruct) DecodeFrom(d *xdr.Decoder, maxDepth uint) (int, error) {
+  if maxDepth == 0 {
+    return 0, fmt.Errorf("decoding NesterNestedStruct: %w", ErrMaxDecodingDepthReached)
+  }
+  maxDepth -= 1
   var err error
   var n, nTmp int
   s.Blah, nTmp, err = d.DecodeInt()
 n += nTmp
 if err != nil {
-  return n, fmt.Errorf("decoding Int: %s", err)
+  return n, fmt.Errorf("decoding Int: %w", err)
 }
   return n, nil
 }
@@ -1335,7 +1414,7 @@ func (s NesterNestedStruct) MarshalBinary() ([]byte, error) {
 func (s *NesterNestedStruct) UnmarshalBinary(inp []byte) error {
   r := bytes.NewReader(inp)
   d := xdr.NewDecoder(r)
-  _, err := s.DecodeFrom(d)
+  _, err := s.DecodeFrom(d, xdr.DecodeDefaultMaxDepth)
   return err
 }
 
@@ -1390,7 +1469,7 @@ switch Color(color) {
     default:
                   tv, ok := value.(int32)
             if !ok {
-              err = fmt.Errorf("invalid value, must be int32")
+              err = errors.New("invalid value, must be int32")
               return
             }
             result.Blah2 = &tv
@@ -1442,13 +1521,17 @@ return nil
 
 var _ decoderFrom = (*NesterNestedUnion)(nil)
 // DecodeFrom decodes this value using the Decoder.
-func (u *NesterNestedUnion) DecodeFrom(d *xdr.Decoder) (int, error) {
+func (u *NesterNestedUnion) DecodeFrom(d *xdr.Decoder, maxDepth uint) (int, error) {
+  if maxDepth == 0 {
+    return 0, fmt.Errorf("decoding NesterNestedUnion: %w", ErrMaxDecodingDepthReached)
+  }
+  maxDepth -= 1
   var err error
   var n, nTmp int
-  nTmp, err = u.Color.DecodeFrom(d)
+  nTmp, err = u.Color.DecodeFrom(d, maxDepth)
 n += nTmp
 if err != nil {
-  return n, fmt.Errorf("decoding Color: %s", err)
+  return n, fmt.Errorf("decoding Color: %w", err)
 }
 switch Color(u.Color) {
     case ColorRed:
@@ -1459,7 +1542,7 @@ switch Color(u.Color) {
   (*u.Blah2), nTmp, err = d.DecodeInt()
 n += nTmp
 if err != nil {
-  return n, fmt.Errorf("decoding Int: %s", err)
+  return n, fmt.Errorf("decoding Int: %w", err)
 }
   return n, nil
 }
@@ -1477,7 +1560,7 @@ func (s NesterNestedUnion) MarshalBinary() ([]byte, error) {
 func (s *NesterNestedUnion) UnmarshalBinary(inp []byte) error {
   r := bytes.NewReader(inp)
   d := xdr.NewDecoder(r)
-  _, err := s.DecodeFrom(d)
+  _, err := s.DecodeFrom(d, xdr.DecodeDefaultMaxDepth)
   return err
 }
 
@@ -1538,23 +1621,27 @@ if err = s.NestedUnion.EncodeTo(e); err != nil {
 
 var _ decoderFrom = (*Nester)(nil)
 // DecodeFrom decodes this value using the Decoder.
-func (s *Nester) DecodeFrom(d *xdr.Decoder) (int, error) {
+func (s *Nester) DecodeFrom(d *xdr.Decoder, maxDepth uint) (int, error) {
+  if maxDepth == 0 {
+    return 0, fmt.Errorf("decoding Nester: %w", ErrMaxDecodingDepthReached)
+  }
+  maxDepth -= 1
   var err error
   var n, nTmp int
-  nTmp, err = s.NestedEnum.DecodeFrom(d)
+  nTmp, err = s.NestedEnum.DecodeFrom(d, maxDepth)
 n += nTmp
 if err != nil {
-  return n, fmt.Errorf("decoding NesterNestedEnum: %s", err)
+  return n, fmt.Errorf("decoding NesterNestedEnum: %w", err)
 }
-  nTmp, err = s.NestedStruct.DecodeFrom(d)
+  nTmp, err = s.NestedStruct.DecodeFrom(d, maxDepth)
 n += nTmp
 if err != nil {
-  return n, fmt.Errorf("decoding NesterNestedStruct: %s", err)
+  return n, fmt.Errorf("decoding NesterNestedStruct: %w", err)
 }
-  nTmp, err = s.NestedUnion.DecodeFrom(d)
+  nTmp, err = s.NestedUnion.DecodeFrom(d, maxDepth)
 n += nTmp
 if err != nil {
-  return n, fmt.Errorf("decoding NesterNestedUnion: %s", err)
+  return n, fmt.Errorf("decoding NesterNestedUnion: %w", err)
 }
   return n, nil
 }
@@ -1571,7 +1658,7 @@ func (s Nester) MarshalBinary() ([]byte, error) {
 func (s *Nester) UnmarshalBinary(inp []byte) error {
   r := bytes.NewReader(inp)
   d := xdr.NewDecoder(r)
-  _, err := s.DecodeFrom(d)
+  _, err := s.DecodeFrom(d, xdr.DecodeDefaultMaxDepth)
   return err
 }
 

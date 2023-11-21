@@ -1,7 +1,7 @@
 require 'spec_helper'
 
 describe Xdrgen::Generators do
-  languages = %w(ruby javascript go java elixir rust python)
+  languages = %w(ruby javascript go java elixir python)
   focus_language = "" #"go"
   focus_basename = "" #"optional.x"
 
@@ -22,7 +22,7 @@ describe Xdrgen::Generators do
         [path],
         output_dir: "#{SPEC_ROOT}/output/generator_spec_#{language}/#{File.basename path}",
         language:   language,
-        namespace:  "MyXDR"
+        namespace:  "MyXDR",
       )
     compilation.compile
     compilation

@@ -43,7 +43,7 @@ module Xdrgen
       end
 
       def add_imports_for_definition(defn, imports)
-        imports.add("com.google.common.io.BaseEncoding")
+        imports.add("org.stellar.sdk.Base64Factory")
         imports.add("java.io.ByteArrayInputStream")
         imports.add("java.io.ByteArrayOutputStream")
 
@@ -53,15 +53,15 @@ module Xdrgen
             if is_decl_array(m.declaration)
               imports.add('java.util.Arrays')
             else
-              imports.add('com.google.common.base.Objects')
+              imports.add('java.util.Objects')
             end
           end
           # if we have more than one member field then the
           # hash code will be computed by
-          # Objects.hashCode(field1, field2, ..., fieldN)
-          # therefore, we should always import com.google.common.base.Objects
+          # Objects.hash(field1, field2, ..., fieldN)
+          # therefore, we should always import java.util.Objects
           if defn.members.length > 1
-            imports.add("com.google.common.base.Objects")
+            imports.add("java.util.Objects")
           end
         when AST::Definitions::Enum ;
           # no imports required for enums
@@ -73,30 +73,30 @@ module Xdrgen
           if is_type_array(defn.discriminant.type)
             imports.add('java.util.Arrays')
           else
-            imports.add('com.google.common.base.Objects')
+            imports.add('java.util.Objects')
           end
 
           nonVoidArms.each do |a|
             if is_decl_array(a.declaration)
               imports.add('java.util.Arrays')
             else
-              imports.add('com.google.common.base.Objects')
+              imports.add('java.util.Objects')
             end
           end
 
           # if we have more than one field then the
           # hash code will be computed by
-          # Objects.hashCode(field1, field2, ..., fieldN)
-          # therefore, we should always import com.google.common.base.Objects
+          # Objects.hash(field1, field2, ..., fieldN)
+          # therefore, we should always import java.util.Objects
           # if we have more than one field
           if totalFields > 1
-            imports.add("com.google.common.base.Objects")
+            imports.add("java.util.Objects")
           end
         when AST::Definitions::Typedef ;
           if is_decl_array(defn.declaration)
             imports.add('java.util.Arrays')
           else
-            imports.add('com.google.common.base.Objects')
+            imports.add('java.util.Objects')
           end
         end
 
@@ -300,10 +300,10 @@ module Xdrgen
             if is_decl_array(struct.members[0].declaration)
               "Arrays.hashCode(this.#{struct.members[0].name})"
             else
-              "Objects.hashCode(this.#{struct.members[0].name})"
+              "Objects.hash(this.#{struct.members[0].name})"
             end
           else
-            "Objects.hashCode(#{
+            "Objects.hash(#{
               (struct.members.map { |m|
                 if is_decl_array(m.declaration)
                   "Arrays.hashCode(this.#{m.name})"
@@ -324,7 +324,7 @@ module Xdrgen
           if is_decl_array(m.declaration)
             "Arrays.equals(this.#{m.name}, other.#{m.name})"
           else
-            "Objects.equal(this.#{m.name}, other.#{m.name})"
+            "Objects.equals(this.#{m.name}, other.#{m.name})"
           end
         }
         equalExpression = case equalParts.length
@@ -432,7 +432,7 @@ module Xdrgen
           if is_decl_array(typedef.declaration)
             "Arrays.hashCode"
           else
-            "Objects.hashCode"
+            "Objects.hash"
           end
         out.puts <<-EOS.strip_heredoc
           @Override
@@ -446,7 +446,7 @@ module Xdrgen
           if is_decl_array(typedef.declaration)
             "Arrays.equals"
           else
-            "Objects.equal"
+            "Objects.equals"
           end
         type = name_string typedef.name
         out.puts <<-EOS.strip_heredoc
@@ -639,7 +639,7 @@ module Xdrgen
         }
         parts.append(discriminantPart)
 
-        hashCodeExpression = "Objects.hashCode(#{parts.join(", ")})"
+        hashCodeExpression = "Objects.hash(#{parts.join(", ")})"
         out.puts <<-EOS.strip_heredoc
           @Override
           public int hashCode() {
@@ -651,14 +651,14 @@ module Xdrgen
           if is_decl_array(a.declaration)
             "Arrays.equals(this.#{a.name}, other.#{a.name})"
           else
-            "Objects.equal(this.#{a.name}, other.#{a.name})"
+            "Objects.equals(this.#{a.name}, other.#{a.name})"
           end
         }
         equalParts.append(
           if is_type_array(union.discriminant.type)
             "Arrays.equals(this.#{union.discriminant.name}, other.#{union.discriminant.name})"
           else
-            "Objects.equal(this.#{union.discriminant.name}, other.#{union.discriminant.name})"
+            "Objects.equals(this.#{union.discriminant.name}, other.#{union.discriminant.name})"
           end
         )
 
@@ -716,8 +716,7 @@ module Xdrgen
         out.puts <<-EOS.strip_heredoc
           @Override
           public String toXdrBase64() throws IOException {
-            BaseEncoding base64Encoding = BaseEncoding.base64();
-            return base64Encoding.encode(toXdrByteArray());
+            return Base64Factory.getInstance().encodeToString(toXdrByteArray());
           }
 
           @Override
@@ -729,8 +728,7 @@ module Xdrgen
           }
 
           public static #{return_type} fromXdrBase64(String xdr) throws IOException {
-            BaseEncoding base64Encoding = BaseEncoding.base64();
-            byte[] bytes = base64Encoding.decode(xdr);
+            byte[] bytes = Base64Factory.getInstance().decode(xdr);
             return fromXdrByteArray(bytes);
           }
 

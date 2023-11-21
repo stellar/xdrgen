@@ -166,21 +166,21 @@ module Xdrgen
 
             #[cfg(feature = "std")]
             #[allow(clippy::too_many_lines)]
-            pub fn read_xdr<R: Read>(v: TypeVariant, r: &mut DepthLimitedRead<R>) -> Result<Self> {
+            pub fn read_xdr<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Result<Self> {
                 match v {
                     #{types.map { |t| "TypeVariant::#{t} => r.with_limited_depth(|r| Ok(Self::#{t}(Box::new(#{t}::read_xdr(r)?))))," }.join("\n")}
                 }
             }
 
             #[cfg(feature = "base64")]
-            pub fn read_xdr_base64<R: Read>(v: TypeVariant, r: &mut DepthLimitedRead<R>) -> Result<Self> {
-                let mut dec = DepthLimitedRead::new(base64::read::DecoderReader::new(&mut r.inner, base64::STANDARD), r.depth_remaining);
+            pub fn read_xdr_base64<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Result<Self> {
+                let mut dec = Limited::new(base64::read::DecoderReader::new(&mut r.inner, base64::STANDARD), r.limits.clone());
                 let t = Self::read_xdr(v, &mut dec)?;
                 Ok(t)
             }
 
             #[cfg(feature = "std")]
-            pub fn read_xdr_to_end<R: Read>(v: TypeVariant, r: &mut DepthLimitedRead<R>) -> Result<Self> {
+            pub fn read_xdr_to_end<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Result<Self> {
                 let s = Self::read_xdr(v, r)?;
                 // Check that any further reads, such as this read of one byte, read no
                 // data, indicating EOF. If a byte is read the data is invalid.
@@ -192,50 +192,58 @@ module Xdrgen
             }
 
             #[cfg(feature = "base64")]
-            pub fn read_xdr_base64_to_end<R: Read>(v: TypeVariant, r: &mut DepthLimitedRead<R>) -> Result<Self> {
-                let mut dec = DepthLimitedRead::new(base64::read::DecoderReader::new(&mut r.inner, base64::STANDARD), r.depth_remaining);
+            pub fn read_xdr_base64_to_end<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Result<Self> {
+                let mut dec = Limited::new(base64::read::DecoderReader::new(&mut r.inner, base64::STANDARD), r.limits.clone());
                 let t = Self::read_xdr_to_end(v, &mut dec)?;
                 Ok(t)
             }
 
             #[cfg(feature = "std")]
             #[allow(clippy::too_many_lines)]
-            pub fn read_xdr_iter<R: Read>(v: TypeVariant, r: &mut DepthLimitedRead<R>) -> Box<dyn Iterator<Item=Result<Self>> + '_> {
+            pub fn read_xdr_iter<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Box<dyn Iterator<Item=Result<Self>> + '_> {
                 match v {
-                    #{types.map { |t| "TypeVariant::#{t} => Box::new(ReadXdrIter::<_, #{t}>::new(&mut r.inner, r.depth_remaining).map(|r| r.map(|t| Self::#{t}(Box::new(t)))))," }.join("\n")}
+                    #{types.map { |t| "TypeVariant::#{t} => Box::new(ReadXdrIter::<_, #{t}>::new(&mut r.inner, r.limits.clone()).map(|r| r.map(|t| Self::#{t}(Box::new(t)))))," }.join("\n")}
                 }
             }
 
             #[cfg(feature = "std")]
             #[allow(clippy::too_many_lines)]
-            pub fn read_xdr_framed_iter<R: Read>(v: TypeVariant, r: &mut DepthLimitedRead<R>) -> Box<dyn Iterator<Item=Result<Self>> + '_> {
+            pub fn read_xdr_framed_iter<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Box<dyn Iterator<Item=Result<Self>> + '_> {
                 match v {
-                    #{types.map { |t| "TypeVariant::#{t} => Box::new(ReadXdrIter::<_, Frame<#{t}>>::new(&mut r.inner, r.depth_remaining).map(|r| r.map(|t| Self::#{t}(Box::new(t.0)))))," }.join("\n")}
+                    #{types.map { |t| "TypeVariant::#{t} => Box::new(ReadXdrIter::<_, Frame<#{t}>>::new(&mut r.inner, r.limits.clone()).map(|r| r.map(|t| Self::#{t}(Box::new(t.0)))))," }.join("\n")}
                 }
             }
 
             #[cfg(feature = "base64")]
             #[allow(clippy::too_many_lines)]
-            pub fn read_xdr_base64_iter<R: Read>(v: TypeVariant, r: &mut DepthLimitedRead<R>) -> Box<dyn Iterator<Item=Result<Self>> + '_> {
+            pub fn read_xdr_base64_iter<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Box<dyn Iterator<Item=Result<Self>> + '_> {
                 let dec = base64::read::DecoderReader::new(&mut r.inner, base64::STANDARD);
                 match v {
-                    #{types.map { |t| "TypeVariant::#{t} => Box::new(ReadXdrIter::<_, #{t}>::new(dec, r.depth_remaining).map(|r| r.map(|t| Self::#{t}(Box::new(t)))))," }.join("\n")}
+                    #{types.map { |t| "TypeVariant::#{t} => Box::new(ReadXdrIter::<_, #{t}>::new(dec, r.limits.clone()).map(|r| r.map(|t| Self::#{t}(Box::new(t)))))," }.join("\n")}
                 }
             }
 
             #[cfg(feature = "std")]
-            pub fn from_xdr<B: AsRef<[u8]>>(v: TypeVariant, bytes: B) -> Result<Self> {
-                let mut cursor = DepthLimitedRead::new(Cursor::new(bytes.as_ref()), DEFAULT_XDR_RW_DEPTH_LIMIT);
+            pub fn from_xdr<B: AsRef<[u8]>>(v: TypeVariant, bytes: B, limits: Limits) -> Result<Self> {
+                let mut cursor = Limited::new(Cursor::new(bytes.as_ref()), limits);
                 let t = Self::read_xdr_to_end(v, &mut cursor)?;
                 Ok(t)
             }
 
             #[cfg(feature = "base64")]
-            pub fn from_xdr_base64(v: TypeVariant, b64: String) -> Result<Self> {
+            pub fn from_xdr_base64(v: TypeVariant, b64: impl AsRef<[u8]>, limits: Limits) -> Result<Self> {
                 let mut b64_reader = Cursor::new(b64);
-                let mut dec = DepthLimitedRead::new(base64::read::DecoderReader::new(&mut b64_reader, base64::STANDARD), DEFAULT_XDR_RW_DEPTH_LIMIT);
+                let mut dec = Limited::new(base64::read::DecoderReader::new(&mut b64_reader, base64::STANDARD), limits);
                 let t = Self::read_xdr_to_end(v, &mut dec)?;
                 Ok(t)
+            }
+
+            #[cfg(all(feature = "std", feature = "serde_json"))]
+            #[allow(clippy::too_many_lines)]
+            pub fn read_json(v: TypeVariant, r: impl Read) -> Result<Self> {
+                match v {
+                    #{types.map { |t| "TypeVariant::#{t} => Ok(Self::#{t}(Box::new(serde_json::from_reader(r)?)))," }.join("\n")}
+                }
             }
 
             #[cfg(feature = "alloc")]
@@ -281,6 +289,16 @@ module Xdrgen
         impl Variants<TypeVariant> for Type {
             fn variants() -> slice::Iter<'static, TypeVariant> {
                 Self::VARIANTS.iter()
+            }
+        }
+
+        impl WriteXdr for Type {
+            #[cfg(feature = "std")]
+            #[allow(clippy::too_many_lines)]
+            fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
+                match self {
+                    #{types.map { |t| "Self::#{t}(v) => v.write_xdr(w)," }.join("\n")}
+                }
             }
         }
         EOS
@@ -344,7 +362,11 @@ module Xdrgen
       def render_struct(out, struct)
         out.puts "#[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]"
         out.puts %{#[cfg_attr(feature = "arbitrary", derive(Arbitrary))]}
-        out.puts %{#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]}
+        if @options[:rust_types_custom_str_impl].include?(name struct)
+          out.puts %{#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr))]}
+        else
+          out.puts %{#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]}
+        end
         out.puts "pub struct #{name struct} {"
         out.indent do
           struct.members.each do |m|
@@ -356,7 +378,7 @@ module Xdrgen
         out.puts <<-EOS.strip_heredoc
         impl ReadXdr for #{name struct} {
             #[cfg(feature = "std")]
-            fn read_xdr<R: Read>(r: &mut DepthLimitedRead<R>) -> Result<Self> {
+            fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self> {
                 r.with_limited_depth(|r| {
                     Ok(Self{
                       #{struct.members.map do |m|
@@ -369,7 +391,7 @@ module Xdrgen
 
         impl WriteXdr for #{name struct} {
             #[cfg(feature = "std")]
-            fn write_xdr<W: Write>(&self, w: &mut DepthLimitedWrite<W>) -> Result<()> {
+            fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
                 w.with_limited_depth(|w| {
                     #{struct.members.map do |m|
                       "self.#{field_name(m)}.write_xdr(w)?;"
@@ -386,7 +408,11 @@ module Xdrgen
         out.puts "// enum"
         out.puts "#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]"
         out.puts %{#[cfg_attr(feature = "arbitrary", derive(Arbitrary))]}
-        out.puts %{#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]}
+        if @options[:rust_types_custom_str_impl].include?(name enum)
+          out.puts %{#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr))]}
+        else
+          out.puts %{#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]}
+        end
         out.puts "#[repr(i32)]"
         out.puts "pub enum #{name enum} {"
         out.indent do
@@ -459,7 +485,7 @@ module Xdrgen
 
         impl ReadXdr for #{name enum} {
             #[cfg(feature = "std")]
-            fn read_xdr<R: Read>(r: &mut DepthLimitedRead<R>) -> Result<Self> {
+            fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self> {
                 r.with_limited_depth(|r| {
                     let e = i32::read_xdr(r)?;
                     let v: Self = e.try_into()?;
@@ -470,7 +496,7 @@ module Xdrgen
 
         impl WriteXdr for #{name enum} {
             #[cfg(feature = "std")]
-            fn write_xdr<W: Write>(&self, w: &mut DepthLimitedWrite<W>) -> Result<()> {
+            fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
                 w.with_limited_depth(|w| {
                     let i: i32 = (*self).into();
                     i.write_xdr(w)
@@ -511,7 +537,11 @@ module Xdrgen
         out.puts "// union with discriminant #{discriminant_type}"
         out.puts "#[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]"
         out.puts %{#[cfg_attr(feature = "arbitrary", derive(Arbitrary))]}
-        out.puts %{#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]}
+        if @options[:rust_types_custom_str_impl].include?(name union)
+          out.puts %{#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr))]}
+        else
+          out.puts %{#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]}
+        end
         out.puts "#[allow(clippy::large_enum_variant)]"
         out.puts "pub enum #{name union} {"
         union_case_count = 0
@@ -591,7 +621,7 @@ module Xdrgen
 
         impl ReadXdr for #{name union} {
             #[cfg(feature = "std")]
-            fn read_xdr<R: Read>(r: &mut DepthLimitedRead<R>) -> Result<Self> {
+            fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self> {
                 r.with_limited_depth(|r| {
                     let dv: #{discriminant_type} = <#{discriminant_type} as ReadXdr>::read_xdr(r)?;
                     #[allow(clippy::match_same_arms, clippy::match_wildcard_for_single_variants)]
@@ -613,7 +643,7 @@ module Xdrgen
 
         impl WriteXdr for #{name union} {
             #[cfg(feature = "std")]
-            fn write_xdr<W: Write>(&self, w: &mut DepthLimitedWrite<W>) -> Result<()> {
+            fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
                 w.with_limited_depth(|w| {
                     self.discriminant().write_xdr(w)?;
                     #[allow(clippy::match_same_arms)]
@@ -641,26 +671,18 @@ module Xdrgen
           out.puts "#[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]"
           out.puts %{#[cfg_attr(feature = "arbitrary", derive(Arbitrary))]}
           out.puts "#[derive(Default)]" if is_var_array_type(typedef.type)
-          if is_fixed_array_opaque(typedef.type)
-          out.puts %{#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr))]}
+          if is_fixed_array_opaque(typedef.type) || @options[:rust_types_custom_str_impl].include?(name typedef)
+            out.puts %{#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr))]}
           else
-          out.puts "#[derive(Debug)]"
-          out.puts %{#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]}
+            out.puts %{#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]}
+          end
+          if !is_fixed_array_opaque(typedef.type)
+            out.puts "#[derive(Debug)]"
           end
           out.puts "pub struct #{name typedef}(pub #{reference(typedef, typedef.type)});"
           out.puts ""
           if is_fixed_array_opaque(typedef.type)
           out.puts <<-EOS.strip_heredoc
-          impl core::fmt::Display for #{name typedef} {
-            fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-                let v = &self.0;
-                for b in v {
-                    write!(f, "{b:02x}")?;
-                }
-                Ok(())
-            }
-          }
-
           impl core::fmt::Debug for #{name typedef} {
             fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
                 let v = &self.0;
@@ -669,6 +691,19 @@ module Xdrgen
                     write!(f, "{b:02x}")?;
                 }
                 write!(f, ")")?;
+                Ok(())
+            }
+          }
+          EOS
+          end
+          if is_fixed_array_opaque(typedef.type) && !@options[:rust_types_custom_str_impl].include?(name typedef)
+          out.puts <<-EOS.strip_heredoc
+          impl core::fmt::Display for #{name typedef} {
+            fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+                let v = &self.0;
+                for b in v {
+                    write!(f, "{b:02x}")?;
+                }
                 Ok(())
             }
           }
@@ -706,7 +741,7 @@ module Xdrgen
 
           impl ReadXdr for #{name typedef} {
               #[cfg(feature = "std")]
-              fn read_xdr<R: Read>(r: &mut DepthLimitedRead<R>) -> Result<Self> {
+              fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self> {
                   r.with_limited_depth(|r| {
                       let i = #{reference_to_call(typedef, typedef.type)}::read_xdr(r)?;
                       let v = #{name typedef}(i);
@@ -717,7 +752,7 @@ module Xdrgen
 
           impl WriteXdr for #{name typedef} {
               #[cfg(feature = "std")]
-              fn write_xdr<W: Write>(&self, w: &mut DepthLimitedWrite<W>) -> Result<()> {
+              fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
                   w.with_limited_depth(|w|{ self.0.write_xdr(w) })
               }
           }

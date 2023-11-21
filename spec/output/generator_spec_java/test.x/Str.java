@@ -6,10 +6,10 @@ package MyXDR;
 import java.io.IOException;
 
 import static MyXDR.Constants.*;
-import com.google.common.io.BaseEncoding;
+import org.stellar.sdk.Base64Factory;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import com.google.common.base.Objects;
+import java.util.Objects;
 
 // === xdr source ============================================================
 
@@ -48,7 +48,7 @@ public class Str implements XdrElement {
 
   @Override
   public int hashCode() {
-    return Objects.hashCode(this.str);
+    return Objects.hash(this.str);
   }
 
   @Override
@@ -58,12 +58,11 @@ public class Str implements XdrElement {
     }
 
     Str other = (Str) object;
-    return Objects.equal(this.str, other.str);
+    return Objects.equals(this.str, other.str);
   }
   @Override
   public String toXdrBase64() throws IOException {
-    BaseEncoding base64Encoding = BaseEncoding.base64();
-    return base64Encoding.encode(toXdrByteArray());
+    return Base64Factory.getInstance().encodeToString(toXdrByteArray());
   }
 
   @Override
@@ -75,8 +74,7 @@ public class Str implements XdrElement {
   }
 
   public static Str fromXdrBase64(String xdr) throws IOException {
-    BaseEncoding base64Encoding = BaseEncoding.base64();
-    byte[] bytes = base64Encoding.decode(xdr);
+    byte[] bytes = Base64Factory.getInstance().decode(xdr);
     return fromXdrByteArray(bytes);
   }
 

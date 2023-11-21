@@ -190,7 +190,12 @@ module Xdrgen
       end
 
       def member_name(member)
-        name(member).camelize(:lower)
+        fixedName = name(member).camelize(:lower)
+        # render set() as set_() because set is reserved by stellar/js-xdr
+        if fixedName == 'set'
+          return 'set_'
+        end
+        fixedName
       end
 
       def reference(type)

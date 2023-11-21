@@ -6,10 +6,10 @@ package MyXDR;
 import java.io.IOException;
 
 import static MyXDR.Constants.*;
-import com.google.common.io.BaseEncoding;
+import org.stellar.sdk.Base64Factory;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import com.google.common.base.Objects;
+import java.util.Objects;
 import java.util.Arrays;
 
 // === xdr source ============================================================
@@ -118,7 +118,7 @@ public class MyUnion implements XdrElement {
   }
   @Override
   public int hashCode() {
-    return Objects.hashCode(this.error, Arrays.hashCode(this.things), this.type);
+    return Objects.hash(this.error, Arrays.hashCode(this.things), this.type);
   }
   @Override
   public boolean equals(Object object) {
@@ -127,12 +127,11 @@ public class MyUnion implements XdrElement {
     }
 
     MyUnion other = (MyUnion) object;
-    return Objects.equal(this.error, other.error) && Arrays.equals(this.things, other.things) && Objects.equal(this.type, other.type);
+    return Objects.equals(this.error, other.error) && Arrays.equals(this.things, other.things) && Objects.equals(this.type, other.type);
   }
   @Override
   public String toXdrBase64() throws IOException {
-    BaseEncoding base64Encoding = BaseEncoding.base64();
-    return base64Encoding.encode(toXdrByteArray());
+    return Base64Factory.getInstance().encodeToString(toXdrByteArray());
   }
 
   @Override
@@ -144,8 +143,7 @@ public class MyUnion implements XdrElement {
   }
 
   public static MyUnion fromXdrBase64(String xdr) throws IOException {
-    BaseEncoding base64Encoding = BaseEncoding.base64();
-    byte[] bytes = base64Encoding.decode(xdr);
+    byte[] bytes = Base64Factory.getInstance().decode(xdr);
     return fromXdrByteArray(bytes);
   }
 

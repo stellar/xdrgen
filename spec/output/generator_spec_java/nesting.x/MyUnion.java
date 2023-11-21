@@ -6,10 +6,10 @@ package MyXDR;
 import java.io.IOException;
 
 import static MyXDR.Constants.*;
-import com.google.common.io.BaseEncoding;
+import org.stellar.sdk.Base64Factory;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import com.google.common.base.Objects;
+import java.util.Objects;
 
 // === xdr source ============================================================
 
@@ -120,7 +120,7 @@ public class MyUnion implements XdrElement {
   }
   @Override
   public int hashCode() {
-    return Objects.hashCode(this.one, this.two, this.type);
+    return Objects.hash(this.one, this.two, this.type);
   }
   @Override
   public boolean equals(Object object) {
@@ -129,12 +129,11 @@ public class MyUnion implements XdrElement {
     }
 
     MyUnion other = (MyUnion) object;
-    return Objects.equal(this.one, other.one) && Objects.equal(this.two, other.two) && Objects.equal(this.type, other.type);
+    return Objects.equals(this.one, other.one) && Objects.equals(this.two, other.two) && Objects.equals(this.type, other.type);
   }
   @Override
   public String toXdrBase64() throws IOException {
-    BaseEncoding base64Encoding = BaseEncoding.base64();
-    return base64Encoding.encode(toXdrByteArray());
+    return Base64Factory.getInstance().encodeToString(toXdrByteArray());
   }
 
   @Override
@@ -146,8 +145,7 @@ public class MyUnion implements XdrElement {
   }
 
   public static MyUnion fromXdrBase64(String xdr) throws IOException {
-    BaseEncoding base64Encoding = BaseEncoding.base64();
-    byte[] bytes = base64Encoding.decode(xdr);
+    byte[] bytes = Base64Factory.getInstance().decode(xdr);
     return fromXdrByteArray(bytes);
   }
 
@@ -179,7 +177,7 @@ public class MyUnion implements XdrElement {
     }
     @Override
     public int hashCode() {
-      return Objects.hashCode(this.someInt);
+      return Objects.hash(this.someInt);
     }
     @Override
     public boolean equals(Object object) {
@@ -188,13 +186,12 @@ public class MyUnion implements XdrElement {
       }
 
       MyUnionOne other = (MyUnionOne) object;
-      return Objects.equal(this.someInt, other.someInt);
+      return Objects.equals(this.someInt, other.someInt);
     }
 
     @Override
     public String toXdrBase64() throws IOException {
-      BaseEncoding base64Encoding = BaseEncoding.base64();
-      return base64Encoding.encode(toXdrByteArray());
+      return Base64Factory.getInstance().encodeToString(toXdrByteArray());
     }
 
     @Override
@@ -206,8 +203,7 @@ public class MyUnion implements XdrElement {
     }
 
     public static MyUnionOne fromXdrBase64(String xdr) throws IOException {
-      BaseEncoding base64Encoding = BaseEncoding.base64();
-      byte[] bytes = base64Encoding.decode(xdr);
+      byte[] bytes = Base64Factory.getInstance().decode(xdr);
       return fromXdrByteArray(bytes);
     }
 
@@ -263,7 +259,7 @@ public class MyUnion implements XdrElement {
     }
     @Override
     public int hashCode() {
-      return Objects.hashCode(this.someInt, this.foo);
+      return Objects.hash(this.someInt, this.foo);
     }
     @Override
     public boolean equals(Object object) {
@@ -272,13 +268,12 @@ public class MyUnion implements XdrElement {
       }
 
       MyUnionTwo other = (MyUnionTwo) object;
-      return Objects.equal(this.someInt, other.someInt) && Objects.equal(this.foo, other.foo);
+      return Objects.equals(this.someInt, other.someInt) && Objects.equals(this.foo, other.foo);
     }
 
     @Override
     public String toXdrBase64() throws IOException {
-      BaseEncoding base64Encoding = BaseEncoding.base64();
-      return base64Encoding.encode(toXdrByteArray());
+      return Base64Factory.getInstance().encodeToString(toXdrByteArray());
     }
 
     @Override
@@ -290,8 +285,7 @@ public class MyUnion implements XdrElement {
     }
 
     public static MyUnionTwo fromXdrBase64(String xdr) throws IOException {
-      BaseEncoding base64Encoding = BaseEncoding.base64();
-      byte[] bytes = base64Encoding.decode(xdr);
+      byte[] bytes = Base64Factory.getInstance().decode(xdr);
       return fromXdrByteArray(bytes);
     }
 
