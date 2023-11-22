@@ -14,10 +14,13 @@ import (
   "errors"
   "io"
   "fmt"
+  "unsafe"
 
   "github.com/stellar/go-xdr/xdr3"
 )
 
+// Needed since unsafe is not used in all cases
+var _ = unsafe.Sizeof(0)
 // XdrFilesSHA256 is the SHA256 hashes of source files.
 var XdrFilesSHA256 = map[string]string{
   "spec/fixtures/generator/const.x": "0bff3b37592fcc16cad2fe10b9a72f5d39d033a114917c24e86a9ebd9cda9c37",
@@ -35,12 +38,17 @@ type decoderFrom interface {
 
 // Unmarshal reads an xdr element from `r` into `v`.
 func Unmarshal(r io.Reader, v interface{}) (int, error) {
+  return UnmarshalWithOptions(r, v, xdr.DefaultDecodeOptions)
+}
+
+// UnmarshalWithOptions works like Unmarshal but uses decoding options.
+func UnmarshalWithOptions(r io.Reader, v interface{}, options xdr.DecodeOptions) (int, error) {
   if decodable, ok := v.(decoderFrom); ok {
-    d := xdr.NewDecoder(r)
-    return decodable.DecodeFrom(d, xdr.DecodeDefaultMaxDepth)
+    d := xdr.NewDecoderWithOptions(r, options)
+    return decodable.DecodeFrom(d, options.MaxDepth)
   }
   // delegate to xdr package's Unmarshal
-	return xdr.Unmarshal(r, v)
+	return xdr.UnmarshalWithOptions(r, v, options)
 }
 
 // Marshal writes an xdr element `v` into `w`.
@@ -72,9 +80,9 @@ type TestArray [Foo]int32
 // EncodeTo encodes this value using the Encoder.
 func (s *TestArray) EncodeTo(e *xdr.Encoder) error {
   var err error
-if _, err = e.EncodeInt(int32(s)); err != nil {
-  return err
-}
+  if _, err = e.EncodeInt(int32(s)); err != nil {
+    return err
+  }
   return nil
 }
 
@@ -89,10 +97,10 @@ func (s *TestArray) DecodeFrom(d *xdr.Decoder, maxDepth uint) (int, error) {
   var n, nTmp int
   var v [Foo]int32
   v, nTmp, err = d.DecodeInt()
-n += nTmp
-if err != nil {
-  return n, fmt.Errorf("decoding Int: %w", err)
-}
+  n += nTmp
+  if err != nil {
+    return n, fmt.Errorf("decoding Int: %w", err)
+  }
   *s = TestArray(v)
   return n, nil
 }
@@ -108,8 +116,10 @@ func (s TestArray) MarshalBinary() ([]byte, error) {
 // UnmarshalBinary implements encoding.BinaryUnmarshaler.
 func (s *TestArray) UnmarshalBinary(inp []byte) error {
   r := bytes.NewReader(inp)
-  d := xdr.NewDecoder(r)
-  _, err := s.DecodeFrom(d, xdr.DecodeDefaultMaxDepth)
+  o := xdr.DefaultDecodeOptions
+  o.MaxInputLen = len(inp)
+  d := xdr.NewDecoderWithOptions(r, o)
+  _, err := s.DecodeFrom(d, o.MaxDepth)
   return err
 }
 
@@ -118,8 +128,7 @@ var (
   _ encoding.BinaryUnmarshaler = (*TestArray)(nil)
 )
 
-// xdrType signals that this type is an type representing
-// representing XDR values defined by this package.
+// xdrType signals that this type represents XDR values defined by this package.
 func (s TestArray) xdrType() {}
 
 var _ xdrType = (*TestArray)(nil)
@@ -136,9 +145,9 @@ func (e TestArray2) XDRMaxSize() int {
 // EncodeTo encodes this value using the Encoder.
 func (s TestArray2) EncodeTo(e *xdr.Encoder) error {
   var err error
-if _, err = e.EncodeInt(int32(s)); err != nil {
-  return err
-}
+  if _, err = e.EncodeInt(int32(s)); err != nil {
+    return err
+  }
   return nil
 }
 
@@ -153,10 +162,10 @@ func (s *TestArray2) DecodeFrom(d *xdr.Decoder, maxDepth uint) (int, error) {
   var n, nTmp int
   var v []int32
   v, nTmp, err = d.DecodeInt()
-n += nTmp
-if err != nil {
-  return n, fmt.Errorf("decoding Int: %w", err)
-}
+  n += nTmp
+  if err != nil {
+    return n, fmt.Errorf("decoding Int: %w", err)
+  }
   *s = TestArray2(v)
   return n, nil
 }
@@ -172,8 +181,10 @@ func (s TestArray2) MarshalBinary() ([]byte, error) {
 // UnmarshalBinary implements encoding.BinaryUnmarshaler.
 func (s *TestArray2) UnmarshalBinary(inp []byte) error {
   r := bytes.NewReader(inp)
-  d := xdr.NewDecoder(r)
-  _, err := s.DecodeFrom(d, xdr.DecodeDefaultMaxDepth)
+  o := xdr.DefaultDecodeOptions
+  o.MaxInputLen = len(inp)
+  d := xdr.NewDecoderWithOptions(r, o)
+  _, err := s.DecodeFrom(d, o.MaxDepth)
   return err
 }
 
@@ -182,11 +193,9 @@ var (
   _ encoding.BinaryUnmarshaler = (*TestArray2)(nil)
 )
 
-// xdrType signals that this type is an type representing
-// representing XDR values defined by this package.
+// xdrType signals that this type represents XDR values defined by this package.
 func (s TestArray2) xdrType() {}
 
 var _ xdrType = (*TestArray2)(nil)
 
-        var fmtTest = fmt.Sprint("this is a dummy usage of fmt")
-
+var fmtTest = fmt.Sprint("this is a dummy usage of fmt")

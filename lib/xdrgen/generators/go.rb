@@ -430,11 +430,11 @@ module Xdrgen
       # encode.
       def render_encode_to_body(out, var, type, self_encode:)
         def check_error(str)
-          <<-EOS.strip_heredoc
-            if #{str}; err != nil {
-              return err
-            }
-          EOS
+          <<-EOS
+  if #{str}; err != nil {
+    return err
+  }
+EOS
         end
         optional = type.sub_type == :optional
         if optional
@@ -649,12 +649,12 @@ module Xdrgen
       # xdr.Decoder, and a variable defined by `var` that is the value to
       # encode.
       def render_decode_from_body(out, var, type, declared_variables:, self_encode:)
-        tail = <<-EOS.strip_heredoc
-          n += nTmp
-          if err != nil {
-            return n, fmt.Errorf("decoding #{name type}: %w", err)
-          }
-        EOS
+        tail = <<-EOS
+  n += nTmp
+  if err != nil {
+    return n, fmt.Errorf("decoding #{name type}: %w", err)
+  }
+EOS
         optional = type.sub_type == :optional
         if optional
           render_variable_declaration(out, "  ", 'b', "bool", declared_variables: declared_variables)
@@ -688,13 +688,12 @@ module Xdrgen
         when AST::Typespecs::Opaque
           if type.fixed?
             out.puts "  nTmp, err = d.DecodeFixedOpaqueInplace(#{var}[:])"
-            out.puts tail
           else
             arg = "0"
             arg = type.decl.resolved_size unless type.decl.resolved_size.nil?
             out.puts "  #{var}, nTmp, err = d.DecodeOpaque(#{arg})"
-            out.puts tail
           end
+          out.puts tail
         when AST::Typespecs::Simple
           case type.sub_type
           when :simple, :optional
@@ -742,8 +741,11 @@ module Xdrgen
             end
             out.puts "  #{var} = nil"
             out.puts "  if l > 0 {"
+            out.puts "    if il, ok := d.InputLen(); ok && uint(il) < uint(l) {"
+            out.puts "        return n, fmt.Errorf(\"decoding #{name type}: length (%d) exceeds remaining input length (%d)\", l, il)"
+            out.puts "    }"
             out.puts "    #{var} = make([]#{name type}, l)"
-            out.puts "    for i := uint32(0); i < l; i++ {"
+            out.puts "    for i := uint32(0); uint(i) < uint(l); i++ {"
             element_var =   "#{var}[i]"
             optional_within = type.is_a?(AST::Identifier) && type.resolved_type.sub_type == :optional
             if optional_within
@@ -793,8 +795,10 @@ module Xdrgen
         out.puts "// UnmarshalBinary implements encoding.BinaryUnmarshaler."
         out.puts "func (s *#{name}) UnmarshalBinary(inp []byte) error {"
         out.puts "  r := bytes.NewReader(inp)"
-        out.puts "  d := xdr.NewDecoder(r)"
-        out.puts "  _, err := s.DecodeFrom(d, xdr.DecodeDefaultMaxDepth)"
+        out.puts "  o := xdr.DefaultDecodeOptions"
+        out.puts "  o.MaxInputLen = len(inp)"
+        out.puts "  d := xdr.NewDecoderWithOptions(r, o)"
+        out.puts "  _, err := s.DecodeFrom(d, o.MaxDepth)"
         out.puts "  return err"
         out.puts "}"
         out.break
@@ -806,8 +810,7 @@ module Xdrgen
       end
 
       def render_xdr_type_interface(out, name)
-        out.puts "// xdrType signals that this type is an type representing"
-        out.puts "// representing XDR values defined by this package."
+        out.puts "// xdrType signals that this type represents XDR values defined by this package."
         out.puts "func (s #{name}) xdrType() {}"
         out.break
         out.puts "var _ xdrType = (*#{name})(nil)"
@@ -836,12 +839,15 @@ module Xdrgen
             "errors"
             "io"
             "fmt"
+            "unsafe"
 
             "github.com/stellar/go-xdr/xdr3"
           )
         EOS
         out.break
         out.puts <<-EOS.strip_heredoc
+        // Needed since unsafe is not used in all cases
+        var _ = unsafe.Sizeof(0)
         // XdrFilesSHA256 is the SHA256 hashes of source files.
         var XdrFilesSHA256 = map[string]string{
           #{@output.relative_source_path_sha256_hashes.map(){ |path, hash| %{"#{path}": "#{hash}",} }.join("\n")}
@@ -861,12 +867,17 @@ module Xdrgen
 
           // Unmarshal reads an xdr element from `r` into `v`.
           func Unmarshal(r io.Reader, v interface{}) (int, error) {
+            return UnmarshalWithOptions(r, v, xdr.DefaultDecodeOptions)
+          }
+
+          // UnmarshalWithOptions works like Unmarshal but uses decoding options.
+          func UnmarshalWithOptions(r io.Reader, v interface{}, options xdr.DecodeOptions) (int, error) {
             if decodable, ok := v.(decoderFrom); ok {
-              d := xdr.NewDecoder(r)
-              return decodable.DecodeFrom(d, xdr.DecodeDefaultMaxDepth)
+              d := xdr.NewDecoderWithOptions(r, options)
+              return decodable.DecodeFrom(d, options.MaxDepth)
             }
             // delegate to xdr package's Unmarshal
-          	return xdr.Unmarshal(r, v)
+          	return xdr.UnmarshalWithOptions(r, v, options)
           }
 
           // Marshal writes an xdr element `v` into `w`.
@@ -888,10 +899,7 @@ module Xdrgen
       end
 
       def render_bottom_matter(out)
-        out.puts <<-EOS
-        var fmtTest = fmt.Sprint("this is a dummy usage of fmt")
-
-        EOS
+        out.puts 'var fmtTest = fmt.Sprint("this is a dummy usage of fmt")'
       end
 
       private
