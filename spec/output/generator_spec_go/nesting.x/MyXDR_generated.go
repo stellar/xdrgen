@@ -26,53 +26,45 @@ var XdrFilesSHA256 = map[string]string{
   "spec/fixtures/generator/nesting.x": "5537949272c11f1bd09cf613a3751668b5018d686a1c2aaa3baa91183ca18f6a",
 }
 
-          var ErrMaxDecodingDepthReached = errors.New("maximum decoding depth reached")
+var ErrMaxDecodingDepthReached = errors.New("maximum decoding depth reached")
 
-          type xdrType interface {
-            xdrType()
-          }
-
-          type decoderFrom interface {
-            DecodeFrom(d *xdr.Decoder, maxDepth uint, maxAllocSize int) (int, error)
-          }
-
-          // Unmarshal reads an xdr element from `r` into `v`.
-          func Unmarshal(r io.Reader, v interface{}) (int, error) {
-            return UnmarshalWithMaxAllocSize(r, v, 0)
-          }
-
-          // Unmarshal reads an xdr element from `r` into `v`.
-          func UnmarshalWithMaxAllocSize(r io.Reader, v interface{}, maxAllocSize int) (int, error) {
-            if decodable, ok := v.(decoderFrom); ok {
-              d := xdr.NewDecoder(r)
-              return decodable.DecodeFrom(d, xdr.DecodeDefaultMaxDepth, maxAllocSize)
-            }
-            // delegate to xdr package's Unmarshal
-          	return xdr.Unmarshal(r, v)
-          }
-
-          func mergeMaxAllocSizeAndMaxSize(maxAllocSize int, maxSize int) int {
-if maxAllocSize > 0 || maxAllocSize < maxSize {
-              return maxAllocSize
+type xdrType interface {
+  xdrType()
 }
-return maxSize
-          }
 
+type decoderFrom interface {
+  DecodeFrom(d *xdr.Decoder, maxDepth uint) (int, error)
+}
 
-          // Marshal writes an xdr element `v` into `w`.
-          func Marshal(w io.Writer, v interface{}) (int, error) {
-            if _, ok := v.(xdrType); ok {
-              if bm, ok := v.(encoding.BinaryMarshaler); ok {
-                b, err := bm.MarshalBinary()
-                if err != nil {
-                  return 0, err
-                }
-                return w.Write(b)
-              }
-            }
-            // delegate to xdr package's Marshal
-            return xdr.Marshal(w, v)
-          }
+// Unmarshal reads an xdr element from `r` into `v`.
+func Unmarshal(r io.Reader, v interface{}) (int, error) {
+  return UnmarshalWithOptions(r, v, xdr.DefaultDecodeOptions)
+}
+
+// UnmarshalWithOptions works like Unmarshal but uses decoding options.
+func UnmarshalWithOptions(r io.Reader, v interface{}, options xdr.DecodeOptions) (int, error) {
+  if decodable, ok := v.(decoderFrom); ok {
+    d := xdr.NewDecoderWithOptions(r, options)
+    return decodable.DecodeFrom(d, options.MaxDepth)
+  }
+  // delegate to xdr package's Unmarshal
+	return xdr.UnmarshalWithOptions(r, v, options)
+}
+
+// Marshal writes an xdr element `v` into `w`.
+func Marshal(w io.Writer, v interface{}) (int, error) {
+  if _, ok := v.(xdrType); ok {
+    if bm, ok := v.(encoding.BinaryMarshaler); ok {
+      b, err := bm.MarshalBinary()
+      if err != nil {
+        return 0, err
+      }
+      return w.Write(b)
+    }
+  }
+  // delegate to xdr package's Marshal
+  return xdr.Marshal(w, v)
+}
 
 // UnionKey is an XDR Enum defines as:
 //
@@ -116,7 +108,7 @@ func (e UnionKey) EncodeTo(enc *xdr.Encoder) error {
 }
 var _ decoderFrom = (*UnionKey)(nil)
 // DecodeFrom decodes this value using the Decoder.
-func (e *UnionKey) DecodeFrom(d *xdr.Decoder, maxDepth uint, maxAllocSize int) (int, error) {
+func (e *UnionKey) DecodeFrom(d *xdr.Decoder, maxDepth uint) (int, error) {
   if maxDepth == 0 {
     return 0, fmt.Errorf("decoding UnionKey: %w", ErrMaxDecodingDepthReached)
   }
@@ -142,8 +134,10 @@ func (s UnionKey) MarshalBinary() ([]byte, error) {
 // UnmarshalBinary implements encoding.BinaryUnmarshaler.
 func (s *UnionKey) UnmarshalBinary(inp []byte) error {
   r := bytes.NewReader(inp)
-  d := xdr.NewDecoder(r)
-  _, err := s.DecodeFrom(d, xdr.DecodeDefaultMaxDepth, 0)
+  o := xdr.DefaultDecodeOptions
+  o.MaxInputLen = len(inp)
+  d := xdr.NewDecoderWithOptions(r, o)
+  _, err := s.DecodeFrom(d, o.MaxDepth)
   return err
 }
 
@@ -152,8 +146,7 @@ var (
   _ encoding.BinaryUnmarshaler = (*UnionKey)(nil)
 )
 
-// xdrType signals that this type is an type representing
-// representing XDR values defined by this package.
+// xdrType signals that this type represents XDR values defined by this package.
 func (s UnionKey) xdrType() {}
 
 var _ xdrType = (*UnionKey)(nil)
@@ -167,15 +160,15 @@ type Foo int32
 // EncodeTo encodes this value using the Encoder.
 func (s Foo) EncodeTo(e *xdr.Encoder) error {
   var err error
-if _, err = e.EncodeInt(int32(s)); err != nil {
-  return err
-}
+  if _, err = e.EncodeInt(int32(s)); err != nil {
+    return err
+  }
   return nil
 }
 
 var _ decoderFrom = (*Foo)(nil)
 // DecodeFrom decodes this value using the Decoder.
-func (s *Foo) DecodeFrom(d *xdr.Decoder, maxDepth uint, maxAllocSize int) (int, error) {
+func (s *Foo) DecodeFrom(d *xdr.Decoder, maxDepth uint) (int, error) {
   if maxDepth == 0 {
     return 0, fmt.Errorf("decoding Foo: %w", ErrMaxDecodingDepthReached)
   }
@@ -184,10 +177,10 @@ func (s *Foo) DecodeFrom(d *xdr.Decoder, maxDepth uint, maxAllocSize int) (int, 
   var n, nTmp int
   var v int32
   v, nTmp, err = d.DecodeInt()
-n += nTmp
-if err != nil {
-  return n, fmt.Errorf("decoding Int: %w", err)
-}
+  n += nTmp
+  if err != nil {
+    return n, fmt.Errorf("decoding Int: %w", err)
+  }
   *s = Foo(v)
   return n, nil
 }
@@ -203,8 +196,10 @@ func (s Foo) MarshalBinary() ([]byte, error) {
 // UnmarshalBinary implements encoding.BinaryUnmarshaler.
 func (s *Foo) UnmarshalBinary(inp []byte) error {
   r := bytes.NewReader(inp)
-  d := xdr.NewDecoder(r)
-  _, err := s.DecodeFrom(d, xdr.DecodeDefaultMaxDepth, 0)
+  o := xdr.DefaultDecodeOptions
+  o.MaxInputLen = len(inp)
+  d := xdr.NewDecoderWithOptions(r, o)
+  _, err := s.DecodeFrom(d, o.MaxDepth)
   return err
 }
 
@@ -213,8 +208,7 @@ var (
   _ encoding.BinaryUnmarshaler = (*Foo)(nil)
 )
 
-// xdrType signals that this type is an type representing
-// representing XDR values defined by this package.
+// xdrType signals that this type represents XDR values defined by this package.
 func (s Foo) xdrType() {}
 
 var _ xdrType = (*Foo)(nil)
@@ -232,15 +226,15 @@ type MyUnionOne struct {
 // EncodeTo encodes this value using the Encoder.
 func (s *MyUnionOne) EncodeTo(e *xdr.Encoder) error {
   var err error
-if _, err = e.EncodeInt(int32(s.SomeInt)); err != nil {
-  return err
-}
+  if _, err = e.EncodeInt(int32(s.SomeInt)); err != nil {
+    return err
+  }
   return nil
 }
 
 var _ decoderFrom = (*MyUnionOne)(nil)
 // DecodeFrom decodes this value using the Decoder.
-func (s *MyUnionOne) DecodeFrom(d *xdr.Decoder, maxDepth uint, maxAllocSize int) (int, error) {
+func (s *MyUnionOne) DecodeFrom(d *xdr.Decoder, maxDepth uint) (int, error) {
   if maxDepth == 0 {
     return 0, fmt.Errorf("decoding MyUnionOne: %w", ErrMaxDecodingDepthReached)
   }
@@ -248,10 +242,10 @@ func (s *MyUnionOne) DecodeFrom(d *xdr.Decoder, maxDepth uint, maxAllocSize int)
   var err error
   var n, nTmp int
   s.SomeInt, nTmp, err = d.DecodeInt()
-n += nTmp
-if err != nil {
-  return n, fmt.Errorf("decoding Int: %w", err)
-}
+  n += nTmp
+  if err != nil {
+    return n, fmt.Errorf("decoding Int: %w", err)
+  }
   return n, nil
 }
 
@@ -266,8 +260,10 @@ func (s MyUnionOne) MarshalBinary() ([]byte, error) {
 // UnmarshalBinary implements encoding.BinaryUnmarshaler.
 func (s *MyUnionOne) UnmarshalBinary(inp []byte) error {
   r := bytes.NewReader(inp)
-  d := xdr.NewDecoder(r)
-  _, err := s.DecodeFrom(d, xdr.DecodeDefaultMaxDepth, 0)
+  o := xdr.DefaultDecodeOptions
+  o.MaxInputLen = len(inp)
+  d := xdr.NewDecoderWithOptions(r, o)
+  _, err := s.DecodeFrom(d, o.MaxDepth)
   return err
 }
 
@@ -276,8 +272,7 @@ var (
   _ encoding.BinaryUnmarshaler = (*MyUnionOne)(nil)
 )
 
-// xdrType signals that this type is an type representing
-// representing XDR values defined by this package.
+// xdrType signals that this type represents XDR values defined by this package.
 func (s MyUnionOne) xdrType() {}
 
 var _ xdrType = (*MyUnionOne)(nil)
@@ -297,18 +292,18 @@ type MyUnionTwo struct {
 // EncodeTo encodes this value using the Encoder.
 func (s *MyUnionTwo) EncodeTo(e *xdr.Encoder) error {
   var err error
-if _, err = e.EncodeInt(int32(s.SomeInt)); err != nil {
-  return err
-}
-if   err = s.Foo.EncodeTo(e); err != nil {
-  return err
-}
+  if _, err = e.EncodeInt(int32(s.SomeInt)); err != nil {
+    return err
+  }
+  if   err = s.Foo.EncodeTo(e); err != nil {
+    return err
+  }
   return nil
 }
 
 var _ decoderFrom = (*MyUnionTwo)(nil)
 // DecodeFrom decodes this value using the Decoder.
-func (s *MyUnionTwo) DecodeFrom(d *xdr.Decoder, maxDepth uint, maxAllocSize int) (int, error) {
+func (s *MyUnionTwo) DecodeFrom(d *xdr.Decoder, maxDepth uint) (int, error) {
   if maxDepth == 0 {
     return 0, fmt.Errorf("decoding MyUnionTwo: %w", ErrMaxDecodingDepthReached)
   }
@@ -316,15 +311,15 @@ func (s *MyUnionTwo) DecodeFrom(d *xdr.Decoder, maxDepth uint, maxAllocSize int)
   var err error
   var n, nTmp int
   s.SomeInt, nTmp, err = d.DecodeInt()
-n += nTmp
-if err != nil {
-  return n, fmt.Errorf("decoding Int: %w", err)
-}
-  nTmp, err = s.Foo.DecodeFrom(d, maxDepth, maxAllocSize)
-n += nTmp
-if err != nil {
-  return n, fmt.Errorf("decoding Foo: %w", err)
-}
+  n += nTmp
+  if err != nil {
+    return n, fmt.Errorf("decoding Int: %w", err)
+  }
+  nTmp, err = s.Foo.DecodeFrom(d, maxDepth)
+  n += nTmp
+  if err != nil {
+    return n, fmt.Errorf("decoding Foo: %w", err)
+  }
   return n, nil
 }
 
@@ -339,8 +334,10 @@ func (s MyUnionTwo) MarshalBinary() ([]byte, error) {
 // UnmarshalBinary implements encoding.BinaryUnmarshaler.
 func (s *MyUnionTwo) UnmarshalBinary(inp []byte) error {
   r := bytes.NewReader(inp)
-  d := xdr.NewDecoder(r)
-  _, err := s.DecodeFrom(d, xdr.DecodeDefaultMaxDepth, 0)
+  o := xdr.DefaultDecodeOptions
+  o.MaxInputLen = len(inp)
+  d := xdr.NewDecoderWithOptions(r, o)
+  _, err := s.DecodeFrom(d, o.MaxDepth)
   return err
 }
 
@@ -349,8 +346,7 @@ var (
   _ encoding.BinaryUnmarshaler = (*MyUnionTwo)(nil)
 )
 
-// xdrType signals that this type is an type representing
-// representing XDR values defined by this package.
+// xdrType signals that this type represents XDR values defined by this package.
 func (s MyUnionTwo) xdrType() {}
 
 var _ xdrType = (*MyUnionTwo)(nil)
@@ -475,19 +471,19 @@ func (u MyUnion) GetTwo() (result MyUnionTwo, ok bool) {
 // EncodeTo encodes this value using the Encoder.
 func (u MyUnion) EncodeTo(e *xdr.Encoder) error {
   var err error
-if   err = u.Type.EncodeTo(e); err != nil {
-  return err
-}
+  if   err = u.Type.EncodeTo(e); err != nil {
+    return err
+  }
 switch UnionKey(u.Type) {
     case UnionKeyOne:
-      if err = (*u.One).EncodeTo(e); err != nil {
-  return err
-}
+        if err = (*u.One).EncodeTo(e); err != nil {
+    return err
+  }
 return nil
     case UnionKeyTwo:
-      if err = (*u.Two).EncodeTo(e); err != nil {
-  return err
-}
+        if err = (*u.Two).EncodeTo(e); err != nil {
+    return err
+  }
 return nil
     case UnionKeyOffer:
       // Void
@@ -498,34 +494,34 @@ return nil
 
 var _ decoderFrom = (*MyUnion)(nil)
 // DecodeFrom decodes this value using the Decoder.
-func (u *MyUnion) DecodeFrom(d *xdr.Decoder, maxDepth uint, maxAllocSize int) (int, error) {
+func (u *MyUnion) DecodeFrom(d *xdr.Decoder, maxDepth uint) (int, error) {
   if maxDepth == 0 {
     return 0, fmt.Errorf("decoding MyUnion: %w", ErrMaxDecodingDepthReached)
   }
   maxDepth -= 1
   var err error
   var n, nTmp int
-  nTmp, err = u.Type.DecodeFrom(d, maxDepth, maxAllocSize)
-n += nTmp
-if err != nil {
-  return n, fmt.Errorf("decoding UnionKey: %w", err)
-}
+  nTmp, err = u.Type.DecodeFrom(d, maxDepth)
+  n += nTmp
+  if err != nil {
+    return n, fmt.Errorf("decoding UnionKey: %w", err)
+  }
 switch UnionKey(u.Type) {
     case UnionKeyOne:
         u.One = new(MyUnionOne)
-  nTmp, err = (*u.One).DecodeFrom(d, maxDepth, maxAllocSize)
-n += nTmp
-if err != nil {
-  return n, fmt.Errorf("decoding MyUnionOne: %w", err)
-}
+  nTmp, err = (*u.One).DecodeFrom(d, maxDepth)
+  n += nTmp
+  if err != nil {
+    return n, fmt.Errorf("decoding MyUnionOne: %w", err)
+  }
   return n, nil
     case UnionKeyTwo:
         u.Two = new(MyUnionTwo)
-  nTmp, err = (*u.Two).DecodeFrom(d, maxDepth, maxAllocSize)
-n += nTmp
-if err != nil {
-  return n, fmt.Errorf("decoding MyUnionTwo: %w", err)
-}
+  nTmp, err = (*u.Two).DecodeFrom(d, maxDepth)
+  n += nTmp
+  if err != nil {
+    return n, fmt.Errorf("decoding MyUnionTwo: %w", err)
+  }
   return n, nil
     case UnionKeyOffer:
       // Void
@@ -545,8 +541,10 @@ func (s MyUnion) MarshalBinary() ([]byte, error) {
 // UnmarshalBinary implements encoding.BinaryUnmarshaler.
 func (s *MyUnion) UnmarshalBinary(inp []byte) error {
   r := bytes.NewReader(inp)
-  d := xdr.NewDecoder(r)
-  _, err := s.DecodeFrom(d, xdr.DecodeDefaultMaxDepth, 0)
+  o := xdr.DefaultDecodeOptions
+  o.MaxInputLen = len(inp)
+  d := xdr.NewDecoderWithOptions(r, o)
+  _, err := s.DecodeFrom(d, o.MaxDepth)
   return err
 }
 
@@ -555,11 +553,9 @@ var (
   _ encoding.BinaryUnmarshaler = (*MyUnion)(nil)
 )
 
-// xdrType signals that this type is an type representing
-// representing XDR values defined by this package.
+// xdrType signals that this type represents XDR values defined by this package.
 func (s MyUnion) xdrType() {}
 
 var _ xdrType = (*MyUnion)(nil)
 
-        var fmtTest = fmt.Sprint("this is a dummy usage of fmt")
-
+var fmtTest = fmt.Sprint("this is a dummy usage of fmt")

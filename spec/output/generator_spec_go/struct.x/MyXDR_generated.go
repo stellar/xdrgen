@@ -26,53 +26,45 @@ var XdrFilesSHA256 = map[string]string{
   "spec/fixtures/generator/struct.x": "c6911a83390e3b499c078fd0c579132eacce88a4a0538d3b8b5e57747a58db4a",
 }
 
-          var ErrMaxDecodingDepthReached = errors.New("maximum decoding depth reached")
+var ErrMaxDecodingDepthReached = errors.New("maximum decoding depth reached")
 
-          type xdrType interface {
-            xdrType()
-          }
-
-          type decoderFrom interface {
-            DecodeFrom(d *xdr.Decoder, maxDepth uint, maxAllocSize int) (int, error)
-          }
-
-          // Unmarshal reads an xdr element from `r` into `v`.
-          func Unmarshal(r io.Reader, v interface{}) (int, error) {
-            return UnmarshalWithMaxAllocSize(r, v, 0)
-          }
-
-          // Unmarshal reads an xdr element from `r` into `v`.
-          func UnmarshalWithMaxAllocSize(r io.Reader, v interface{}, maxAllocSize int) (int, error) {
-            if decodable, ok := v.(decoderFrom); ok {
-              d := xdr.NewDecoder(r)
-              return decodable.DecodeFrom(d, xdr.DecodeDefaultMaxDepth, maxAllocSize)
-            }
-            // delegate to xdr package's Unmarshal
-          	return xdr.Unmarshal(r, v)
-          }
-
-          func mergeMaxAllocSizeAndMaxSize(maxAllocSize int, maxSize int) int {
-if maxAllocSize > 0 || maxAllocSize < maxSize {
-              return maxAllocSize
+type xdrType interface {
+  xdrType()
 }
-return maxSize
-          }
 
+type decoderFrom interface {
+  DecodeFrom(d *xdr.Decoder, maxDepth uint) (int, error)
+}
 
-          // Marshal writes an xdr element `v` into `w`.
-          func Marshal(w io.Writer, v interface{}) (int, error) {
-            if _, ok := v.(xdrType); ok {
-              if bm, ok := v.(encoding.BinaryMarshaler); ok {
-                b, err := bm.MarshalBinary()
-                if err != nil {
-                  return 0, err
-                }
-                return w.Write(b)
-              }
-            }
-            // delegate to xdr package's Marshal
-            return xdr.Marshal(w, v)
-          }
+// Unmarshal reads an xdr element from `r` into `v`.
+func Unmarshal(r io.Reader, v interface{}) (int, error) {
+  return UnmarshalWithOptions(r, v, xdr.DefaultDecodeOptions)
+}
+
+// UnmarshalWithOptions works like Unmarshal but uses decoding options.
+func UnmarshalWithOptions(r io.Reader, v interface{}, options xdr.DecodeOptions) (int, error) {
+  if decodable, ok := v.(decoderFrom); ok {
+    d := xdr.NewDecoderWithOptions(r, options)
+    return decodable.DecodeFrom(d, options.MaxDepth)
+  }
+  // delegate to xdr package's Unmarshal
+	return xdr.UnmarshalWithOptions(r, v, options)
+}
+
+// Marshal writes an xdr element `v` into `w`.
+func Marshal(w io.Writer, v interface{}) (int, error) {
+  if _, ok := v.(xdrType); ok {
+    if bm, ok := v.(encoding.BinaryMarshaler); ok {
+      b, err := bm.MarshalBinary()
+      if err != nil {
+        return 0, err
+      }
+      return w.Write(b)
+    }
+  }
+  // delegate to xdr package's Marshal
+  return xdr.Marshal(w, v)
+}
 
 // Int64 is an XDR Typedef defines as:
 //
@@ -83,15 +75,15 @@ type Int64 int64
 // EncodeTo encodes this value using the Encoder.
 func (s Int64) EncodeTo(e *xdr.Encoder) error {
   var err error
-if _, err = e.EncodeHyper(int64(s)); err != nil {
-  return err
-}
+  if _, err = e.EncodeHyper(int64(s)); err != nil {
+    return err
+  }
   return nil
 }
 
 var _ decoderFrom = (*Int64)(nil)
 // DecodeFrom decodes this value using the Decoder.
-func (s *Int64) DecodeFrom(d *xdr.Decoder, maxDepth uint, maxAllocSize int) (int, error) {
+func (s *Int64) DecodeFrom(d *xdr.Decoder, maxDepth uint) (int, error) {
   if maxDepth == 0 {
     return 0, fmt.Errorf("decoding Int64: %w", ErrMaxDecodingDepthReached)
   }
@@ -100,10 +92,10 @@ func (s *Int64) DecodeFrom(d *xdr.Decoder, maxDepth uint, maxAllocSize int) (int
   var n, nTmp int
   var v int64
   v, nTmp, err = d.DecodeHyper()
-n += nTmp
-if err != nil {
-  return n, fmt.Errorf("decoding Hyper: %w", err)
-}
+  n += nTmp
+  if err != nil {
+    return n, fmt.Errorf("decoding Hyper: %w", err)
+  }
   *s = Int64(v)
   return n, nil
 }
@@ -119,8 +111,10 @@ func (s Int64) MarshalBinary() ([]byte, error) {
 // UnmarshalBinary implements encoding.BinaryUnmarshaler.
 func (s *Int64) UnmarshalBinary(inp []byte) error {
   r := bytes.NewReader(inp)
-  d := xdr.NewDecoder(r)
-  _, err := s.DecodeFrom(d, xdr.DecodeDefaultMaxDepth, 0)
+  o := xdr.DefaultDecodeOptions
+  o.MaxInputLen = len(inp)
+  d := xdr.NewDecoderWithOptions(r, o)
+  _, err := s.DecodeFrom(d, o.MaxDepth)
   return err
 }
 
@@ -129,8 +123,7 @@ var (
   _ encoding.BinaryUnmarshaler = (*Int64)(nil)
 )
 
-// xdrType signals that this type is an type representing
-// representing XDR values defined by this package.
+// xdrType signals that this type represents XDR values defined by this package.
 func (s Int64) xdrType() {}
 
 var _ xdrType = (*Int64)(nil)
@@ -157,27 +150,27 @@ type MyStruct struct {
 // EncodeTo encodes this value using the Encoder.
 func (s *MyStruct) EncodeTo(e *xdr.Encoder) error {
   var err error
-if _, err = e.EncodeInt(int32(s.SomeInt)); err != nil {
-  return err
-}
-if   err = s.ABigInt.EncodeTo(e); err != nil {
-  return err
-}
-if _, err = e.EncodeFixedOpaque(s.SomeOpaque[:]); err != nil {
-  return err
-}
-if _, err = e.EncodeString(string(s.SomeString)); err != nil {
-  return err
-}
-if _, err = e.EncodeString(string(s.MaxString)); err != nil {
-  return err
-}
+  if _, err = e.EncodeInt(int32(s.SomeInt)); err != nil {
+    return err
+  }
+  if   err = s.ABigInt.EncodeTo(e); err != nil {
+    return err
+  }
+  if _, err = e.EncodeFixedOpaque(s.SomeOpaque[:]); err != nil {
+    return err
+  }
+  if _, err = e.EncodeString(string(s.SomeString)); err != nil {
+    return err
+  }
+  if _, err = e.EncodeString(string(s.MaxString)); err != nil {
+    return err
+  }
   return nil
 }
 
 var _ decoderFrom = (*MyStruct)(nil)
 // DecodeFrom decodes this value using the Decoder.
-func (s *MyStruct) DecodeFrom(d *xdr.Decoder, maxDepth uint, maxAllocSize int) (int, error) {
+func (s *MyStruct) DecodeFrom(d *xdr.Decoder, maxDepth uint) (int, error) {
   if maxDepth == 0 {
     return 0, fmt.Errorf("decoding MyStruct: %w", ErrMaxDecodingDepthReached)
   }
@@ -185,30 +178,30 @@ func (s *MyStruct) DecodeFrom(d *xdr.Decoder, maxDepth uint, maxAllocSize int) (
   var err error
   var n, nTmp int
   s.SomeInt, nTmp, err = d.DecodeInt()
-n += nTmp
-if err != nil {
-  return n, fmt.Errorf("decoding Int: %w", err)
-}
-  nTmp, err = s.ABigInt.DecodeFrom(d, maxDepth, maxAllocSize)
-n += nTmp
-if err != nil {
-  return n, fmt.Errorf("decoding Int64: %w", err)
-}
+  n += nTmp
+  if err != nil {
+    return n, fmt.Errorf("decoding Int: %w", err)
+  }
+  nTmp, err = s.ABigInt.DecodeFrom(d, maxDepth)
+  n += nTmp
+  if err != nil {
+    return n, fmt.Errorf("decoding Int64: %w", err)
+  }
   nTmp, err = d.DecodeFixedOpaqueInplace(s.SomeOpaque[:])
-n += nTmp
-if err != nil {
-  return n, fmt.Errorf("decoding SomeOpaque: %w", err)
-}
-  s.SomeString, nTmp, err = d.DecodeString(maxAllocSize)
-n += nTmp
-if err != nil {
-  return n, fmt.Errorf("decoding SomeString: %w", err)
-}
-  s.MaxString, nTmp, err = d.DecodeString(mergeMaxAllocSizeAndMaxSize(maxAllocSize, 100))
-n += nTmp
-if err != nil {
-  return n, fmt.Errorf("decoding MaxString: %w", err)
-}
+  n += nTmp
+  if err != nil {
+    return n, fmt.Errorf("decoding SomeOpaque: %w", err)
+  }
+  s.SomeString, nTmp, err = d.DecodeString(0)
+  n += nTmp
+  if err != nil {
+    return n, fmt.Errorf("decoding SomeString: %w", err)
+  }
+  s.MaxString, nTmp, err = d.DecodeString(100)
+  n += nTmp
+  if err != nil {
+    return n, fmt.Errorf("decoding MaxString: %w", err)
+  }
   return n, nil
 }
 
@@ -223,8 +216,10 @@ func (s MyStruct) MarshalBinary() ([]byte, error) {
 // UnmarshalBinary implements encoding.BinaryUnmarshaler.
 func (s *MyStruct) UnmarshalBinary(inp []byte) error {
   r := bytes.NewReader(inp)
-  d := xdr.NewDecoder(r)
-  _, err := s.DecodeFrom(d, xdr.DecodeDefaultMaxDepth, 0)
+  o := xdr.DefaultDecodeOptions
+  o.MaxInputLen = len(inp)
+  d := xdr.NewDecoderWithOptions(r, o)
+  _, err := s.DecodeFrom(d, o.MaxDepth)
   return err
 }
 
@@ -233,11 +228,9 @@ var (
   _ encoding.BinaryUnmarshaler = (*MyStruct)(nil)
 )
 
-// xdrType signals that this type is an type representing
-// representing XDR values defined by this package.
+// xdrType signals that this type represents XDR values defined by this package.
 func (s MyStruct) xdrType() {}
 
 var _ xdrType = (*MyStruct)(nil)
 
-        var fmtTest = fmt.Sprint("this is a dummy usage of fmt")
-
+var fmtTest = fmt.Sprint("this is a dummy usage of fmt")
