@@ -14,13 +14,10 @@ import (
   "errors"
   "io"
   "fmt"
-  "unsafe"
 
   "github.com/stellar/go-xdr/xdr3"
 )
 
-// Needed since unsafe is not used in all cases
-var _ = unsafe.Sizeof(0)
 // XdrFilesSHA256 is the SHA256 hashes of source files.
 var XdrFilesSHA256 = map[string]string{
   "spec/fixtures/generator/test.x": "d29a98a6a3b9bf533a3e6712d928e0bed655e0f462ac4dae810c65d52ca9af41",
@@ -556,7 +553,7 @@ func (s *Hashes2) DecodeFrom(d *xdr.Decoder, maxDepth uint) (int, error) {
         return n, fmt.Errorf("decoding Hash: length (%d) exceeds remaining input length (%d)", l, il)
     }
     (*s) = make([]Hash, l)
-    for i := uint32(0); uint(i) < uint(l); i++ {
+    for i := uint32(0); i < l; i++ {
       nTmp, err = (*s)[i].DecodeFrom(d, maxDepth)
   n += nTmp
   if err != nil {
@@ -635,7 +632,7 @@ func (s *Hashes3) DecodeFrom(d *xdr.Decoder, maxDepth uint) (int, error) {
         return n, fmt.Errorf("decoding Hash: length (%d) exceeds remaining input length (%d)", l, il)
     }
     (*s) = make([]Hash, l)
-    for i := uint32(0); uint(i) < uint(l); i++ {
+    for i := uint32(0); i < l; i++ {
       nTmp, err = (*s)[i].DecodeFrom(d, maxDepth)
   n += nTmp
   if err != nil {
@@ -1118,7 +1115,7 @@ func (s *LotsOfMyStructs) DecodeFrom(d *xdr.Decoder, maxDepth uint) (int, error)
         return n, fmt.Errorf("decoding MyStruct: length (%d) exceeds remaining input length (%d)", l, il)
     }
     s.Members = make([]MyStruct, l)
-    for i := uint32(0); uint(i) < uint(l); i++ {
+    for i := uint32(0); i < l; i++ {
       nTmp, err = s.Members[i].DecodeFrom(d, maxDepth)
   n += nTmp
   if err != nil {
