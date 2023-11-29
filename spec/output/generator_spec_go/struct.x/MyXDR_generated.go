@@ -14,13 +14,10 @@ import (
   "errors"
   "io"
   "fmt"
-  "unsafe"
 
   "github.com/stellar/go-xdr/xdr3"
 )
 
-// Needed since unsafe is not used in all cases
-var _ = unsafe.Sizeof(0)
 // XdrFilesSHA256 is the SHA256 hashes of source files.
 var XdrFilesSHA256 = map[string]string{
   "spec/fixtures/generator/struct.x": "c6911a83390e3b499c078fd0c579132eacce88a4a0538d3b8b5e57747a58db4a",

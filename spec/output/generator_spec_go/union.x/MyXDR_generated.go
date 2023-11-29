@@ -14,13 +14,10 @@ import (
   "errors"
   "io"
   "fmt"
-  "unsafe"
 
   "github.com/stellar/go-xdr/xdr3"
 )
 
-// Needed since unsafe is not used in all cases
-var _ = unsafe.Sizeof(0)
 // XdrFilesSHA256 is the SHA256 hashes of source files.
 var XdrFilesSHA256 = map[string]string{
   "spec/fixtures/generator/union.x": "c251258d967223b341ebcf2d5bb0718e9a039b46232cb743865d9acd0c4bbe41",
@@ -441,7 +438,7 @@ switch UnionKey(u.Type) {
         return n, fmt.Errorf("decoding Multi: length (%d) exceeds remaining input length (%d)", l, il)
     }
     (*u.Things) = make([]Multi, l)
-    for i := uint32(0); uint(i) < uint(l); i++ {
+    for i := uint32(0); i < l; i++ {
       nTmp, err = (*u.Things)[i].DecodeFrom(d, maxDepth)
   n += nTmp
   if err != nil {
@@ -650,7 +647,7 @@ switch int32(u.Type) {
         return n, fmt.Errorf("decoding Multi: length (%d) exceeds remaining input length (%d)", l, il)
     }
     (*u.Things) = make([]Multi, l)
-    for i := uint32(0); uint(i) < uint(l); i++ {
+    for i := uint32(0); i < l; i++ {
       nTmp, err = (*u.Things)[i].DecodeFrom(d, maxDepth)
   n += nTmp
   if err != nil {

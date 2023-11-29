@@ -745,7 +745,7 @@ EOS
             out.puts "        return n, fmt.Errorf(\"decoding #{name type}: length (%d) exceeds remaining input length (%d)\", l, il)"
             out.puts "    }"
             out.puts "    #{var} = make([]#{name type}, l)"
-            out.puts "    for i := uint32(0); uint(i) < uint(l); i++ {"
+            out.puts "    for i := uint32(0); i < l; i++ {"
             element_var =   "#{var}[i]"
             optional_within = type.is_a?(AST::Identifier) && type.resolved_type.sub_type == :optional
             if optional_within
@@ -839,15 +839,12 @@ EOS
             "errors"
             "io"
             "fmt"
-            "unsafe"
 
             "github.com/stellar/go-xdr/xdr3"
           )
         EOS
         out.break
         out.puts <<-EOS.strip_heredoc
-        // Needed since unsafe is not used in all cases
-        var _ = unsafe.Sizeof(0)
         // XdrFilesSHA256 is the SHA256 hashes of source files.
         var XdrFilesSHA256 = map[string]string{
           #{@output.relative_source_path_sha256_hashes.map(){ |path, hash| %{"#{path}": "#{hash}",} }.join("\n")}
