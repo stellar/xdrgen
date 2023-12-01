@@ -2686,10 +2686,10 @@ mod test {
     }
 }
 
-// Uint512 is an XDR Typedef defines as:
-//
-//   typedef opaque uint512[64];
-//
+/// Uint512 is an XDR Typedef defines as:
+///
+///   typedef opaque uint512[64];
+///
 #[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr))]
@@ -2799,10 +2799,10 @@ impl AsRef<[u8]> for Uint512 {
     }
 }
 
-// Uint513 is an XDR Typedef defines as:
-//
-//   typedef opaque uint513<64>;
-//
+/// Uint513 is an XDR Typedef defines as:
+///
+///   typedef opaque uint513<64>;
+///
 #[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[derive(Default)]
@@ -2898,10 +2898,10 @@ impl AsRef<[u8]> for Uint513 {
     }
 }
 
-// Uint514 is an XDR Typedef defines as:
-//
-//   typedef opaque uint514<>;
-//
+/// Uint514 is an XDR Typedef defines as:
+///
+///   typedef opaque uint514<>;
+///
 #[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[derive(Default)]
@@ -2997,10 +2997,10 @@ impl AsRef<[u8]> for Uint514 {
     }
 }
 
-// Str is an XDR Typedef defines as:
-//
-//   typedef string str<64>;
-//
+/// Str is an XDR Typedef defines as:
+///
+///   typedef string str<64>;
+///
 #[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[derive(Default)]
@@ -3096,10 +3096,10 @@ impl AsRef<[u8]> for Str {
     }
 }
 
-// Str2 is an XDR Typedef defines as:
-//
-//   typedef string str2<>;
-//
+/// Str2 is an XDR Typedef defines as:
+///
+///   typedef string str2<>;
+///
 #[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[derive(Default)]
@@ -3195,10 +3195,10 @@ impl AsRef<[u8]> for Str2 {
     }
 }
 
-// Hash is an XDR Typedef defines as:
-//
-//   typedef opaque Hash[32];
-//
+/// Hash is an XDR Typedef defines as:
+///
+///   typedef opaque Hash[32];
+///
 #[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr))]
@@ -3308,10 +3308,10 @@ impl AsRef<[u8]> for Hash {
     }
 }
 
-// Hashes1 is an XDR Typedef defines as:
-//
-//   typedef Hash Hashes1[12];
-//
+/// Hashes1 is an XDR Typedef defines as:
+///
+///   typedef Hash Hashes1[12];
+///
 #[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
@@ -3394,10 +3394,10 @@ impl AsRef<[Hash]> for Hashes1 {
     }
 }
 
-// Hashes2 is an XDR Typedef defines as:
-//
-//   typedef Hash Hashes2<12>;
-//
+/// Hashes2 is an XDR Typedef defines as:
+///
+///   typedef Hash Hashes2<12>;
+///
 #[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[derive(Default)]
@@ -3493,10 +3493,10 @@ impl AsRef<[Hash]> for Hashes2 {
     }
 }
 
-// Hashes3 is an XDR Typedef defines as:
-//
-//   typedef Hash Hashes3<>;
-//
+/// Hashes3 is an XDR Typedef defines as:
+///
+///   typedef Hash Hashes3<>;
+///
 #[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[derive(Default)]
@@ -3592,10 +3592,10 @@ impl AsRef<[Hash]> for Hashes3 {
     }
 }
 
-// OptHash1 is an XDR Typedef defines as:
-//
-//   typedef Hash *optHash1;
-//
+/// OptHash1 is an XDR Typedef defines as:
+///
+///   typedef Hash *optHash1;
+///
 #[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
@@ -3641,10 +3641,10 @@ impl WriteXdr for OptHash1 {
     }
 }
 
-// OptHash2 is an XDR Typedef defines as:
-//
-//   typedef Hash* optHash2;
-//
+/// OptHash2 is an XDR Typedef defines as:
+///
+///   typedef Hash* optHash2;
+///
 #[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
@@ -3690,33 +3690,33 @@ impl WriteXdr for OptHash2 {
     }
 }
 
-// Int1 is an XDR Typedef defines as:
-//
-//   typedef int             int1;
-//
+/// Int1 is an XDR Typedef defines as:
+///
+///   typedef int             int1;
+///
 pub type Int1 = i32;
 
-// Int2 is an XDR Typedef defines as:
-//
-//   typedef hyper           int2;
-//
+/// Int2 is an XDR Typedef defines as:
+///
+///   typedef hyper           int2;
+///
 pub type Int2 = i64;
 
-// Int3 is an XDR Typedef defines as:
-//
-//   typedef unsigned int    int3;
-//
+/// Int3 is an XDR Typedef defines as:
+///
+///   typedef unsigned int    int3;
+///
 pub type Int3 = u32;
 
-// Int4 is an XDR Typedef defines as:
-//
-//   typedef unsigned hyper  int4;
-//
+/// Int4 is an XDR Typedef defines as:
+///
+///   typedef unsigned hyper  int4;
+///
 pub type Int4 = u64;
 
-// MyStruct is an XDR Struct defines as:
-//
-//   struct MyStruct
+/// MyStruct is an XDR Struct defines as:
+///
+///   struct MyStruct
 //    {
 //        uint512 field1;
 //        optHash1 field2;
@@ -3726,7 +3726,7 @@ pub type Int4 = u64;
 //        double field6;
 //        bool field7;
 //    };
-//
+///
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
@@ -3773,13 +3773,13 @@ self.field7.write_xdr(w)?;
             }
         }
 
-// LotsOfMyStructs is an XDR Struct defines as:
-//
-//   struct LotsOfMyStructs
+/// LotsOfMyStructs is an XDR Struct defines as:
+///
+///   struct LotsOfMyStructs
 //    {
 //        MyStruct members<>;
 //    };
-//
+///
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
@@ -3808,13 +3808,13 @@ impl WriteXdr for LotsOfMyStructs {
     }
 }
 
-// HasStuff is an XDR Struct defines as:
-//
-//   struct HasStuff
+/// HasStuff is an XDR Struct defines as:
+///
+///   struct HasStuff
 //    {
 //      LotsOfMyStructs data;
 //    };
-//
+///
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
@@ -3843,14 +3843,14 @@ impl WriteXdr for HasStuff {
     }
 }
 
-// Color is an XDR Enum defines as:
-//
-//   enum Color {
+/// Color is an XDR Enum defines as:
+///
+///   enum Color {
 //      RED,
 //      BLUE = 5,
 //      GREEN
 //    };
-//
+///
 // enum
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
@@ -3949,25 +3949,25 @@ Self::Green => "Green",
             }
         }
 
-// Foo is an XDR Const defines as:
-//
-//   const FOO = 1244;
-//
+/// Foo is an XDR Const defines as:
+///
+///   const FOO = 1244;
+///
 pub const FOO: u64 = 1244;
 
-// Bar is an XDR Const defines as:
-//
-//   const BAR = FOO;
-//
+/// Bar is an XDR Const defines as:
+///
+///   const BAR = FOO;
+///
 pub const BAR: u64 = FOO;
 
-// NesterNestedEnum is an XDR NestedEnum defines as:
-//
-//   enum {
+/// NesterNestedEnum is an XDR NestedEnum defines as:
+///
+///   enum {
 //        BLAH_1,
 //        BLAH_2
 //      }
-//
+///
 // enum
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
@@ -4061,12 +4061,12 @@ Self::2 => "2",
             }
         }
 
-// NesterNestedStruct is an XDR NestedStruct defines as:
-//
-//   struct {
+/// NesterNestedStruct is an XDR NestedStruct defines as:
+///
+///   struct {
 //        int blah;
 //      }
-//
+///
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
@@ -4095,15 +4095,15 @@ impl WriteXdr for NesterNestedStruct {
     }
 }
 
-// NesterNestedUnion is an XDR NestedUnion defines as:
-//
-//   union switch (Color color) {
+/// NesterNestedUnion is an XDR NestedUnion defines as:
+///
+///   union switch (Color color) {
 //        case RED:
 //          void;
 //        default:
 //          int blah2;
 //      }
-//
+///
 // union with discriminant Color
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
@@ -4194,9 +4194,9 @@ impl WriteXdr for NesterNestedUnion {
     }
 }
 
-// Nester is an XDR Struct defines as:
-//
-//   struct Nester
+/// Nester is an XDR Struct defines as:
+///
+///   struct Nester
 //    {
 //      enum {
 //        BLAH_1,
@@ -4216,7 +4216,7 @@ impl WriteXdr for NesterNestedUnion {
 //    
 //    
 //    };
-//
+///
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]

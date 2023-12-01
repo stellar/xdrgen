@@ -2686,9 +2686,9 @@ mod test {
     }
 }
 
-// MessageType is an XDR Enum defines as:
-//
-//   enum MessageType
+/// MessageType is an XDR Enum defines as:
+///
+///   enum MessageType
 //    {
 //        ERROR_MSG,    
 //        HELLO,
@@ -2711,7 +2711,7 @@ mod test {
 //        FBA_QUORUMSET,    
 //        FBA_MESSAGE
 //    };
-//
+///
 // enum
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
@@ -2865,14 +2865,14 @@ Self::FbaMessage => "FbaMessage",
             }
         }
 
-// Color is an XDR Enum defines as:
-//
-//   enum Color {
+/// Color is an XDR Enum defines as:
+///
+///   enum Color {
 //        RED=0,  
 //        GREEN=1,  
 //        BLUE=2  
 //    };
-//
+///
 // enum
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
@@ -2971,14 +2971,14 @@ Self::Blue => "Blue",
             }
         }
 
-// Color2 is an XDR Enum defines as:
-//
-//   enum Color2 {
+/// Color2 is an XDR Enum defines as:
+///
+///   enum Color2 {
 //        RED2=RED,  
 //        GREEN2=1,  
 //        BLUE2=2  
 //    };
-//
+///
 // enum
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
