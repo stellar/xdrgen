@@ -2686,25 +2686,25 @@ mod test {
     }
 }
 
-// SError is an XDR Typedef defines as:
-//
-//   typedef int Error;
-//
+/// SError is an XDR Typedef defines as:
+///
+///   typedef int Error;
+///
 pub type SError = i32;
 
-// Multi is an XDR Typedef defines as:
-//
-//   typedef int Multi;
-//
+/// Multi is an XDR Typedef defines as:
+///
+///   typedef int Multi;
+///
 pub type Multi = i32;
 
-// UnionKey is an XDR Enum defines as:
-//
-//   enum UnionKey {
+/// UnionKey is an XDR Enum defines as:
+///
+///   enum UnionKey {
 //      ERROR,
 //      MULTI
 //    };
-//
+///
 // enum
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
@@ -2798,9 +2798,9 @@ Self::Multi => "Multi",
             }
         }
 
-// MyUnion is an XDR Union defines as:
-//
-//   union MyUnion switch (UnionKey type)
+/// MyUnion is an XDR Union defines as:
+///
+///   union MyUnion switch (UnionKey type)
 //    {
 //        case ERROR:
 //            Error error;
@@ -2809,7 +2809,7 @@ Self::Multi => "Multi",
 //    
 //    
 //    };
-//
+///
 // union with discriminant UnionKey
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
@@ -2907,9 +2907,9 @@ Self::Multi(v) => v.write_xdr(w)?,
             }
         }
 
-// IntUnion is an XDR Union defines as:
-//
-//   union IntUnion switch (int type)
+/// IntUnion is an XDR Union defines as:
+///
+///   union IntUnion switch (int type)
 //    {
 //        case 0:
 //            Error error;
@@ -2917,7 +2917,7 @@ Self::Multi(v) => v.write_xdr(w)?,
 //            Multi things<>;
 //    
 //    };
-//
+///
 // union with discriminant i32
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
@@ -3015,10 +3015,10 @@ Self::V1(v) => v.write_xdr(w)?,
             }
         }
 
-// IntUnion2 is an XDR Typedef defines as:
-//
-//   typedef IntUnion IntUnion2;
-//
+/// IntUnion2 is an XDR Typedef defines as:
+///
+///   typedef IntUnion IntUnion2;
+///
 #[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]

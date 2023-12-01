@@ -2686,22 +2686,22 @@ mod test {
     }
 }
 
-// Foo is an XDR Const defines as:
-//
-//   const FOO = 1;
-//
+/// Foo is an XDR Const defines as:
+///
+///   const FOO = 1;
+///
 pub const FOO: u64 = 1;
 
-// TestArray is an XDR Typedef defines as:
-//
-//   typedef int TestArray[FOO];
-//
+/// TestArray is an XDR Typedef defines as:
+///
+///   typedef int TestArray[FOO];
+///
 pub type TestArray = [i32; Foo];
 
-// TestArray2 is an XDR Typedef defines as:
-//
-//   typedef int TestArray2<FOO>;
-//
+/// TestArray2 is an XDR Typedef defines as:
+///
+///   typedef int TestArray2<FOO>;
+///
 pub type TestArray2 = VecM::<i32, 1>;
 
         #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]

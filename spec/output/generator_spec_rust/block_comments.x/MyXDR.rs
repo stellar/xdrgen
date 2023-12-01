@@ -2686,13 +2686,13 @@ mod test {
     }
 }
 
-// AccountFlags is an XDR Enum defines as:
-//
-//   enum AccountFlags
+/// AccountFlags is an XDR Enum defines as:
+///
+///   enum AccountFlags
 //    { // masks for each flag
 //        AUTH_REQUIRED_FLAG = 0x1
 //    };
-//
+///
 // enum
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]

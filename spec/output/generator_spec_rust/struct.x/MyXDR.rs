@@ -2686,15 +2686,15 @@ mod test {
     }
 }
 
-// Int64 is an XDR Typedef defines as:
-//
-//   typedef hyper int64;
-//
+/// Int64 is an XDR Typedef defines as:
+///
+///   typedef hyper int64;
+///
 pub type Int64 = i64;
 
-// MyStruct is an XDR Struct defines as:
-//
-//   struct MyStruct
+/// MyStruct is an XDR Struct defines as:
+///
+///   struct MyStruct
 //    {
 //        int    someInt;
 //        int64  aBigInt;
@@ -2702,7 +2702,7 @@ pub type Int64 = i64;
 //        string someString<>;
 //        string maxString<100>;
 //    };
-//
+///
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]

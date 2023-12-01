@@ -2686,21 +2686,21 @@ mod test {
     }
 }
 
-// Arr is an XDR Typedef defines as:
-//
-//   typedef int Arr[2];
-//
+/// Arr is an XDR Typedef defines as:
+///
+///   typedef int Arr[2];
+///
 pub type Arr = [i32; 2];
 
-// HasOptions is an XDR Struct defines as:
-//
-//   struct HasOptions
+/// HasOptions is an XDR Struct defines as:
+///
+///   struct HasOptions
 //    {
 //      int* firstOption;
 //      int *secondOption;
 //      Arr *thirdOption;
 //    };
-//
+///
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr))]

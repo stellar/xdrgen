@@ -2686,14 +2686,14 @@ mod test {
     }
 }
 
-// UnionKey is an XDR Enum defines as:
-//
-//   enum UnionKey {
+/// UnionKey is an XDR Enum defines as:
+///
+///   enum UnionKey {
 //      ONE = 1,
 //      TWO = 2,
 //      OFFER = 3
 //    };
-//
+///
 // enum
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
@@ -2792,18 +2792,18 @@ Self::Offer => "Offer",
             }
         }
 
-// Foo is an XDR Typedef defines as:
-//
-//   typedef int Foo;
-//
+/// Foo is an XDR Typedef defines as:
+///
+///   typedef int Foo;
+///
 pub type Foo = i32;
 
-// MyUnionOne is an XDR NestedStruct defines as:
-//
-//   struct {
+/// MyUnionOne is an XDR NestedStruct defines as:
+///
+///   struct {
 //                int someInt;
 //            }
-//
+///
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
@@ -2832,13 +2832,13 @@ impl WriteXdr for MyUnionOne {
     }
 }
 
-// MyUnionTwo is an XDR NestedStruct defines as:
-//
-//   struct {
+/// MyUnionTwo is an XDR NestedStruct defines as:
+///
+///   struct {
 //                int someInt;
 //                Foo foo;
 //            }
-//
+///
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
@@ -2870,9 +2870,9 @@ self.foo.write_xdr(w)?;
             }
         }
 
-// MyUnion is an XDR Union defines as:
-//
-//   union MyUnion switch (UnionKey type)
+/// MyUnion is an XDR Union defines as:
+///
+///   union MyUnion switch (UnionKey type)
 //    {
 //        case ONE:
 //            struct {
@@ -2888,7 +2888,7 @@ self.foo.write_xdr(w)?;
 //        case OFFER:
 //            void;
 //    };
-//
+///
 // union with discriminant UnionKey
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
