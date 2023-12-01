@@ -1645,6 +1645,17 @@ impl<const MAX: u32> WriteXdr for BytesM<MAX> {
 
 // StringM ------------------------------------------------------------------------
 
+/// A string type that contains arbitrary bytes.
+///
+/// Convertible, fallibly, to/from a Rust UTF-8 String using
+/// [`TryFrom`]/[`TryInto`]/[`StringM::to_utf8_string`].
+///
+/// Convertible, lossyly, to a Rust UTF-8 String using
+/// [`StringM::to_utf8_string_lossy`].
+///
+/// Convertible to/from escaped printable-ASCII using
+/// [`Display`]/[`ToString`]/[`FromStr`].
+
 #[cfg(feature = "alloc")]
 #[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(
@@ -1690,7 +1701,9 @@ impl<const MAX: u32> core::fmt::Display for StringM<MAX> {
         let v = &self.0;
         #[cfg(not(feature = "alloc"))]
         let v = self.0;
-        write_utf8_lossy(f, v)?;
+        for b in escape_bytes::Escape::new(v) {
+            write!(f, "{}", b as char)?;
+        }
         Ok(())
     }
 }
@@ -1702,7 +1715,9 @@ impl<const MAX: u32> core::fmt::Debug for StringM<MAX> {
         #[cfg(not(feature = "alloc"))]
         let v = self.0;
         write!(f, "StringM(")?;
-        write_utf8_lossy(f, v)?;
+        for b in escape_bytes::Escape::new(v) {
+            write!(f, "{}", b as char)?;
+        }
         write!(f, ")")?;
         Ok(())
     }
@@ -1712,7 +1727,8 @@ impl<const MAX: u32> core::fmt::Debug for StringM<MAX> {
 impl<const MAX: u32> core::str::FromStr for StringM<MAX> {
     type Err = Error;
     fn from_str(s: &str) -> core::result::Result<Self, Self::Err> {
-        s.try_into()
+        let b = escape_bytes::unescape(&mut code, s.as_bytes()).map_err(|_| Error::Invalid)?;
+        Ok(Self(b))
     }
 }
 
@@ -1760,24 +1776,24 @@ impl<const MAX: u32> StringM<MAX> {
 
 impl<const MAX: u32> StringM<MAX> {
     #[cfg(feature = "alloc")]
-    pub fn to_string(&self) -> Result<String> {
+    pub fn to_utf8_string(&self) -> Result<String> {
         self.try_into()
     }
 
     #[cfg(feature = "alloc")]
-    pub fn into_string(self) -> Result<String> {
+    pub fn into_utf8_string(self) -> Result<String> {
         self.try_into()
     }
 
     #[cfg(feature = "alloc")]
     #[must_use]
-    pub fn to_string_lossy(&self) -> String {
+    pub fn to_utf8_string_lossy(&self) -> String {
         String::from_utf8_lossy(&self.0).into_owned()
     }
 
     #[cfg(feature = "alloc")]
     #[must_use]
-    pub fn into_string_lossy(self) -> String {
+    pub fn into_utf8_string_lossy(self) -> String {
         String::from_utf8_lossy(&self.0).into_owned()
     }
 }
