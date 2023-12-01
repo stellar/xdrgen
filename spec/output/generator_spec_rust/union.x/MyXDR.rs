@@ -1727,7 +1727,7 @@ impl<const MAX: u32> core::fmt::Debug for StringM<MAX> {
 impl<const MAX: u32> core::str::FromStr for StringM<MAX> {
     type Err = Error;
     fn from_str(s: &str) -> core::result::Result<Self, Self::Err> {
-        let b = escape_bytes::unescape(&mut code, s.as_bytes()).map_err(|_| Error::Invalid)?;
+        let b = escape_bytes::unescape(s.as_bytes()).map_err(|_| Error::Invalid)?;
         Ok(Self(b))
     }
 }
