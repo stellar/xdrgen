@@ -2688,22 +2688,28 @@ mod test {
 
 /// SError is an XDR Typedef defines as:
 ///
-///   typedef int Error;
+/// ```text
+/// typedef int Error;
+/// ```
 ///
 pub type SError = i32;
 
 /// Multi is an XDR Typedef defines as:
 ///
-///   typedef int Multi;
+/// ```text
+/// typedef int Multi;
+/// ```
 ///
 pub type Multi = i32;
 
 /// UnionKey is an XDR Enum defines as:
 ///
-///   enum UnionKey {
-///      ERROR,
-///      MULTI
-///    };
+/// ```text
+/// enum UnionKey {
+///   ERROR,
+///   MULTI
+/// };
+/// ```
 ///
 // enum
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
@@ -2800,15 +2806,17 @@ Self::Multi => "Multi",
 
 /// MyUnion is an XDR Union defines as:
 ///
-///   union MyUnion switch (UnionKey type)
-///    {
-///        case ERROR:
-///            Error error;
-///        case MULTI:
-///            Multi things<>;
-///    
-///    
-///    };
+/// ```text
+/// union MyUnion switch (UnionKey type)
+/// {
+///     case ERROR:
+///         Error error;
+///     case MULTI:
+///         Multi things<>;
+/// 
+/// 
+/// };
+/// ```
 ///
 // union with discriminant UnionKey
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
@@ -2909,14 +2917,16 @@ Self::Multi(v) => v.write_xdr(w)?,
 
 /// IntUnion is an XDR Union defines as:
 ///
-///   union IntUnion switch (int type)
-///    {
-///        case 0:
-///            Error error;
-///        case 1:
-///            Multi things<>;
-///    
-///    };
+/// ```text
+/// union IntUnion switch (int type)
+/// {
+///     case 0:
+///         Error error;
+///     case 1:
+///         Multi things<>;
+/// 
+/// };
+/// ```
 ///
 // union with discriminant i32
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
@@ -3017,7 +3027,9 @@ Self::V1(v) => v.write_xdr(w)?,
 
 /// IntUnion2 is an XDR Typedef defines as:
 ///
-///   typedef IntUnion IntUnion2;
+/// ```text
+/// typedef IntUnion IntUnion2;
+/// ```
 ///
 #[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]

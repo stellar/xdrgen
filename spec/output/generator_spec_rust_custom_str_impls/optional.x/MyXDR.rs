@@ -2688,18 +2688,22 @@ mod test {
 
 /// Arr is an XDR Typedef defines as:
 ///
-///   typedef int Arr[2];
+/// ```text
+/// typedef int Arr[2];
+/// ```
 ///
 pub type Arr = [i32; 2];
 
 /// HasOptions is an XDR Struct defines as:
 ///
-///   struct HasOptions
-///    {
-///      int* firstOption;
-///      int *secondOption;
-///      Arr *thirdOption;
-///    };
+/// ```text
+/// struct HasOptions
+/// {
+///   int* firstOption;
+///   int *secondOption;
+///   Arr *thirdOption;
+/// };
+/// ```
 ///
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]

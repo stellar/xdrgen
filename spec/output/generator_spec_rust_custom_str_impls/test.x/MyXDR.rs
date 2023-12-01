@@ -2688,7 +2688,9 @@ mod test {
 
 /// Uint512 is an XDR Typedef defines as:
 ///
-///   typedef opaque uint512[64];
+/// ```text
+/// typedef opaque uint512[64];
+/// ```
 ///
 #[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
@@ -2801,7 +2803,9 @@ impl AsRef<[u8]> for Uint512 {
 
 /// Uint513 is an XDR Typedef defines as:
 ///
-///   typedef opaque uint513<64>;
+/// ```text
+/// typedef opaque uint513<64>;
+/// ```
 ///
 #[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
@@ -2900,7 +2904,9 @@ impl AsRef<[u8]> for Uint513 {
 
 /// Uint514 is an XDR Typedef defines as:
 ///
-///   typedef opaque uint514<>;
+/// ```text
+/// typedef opaque uint514<>;
+/// ```
 ///
 #[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
@@ -2999,7 +3005,9 @@ impl AsRef<[u8]> for Uint514 {
 
 /// Str is an XDR Typedef defines as:
 ///
-///   typedef string str<64>;
+/// ```text
+/// typedef string str<64>;
+/// ```
 ///
 #[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
@@ -3098,7 +3106,9 @@ impl AsRef<[u8]> for Str {
 
 /// Str2 is an XDR Typedef defines as:
 ///
-///   typedef string str2<>;
+/// ```text
+/// typedef string str2<>;
+/// ```
 ///
 #[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
@@ -3197,7 +3207,9 @@ impl AsRef<[u8]> for Str2 {
 
 /// Hash is an XDR Typedef defines as:
 ///
-///   typedef opaque Hash[32];
+/// ```text
+/// typedef opaque Hash[32];
+/// ```
 ///
 #[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
@@ -3310,7 +3322,9 @@ impl AsRef<[u8]> for Hash {
 
 /// Hashes1 is an XDR Typedef defines as:
 ///
-///   typedef Hash Hashes1[12];
+/// ```text
+/// typedef Hash Hashes1[12];
+/// ```
 ///
 #[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
@@ -3396,7 +3410,9 @@ impl AsRef<[Hash]> for Hashes1 {
 
 /// Hashes2 is an XDR Typedef defines as:
 ///
-///   typedef Hash Hashes2<12>;
+/// ```text
+/// typedef Hash Hashes2<12>;
+/// ```
 ///
 #[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
@@ -3495,7 +3511,9 @@ impl AsRef<[Hash]> for Hashes2 {
 
 /// Hashes3 is an XDR Typedef defines as:
 ///
-///   typedef Hash Hashes3<>;
+/// ```text
+/// typedef Hash Hashes3<>;
+/// ```
 ///
 #[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
@@ -3594,7 +3612,9 @@ impl AsRef<[Hash]> for Hashes3 {
 
 /// OptHash1 is an XDR Typedef defines as:
 ///
-///   typedef Hash *optHash1;
+/// ```text
+/// typedef Hash *optHash1;
+/// ```
 ///
 #[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
@@ -3643,7 +3663,9 @@ impl WriteXdr for OptHash1 {
 
 /// OptHash2 is an XDR Typedef defines as:
 ///
-///   typedef Hash* optHash2;
+/// ```text
+/// typedef Hash* optHash2;
+/// ```
 ///
 #[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
@@ -3692,40 +3714,50 @@ impl WriteXdr for OptHash2 {
 
 /// Int1 is an XDR Typedef defines as:
 ///
-///   typedef int             int1;
+/// ```text
+/// typedef int             int1;
+/// ```
 ///
 pub type Int1 = i32;
 
 /// Int2 is an XDR Typedef defines as:
 ///
-///   typedef hyper           int2;
+/// ```text
+/// typedef hyper           int2;
+/// ```
 ///
 pub type Int2 = i64;
 
 /// Int3 is an XDR Typedef defines as:
 ///
-///   typedef unsigned int    int3;
+/// ```text
+/// typedef unsigned int    int3;
+/// ```
 ///
 pub type Int3 = u32;
 
 /// Int4 is an XDR Typedef defines as:
 ///
-///   typedef unsigned hyper  int4;
+/// ```text
+/// typedef unsigned hyper  int4;
+/// ```
 ///
 pub type Int4 = u64;
 
 /// MyStruct is an XDR Struct defines as:
 ///
-///   struct MyStruct
-///    {
-///        uint512 field1;
-///        optHash1 field2;
-///        int1 field3;
-///        unsigned int field4;
-///        float field5;
-///        double field6;
-///        bool field7;
-///    };
+/// ```text
+/// struct MyStruct
+/// {
+///     uint512 field1;
+///     optHash1 field2;
+///     int1 field3;
+///     unsigned int field4;
+///     float field5;
+///     double field6;
+///     bool field7;
+/// };
+/// ```
 ///
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
@@ -3775,10 +3807,12 @@ self.field7.write_xdr(w)?;
 
 /// LotsOfMyStructs is an XDR Struct defines as:
 ///
-///   struct LotsOfMyStructs
-///    {
-///        MyStruct members<>;
-///    };
+/// ```text
+/// struct LotsOfMyStructs
+/// {
+///     MyStruct members<>;
+/// };
+/// ```
 ///
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
@@ -3810,10 +3844,12 @@ impl WriteXdr for LotsOfMyStructs {
 
 /// HasStuff is an XDR Struct defines as:
 ///
-///   struct HasStuff
-///    {
-///      LotsOfMyStructs data;
-///    };
+/// ```text
+/// struct HasStuff
+/// {
+///   LotsOfMyStructs data;
+/// };
+/// ```
 ///
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
@@ -3845,11 +3881,13 @@ impl WriteXdr for HasStuff {
 
 /// Color is an XDR Enum defines as:
 ///
-///   enum Color {
-///      RED,
-///      BLUE = 5,
-///      GREEN
-///    };
+/// ```text
+/// enum Color {
+///   RED,
+///   BLUE = 5,
+///   GREEN
+/// };
+/// ```
 ///
 // enum
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
@@ -3951,22 +3989,28 @@ Self::Green => "Green",
 
 /// Foo is an XDR Const defines as:
 ///
-///   const FOO = 1244;
+/// ```text
+/// const FOO = 1244;
+/// ```
 ///
 pub const FOO: u64 = 1244;
 
 /// Bar is an XDR Const defines as:
 ///
-///   const BAR = FOO;
+/// ```text
+/// const BAR = FOO;
+/// ```
 ///
 pub const BAR: u64 = FOO;
 
 /// NesterNestedEnum is an XDR NestedEnum defines as:
 ///
-///   enum {
-///        BLAH_1,
-///        BLAH_2
-///      }
+/// ```text
+/// enum {
+///     BLAH_1,
+///     BLAH_2
+///   }
+/// ```
 ///
 // enum
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
@@ -4063,9 +4107,11 @@ Self::2 => "2",
 
 /// NesterNestedStruct is an XDR NestedStruct defines as:
 ///
-///   struct {
-///        int blah;
-///      }
+/// ```text
+/// struct {
+///     int blah;
+///   }
+/// ```
 ///
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
@@ -4097,12 +4143,14 @@ impl WriteXdr for NesterNestedStruct {
 
 /// NesterNestedUnion is an XDR NestedUnion defines as:
 ///
-///   union switch (Color color) {
-///        case RED:
-///          void;
-///        default:
-///          int blah2;
-///      }
+/// ```text
+/// union switch (Color color) {
+///     case RED:
+///       void;
+///     default:
+///       int blah2;
+///   }
+/// ```
 ///
 // union with discriminant Color
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
@@ -4196,26 +4244,28 @@ impl WriteXdr for NesterNestedUnion {
 
 /// Nester is an XDR Struct defines as:
 ///
-///   struct Nester
-///    {
-///      enum {
-///        BLAH_1,
-///        BLAH_2
-///      } nestedEnum;
-///    
-///      struct {
-///        int blah;
-///      } nestedStruct;
-///    
-///      union switch (Color color) {
-///        case RED:
-///          void;
-///        default:
-///          int blah2;
-///      } nestedUnion;
-///    
-///    
-///    };
+/// ```text
+/// struct Nester
+/// {
+///   enum {
+///     BLAH_1,
+///     BLAH_2
+///   } nestedEnum;
+/// 
+///   struct {
+///     int blah;
+///   } nestedStruct;
+/// 
+///   union switch (Color color) {
+///     case RED:
+///       void;
+///     default:
+///       int blah2;
+///   } nestedUnion;
+/// 
+/// 
+/// };
+/// ```
 ///
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]

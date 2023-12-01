@@ -2688,11 +2688,13 @@ mod test {
 
 /// UnionKey is an XDR Enum defines as:
 ///
-///   enum UnionKey {
-///      ONE = 1,
-///      TWO = 2,
-///      OFFER = 3
-///    };
+/// ```text
+/// enum UnionKey {
+///   ONE = 1,
+///   TWO = 2,
+///   OFFER = 3
+/// };
+/// ```
 ///
 // enum
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
@@ -2794,15 +2796,19 @@ Self::Offer => "Offer",
 
 /// Foo is an XDR Typedef defines as:
 ///
-///   typedef int Foo;
+/// ```text
+/// typedef int Foo;
+/// ```
 ///
 pub type Foo = i32;
 
 /// MyUnionOne is an XDR NestedStruct defines as:
 ///
-///   struct {
-///                int someInt;
-///            }
+/// ```text
+/// struct {
+///             int someInt;
+///         }
+/// ```
 ///
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
@@ -2834,10 +2840,12 @@ impl WriteXdr for MyUnionOne {
 
 /// MyUnionTwo is an XDR NestedStruct defines as:
 ///
-///   struct {
-///                int someInt;
-///                Foo foo;
-///            }
+/// ```text
+/// struct {
+///             int someInt;
+///             Foo foo;
+///         }
+/// ```
 ///
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
@@ -2872,22 +2880,24 @@ self.foo.write_xdr(w)?;
 
 /// MyUnion is an XDR Union defines as:
 ///
-///   union MyUnion switch (UnionKey type)
-///    {
-///        case ONE:
-///            struct {
-///                int someInt;
-///            } one;
-///    
-///        case TWO:
-///            struct {
-///                int someInt;
-///                Foo foo;
-///            } two;
-///    
-///        case OFFER:
-///            void;
-///    };
+/// ```text
+/// union MyUnion switch (UnionKey type)
+/// {
+///     case ONE:
+///         struct {
+///             int someInt;
+///         } one;
+/// 
+///     case TWO:
+///         struct {
+///             int someInt;
+///             Foo foo;
+///         } two;
+/// 
+///     case OFFER:
+///         void;
+/// };
+/// ```
 ///
 // union with discriminant UnionKey
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
