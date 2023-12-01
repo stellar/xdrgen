@@ -2688,20 +2688,24 @@ mod test {
 
 /// Int64 is an XDR Typedef defines as:
 ///
-///   typedef hyper int64;
+/// ```text
+/// typedef hyper int64;
+/// ```
 ///
 pub type Int64 = i64;
 
 /// MyStruct is an XDR Struct defines as:
 ///
-///   struct MyStruct
-///    {
-///        int    someInt;
-///        int64  aBigInt;
-///        opaque someOpaque[10];
-///        string someString<>;
-///        string maxString<100>;
-///    };
+/// ```text
+/// struct MyStruct
+/// {
+///     int    someInt;
+///     int64  aBigInt;
+///     opaque someOpaque[10];
+///     string someString<>;
+///     string maxString<100>;
+/// };
+/// ```
 ///
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
