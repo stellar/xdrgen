@@ -2695,11 +2695,11 @@ pub type Arr = [i32; 2];
 /// HasOptions is an XDR Struct defines as:
 ///
 ///   struct HasOptions
-//    {
-//      int* firstOption;
-//      int *secondOption;
-//      Arr *thirdOption;
-//    };
+///    {
+///      int* firstOption;
+///      int *secondOption;
+///      Arr *thirdOption;
+///    };
 ///
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
