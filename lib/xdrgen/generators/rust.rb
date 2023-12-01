@@ -413,7 +413,10 @@ module Xdrgen
         else
           out.puts %{#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]}
         end
-        out.puts "#[repr(i32)]"
+        repr = "u8"
+        repr = "i8" if enum.members.any? { |m| m.value.to_i < 0 }
+        repr = "i16" if enum.members.any? { |m| m.value.to_i > 255 }
+        out.puts "#[repr(#{repr})]"
         out.puts "pub enum #{name enum} {"
         out.indent do
           enum.members.each do |m|
@@ -463,10 +466,10 @@ module Xdrgen
             }
         }
 
-        impl TryFrom<i32> for #{name enum} {
+        impl TryFrom<#{repr}> for #{name enum} {
             type Error = Error;
 
-            fn try_from(i: i32) -> Result<Self> {
+            fn try_from(i: #{repr}) -> Result<Self> {
                 let e = match i {
                     #{enum.members.map do |m| "#{m.value} => #{name enum}::#{name m}," end.join("\n")}
                     #[allow(unreachable_patterns)]
@@ -476,7 +479,7 @@ module Xdrgen
             }
         }
 
-        impl From<#{name enum}> for i32 {
+        impl From<#{name enum}> for #{repr} {
             #[must_use]
             fn from(e: #{name enum}) -> Self {
                 e as Self
@@ -487,7 +490,7 @@ module Xdrgen
             #[cfg(feature = "std")]
             fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self> {
                 r.with_limited_depth(|r| {
-                    let e = i32::read_xdr(r)?;
+                    let e = #{repr}::read_xdr(r)?;
                     let v: Self = e.try_into()?;
                     Ok(v)
                 })
@@ -498,7 +501,7 @@ module Xdrgen
             #[cfg(feature = "std")]
             fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
                 w.with_limited_depth(|w| {
-                    let i: i32 = (*self).into();
+                    let i: #{repr} = (*self).into();
                     i.write_xdr(w)
                 })
             }

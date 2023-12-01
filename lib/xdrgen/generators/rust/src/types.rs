@@ -598,6 +598,98 @@ fn pad_len(len: usize) -> usize {
     (4 - (len % 4)) % 4
 }
 
+impl ReadXdr for i8 {
+    #[cfg(feature = "std")]
+    fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self> {
+        let mut b = [0u8; 1];
+        r.with_limited_depth(|r| {
+            r.consume_len(b.len())?;
+            r.read_exact(&mut b)?;
+            Ok(i8::from_be_bytes(b))
+        })
+    }
+}
+
+impl WriteXdr for i8 {
+    #[cfg(feature = "std")]
+    fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
+        let b: [u8; 1] = self.to_be_bytes();
+        w.with_limited_depth(|w| {
+            w.consume_len(b.len())?;
+            Ok(w.write_all(&b)?)
+        })
+    }
+}
+
+impl ReadXdr for u8 {
+    #[cfg(feature = "std")]
+    fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self> {
+        let mut b = [0u8; 1];
+        r.with_limited_depth(|r| {
+            r.consume_len(b.len())?;
+            r.read_exact(&mut b)?;
+            Ok(u8::from_be_bytes(b))
+        })
+    }
+}
+
+impl WriteXdr for u8 {
+    #[cfg(feature = "std")]
+    fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
+        let b: [u8; 1] = self.to_be_bytes();
+        w.with_limited_depth(|w| {
+            w.consume_len(b.len())?;
+            Ok(w.write_all(&b)?)
+        })
+    }
+}
+
+impl ReadXdr for i16 {
+    #[cfg(feature = "std")]
+    fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self> {
+        let mut b = [0u8; 2];
+        r.with_limited_depth(|r| {
+            r.consume_len(b.len())?;
+            r.read_exact(&mut b)?;
+            Ok(i16::from_be_bytes(b))
+        })
+    }
+}
+
+impl WriteXdr for i16 {
+    #[cfg(feature = "std")]
+    fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
+        let b: [u8; 2] = self.to_be_bytes();
+        w.with_limited_depth(|w| {
+            w.consume_len(b.len())?;
+            Ok(w.write_all(&b)?)
+        })
+    }
+}
+
+impl ReadXdr for u16 {
+    #[cfg(feature = "std")]
+    fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self> {
+        let mut b = [0u8; 2];
+        r.with_limited_depth(|r| {
+            r.consume_len(b.len())?;
+            r.read_exact(&mut b)?;
+            Ok(u16::from_be_bytes(b))
+        })
+    }
+}
+
+impl WriteXdr for u16 {
+    #[cfg(feature = "std")]
+    fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
+        let b: [u8; 2] = self.to_be_bytes();
+        w.with_limited_depth(|w| {
+            w.consume_len(b.len())?;
+            Ok(w.write_all(&b)?)
+        })
+    }
+}
+
 impl ReadXdr for i32 {
     #[cfg(feature = "std")]
     fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self> {
@@ -799,38 +891,38 @@ impl WriteXdr for () {
     }
 }
 
-impl<const N: usize> ReadXdr for [u8; N] {
-    #[cfg(feature = "std")]
-    fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self> {
-        r.with_limited_depth(|r| {
-            r.consume_len(N)?;
-            let padding = pad_len(N);
-            r.consume_len(padding)?;
-            let mut arr = [0u8; N];
-            r.read_exact(&mut arr)?;
-            let pad = &mut [0u8; 3][..padding];
-            r.read_exact(pad)?;
-            if pad.iter().any(|b| *b != 0) {
-                return Err(Error::NonZeroPadding);
-            }
-            Ok(arr)
-        })
-    }
-}
+// impl<const N: usize> ReadXdr for [u8; N] {
+//     #[cfg(feature = "std")]
+//     fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self> {
+//         r.with_limited_depth(|r| {
+//             r.consume_len(N)?;
+//             // let padding = pad_len(N);
+//             // r.consume_len(padding)?;
+//             let mut arr = [0u8; N];
+//             r.read_exact(&mut arr)?;
+//             // let pad = &mut [0u8; 3][..padding];
+//             // r.read_exact(pad)?;
+//             // if pad.iter().any(|b| *b != 0) {
+//             //     return Err(Error::NonZeroPadding);
+//             // }
+//             Ok(arr)
+//         })
+//     }
+// }
 
-impl<const N: usize> WriteXdr for [u8; N] {
-    #[cfg(feature = "std")]
-    fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
-        w.with_limited_depth(|w| {
-            w.consume_len(N)?;
-            let padding = pad_len(N);
-            w.consume_len(padding)?;
-            w.write_all(self)?;
-            w.write_all(&[0u8; 3][..padding])?;
-            Ok(())
-        })
-    }
-}
+// impl<const N: usize> WriteXdr for [u8; N] {
+//     #[cfg(feature = "std")]
+//     fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
+//         w.with_limited_depth(|w| {
+//             w.consume_len(N)?;
+//             // let padding = pad_len(N);
+//             // w.consume_len(padding)?;
+//             w.write_all(self)?;
+//             // w.write_all(&[0u8; 3][..padding])?;
+//             Ok(())
+//         })
+//     }
+// }
 
 impl<T: ReadXdr, const N: usize> ReadXdr for [T; N] {
     #[cfg(feature = "std")]
@@ -1180,52 +1272,52 @@ impl<'a, const MAX: u32> TryFrom<&'a VecM<u8, MAX>> for &'a str {
     }
 }
 
-impl<const MAX: u32> ReadXdr for VecM<u8, MAX> {
-    #[cfg(feature = "std")]
-    fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self> {
-        r.with_limited_depth(|r| {
-            let len: u32 = u32::read_xdr(r)?;
-            if len > MAX {
-                return Err(Error::LengthExceedsMax);
-            }
+// impl<const MAX: u32> ReadXdr for VecM<u8, MAX> {
+//     #[cfg(feature = "std")]
+//     fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self> {
+//         r.with_limited_depth(|r| {
+//             let len: u32 = u32::read_xdr(r)?;
+//             if len > MAX {
+//                 return Err(Error::LengthExceedsMax);
+//             }
 
-            r.consume_len(len as usize)?;
-            let padding = pad_len(len as usize);
-            r.consume_len(padding)?;
+//             r.consume_len(len as usize)?;
+//             // let padding = pad_len(len as usize);
+//             // r.consume_len(padding)?;
 
-            let mut vec = vec![0u8; len as usize];
-            r.read_exact(&mut vec)?;
+//             let mut vec = vec![0u8; len as usize];
+//             r.read_exact(&mut vec)?;
 
-            let pad = &mut [0u8; 3][..padding];
-            r.read_exact(pad)?;
-            if pad.iter().any(|b| *b != 0) {
-                return Err(Error::NonZeroPadding);
-            }
+//             // let pad = &mut [0u8; 3][..padding];
+//             // r.read_exact(pad)?;
+//             // if pad.iter().any(|b| *b != 0) {
+//             //     return Err(Error::NonZeroPadding);
+//             // }
 
-            Ok(VecM(vec))
-        })
-    }
-}
+//             Ok(VecM(vec))
+//         })
+//     }
+// }
 
-impl<const MAX: u32> WriteXdr for VecM<u8, MAX> {
-    #[cfg(feature = "std")]
-    fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
-        w.with_limited_depth(|w| {
-            let len: u32 = self.len().try_into().map_err(|_| Error::LengthExceedsMax)?;
-            len.write_xdr(w)?;
+// impl<const MAX: u32> WriteXdr for VecM<u8, MAX> {
+//     #[cfg(feature = "std")]
+//     fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
+//         w.with_limited_depth(|w| {
+//             let len: u32 = self.len().try_into().map_err(|_| Error::LengthExceedsMax)?;
+//             len.write_xdr(w)?;
 
-            w.consume_len(self.len())?;
-            let padding = pad_len(self.len());
-            w.consume_len(padding)?;
+//             w.consume_len(self.len())?;
+//             // let padding = pad_len(self.len());
+//             // w.consume_len(padding)?;
 
-            w.write_all(&self.0)?;
+//             w.write_all(&self.0)?;
 
-            w.write_all(&[0u8; 3][..padding])?;
+//             // w.write_all(&[0u8; 3][..padding])?;
 
-            Ok(())
-        })
-    }
-}
+//             Ok(())
+//         })
+//     }
+// }
 
 impl<T: ReadXdr, const MAX: u32> ReadXdr for VecM<T, MAX> {
     #[cfg(feature = "std")]
@@ -1596,17 +1688,17 @@ impl<const MAX: u32> ReadXdr for BytesM<MAX> {
             }
 
             r.consume_len(len as usize)?;
-            let padding = pad_len(len as usize);
-            r.consume_len(padding)?;
+            // let padding = pad_len(len as usize);
+            // r.consume_len(padding)?;
 
             let mut vec = vec![0u8; len as usize];
             r.read_exact(&mut vec)?;
 
-            let pad = &mut [0u8; 3][..padding];
-            r.read_exact(pad)?;
-            if pad.iter().any(|b| *b != 0) {
-                return Err(Error::NonZeroPadding);
-            }
+            // let pad = &mut [0u8; 3][..padding];
+            // r.read_exact(pad)?;
+            // if pad.iter().any(|b| *b != 0) {
+            //     return Err(Error::NonZeroPadding);
+            // }
 
             Ok(BytesM(vec))
         })
@@ -1621,12 +1713,12 @@ impl<const MAX: u32> WriteXdr for BytesM<MAX> {
             len.write_xdr(w)?;
 
             w.consume_len(self.len())?;
-            let padding = pad_len(self.len());
-            w.consume_len(padding)?;
+            // let padding = pad_len(self.len());
+            // w.consume_len(padding)?;
 
             w.write_all(&self.0)?;
 
-            w.write_all(&[0u8; 3][..pad_len(len as usize)])?;
+            // w.write_all(&[0u8; 3][..pad_len(len as usize)])?;
 
             Ok(())
         })
@@ -1987,17 +2079,17 @@ impl<const MAX: u32> ReadXdr for StringM<MAX> {
             }
 
             r.consume_len(len as usize)?;
-            let padding = pad_len(len as usize);
-            r.consume_len(padding)?;
+            // let padding = pad_len(len as usize);
+            // r.consume_len(padding)?;
 
             let mut vec = vec![0u8; len as usize];
             r.read_exact(&mut vec)?;
 
-            let pad = &mut [0u8; 3][..padding];
-            r.read_exact(pad)?;
-            if pad.iter().any(|b| *b != 0) {
-                return Err(Error::NonZeroPadding);
-            }
+            // let pad = &mut [0u8; 3][..padding];
+            // r.read_exact(pad)?;
+            // if pad.iter().any(|b| *b != 0) {
+            //     return Err(Error::NonZeroPadding);
+            // }
 
             Ok(StringM(vec))
         })
@@ -2012,12 +2104,12 @@ impl<const MAX: u32> WriteXdr for StringM<MAX> {
             len.write_xdr(w)?;
 
             w.consume_len(self.len())?;
-            let padding = pad_len(self.len());
-            w.consume_len(padding)?;
+            // let padding = pad_len(self.len());
+            // w.consume_len(padding)?;
 
             w.write_all(&self.0)?;
 
-            w.write_all(&[0u8; 3][..padding])?;
+            // w.write_all(&[0u8; 3][..padding])?;
 
             Ok(())
         })
