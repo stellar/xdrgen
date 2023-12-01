@@ -3717,15 +3717,15 @@ pub type Int4 = u64;
 /// MyStruct is an XDR Struct defines as:
 ///
 ///   struct MyStruct
-//    {
-//        uint512 field1;
-//        optHash1 field2;
-//        int1 field3;
-//        unsigned int field4;
-//        float field5;
-//        double field6;
-//        bool field7;
-//    };
+///    {
+///        uint512 field1;
+///        optHash1 field2;
+///        int1 field3;
+///        unsigned int field4;
+///        float field5;
+///        double field6;
+///        bool field7;
+///    };
 ///
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
@@ -3776,9 +3776,9 @@ self.field7.write_xdr(w)?;
 /// LotsOfMyStructs is an XDR Struct defines as:
 ///
 ///   struct LotsOfMyStructs
-//    {
-//        MyStruct members<>;
-//    };
+///    {
+///        MyStruct members<>;
+///    };
 ///
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
@@ -3811,9 +3811,9 @@ impl WriteXdr for LotsOfMyStructs {
 /// HasStuff is an XDR Struct defines as:
 ///
 ///   struct HasStuff
-//    {
-//      LotsOfMyStructs data;
-//    };
+///    {
+///      LotsOfMyStructs data;
+///    };
 ///
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
@@ -3846,10 +3846,10 @@ impl WriteXdr for HasStuff {
 /// Color is an XDR Enum defines as:
 ///
 ///   enum Color {
-//      RED,
-//      BLUE = 5,
-//      GREEN
-//    };
+///      RED,
+///      BLUE = 5,
+///      GREEN
+///    };
 ///
 // enum
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
@@ -3964,9 +3964,9 @@ pub const BAR: u64 = FOO;
 /// NesterNestedEnum is an XDR NestedEnum defines as:
 ///
 ///   enum {
-//        BLAH_1,
-//        BLAH_2
-//      }
+///        BLAH_1,
+///        BLAH_2
+///      }
 ///
 // enum
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
@@ -4064,8 +4064,8 @@ Self::2 => "2",
 /// NesterNestedStruct is an XDR NestedStruct defines as:
 ///
 ///   struct {
-//        int blah;
-//      }
+///        int blah;
+///      }
 ///
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
@@ -4098,11 +4098,11 @@ impl WriteXdr for NesterNestedStruct {
 /// NesterNestedUnion is an XDR NestedUnion defines as:
 ///
 ///   union switch (Color color) {
-//        case RED:
-//          void;
-//        default:
-//          int blah2;
-//      }
+///        case RED:
+///          void;
+///        default:
+///          int blah2;
+///      }
 ///
 // union with discriminant Color
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
@@ -4197,25 +4197,25 @@ impl WriteXdr for NesterNestedUnion {
 /// Nester is an XDR Struct defines as:
 ///
 ///   struct Nester
-//    {
-//      enum {
-//        BLAH_1,
-//        BLAH_2
-//      } nestedEnum;
-//    
-//      struct {
-//        int blah;
-//      } nestedStruct;
-//    
-//      union switch (Color color) {
-//        case RED:
-//          void;
-//        default:
-//          int blah2;
-//      } nestedUnion;
-//    
-//    
-//    };
+///    {
+///      enum {
+///        BLAH_1,
+///        BLAH_2
+///      } nestedEnum;
+///    
+///      struct {
+///        int blah;
+///      } nestedStruct;
+///    
+///      union switch (Color color) {
+///        case RED:
+///          void;
+///        default:
+///          int blah2;
+///      } nestedUnion;
+///    
+///    
+///    };
 ///
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]

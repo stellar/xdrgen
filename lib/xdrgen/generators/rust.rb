@@ -352,7 +352,7 @@ module Xdrgen
           ///
         EOS
 
-        out.puts "///   " + defn.text_value.split("\n").join("\n//    ")
+        out.puts "///   " + defn.text_value.split("\n").join("\n///    ")
 
         out.puts <<-EOS.strip_heredoc
           ///
