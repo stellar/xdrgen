@@ -348,14 +348,16 @@ module Xdrgen
         return if defn.is_a?(AST::Definitions::Namespace)
 
         out.puts <<-EOS.strip_heredoc
-          // #{name defn} is an XDR #{defn.class.name.demodulize} defines as:
-          //
+          /// #{name defn} is an XDR #{defn.class.name.demodulize} defines as:
+          ///
+          /// ```text
         EOS
 
-        out.puts "//   " + defn.text_value.split("\n").join("\n//    ")
+        out.puts "/// " + defn.text_value.split("\n").join("\n/// ")
 
         out.puts <<-EOS.strip_heredoc
-          //
+          /// ```
+          ///
         EOS
       end
 

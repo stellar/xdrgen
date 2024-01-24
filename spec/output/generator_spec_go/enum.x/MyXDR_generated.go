@@ -35,12 +35,17 @@ type decoderFrom interface {
 
 // Unmarshal reads an xdr element from `r` into `v`.
 func Unmarshal(r io.Reader, v interface{}) (int, error) {
+  return UnmarshalWithOptions(r, v, xdr.DefaultDecodeOptions)
+}
+
+// UnmarshalWithOptions works like Unmarshal but uses decoding options.
+func UnmarshalWithOptions(r io.Reader, v interface{}, options xdr.DecodeOptions) (int, error) {
   if decodable, ok := v.(decoderFrom); ok {
-    d := xdr.NewDecoder(r)
-    return decodable.DecodeFrom(d, xdr.DecodeDefaultMaxDepth)
+    d := xdr.NewDecoderWithOptions(r, options)
+    return decodable.DecodeFrom(d, options.MaxDepth)
   }
   // delegate to xdr package's Unmarshal
-	return xdr.Unmarshal(r, v)
+	return xdr.UnmarshalWithOptions(r, v, options)
 }
 
 // Marshal writes an xdr element `v` into `w`.
@@ -166,8 +171,10 @@ func (s MessageType) MarshalBinary() ([]byte, error) {
 // UnmarshalBinary implements encoding.BinaryUnmarshaler.
 func (s *MessageType) UnmarshalBinary(inp []byte) error {
   r := bytes.NewReader(inp)
-  d := xdr.NewDecoder(r)
-  _, err := s.DecodeFrom(d, xdr.DecodeDefaultMaxDepth)
+  o := xdr.DefaultDecodeOptions
+  o.MaxInputLen = len(inp)
+  d := xdr.NewDecoderWithOptions(r, o)
+  _, err := s.DecodeFrom(d, o.MaxDepth)
   return err
 }
 
@@ -176,8 +183,7 @@ var (
   _ encoding.BinaryUnmarshaler = (*MessageType)(nil)
 )
 
-// xdrType signals that this type is an type representing
-// representing XDR values defined by this package.
+// xdrType signals that this type represents XDR values defined by this package.
 func (s MessageType) xdrType() {}
 
 var _ xdrType = (*MessageType)(nil)
@@ -250,8 +256,10 @@ func (s Color) MarshalBinary() ([]byte, error) {
 // UnmarshalBinary implements encoding.BinaryUnmarshaler.
 func (s *Color) UnmarshalBinary(inp []byte) error {
   r := bytes.NewReader(inp)
-  d := xdr.NewDecoder(r)
-  _, err := s.DecodeFrom(d, xdr.DecodeDefaultMaxDepth)
+  o := xdr.DefaultDecodeOptions
+  o.MaxInputLen = len(inp)
+  d := xdr.NewDecoderWithOptions(r, o)
+  _, err := s.DecodeFrom(d, o.MaxDepth)
   return err
 }
 
@@ -260,8 +268,7 @@ var (
   _ encoding.BinaryUnmarshaler = (*Color)(nil)
 )
 
-// xdrType signals that this type is an type representing
-// representing XDR values defined by this package.
+// xdrType signals that this type represents XDR values defined by this package.
 func (s Color) xdrType() {}
 
 var _ xdrType = (*Color)(nil)
@@ -334,8 +341,10 @@ func (s Color2) MarshalBinary() ([]byte, error) {
 // UnmarshalBinary implements encoding.BinaryUnmarshaler.
 func (s *Color2) UnmarshalBinary(inp []byte) error {
   r := bytes.NewReader(inp)
-  d := xdr.NewDecoder(r)
-  _, err := s.DecodeFrom(d, xdr.DecodeDefaultMaxDepth)
+  o := xdr.DefaultDecodeOptions
+  o.MaxInputLen = len(inp)
+  d := xdr.NewDecoderWithOptions(r, o)
+  _, err := s.DecodeFrom(d, o.MaxDepth)
   return err
 }
 
@@ -344,11 +353,9 @@ var (
   _ encoding.BinaryUnmarshaler = (*Color2)(nil)
 )
 
-// xdrType signals that this type is an type representing
-// representing XDR values defined by this package.
+// xdrType signals that this type represents XDR values defined by this package.
 func (s Color2) xdrType() {}
 
 var _ xdrType = (*Color2)(nil)
 
-        var fmtTest = fmt.Sprint("this is a dummy usage of fmt")
-
+var fmtTest = fmt.Sprint("this is a dummy usage of fmt")

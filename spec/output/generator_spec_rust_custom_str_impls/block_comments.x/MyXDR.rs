@@ -1645,6 +1645,17 @@ impl<const MAX: u32> WriteXdr for BytesM<MAX> {
 
 // StringM ------------------------------------------------------------------------
 
+/// A string type that contains arbitrary bytes.
+///
+/// Convertible, fallibly, to/from a Rust UTF-8 String using
+/// [`TryFrom`]/[`TryInto`]/[`StringM::to_utf8_string`].
+///
+/// Convertible, lossyly, to a Rust UTF-8 String using
+/// [`StringM::to_utf8_string_lossy`].
+///
+/// Convertible to/from escaped printable-ASCII using
+/// [`Display`]/[`ToString`]/[`FromStr`].
+
 #[cfg(feature = "alloc")]
 #[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(
@@ -1659,38 +1670,15 @@ pub struct StringM<const MAX: u32 = { u32::MAX }>(Vec<u8>);
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 pub struct StringM<const MAX: u32 = { u32::MAX }>(Vec<u8>);
 
-/// `write_utf8_lossy` is a modified copy of the Rust stdlib docs examples here:
-/// <https://doc.rust-lang.org/stable/core/str/struct.Utf8Error.html#examples>
-fn write_utf8_lossy(f: &mut impl core::fmt::Write, mut input: &[u8]) -> core::fmt::Result {
-    loop {
-        match core::str::from_utf8(input) {
-            Ok(valid) => {
-                write!(f, "{valid}")?;
-                break;
-            }
-            Err(error) => {
-                let (valid, after_valid) = input.split_at(error.valid_up_to());
-                write!(f, "{}", core::str::from_utf8(valid).unwrap())?;
-                write!(f, "\u{FFFD}")?;
-
-                if let Some(invalid_sequence_length) = error.error_len() {
-                    input = &after_valid[invalid_sequence_length..];
-                } else {
-                    break;
-                }
-            }
-        }
-    }
-    Ok(())
-}
-
 impl<const MAX: u32> core::fmt::Display for StringM<MAX> {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         #[cfg(feature = "alloc")]
         let v = &self.0;
         #[cfg(not(feature = "alloc"))]
         let v = self.0;
-        write_utf8_lossy(f, v)?;
+        for b in escape_bytes::Escape::new(v) {
+            write!(f, "{}", b as char)?;
+        }
         Ok(())
     }
 }
@@ -1702,7 +1690,9 @@ impl<const MAX: u32> core::fmt::Debug for StringM<MAX> {
         #[cfg(not(feature = "alloc"))]
         let v = self.0;
         write!(f, "StringM(")?;
-        write_utf8_lossy(f, v)?;
+        for b in escape_bytes::Escape::new(v) {
+            write!(f, "{}", b as char)?;
+        }
         write!(f, ")")?;
         Ok(())
     }
@@ -1712,7 +1702,8 @@ impl<const MAX: u32> core::fmt::Debug for StringM<MAX> {
 impl<const MAX: u32> core::str::FromStr for StringM<MAX> {
     type Err = Error;
     fn from_str(s: &str) -> core::result::Result<Self, Self::Err> {
-        s.try_into()
+        let b = escape_bytes::unescape(s.as_bytes()).map_err(|_| Error::Invalid)?;
+        Ok(Self(b))
     }
 }
 
@@ -1760,24 +1751,24 @@ impl<const MAX: u32> StringM<MAX> {
 
 impl<const MAX: u32> StringM<MAX> {
     #[cfg(feature = "alloc")]
-    pub fn to_string(&self) -> Result<String> {
+    pub fn to_utf8_string(&self) -> Result<String> {
         self.try_into()
     }
 
     #[cfg(feature = "alloc")]
-    pub fn into_string(self) -> Result<String> {
+    pub fn into_utf8_string(self) -> Result<String> {
         self.try_into()
     }
 
     #[cfg(feature = "alloc")]
     #[must_use]
-    pub fn to_string_lossy(&self) -> String {
+    pub fn to_utf8_string_lossy(&self) -> String {
         String::from_utf8_lossy(&self.0).into_owned()
     }
 
     #[cfg(feature = "alloc")]
     #[must_use]
-    pub fn into_string_lossy(self) -> String {
+    pub fn into_utf8_string_lossy(self) -> String {
         String::from_utf8_lossy(&self.0).into_owned()
     }
 }
@@ -2695,13 +2686,15 @@ mod test {
     }
 }
 
-// AccountFlags is an XDR Enum defines as:
-//
-//   enum AccountFlags
-//    { // masks for each flag
-//        AUTH_REQUIRED_FLAG = 0x1
-//    };
-//
+/// AccountFlags is an XDR Enum defines as:
+///
+/// ```text
+/// enum AccountFlags
+/// { // masks for each flag
+///     AUTH_REQUIRED_FLAG = 0x1
+/// };
+/// ```
+///
 // enum
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
