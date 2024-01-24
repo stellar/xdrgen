@@ -69,7 +69,7 @@ module Xdrgen
           /* jshint maxstatements:2147483647  */
           /* jshint esnext:true  */
 
-          import * as XDR from 'js-xdr';
+          import * as XDR from '@stellar/js-xdr';
 
         EOS
         out.break
