@@ -873,7 +873,7 @@ impl<T: WriteXdr, const N: usize> WriteXdr for [T; N] {
 
 #[cfg(feature = "alloc")]
 #[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize, schemars::JsonSchema))]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 pub struct VecM<T, const MAX: u32 = { u32::MAX }>(Vec<T>);
 
@@ -1279,7 +1279,7 @@ impl<T: WriteXdr, const MAX: u32> WriteXdr for VecM<T, MAX> {
 #[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(
     feature = "serde",
-    derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr)
+    derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr, schemars::JsonSchema)
 )]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 pub struct BytesM<const MAX: u32 = { u32::MAX }>(Vec<u8>);
@@ -1660,7 +1660,7 @@ impl<const MAX: u32> WriteXdr for BytesM<MAX> {
 #[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(
     feature = "serde",
-    derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr)
+    derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr, schemars::JsonSchema)
 )]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 pub struct StringM<const MAX: u32 = { u32::MAX }>(Vec<u8>);
@@ -2030,7 +2030,7 @@ impl<const MAX: u32> WriteXdr for StringM<MAX> {
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(
     all(feature = "serde", feature = "alloc"),
-    derive(serde::Serialize, serde::Deserialize),
+    derive(serde::Serialize, serde::Deserialize, schemars::JsonSchema),
     serde(rename_all = "snake_case")
 )]
 pub struct Frame<T>(pub T)
@@ -2713,7 +2713,7 @@ pub type TestArray2 = VecM::<i32, 1>;
         #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
         #[cfg_attr(
           all(feature = "serde", feature = "alloc"),
-          derive(serde::Serialize, serde::Deserialize),
+          derive(serde::Serialize, serde::Deserialize, schemars::JsonSchema),
           serde(rename_all = "snake_case")
         )]
         pub enum TypeVariant {
@@ -2771,7 +2771,7 @@ Self::TestArray2 => "TestArray2",
         #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
         #[cfg_attr(
           all(feature = "serde", feature = "alloc"),
-          derive(serde::Serialize, serde::Deserialize),
+          derive(serde::Serialize, serde::Deserialize, schemars::JsonSchema),
           serde(rename_all = "snake_case"),
           serde(untagged),
         )]

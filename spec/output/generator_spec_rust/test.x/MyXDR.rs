@@ -873,7 +873,7 @@ impl<T: WriteXdr, const N: usize> WriteXdr for [T; N] {
 
 #[cfg(feature = "alloc")]
 #[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize, schemars::JsonSchema))]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 pub struct VecM<T, const MAX: u32 = { u32::MAX }>(Vec<T>);
 
@@ -1279,7 +1279,7 @@ impl<T: WriteXdr, const MAX: u32> WriteXdr for VecM<T, MAX> {
 #[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(
     feature = "serde",
-    derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr)
+    derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr, schemars::JsonSchema)
 )]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 pub struct BytesM<const MAX: u32 = { u32::MAX }>(Vec<u8>);
@@ -1660,7 +1660,7 @@ impl<const MAX: u32> WriteXdr for BytesM<MAX> {
 #[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(
     feature = "serde",
-    derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr)
+    derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr, schemars::JsonSchema)
 )]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 pub struct StringM<const MAX: u32 = { u32::MAX }>(Vec<u8>);
@@ -2030,7 +2030,7 @@ impl<const MAX: u32> WriteXdr for StringM<MAX> {
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(
     all(feature = "serde", feature = "alloc"),
-    derive(serde::Serialize, serde::Deserialize),
+    derive(serde::Serialize, serde::Deserialize, schemars::JsonSchema),
     serde(rename_all = "snake_case")
 )]
 pub struct Frame<T>(pub T)
@@ -2694,7 +2694,7 @@ mod test {
 ///
 #[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
-#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr))]
+#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr, schemars::JsonSchema))]
 pub struct Uint512(pub [u8; 64]);
 
 impl core::fmt::Debug for Uint512 {
@@ -2810,7 +2810,7 @@ impl AsRef<[u8]> for Uint512 {
 #[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[derive(Default)]
-#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
+#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize, schemars::JsonSchema), serde(rename_all = "snake_case"))]
 #[derive(Debug)]
 pub struct Uint513(pub BytesM::<64>);
 
@@ -2911,7 +2911,7 @@ impl AsRef<[u8]> for Uint513 {
 #[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[derive(Default)]
-#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
+#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize, schemars::JsonSchema), serde(rename_all = "snake_case"))]
 #[derive(Debug)]
 pub struct Uint514(pub BytesM);
 
@@ -3012,7 +3012,7 @@ impl AsRef<[u8]> for Uint514 {
 #[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[derive(Default)]
-#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
+#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize, schemars::JsonSchema), serde(rename_all = "snake_case"))]
 #[derive(Debug)]
 pub struct Str(pub StringM::<64>);
 
@@ -3113,7 +3113,7 @@ impl AsRef<[u8]> for Str {
 #[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[derive(Default)]
-#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
+#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize, schemars::JsonSchema), serde(rename_all = "snake_case"))]
 #[derive(Debug)]
 pub struct Str2(pub StringM);
 
@@ -3213,7 +3213,7 @@ impl AsRef<[u8]> for Str2 {
 ///
 #[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
-#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr))]
+#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr, schemars::JsonSchema))]
 pub struct Hash(pub [u8; 32]);
 
 impl core::fmt::Debug for Hash {
@@ -3328,7 +3328,7 @@ impl AsRef<[u8]> for Hash {
 ///
 #[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
-#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
+#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize, schemars::JsonSchema), serde(rename_all = "snake_case"))]
 #[derive(Debug)]
 pub struct Hashes1(pub [Hash; 12]);
 
@@ -3417,7 +3417,7 @@ impl AsRef<[Hash]> for Hashes1 {
 #[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[derive(Default)]
-#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
+#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize, schemars::JsonSchema), serde(rename_all = "snake_case"))]
 #[derive(Debug)]
 pub struct Hashes2(pub VecM::<Hash, 12>);
 
@@ -3518,7 +3518,7 @@ impl AsRef<[Hash]> for Hashes2 {
 #[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[derive(Default)]
-#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
+#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize, schemars::JsonSchema), serde(rename_all = "snake_case"))]
 #[derive(Debug)]
 pub struct Hashes3(pub VecM::<Hash>);
 
@@ -3618,7 +3618,7 @@ impl AsRef<[Hash]> for Hashes3 {
 ///
 #[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
-#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
+#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize, schemars::JsonSchema), serde(rename_all = "snake_case"))]
 #[derive(Debug)]
 pub struct OptHash1(pub Option<Hash>);
 
@@ -3669,7 +3669,7 @@ impl WriteXdr for OptHash1 {
 ///
 #[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
-#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
+#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize, schemars::JsonSchema), serde(rename_all = "snake_case"))]
 #[derive(Debug)]
 pub struct OptHash2(pub Option<Hash>);
 
@@ -3761,7 +3761,7 @@ pub type Int4 = u64;
 ///
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
-#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
+#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize, schemars::JsonSchema), serde(rename_all = "snake_case"))]
 pub struct MyStruct {
   pub field1: Uint512,
   pub field2: OptHash1,
@@ -3816,7 +3816,7 @@ self.field7.write_xdr(w)?;
 ///
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
-#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
+#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize, schemars::JsonSchema), serde(rename_all = "snake_case"))]
 pub struct LotsOfMyStructs {
   pub members: VecM::<MyStruct>,
 }
@@ -3853,7 +3853,7 @@ impl WriteXdr for LotsOfMyStructs {
 ///
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
-#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
+#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize, schemars::JsonSchema), serde(rename_all = "snake_case"))]
 pub struct HasStuff {
   pub data: LotsOfMyStructs,
 }
@@ -3892,7 +3892,7 @@ impl WriteXdr for HasStuff {
 // enum
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
-#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
+#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize, schemars::JsonSchema), serde(rename_all = "snake_case"))]
 #[repr(i32)]
 pub enum Color {
   Red = 0,
@@ -4015,7 +4015,7 @@ pub const BAR: u64 = FOO;
 // enum
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
-#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
+#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize, schemars::JsonSchema), serde(rename_all = "snake_case"))]
 #[repr(i32)]
 pub enum NesterNestedEnum {
   1 = 0,
@@ -4115,7 +4115,7 @@ Self::2 => "2",
 ///
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
-#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
+#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize, schemars::JsonSchema), serde(rename_all = "snake_case"))]
 pub struct NesterNestedStruct {
   pub blah: i32,
 }
@@ -4155,7 +4155,7 @@ impl WriteXdr for NesterNestedStruct {
 // union with discriminant Color
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
-#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
+#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize, schemars::JsonSchema), serde(rename_all = "snake_case"))]
 #[allow(clippy::large_enum_variant)]
 pub enum NesterNestedUnion {
   Red,
@@ -4269,7 +4269,7 @@ impl WriteXdr for NesterNestedUnion {
 ///
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
-#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
+#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize, schemars::JsonSchema), serde(rename_all = "snake_case"))]
 pub struct Nester {
   pub nested_enum: NesterNestedEnum,
   pub nested_struct: NesterNestedStruct,
@@ -4304,7 +4304,7 @@ self.nested_union.write_xdr(w)?;
         #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
         #[cfg_attr(
           all(feature = "serde", feature = "alloc"),
-          derive(serde::Serialize, serde::Deserialize),
+          derive(serde::Serialize, serde::Deserialize, schemars::JsonSchema),
           serde(rename_all = "snake_case")
         )]
         pub enum TypeVariant {
@@ -4467,7 +4467,7 @@ Self::NesterNestedUnion => "NesterNestedUnion",
         #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
         #[cfg_attr(
           all(feature = "serde", feature = "alloc"),
-          derive(serde::Serialize, serde::Deserialize),
+          derive(serde::Serialize, serde::Deserialize, schemars::JsonSchema),
           serde(rename_all = "snake_case"),
           serde(untagged),
         )]
