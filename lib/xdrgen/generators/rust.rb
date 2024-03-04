@@ -99,7 +99,7 @@ module Xdrgen
         #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
         #[cfg_attr(
           all(feature = "serde", feature = "alloc"),
-          derive(serde::Serialize, serde::Deserialize),
+          derive(serde::Serialize, serde::Deserialize, schemars::JsonSchema),
           serde(rename_all = "snake_case")
         )]
         pub enum TypeVariant {
@@ -152,7 +152,7 @@ module Xdrgen
         #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
         #[cfg_attr(
           all(feature = "serde", feature = "alloc"),
-          derive(serde::Serialize, serde::Deserialize),
+          derive(serde::Serialize, serde::Deserialize, schemars::JsonSchema),
           serde(rename_all = "snake_case"),
           serde(untagged),
         )]
@@ -365,9 +365,9 @@ module Xdrgen
         out.puts "#[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]"
         out.puts %{#[cfg_attr(feature = "arbitrary", derive(Arbitrary))]}
         if @options[:rust_types_custom_str_impl].include?(name struct)
-          out.puts %{#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr))]}
+          out.puts %{#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr, schemars::JsonSchema))]}
         else
-          out.puts %{#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]}
+          out.puts %{#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize, schemars::JsonSchema), serde(rename_all = "snake_case"))]}
         end
         out.puts "pub struct #{name struct} {"
         out.indent do
@@ -411,9 +411,9 @@ module Xdrgen
         out.puts "#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]"
         out.puts %{#[cfg_attr(feature = "arbitrary", derive(Arbitrary))]}
         if @options[:rust_types_custom_str_impl].include?(name enum)
-          out.puts %{#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr))]}
+          out.puts %{#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr, schemars::JsonSchema))]}
         else
-          out.puts %{#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]}
+          out.puts %{#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize, schemars::JsonSchema), serde(rename_all = "snake_case"))]}
         end
         out.puts "#[repr(i32)]"
         out.puts "pub enum #{name enum} {"
@@ -540,9 +540,9 @@ module Xdrgen
         out.puts "#[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]"
         out.puts %{#[cfg_attr(feature = "arbitrary", derive(Arbitrary))]}
         if @options[:rust_types_custom_str_impl].include?(name union)
-          out.puts %{#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr))]}
+          out.puts %{#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr, schemars::JsonSchema))]}
         else
-          out.puts %{#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]}
+          out.puts %{#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize, schemars::JsonSchema), serde(rename_all = "snake_case"))]}
         end
         out.puts "#[allow(clippy::large_enum_variant)]"
         out.puts "pub enum #{name union} {"
@@ -674,9 +674,9 @@ module Xdrgen
           out.puts %{#[cfg_attr(feature = "arbitrary", derive(Arbitrary))]}
           out.puts "#[derive(Default)]" if is_var_array_type(typedef.type)
           if is_fixed_array_opaque(typedef.type) || @options[:rust_types_custom_str_impl].include?(name typedef)
-            out.puts %{#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr))]}
+            out.puts %{#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr, schemars::JsonSchema))]}
           else
-            out.puts %{#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]}
+            out.puts %{#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize, schemars::JsonSchema), serde(rename_all = "snake_case"))]}
           end
           if !is_fixed_array_opaque(typedef.type)
             out.puts "#[derive(Debug)]"
