@@ -2711,8 +2711,7 @@ pub type Arr = [i32; 2];
 ///
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
-#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr))]
-#[cfg_attr(all(feature = "schemars", feature = "serde", feature = "alloc"), derive(schemars::JsonSchema))]
+#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
 pub struct HasOptions {
   pub first_option: Option<i32>,
   pub second_option: Option<i32>,

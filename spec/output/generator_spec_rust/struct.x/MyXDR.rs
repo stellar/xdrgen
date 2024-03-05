@@ -873,7 +873,8 @@ impl<T: WriteXdr, const N: usize> WriteXdr for [T; N] {
 
 #[cfg(feature = "alloc")]
 #[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize, schemars::JsonSchema))]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(all(feature = "schemars", feature = "serde", feature = "alloc"), derive(schemars::JsonSchema))]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 pub struct VecM<T, const MAX: u32 = { u32::MAX }>(Vec<T>);
 
@@ -1279,8 +1280,9 @@ impl<T: WriteXdr, const MAX: u32> WriteXdr for VecM<T, MAX> {
 #[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(
     feature = "serde",
-    derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr, schemars::JsonSchema)
+    derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr)
 )]
+#[cfg_attr(all(feature = "schemars", feature = "serde", feature = "alloc"), derive(schemars::JsonSchema))]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 pub struct BytesM<const MAX: u32 = { u32::MAX }>(Vec<u8>);
 
@@ -1660,8 +1662,9 @@ impl<const MAX: u32> WriteXdr for BytesM<MAX> {
 #[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(
     feature = "serde",
-    derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr, schemars::JsonSchema)
+    derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr)
 )]
+#[cfg_attr(all(feature = "schemars", feature = "serde", feature = "alloc"), derive(schemars::JsonSchema))]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 pub struct StringM<const MAX: u32 = { u32::MAX }>(Vec<u8>);
 
@@ -2030,9 +2033,10 @@ impl<const MAX: u32> WriteXdr for StringM<MAX> {
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(
     all(feature = "serde", feature = "alloc"),
-    derive(serde::Serialize, serde::Deserialize, schemars::JsonSchema),
+    derive(serde::Serialize, serde::Deserialize),
     serde(rename_all = "snake_case")
 )]
+#[cfg_attr(all(feature = "schemars", feature = "serde", feature = "alloc"), derive(schemars::JsonSchema))]
 pub struct Frame<T>(pub T)
 where
     T: ReadXdr;
@@ -2709,7 +2713,8 @@ pub type Int64 = i64;
 ///
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
-#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize, schemars::JsonSchema), serde(rename_all = "snake_case"))]
+#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
+#[cfg_attr(all(feature = "schemars", feature = "serde", feature = "alloc"), derive(schemars::JsonSchema))]
 pub struct MyStruct {
   pub some_int: i32,
   pub a_big_int: i64,
@@ -2752,6 +2757,10 @@ self.max_string.write_xdr(w)?;
           all(feature = "serde", feature = "alloc"),
           derive(serde::Serialize, serde::Deserialize, schemars::JsonSchema),
           serde(rename_all = "snake_case")
+        )]
+        #[cfg_attr(
+          all(feature = "schemars", feature = "serde", feature = "alloc"),
+          derive(schemars::JsonSchema)
         )]
         pub enum TypeVariant {
             Int64,
@@ -2811,6 +2820,10 @@ Self::MyStruct => "MyStruct",
           derive(serde::Serialize, serde::Deserialize, schemars::JsonSchema),
           serde(rename_all = "snake_case"),
           serde(untagged),
+        )]
+        #[cfg_attr(
+          all(feature = "schemars", feature = "serde", feature = "alloc"),
+          derive(schemars::JsonSchema)
         )]
         pub enum Type {
             Int64(Box<Int64>),
