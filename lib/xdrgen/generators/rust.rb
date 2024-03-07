@@ -99,7 +99,7 @@ module Xdrgen
         #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
         #[cfg_attr(
           all(feature = "serde", feature = "alloc"),
-          derive(serde::Serialize, serde::Deserialize, schemars::JsonSchema),
+          derive(serde::Serialize, serde::Deserialize),
           serde(rename_all = "snake_case")
         )]
         #[cfg_attr(
@@ -156,7 +156,7 @@ module Xdrgen
         #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
         #[cfg_attr(
           all(feature = "serde", feature = "alloc"),
-          derive(serde::Serialize, serde::Deserialize, schemars::JsonSchema),
+          derive(serde::Serialize, serde::Deserialize),
           serde(rename_all = "snake_case"),
           serde(untagged),
         )]
