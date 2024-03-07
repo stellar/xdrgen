@@ -2134,6 +2134,7 @@ where
     }
 }
 
+#[cfg(all(feature = "schemars", feature = "serde", feature = "alloc"))]
 fn mut_array(schema: schemars::schema::Schema, f: impl FnOnce(schemars::schema::ArrayValidation) -> schemars::schema::ArrayValidation) -> schemars::schema::Schema {
     if let schemars::schema::Schema::Object(mut schema) = schema {
         if let Some(array) = schema.array.clone() {
@@ -2145,6 +2146,7 @@ fn mut_array(schema: schemars::schema::Schema, f: impl FnOnce(schemars::schema::
     }
 }
 
+#[cfg(all(feature = "schemars", feature = "serde", feature = "alloc"))]
 fn mut_string(schema: schemars::schema::Schema, f: impl FnOnce(schemars::schema::StringValidation) -> schemars::schema::StringValidation) -> schemars::schema::Schema {
     if let schemars::schema::Schema::Object(mut schema) = schema {
         let string = *schema.string.unwrap_or_default().clone();
