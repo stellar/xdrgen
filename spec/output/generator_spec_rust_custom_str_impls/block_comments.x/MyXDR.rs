@@ -4,10 +4,9 @@
 #![allow(clippy::missing_errors_doc, clippy::unreadable_literal)]
 
 /// `XDR_FILES_SHA256` is a list of pairs of source files and their SHA256 hashes.
-pub const XDR_FILES_SHA256: [(&str, &str); 1] = [(
-    "spec/fixtures/generator/block_comments.x",
-    "e13131bc4134f38da17b9d5e9f67d2695a69ef98e3ef272833f4c18d0cc88a30",
-)];
+pub const XDR_FILES_SHA256: [(&str, &str); 1] = [
+  ("spec/fixtures/generator/block_comments.x", "e13131bc4134f38da17b9d5e9f67d2695a69ef98e3ef272833f4c18d0cc88a30")
+];
 
 use core::{array::TryFromSliceError, fmt, fmt::Debug, marker::Sized, ops::Deref, slice};
 
@@ -875,15 +874,6 @@ impl<T: WriteXdr, const N: usize> WriteXdr for [T; N] {
 #[cfg(feature = "alloc")]
 #[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-#[cfg_attr(
-    all(
-        feature = "schemars",
-        feature = "serde",
-        feature = "serde_json",
-        feature = "alloc"
-    ),
-    derive(schemars::JsonSchema)
-)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 pub struct VecM<T, const MAX: u32 = { u32::MAX }>(Vec<T>);
 
@@ -905,6 +895,26 @@ impl<T, const MAX: u32> Deref for VecM<T, MAX> {
 impl<T, const MAX: u32> Default for VecM<T, MAX> {
     fn default() -> Self {
         Self(Vec::default())
+    }
+}
+
+#[cfg(feature = "schemars")]
+impl<T: schemars::JsonSchema, const MAX: u32> schemars::JsonSchema for VecM<T, MAX> {
+    fn schema_name() -> String {
+        format!("VecM<{}, {}>", T::schema_name(), MAX)
+    }
+
+    fn is_referenceable() -> bool {
+        false
+    }
+
+    fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
+        mut_array(Vec::<T>::json_schema(gen), |array| {
+            schemars::schema::ArrayValidation {
+                max_items: Some(MAX),
+                ..array
+            }
+        })
     }
 }
 
@@ -1291,15 +1301,6 @@ impl<T: WriteXdr, const MAX: u32> WriteXdr for VecM<T, MAX> {
     feature = "serde",
     derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr)
 )]
-#[cfg_attr(
-    all(
-        feature = "schemars",
-        feature = "serde",
-        feature = "serde_json",
-        feature = "alloc"
-    ),
-    derive(schemars::JsonSchema)
-)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 pub struct BytesM<const MAX: u32 = { u32::MAX }>(Vec<u8>);
 
@@ -1349,6 +1350,38 @@ impl<const MAX: u32> Deref for BytesM<MAX> {
 
     fn deref(&self) -> &Self::Target {
         &self.0
+    }
+}
+
+#[cfg(feature = "schemars")]
+impl<const MAX: u32> schemars::JsonSchema for BytesM<MAX> {
+    fn schema_name() -> String {
+        format!("BytesM<{}>", MAX)
+    }
+
+    fn is_referenceable() -> bool {
+        false
+    }
+
+    fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
+        let schema_ = String::json_schema(gen);
+        if let schemars::schema::Schema::Object(mut schema) = schema_ {
+            schema.extensions.insert(
+                "contentEncoding".to_owned(),
+                serde_json::Value::String("hex".to_string()),
+            );
+            schema.extensions.insert(
+                "contentMediaType".to_owned(),
+                serde_json::Value::String("application/binary".to_string()),
+            );
+            mut_string(schema.into(), |string| schemars::schema::StringValidation {
+                max_length: Some(MAX * 2),
+                min_length: None,
+                ..string
+            })
+        } else {
+            schema_
+        }
     }
 }
 
@@ -1681,15 +1714,6 @@ impl<const MAX: u32> WriteXdr for BytesM<MAX> {
     feature = "serde",
     derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr)
 )]
-#[cfg_attr(
-    all(
-        feature = "schemars",
-        feature = "serde",
-        feature = "serde_json",
-        feature = "alloc"
-    ),
-    derive(schemars::JsonSchema)
-)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 pub struct StringM<const MAX: u32 = { u32::MAX }>(Vec<u8>);
 
@@ -1746,6 +1770,26 @@ impl<const MAX: u32> Deref for StringM<MAX> {
 impl<const MAX: u32> Default for StringM<MAX> {
     fn default() -> Self {
         Self(Vec::default())
+    }
+}
+
+#[cfg(feature = "schemars")]
+impl<const MAX: u32> schemars::JsonSchema for StringM<MAX> {
+    fn schema_name() -> String {
+        format!("StringM<{}>", MAX)
+    }
+
+    fn is_referenceable() -> bool {
+        false
+    }
+
+    fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
+        mut_string(String::json_schema(gen), |string| {
+            schemars::schema::StringValidation {
+                max_length: Some(MAX),
+                ..string
+            }
+        })
     }
 }
 
@@ -2061,18 +2105,24 @@ impl<const MAX: u32> WriteXdr for StringM<MAX> {
     derive(serde::Serialize, serde::Deserialize),
     serde(rename_all = "snake_case")
 )]
-#[cfg_attr(
-    all(
-        feature = "schemars",
-        feature = "serde",
-        feature = "serde_json",
-        feature = "alloc"
-    ),
-    derive(schemars::JsonSchema)
-)]
 pub struct Frame<T>(pub T)
 where
     T: ReadXdr;
+
+#[cfg(feature = "schemars")]
+impl<T: schemars::JsonSchema + ReadXdr> schemars::JsonSchema for Frame<T> {
+    fn schema_name() -> String {
+        format!("Frame<{}>", T::schema_name())
+    }
+
+    fn is_referenceable() -> bool {
+        false
+    }
+
+    fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
+        T::json_schema(gen)
+    }
+}
 
 impl<T> ReadXdr for Frame<T>
 where
@@ -2095,6 +2145,37 @@ where
             // record.
             Err(Error::Unsupported)
         }
+    }
+}
+
+#[cfg(feature = "schemars")]
+fn mut_array(
+    schema: schemars::schema::Schema,
+    f: impl FnOnce(schemars::schema::ArrayValidation) -> schemars::schema::ArrayValidation,
+) -> schemars::schema::Schema {
+    if let schemars::schema::Schema::Object(mut schema) = schema {
+        if let Some(array) = schema.array.clone() {
+            schema.array = Some(Box::new(f(*array)));
+        }
+        schema.into()
+    } else {
+        schema
+    }
+}
+
+#[cfg(feature = "schemars")]
+fn mut_string(
+    schema: schemars::schema::Schema,
+    f: impl FnOnce(schemars::schema::StringValidation) -> schemars::schema::StringValidation,
+) -> schemars::schema::Schema {
+    if let schemars::schema::Schema::Object(mut schema) = schema {
+        let string = *schema.string.unwrap_or_default().clone();
+        let s = f(string);
+        schema.string = Some(Box::new(s));
+
+        schema.into()
+    } else {
+        schema
     }
 }
 
@@ -2735,28 +2816,16 @@ mod test {
 // enum
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
-#[cfg_attr(
-    all(feature = "serde", feature = "alloc"),
-    derive(serde::Serialize, serde::Deserialize),
-    serde(rename_all = "snake_case")
-)]
-#[cfg_attr(
-    all(
-        feature = "schemars",
-        feature = "serde",
-        feature = "serde_json",
-        feature = "alloc"
-    ),
-    derive(schemars::JsonSchema)
-)]
+#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
+#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 #[repr(i32)]
 pub enum AccountFlags {
-    AuthRequiredFlag = 1,
+  AuthRequiredFlag = 1,
 }
 
 impl AccountFlags {
-    pub const VARIANTS: [AccountFlags; 1] = [AccountFlags::AuthRequiredFlag];
-    pub const VARIANTS_STR: [&'static str; 1] = ["AuthRequiredFlag"];
+    pub const VARIANTS: [AccountFlags; 1] = [ AccountFlags::AuthRequiredFlag, ];
+    pub const VARIANTS_STR: [&'static str; 1] = [ "AuthRequiredFlag", ];
 
     #[must_use]
     pub const fn name(&self) -> &'static str {
@@ -2835,26 +2904,18 @@ impl WriteXdr for AccountFlags {
 
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(
-    all(feature = "serde", feature = "alloc"),
-    derive(serde::Serialize, serde::Deserialize, schemars::JsonSchema),
-    serde(rename_all = "snake_case")
+  all(feature = "serde", feature = "alloc"),
+  derive(serde::Serialize, serde::Deserialize),
+  serde(rename_all = "snake_case")
 )]
-#[cfg_attr(
-    all(
-        feature = "schemars",
-        feature = "serde",
-        feature = "serde_json",
-        feature = "alloc"
-    ),
-    derive(schemars::JsonSchema)
-)]
+#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 pub enum TypeVariant {
     AccountFlags,
 }
 
 impl TypeVariant {
-    pub const VARIANTS: [TypeVariant; 1] = [TypeVariant::AccountFlags];
-    pub const VARIANTS_STR: [&'static str; 1] = ["AccountFlags"];
+    pub const VARIANTS: [TypeVariant; 1] = [ TypeVariant::AccountFlags, ];
+    pub const VARIANTS_STR: [&'static str; 1] = [ "AccountFlags", ];
 
     #[must_use]
     #[allow(clippy::too_many_lines)]
@@ -2897,44 +2958,31 @@ impl core::str::FromStr for TypeVariant {
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(
-    all(feature = "serde", feature = "alloc"),
-    derive(serde::Serialize, serde::Deserialize, schemars::JsonSchema),
-    serde(rename_all = "snake_case"),
-    serde(untagged)
+  all(feature = "serde", feature = "alloc"),
+  derive(serde::Serialize, serde::Deserialize),
+  serde(rename_all = "snake_case"),
+  serde(untagged),
 )]
-#[cfg_attr(
-    all(
-        feature = "schemars",
-        feature = "serde",
-        feature = "serde_json",
-        feature = "alloc"
-    ),
-    derive(schemars::JsonSchema)
-)]
+#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 pub enum Type {
     AccountFlags(Box<AccountFlags>),
 }
 
 impl Type {
-    pub const VARIANTS: [TypeVariant; 1] = [TypeVariant::AccountFlags];
-    pub const VARIANTS_STR: [&'static str; 1] = ["AccountFlags"];
+    pub const VARIANTS: [TypeVariant; 1] = [ TypeVariant::AccountFlags, ];
+    pub const VARIANTS_STR: [&'static str; 1] = [ "AccountFlags", ];
 
     #[cfg(feature = "std")]
     #[allow(clippy::too_many_lines)]
     pub fn read_xdr<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Result<Self> {
         match v {
-            TypeVariant::AccountFlags => r.with_limited_depth(|r| {
-                Ok(Self::AccountFlags(Box::new(AccountFlags::read_xdr(r)?)))
-            }),
+            TypeVariant::AccountFlags => r.with_limited_depth(|r| Ok(Self::AccountFlags(Box::new(AccountFlags::read_xdr(r)?)))),
         }
     }
 
     #[cfg(feature = "base64")]
     pub fn read_xdr_base64<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Result<Self> {
-        let mut dec = Limited::new(
-            base64::read::DecoderReader::new(&mut r.inner, base64::STANDARD),
-            r.limits.clone(),
-        );
+        let mut dec = Limited::new(base64::read::DecoderReader::new(&mut r.inner, base64::STANDARD), r.limits.clone());
         let t = Self::read_xdr(v, &mut dec)?;
         Ok(t)
     }
@@ -2953,54 +3001,33 @@ impl Type {
 
     #[cfg(feature = "base64")]
     pub fn read_xdr_base64_to_end<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Result<Self> {
-        let mut dec = Limited::new(
-            base64::read::DecoderReader::new(&mut r.inner, base64::STANDARD),
-            r.limits.clone(),
-        );
+        let mut dec = Limited::new(base64::read::DecoderReader::new(&mut r.inner, base64::STANDARD), r.limits.clone());
         let t = Self::read_xdr_to_end(v, &mut dec)?;
         Ok(t)
     }
 
     #[cfg(feature = "std")]
     #[allow(clippy::too_many_lines)]
-    pub fn read_xdr_iter<R: Read>(
-        v: TypeVariant,
-        r: &mut Limited<R>,
-    ) -> Box<dyn Iterator<Item = Result<Self>> + '_> {
+    pub fn read_xdr_iter<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Box<dyn Iterator<Item=Result<Self>> + '_> {
         match v {
-            TypeVariant::AccountFlags => Box::new(
-                ReadXdrIter::<_, AccountFlags>::new(&mut r.inner, r.limits.clone())
-                    .map(|r| r.map(|t| Self::AccountFlags(Box::new(t)))),
-            ),
+            TypeVariant::AccountFlags => Box::new(ReadXdrIter::<_, AccountFlags>::new(&mut r.inner, r.limits.clone()).map(|r| r.map(|t| Self::AccountFlags(Box::new(t))))),
         }
     }
 
     #[cfg(feature = "std")]
     #[allow(clippy::too_many_lines)]
-    pub fn read_xdr_framed_iter<R: Read>(
-        v: TypeVariant,
-        r: &mut Limited<R>,
-    ) -> Box<dyn Iterator<Item = Result<Self>> + '_> {
+    pub fn read_xdr_framed_iter<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Box<dyn Iterator<Item=Result<Self>> + '_> {
         match v {
-            TypeVariant::AccountFlags => Box::new(
-                ReadXdrIter::<_, Frame<AccountFlags>>::new(&mut r.inner, r.limits.clone())
-                    .map(|r| r.map(|t| Self::AccountFlags(Box::new(t.0)))),
-            ),
+            TypeVariant::AccountFlags => Box::new(ReadXdrIter::<_, Frame<AccountFlags>>::new(&mut r.inner, r.limits.clone()).map(|r| r.map(|t| Self::AccountFlags(Box::new(t.0))))),
         }
     }
 
     #[cfg(feature = "base64")]
     #[allow(clippy::too_many_lines)]
-    pub fn read_xdr_base64_iter<R: Read>(
-        v: TypeVariant,
-        r: &mut Limited<R>,
-    ) -> Box<dyn Iterator<Item = Result<Self>> + '_> {
+    pub fn read_xdr_base64_iter<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Box<dyn Iterator<Item=Result<Self>> + '_> {
         let dec = base64::read::DecoderReader::new(&mut r.inner, base64::STANDARD);
         match v {
-            TypeVariant::AccountFlags => Box::new(
-                ReadXdrIter::<_, AccountFlags>::new(dec, r.limits.clone())
-                    .map(|r| r.map(|t| Self::AccountFlags(Box::new(t)))),
-            ),
+            TypeVariant::AccountFlags => Box::new(ReadXdrIter::<_, AccountFlags>::new(dec, r.limits.clone()).map(|r| r.map(|t| Self::AccountFlags(Box::new(t))))),
         }
     }
 
@@ -3014,10 +3041,7 @@ impl Type {
     #[cfg(feature = "base64")]
     pub fn from_xdr_base64(v: TypeVariant, b64: impl AsRef<[u8]>, limits: Limits) -> Result<Self> {
         let mut b64_reader = Cursor::new(b64);
-        let mut dec = Limited::new(
-            base64::read::DecoderReader::new(&mut b64_reader, base64::STANDARD),
-            limits,
-        );
+        let mut dec = Limited::new(base64::read::DecoderReader::new(&mut b64_reader, base64::STANDARD), limits);
         let t = Self::read_xdr_to_end(v, &mut dec)?;
         Ok(t)
     }
@@ -3026,9 +3050,7 @@ impl Type {
     #[allow(clippy::too_many_lines)]
     pub fn read_json(v: TypeVariant, r: impl Read) -> Result<Self> {
         match v {
-            TypeVariant::AccountFlags => {
-                Ok(Self::AccountFlags(Box::new(serde_json::from_reader(r)?)))
-            }
+            TypeVariant::AccountFlags => Ok(Self::AccountFlags(Box::new(serde_json::from_reader(r)?))),
         }
     }
 

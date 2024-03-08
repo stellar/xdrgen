@@ -4,10 +4,9 @@
 #![allow(clippy::missing_errors_doc, clippy::unreadable_literal)]
 
 /// `XDR_FILES_SHA256` is a list of pairs of source files and their SHA256 hashes.
-pub const XDR_FILES_SHA256: [(&str, &str); 1] = [(
-    "spec/fixtures/generator/enum.x",
-    "35cf5e97e2057039640ed260e8b38bb2733a3c3ca8529c93877bdec02a999d7f",
-)];
+pub const XDR_FILES_SHA256: [(&str, &str); 1] = [
+  ("spec/fixtures/generator/enum.x", "35cf5e97e2057039640ed260e8b38bb2733a3c3ca8529c93877bdec02a999d7f")
+];
 
 use core::{array::TryFromSliceError, fmt, fmt::Debug, marker::Sized, ops::Deref, slice};
 
@@ -875,15 +874,6 @@ impl<T: WriteXdr, const N: usize> WriteXdr for [T; N] {
 #[cfg(feature = "alloc")]
 #[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-#[cfg_attr(
-    all(
-        feature = "schemars",
-        feature = "serde",
-        feature = "serde_json",
-        feature = "alloc"
-    ),
-    derive(schemars::JsonSchema)
-)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 pub struct VecM<T, const MAX: u32 = { u32::MAX }>(Vec<T>);
 
@@ -905,6 +895,26 @@ impl<T, const MAX: u32> Deref for VecM<T, MAX> {
 impl<T, const MAX: u32> Default for VecM<T, MAX> {
     fn default() -> Self {
         Self(Vec::default())
+    }
+}
+
+#[cfg(feature = "schemars")]
+impl<T: schemars::JsonSchema, const MAX: u32> schemars::JsonSchema for VecM<T, MAX> {
+    fn schema_name() -> String {
+        format!("VecM<{}, {}>", T::schema_name(), MAX)
+    }
+
+    fn is_referenceable() -> bool {
+        false
+    }
+
+    fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
+        mut_array(Vec::<T>::json_schema(gen), |array| {
+            schemars::schema::ArrayValidation {
+                max_items: Some(MAX),
+                ..array
+            }
+        })
     }
 }
 
@@ -1291,15 +1301,6 @@ impl<T: WriteXdr, const MAX: u32> WriteXdr for VecM<T, MAX> {
     feature = "serde",
     derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr)
 )]
-#[cfg_attr(
-    all(
-        feature = "schemars",
-        feature = "serde",
-        feature = "serde_json",
-        feature = "alloc"
-    ),
-    derive(schemars::JsonSchema)
-)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 pub struct BytesM<const MAX: u32 = { u32::MAX }>(Vec<u8>);
 
@@ -1349,6 +1350,38 @@ impl<const MAX: u32> Deref for BytesM<MAX> {
 
     fn deref(&self) -> &Self::Target {
         &self.0
+    }
+}
+
+#[cfg(feature = "schemars")]
+impl<const MAX: u32> schemars::JsonSchema for BytesM<MAX> {
+    fn schema_name() -> String {
+        format!("BytesM<{}>", MAX)
+    }
+
+    fn is_referenceable() -> bool {
+        false
+    }
+
+    fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
+        let schema_ = String::json_schema(gen);
+        if let schemars::schema::Schema::Object(mut schema) = schema_ {
+            schema.extensions.insert(
+                "contentEncoding".to_owned(),
+                serde_json::Value::String("hex".to_string()),
+            );
+            schema.extensions.insert(
+                "contentMediaType".to_owned(),
+                serde_json::Value::String("application/binary".to_string()),
+            );
+            mut_string(schema.into(), |string| schemars::schema::StringValidation {
+                max_length: Some(MAX * 2),
+                min_length: None,
+                ..string
+            })
+        } else {
+            schema_
+        }
     }
 }
 
@@ -1681,15 +1714,6 @@ impl<const MAX: u32> WriteXdr for BytesM<MAX> {
     feature = "serde",
     derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr)
 )]
-#[cfg_attr(
-    all(
-        feature = "schemars",
-        feature = "serde",
-        feature = "serde_json",
-        feature = "alloc"
-    ),
-    derive(schemars::JsonSchema)
-)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 pub struct StringM<const MAX: u32 = { u32::MAX }>(Vec<u8>);
 
@@ -1746,6 +1770,26 @@ impl<const MAX: u32> Deref for StringM<MAX> {
 impl<const MAX: u32> Default for StringM<MAX> {
     fn default() -> Self {
         Self(Vec::default())
+    }
+}
+
+#[cfg(feature = "schemars")]
+impl<const MAX: u32> schemars::JsonSchema for StringM<MAX> {
+    fn schema_name() -> String {
+        format!("StringM<{}>", MAX)
+    }
+
+    fn is_referenceable() -> bool {
+        false
+    }
+
+    fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
+        mut_string(String::json_schema(gen), |string| {
+            schemars::schema::StringValidation {
+                max_length: Some(MAX),
+                ..string
+            }
+        })
     }
 }
 
@@ -2061,18 +2105,24 @@ impl<const MAX: u32> WriteXdr for StringM<MAX> {
     derive(serde::Serialize, serde::Deserialize),
     serde(rename_all = "snake_case")
 )]
-#[cfg_attr(
-    all(
-        feature = "schemars",
-        feature = "serde",
-        feature = "serde_json",
-        feature = "alloc"
-    ),
-    derive(schemars::JsonSchema)
-)]
 pub struct Frame<T>(pub T)
 where
     T: ReadXdr;
+
+#[cfg(feature = "schemars")]
+impl<T: schemars::JsonSchema + ReadXdr> schemars::JsonSchema for Frame<T> {
+    fn schema_name() -> String {
+        format!("Frame<{}>", T::schema_name())
+    }
+
+    fn is_referenceable() -> bool {
+        false
+    }
+
+    fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
+        T::json_schema(gen)
+    }
+}
 
 impl<T> ReadXdr for Frame<T>
 where
@@ -2095,6 +2145,37 @@ where
             // record.
             Err(Error::Unsupported)
         }
+    }
+}
+
+#[cfg(feature = "schemars")]
+fn mut_array(
+    schema: schemars::schema::Schema,
+    f: impl FnOnce(schemars::schema::ArrayValidation) -> schemars::schema::ArrayValidation,
+) -> schemars::schema::Schema {
+    if let schemars::schema::Schema::Object(mut schema) = schema {
+        if let Some(array) = schema.array.clone() {
+            schema.array = Some(Box::new(f(*array)));
+        }
+        schema.into()
+    } else {
+        schema
+    }
+}
+
+#[cfg(feature = "schemars")]
+fn mut_string(
+    schema: schemars::schema::Schema,
+    f: impl FnOnce(schemars::schema::StringValidation) -> schemars::schema::StringValidation,
+) -> schemars::schema::Schema {
+    if let schemars::schema::Schema::Object(mut schema) = schema {
+        let string = *schema.string.unwrap_or_default().clone();
+        let s = f(string);
+        schema.string = Some(Box::new(s));
+
+        schema.into()
+    } else {
+        schema
     }
 }
 
@@ -2731,19 +2812,19 @@ mod test {
 ///     ERROR_MSG,    
 ///     HELLO,
 ///     DONT_HAVE,
-///
+/// 
 ///     GET_PEERS,   // gets a list of peers this guy knows about        
 ///     PEERS,
-///
+/// 
 ///     GET_TX_SET,  // gets a particular txset by hash        
 ///     TX_SET,    
-///
+/// 
 ///     GET_VALIDATIONS, // gets validations for a given ledger hash        
 ///     VALIDATIONS,    
-///
+/// 
 ///     TRANSACTION, //pass on a tx you have heard about        
 ///     JSON_TRANSACTION,
-///
+/// 
 ///     // FBA        
 ///     GET_FBA_QUORUMSET,        
 ///     FBA_QUORUMSET,    
@@ -2754,172 +2835,156 @@ mod test {
 // enum
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
-#[cfg_attr(
-    all(feature = "serde", feature = "alloc"),
-    derive(serde::Serialize, serde::Deserialize),
-    serde(rename_all = "snake_case")
-)]
-#[cfg_attr(
-    all(
-        feature = "schemars",
-        feature = "serde",
-        feature = "serde_json",
-        feature = "alloc"
-    ),
-    derive(schemars::JsonSchema)
-)]
+#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
+#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 #[repr(i32)]
 pub enum MessageType {
-    ErrorMsg = 0,
-    Hello = 1,
-    DontHave = 2,
-    GetPeers = 3,
-    Peers = 4,
-    GetTxSet = 5,
-    TxSet = 6,
-    GetValidations = 7,
-    Validations = 8,
-    Transaction = 9,
-    JsonTransaction = 10,
-    GetFbaQuorumset = 11,
-    FbaQuorumset = 12,
-    FbaMessage = 13,
+  ErrorMsg = 0,
+  Hello = 1,
+  DontHave = 2,
+  GetPeers = 3,
+  Peers = 4,
+  GetTxSet = 5,
+  TxSet = 6,
+  GetValidations = 7,
+  Validations = 8,
+  Transaction = 9,
+  JsonTransaction = 10,
+  GetFbaQuorumset = 11,
+  FbaQuorumset = 12,
+  FbaMessage = 13,
 }
 
-impl MessageType {
-    pub const VARIANTS: [MessageType; 14] = [
-        MessageType::ErrorMsg,
-        MessageType::Hello,
-        MessageType::DontHave,
-        MessageType::GetPeers,
-        MessageType::Peers,
-        MessageType::GetTxSet,
-        MessageType::TxSet,
-        MessageType::GetValidations,
-        MessageType::Validations,
-        MessageType::Transaction,
-        MessageType::JsonTransaction,
-        MessageType::GetFbaQuorumset,
-        MessageType::FbaQuorumset,
-        MessageType::FbaMessage,
-    ];
-    pub const VARIANTS_STR: [&'static str; 14] = [
-        "ErrorMsg",
-        "Hello",
-        "DontHave",
-        "GetPeers",
-        "Peers",
-        "GetTxSet",
-        "TxSet",
-        "GetValidations",
-        "Validations",
-        "Transaction",
-        "JsonTransaction",
-        "GetFbaQuorumset",
-        "FbaQuorumset",
-        "FbaMessage",
-    ];
+        impl MessageType {
+            pub const VARIANTS: [MessageType; 14] = [ MessageType::ErrorMsg,
+MessageType::Hello,
+MessageType::DontHave,
+MessageType::GetPeers,
+MessageType::Peers,
+MessageType::GetTxSet,
+MessageType::TxSet,
+MessageType::GetValidations,
+MessageType::Validations,
+MessageType::Transaction,
+MessageType::JsonTransaction,
+MessageType::GetFbaQuorumset,
+MessageType::FbaQuorumset,
+MessageType::FbaMessage, ];
+            pub const VARIANTS_STR: [&'static str; 14] = [ "ErrorMsg",
+"Hello",
+"DontHave",
+"GetPeers",
+"Peers",
+"GetTxSet",
+"TxSet",
+"GetValidations",
+"Validations",
+"Transaction",
+"JsonTransaction",
+"GetFbaQuorumset",
+"FbaQuorumset",
+"FbaMessage", ];
 
-    #[must_use]
-    pub const fn name(&self) -> &'static str {
-        match self {
-            Self::ErrorMsg => "ErrorMsg",
-            Self::Hello => "Hello",
-            Self::DontHave => "DontHave",
-            Self::GetPeers => "GetPeers",
-            Self::Peers => "Peers",
-            Self::GetTxSet => "GetTxSet",
-            Self::TxSet => "TxSet",
-            Self::GetValidations => "GetValidations",
-            Self::Validations => "Validations",
-            Self::Transaction => "Transaction",
-            Self::JsonTransaction => "JsonTransaction",
-            Self::GetFbaQuorumset => "GetFbaQuorumset",
-            Self::FbaQuorumset => "FbaQuorumset",
-            Self::FbaMessage => "FbaMessage",
+            #[must_use]
+            pub const fn name(&self) -> &'static str {
+                match self {
+                    Self::ErrorMsg => "ErrorMsg",
+Self::Hello => "Hello",
+Self::DontHave => "DontHave",
+Self::GetPeers => "GetPeers",
+Self::Peers => "Peers",
+Self::GetTxSet => "GetTxSet",
+Self::TxSet => "TxSet",
+Self::GetValidations => "GetValidations",
+Self::Validations => "Validations",
+Self::Transaction => "Transaction",
+Self::JsonTransaction => "JsonTransaction",
+Self::GetFbaQuorumset => "GetFbaQuorumset",
+Self::FbaQuorumset => "FbaQuorumset",
+Self::FbaMessage => "FbaMessage",
+                }
+            }
+
+            #[must_use]
+            pub const fn variants() -> [MessageType; 14] {
+                Self::VARIANTS
+            }
         }
-    }
 
-    #[must_use]
-    pub const fn variants() -> [MessageType; 14] {
-        Self::VARIANTS
-    }
-}
+        impl Name for MessageType {
+            #[must_use]
+            fn name(&self) -> &'static str {
+                Self::name(self)
+            }
+        }
 
-impl Name for MessageType {
-    #[must_use]
-    fn name(&self) -> &'static str {
-        Self::name(self)
-    }
-}
+        impl Variants<MessageType> for MessageType {
+            fn variants() -> slice::Iter<'static, MessageType> {
+                Self::VARIANTS.iter()
+            }
+        }
 
-impl Variants<MessageType> for MessageType {
-    fn variants() -> slice::Iter<'static, MessageType> {
-        Self::VARIANTS.iter()
-    }
-}
+        impl Enum for MessageType {}
 
-impl Enum for MessageType {}
+        impl fmt::Display for MessageType {
+            fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+                f.write_str(self.name())
+            }
+        }
 
-impl fmt::Display for MessageType {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(self.name())
-    }
-}
+        impl TryFrom<i32> for MessageType {
+            type Error = Error;
 
-impl TryFrom<i32> for MessageType {
-    type Error = Error;
+            fn try_from(i: i32) -> Result<Self> {
+                let e = match i {
+                    0 => MessageType::ErrorMsg,
+1 => MessageType::Hello,
+2 => MessageType::DontHave,
+3 => MessageType::GetPeers,
+4 => MessageType::Peers,
+5 => MessageType::GetTxSet,
+6 => MessageType::TxSet,
+7 => MessageType::GetValidations,
+8 => MessageType::Validations,
+9 => MessageType::Transaction,
+10 => MessageType::JsonTransaction,
+11 => MessageType::GetFbaQuorumset,
+12 => MessageType::FbaQuorumset,
+13 => MessageType::FbaMessage,
+                    #[allow(unreachable_patterns)]
+                    _ => return Err(Error::Invalid),
+                };
+                Ok(e)
+            }
+        }
 
-    fn try_from(i: i32) -> Result<Self> {
-        let e = match i {
-            0 => MessageType::ErrorMsg,
-            1 => MessageType::Hello,
-            2 => MessageType::DontHave,
-            3 => MessageType::GetPeers,
-            4 => MessageType::Peers,
-            5 => MessageType::GetTxSet,
-            6 => MessageType::TxSet,
-            7 => MessageType::GetValidations,
-            8 => MessageType::Validations,
-            9 => MessageType::Transaction,
-            10 => MessageType::JsonTransaction,
-            11 => MessageType::GetFbaQuorumset,
-            12 => MessageType::FbaQuorumset,
-            13 => MessageType::FbaMessage,
-            #[allow(unreachable_patterns)]
-            _ => return Err(Error::Invalid),
-        };
-        Ok(e)
-    }
-}
+        impl From<MessageType> for i32 {
+            #[must_use]
+            fn from(e: MessageType) -> Self {
+                e as Self
+            }
+        }
 
-impl From<MessageType> for i32 {
-    #[must_use]
-    fn from(e: MessageType) -> Self {
-        e as Self
-    }
-}
+        impl ReadXdr for MessageType {
+            #[cfg(feature = "std")]
+            fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self> {
+                r.with_limited_depth(|r| {
+                    let e = i32::read_xdr(r)?;
+                    let v: Self = e.try_into()?;
+                    Ok(v)
+                })
+            }
+        }
 
-impl ReadXdr for MessageType {
-    #[cfg(feature = "std")]
-    fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self> {
-        r.with_limited_depth(|r| {
-            let e = i32::read_xdr(r)?;
-            let v: Self = e.try_into()?;
-            Ok(v)
-        })
-    }
-}
-
-impl WriteXdr for MessageType {
-    #[cfg(feature = "std")]
-    fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
-        w.with_limited_depth(|w| {
-            let i: i32 = (*self).into();
-            i.write_xdr(w)
-        })
-    }
-}
+        impl WriteXdr for MessageType {
+            #[cfg(feature = "std")]
+            fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
+                w.with_limited_depth(|w| {
+                    let i: i32 = (*self).into();
+                    i.write_xdr(w)
+                })
+            }
+        }
 
 /// Color is an XDR Enum defines as:
 ///
@@ -2934,109 +2999,101 @@ impl WriteXdr for MessageType {
 // enum
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
-#[cfg_attr(
-    all(feature = "serde", feature = "alloc"),
-    derive(serde::Serialize, serde::Deserialize),
-    serde(rename_all = "snake_case")
-)]
-#[cfg_attr(
-    all(
-        feature = "schemars",
-        feature = "serde",
-        feature = "serde_json",
-        feature = "alloc"
-    ),
-    derive(schemars::JsonSchema)
-)]
+#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
+#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 #[repr(i32)]
 pub enum Color {
-    Red = 0,
-    Green = 1,
-    Blue = 2,
+  Red = 0,
+  Green = 1,
+  Blue = 2,
 }
 
-impl Color {
-    pub const VARIANTS: [Color; 3] = [Color::Red, Color::Green, Color::Blue];
-    pub const VARIANTS_STR: [&'static str; 3] = ["Red", "Green", "Blue"];
+        impl Color {
+            pub const VARIANTS: [Color; 3] = [ Color::Red,
+Color::Green,
+Color::Blue, ];
+            pub const VARIANTS_STR: [&'static str; 3] = [ "Red",
+"Green",
+"Blue", ];
 
-    #[must_use]
-    pub const fn name(&self) -> &'static str {
-        match self {
-            Self::Red => "Red",
-            Self::Green => "Green",
-            Self::Blue => "Blue",
+            #[must_use]
+            pub const fn name(&self) -> &'static str {
+                match self {
+                    Self::Red => "Red",
+Self::Green => "Green",
+Self::Blue => "Blue",
+                }
+            }
+
+            #[must_use]
+            pub const fn variants() -> [Color; 3] {
+                Self::VARIANTS
+            }
         }
-    }
 
-    #[must_use]
-    pub const fn variants() -> [Color; 3] {
-        Self::VARIANTS
-    }
-}
+        impl Name for Color {
+            #[must_use]
+            fn name(&self) -> &'static str {
+                Self::name(self)
+            }
+        }
 
-impl Name for Color {
-    #[must_use]
-    fn name(&self) -> &'static str {
-        Self::name(self)
-    }
-}
+        impl Variants<Color> for Color {
+            fn variants() -> slice::Iter<'static, Color> {
+                Self::VARIANTS.iter()
+            }
+        }
 
-impl Variants<Color> for Color {
-    fn variants() -> slice::Iter<'static, Color> {
-        Self::VARIANTS.iter()
-    }
-}
+        impl Enum for Color {}
 
-impl Enum for Color {}
+        impl fmt::Display for Color {
+            fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+                f.write_str(self.name())
+            }
+        }
 
-impl fmt::Display for Color {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(self.name())
-    }
-}
+        impl TryFrom<i32> for Color {
+            type Error = Error;
 
-impl TryFrom<i32> for Color {
-    type Error = Error;
+            fn try_from(i: i32) -> Result<Self> {
+                let e = match i {
+                    0 => Color::Red,
+1 => Color::Green,
+2 => Color::Blue,
+                    #[allow(unreachable_patterns)]
+                    _ => return Err(Error::Invalid),
+                };
+                Ok(e)
+            }
+        }
 
-    fn try_from(i: i32) -> Result<Self> {
-        let e = match i {
-            0 => Color::Red,
-            1 => Color::Green,
-            2 => Color::Blue,
-            #[allow(unreachable_patterns)]
-            _ => return Err(Error::Invalid),
-        };
-        Ok(e)
-    }
-}
+        impl From<Color> for i32 {
+            #[must_use]
+            fn from(e: Color) -> Self {
+                e as Self
+            }
+        }
 
-impl From<Color> for i32 {
-    #[must_use]
-    fn from(e: Color) -> Self {
-        e as Self
-    }
-}
+        impl ReadXdr for Color {
+            #[cfg(feature = "std")]
+            fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self> {
+                r.with_limited_depth(|r| {
+                    let e = i32::read_xdr(r)?;
+                    let v: Self = e.try_into()?;
+                    Ok(v)
+                })
+            }
+        }
 
-impl ReadXdr for Color {
-    #[cfg(feature = "std")]
-    fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self> {
-        r.with_limited_depth(|r| {
-            let e = i32::read_xdr(r)?;
-            let v: Self = e.try_into()?;
-            Ok(v)
-        })
-    }
-}
-
-impl WriteXdr for Color {
-    #[cfg(feature = "std")]
-    fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
-        w.with_limited_depth(|w| {
-            let i: i32 = (*self).into();
-            i.write_xdr(w)
-        })
-    }
-}
+        impl WriteXdr for Color {
+            #[cfg(feature = "std")]
+            fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
+                w.with_limited_depth(|w| {
+                    let i: i32 = (*self).into();
+                    i.write_xdr(w)
+                })
+            }
+        }
 
 /// Color2 is an XDR Enum defines as:
 ///
@@ -3051,416 +3108,340 @@ impl WriteXdr for Color {
 // enum
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
-#[cfg_attr(
-    all(feature = "serde", feature = "alloc"),
-    derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr)
-)]
-#[cfg_attr(
-    all(
-        feature = "schemars",
-        feature = "serde",
-        feature = "serde_json",
-        feature = "alloc"
-    ),
-    derive(schemars::JsonSchema)
-)]
+#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr))]
+#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 #[repr(i32)]
 pub enum Color2 {
-    Red2 = 0,
-    Green2 = 1,
-    Blue2 = 2,
+  Red2 = 0,
+  Green2 = 1,
+  Blue2 = 2,
 }
 
-impl Color2 {
-    pub const VARIANTS: [Color2; 3] = [Color2::Red2, Color2::Green2, Color2::Blue2];
-    pub const VARIANTS_STR: [&'static str; 3] = ["Red2", "Green2", "Blue2"];
+        impl Color2 {
+            pub const VARIANTS: [Color2; 3] = [ Color2::Red2,
+Color2::Green2,
+Color2::Blue2, ];
+            pub const VARIANTS_STR: [&'static str; 3] = [ "Red2",
+"Green2",
+"Blue2", ];
 
-    #[must_use]
-    pub const fn name(&self) -> &'static str {
-        match self {
-            Self::Red2 => "Red2",
-            Self::Green2 => "Green2",
-            Self::Blue2 => "Blue2",
-        }
-    }
-
-    #[must_use]
-    pub const fn variants() -> [Color2; 3] {
-        Self::VARIANTS
-    }
-}
-
-impl Name for Color2 {
-    #[must_use]
-    fn name(&self) -> &'static str {
-        Self::name(self)
-    }
-}
-
-impl Variants<Color2> for Color2 {
-    fn variants() -> slice::Iter<'static, Color2> {
-        Self::VARIANTS.iter()
-    }
-}
-
-impl Enum for Color2 {}
-
-impl fmt::Display for Color2 {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(self.name())
-    }
-}
-
-impl TryFrom<i32> for Color2 {
-    type Error = Error;
-
-    fn try_from(i: i32) -> Result<Self> {
-        let e = match i {
-            0 => Color2::Red2,
-            1 => Color2::Green2,
-            2 => Color2::Blue2,
-            #[allow(unreachable_patterns)]
-            _ => return Err(Error::Invalid),
-        };
-        Ok(e)
-    }
-}
-
-impl From<Color2> for i32 {
-    #[must_use]
-    fn from(e: Color2) -> Self {
-        e as Self
-    }
-}
-
-impl ReadXdr for Color2 {
-    #[cfg(feature = "std")]
-    fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self> {
-        r.with_limited_depth(|r| {
-            let e = i32::read_xdr(r)?;
-            let v: Self = e.try_into()?;
-            Ok(v)
-        })
-    }
-}
-
-impl WriteXdr for Color2 {
-    #[cfg(feature = "std")]
-    fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
-        w.with_limited_depth(|w| {
-            let i: i32 = (*self).into();
-            i.write_xdr(w)
-        })
-    }
-}
-
-#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
-#[cfg_attr(
-    all(feature = "serde", feature = "alloc"),
-    derive(serde::Serialize, serde::Deserialize, schemars::JsonSchema),
-    serde(rename_all = "snake_case")
-)]
-#[cfg_attr(
-    all(
-        feature = "schemars",
-        feature = "serde",
-        feature = "serde_json",
-        feature = "alloc"
-    ),
-    derive(schemars::JsonSchema)
-)]
-pub enum TypeVariant {
-    MessageType,
-    Color,
-    Color2,
-}
-
-impl TypeVariant {
-    pub const VARIANTS: [TypeVariant; 3] = [
-        TypeVariant::MessageType,
-        TypeVariant::Color,
-        TypeVariant::Color2,
-    ];
-    pub const VARIANTS_STR: [&'static str; 3] = ["MessageType", "Color", "Color2"];
-
-    #[must_use]
-    #[allow(clippy::too_many_lines)]
-    pub const fn name(&self) -> &'static str {
-        match self {
-            Self::MessageType => "MessageType",
-            Self::Color => "Color",
-            Self::Color2 => "Color2",
-        }
-    }
-
-    #[must_use]
-    #[allow(clippy::too_many_lines)]
-    pub const fn variants() -> [TypeVariant; 3] {
-        Self::VARIANTS
-    }
-}
-
-impl Name for TypeVariant {
-    #[must_use]
-    fn name(&self) -> &'static str {
-        Self::name(self)
-    }
-}
-
-impl Variants<TypeVariant> for TypeVariant {
-    fn variants() -> slice::Iter<'static, TypeVariant> {
-        Self::VARIANTS.iter()
-    }
-}
-
-impl core::str::FromStr for TypeVariant {
-    type Err = Error;
-    #[allow(clippy::too_many_lines)]
-    fn from_str(s: &str) -> Result<Self> {
-        match s {
-            "MessageType" => Ok(Self::MessageType),
-            "Color" => Ok(Self::Color),
-            "Color2" => Ok(Self::Color2),
-            _ => Err(Error::Invalid),
-        }
-    }
-}
-
-#[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
-#[cfg_attr(
-    all(feature = "serde", feature = "alloc"),
-    derive(serde::Serialize, serde::Deserialize, schemars::JsonSchema),
-    serde(rename_all = "snake_case"),
-    serde(untagged)
-)]
-#[cfg_attr(
-    all(
-        feature = "schemars",
-        feature = "serde",
-        feature = "serde_json",
-        feature = "alloc"
-    ),
-    derive(schemars::JsonSchema)
-)]
-pub enum Type {
-    MessageType(Box<MessageType>),
-    Color(Box<Color>),
-    Color2(Box<Color2>),
-}
-
-impl Type {
-    pub const VARIANTS: [TypeVariant; 3] = [
-        TypeVariant::MessageType,
-        TypeVariant::Color,
-        TypeVariant::Color2,
-    ];
-    pub const VARIANTS_STR: [&'static str; 3] = ["MessageType", "Color", "Color2"];
-
-    #[cfg(feature = "std")]
-    #[allow(clippy::too_many_lines)]
-    pub fn read_xdr<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Result<Self> {
-        match v {
-            TypeVariant::MessageType => {
-                r.with_limited_depth(|r| Ok(Self::MessageType(Box::new(MessageType::read_xdr(r)?))))
+            #[must_use]
+            pub const fn name(&self) -> &'static str {
+                match self {
+                    Self::Red2 => "Red2",
+Self::Green2 => "Green2",
+Self::Blue2 => "Blue2",
+                }
             }
-            TypeVariant::Color => {
-                r.with_limited_depth(|r| Ok(Self::Color(Box::new(Color::read_xdr(r)?))))
-            }
-            TypeVariant::Color2 => {
-                r.with_limited_depth(|r| Ok(Self::Color2(Box::new(Color2::read_xdr(r)?))))
+
+            #[must_use]
+            pub const fn variants() -> [Color2; 3] {
+                Self::VARIANTS
             }
         }
-    }
 
-    #[cfg(feature = "base64")]
-    pub fn read_xdr_base64<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Result<Self> {
-        let mut dec = Limited::new(
-            base64::read::DecoderReader::new(&mut r.inner, base64::STANDARD),
-            r.limits.clone(),
-        );
-        let t = Self::read_xdr(v, &mut dec)?;
-        Ok(t)
-    }
-
-    #[cfg(feature = "std")]
-    pub fn read_xdr_to_end<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Result<Self> {
-        let s = Self::read_xdr(v, r)?;
-        // Check that any further reads, such as this read of one byte, read no
-        // data, indicating EOF. If a byte is read the data is invalid.
-        if r.read(&mut [0u8; 1])? == 0 {
-            Ok(s)
-        } else {
-            Err(Error::Invalid)
-        }
-    }
-
-    #[cfg(feature = "base64")]
-    pub fn read_xdr_base64_to_end<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Result<Self> {
-        let mut dec = Limited::new(
-            base64::read::DecoderReader::new(&mut r.inner, base64::STANDARD),
-            r.limits.clone(),
-        );
-        let t = Self::read_xdr_to_end(v, &mut dec)?;
-        Ok(t)
-    }
-
-    #[cfg(feature = "std")]
-    #[allow(clippy::too_many_lines)]
-    pub fn read_xdr_iter<R: Read>(
-        v: TypeVariant,
-        r: &mut Limited<R>,
-    ) -> Box<dyn Iterator<Item = Result<Self>> + '_> {
-        match v {
-            TypeVariant::MessageType => Box::new(
-                ReadXdrIter::<_, MessageType>::new(&mut r.inner, r.limits.clone())
-                    .map(|r| r.map(|t| Self::MessageType(Box::new(t)))),
-            ),
-            TypeVariant::Color => Box::new(
-                ReadXdrIter::<_, Color>::new(&mut r.inner, r.limits.clone())
-                    .map(|r| r.map(|t| Self::Color(Box::new(t)))),
-            ),
-            TypeVariant::Color2 => Box::new(
-                ReadXdrIter::<_, Color2>::new(&mut r.inner, r.limits.clone())
-                    .map(|r| r.map(|t| Self::Color2(Box::new(t)))),
-            ),
-        }
-    }
-
-    #[cfg(feature = "std")]
-    #[allow(clippy::too_many_lines)]
-    pub fn read_xdr_framed_iter<R: Read>(
-        v: TypeVariant,
-        r: &mut Limited<R>,
-    ) -> Box<dyn Iterator<Item = Result<Self>> + '_> {
-        match v {
-            TypeVariant::MessageType => Box::new(
-                ReadXdrIter::<_, Frame<MessageType>>::new(&mut r.inner, r.limits.clone())
-                    .map(|r| r.map(|t| Self::MessageType(Box::new(t.0)))),
-            ),
-            TypeVariant::Color => Box::new(
-                ReadXdrIter::<_, Frame<Color>>::new(&mut r.inner, r.limits.clone())
-                    .map(|r| r.map(|t| Self::Color(Box::new(t.0)))),
-            ),
-            TypeVariant::Color2 => Box::new(
-                ReadXdrIter::<_, Frame<Color2>>::new(&mut r.inner, r.limits.clone())
-                    .map(|r| r.map(|t| Self::Color2(Box::new(t.0)))),
-            ),
-        }
-    }
-
-    #[cfg(feature = "base64")]
-    #[allow(clippy::too_many_lines)]
-    pub fn read_xdr_base64_iter<R: Read>(
-        v: TypeVariant,
-        r: &mut Limited<R>,
-    ) -> Box<dyn Iterator<Item = Result<Self>> + '_> {
-        let dec = base64::read::DecoderReader::new(&mut r.inner, base64::STANDARD);
-        match v {
-            TypeVariant::MessageType => Box::new(
-                ReadXdrIter::<_, MessageType>::new(dec, r.limits.clone())
-                    .map(|r| r.map(|t| Self::MessageType(Box::new(t)))),
-            ),
-            TypeVariant::Color => Box::new(
-                ReadXdrIter::<_, Color>::new(dec, r.limits.clone())
-                    .map(|r| r.map(|t| Self::Color(Box::new(t)))),
-            ),
-            TypeVariant::Color2 => Box::new(
-                ReadXdrIter::<_, Color2>::new(dec, r.limits.clone())
-                    .map(|r| r.map(|t| Self::Color2(Box::new(t)))),
-            ),
-        }
-    }
-
-    #[cfg(feature = "std")]
-    pub fn from_xdr<B: AsRef<[u8]>>(v: TypeVariant, bytes: B, limits: Limits) -> Result<Self> {
-        let mut cursor = Limited::new(Cursor::new(bytes.as_ref()), limits);
-        let t = Self::read_xdr_to_end(v, &mut cursor)?;
-        Ok(t)
-    }
-
-    #[cfg(feature = "base64")]
-    pub fn from_xdr_base64(v: TypeVariant, b64: impl AsRef<[u8]>, limits: Limits) -> Result<Self> {
-        let mut b64_reader = Cursor::new(b64);
-        let mut dec = Limited::new(
-            base64::read::DecoderReader::new(&mut b64_reader, base64::STANDARD),
-            limits,
-        );
-        let t = Self::read_xdr_to_end(v, &mut dec)?;
-        Ok(t)
-    }
-
-    #[cfg(all(feature = "std", feature = "serde_json"))]
-    #[allow(clippy::too_many_lines)]
-    pub fn read_json(v: TypeVariant, r: impl Read) -> Result<Self> {
-        match v {
-            TypeVariant::MessageType => {
-                Ok(Self::MessageType(Box::new(serde_json::from_reader(r)?)))
+        impl Name for Color2 {
+            #[must_use]
+            fn name(&self) -> &'static str {
+                Self::name(self)
             }
-            TypeVariant::Color => Ok(Self::Color(Box::new(serde_json::from_reader(r)?))),
-            TypeVariant::Color2 => Ok(Self::Color2(Box::new(serde_json::from_reader(r)?))),
         }
-    }
 
-    #[cfg(feature = "alloc")]
-    #[must_use]
-    #[allow(clippy::too_many_lines)]
-    pub fn value(&self) -> &dyn core::any::Any {
-        #[allow(clippy::match_same_arms)]
-        match self {
-            Self::MessageType(ref v) => v.as_ref(),
-            Self::Color(ref v) => v.as_ref(),
-            Self::Color2(ref v) => v.as_ref(),
+        impl Variants<Color2> for Color2 {
+            fn variants() -> slice::Iter<'static, Color2> {
+                Self::VARIANTS.iter()
+            }
         }
-    }
 
-    #[must_use]
-    #[allow(clippy::too_many_lines)]
-    pub const fn name(&self) -> &'static str {
-        match self {
-            Self::MessageType(_) => "MessageType",
-            Self::Color(_) => "Color",
-            Self::Color2(_) => "Color2",
+        impl Enum for Color2 {}
+
+        impl fmt::Display for Color2 {
+            fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+                f.write_str(self.name())
+            }
         }
-    }
 
-    #[must_use]
-    #[allow(clippy::too_many_lines)]
-    pub const fn variants() -> [TypeVariant; 3] {
-        Self::VARIANTS
-    }
+        impl TryFrom<i32> for Color2 {
+            type Error = Error;
 
-    #[must_use]
-    #[allow(clippy::too_many_lines)]
-    pub const fn variant(&self) -> TypeVariant {
-        match self {
-            Self::MessageType(_) => TypeVariant::MessageType,
-            Self::Color(_) => TypeVariant::Color,
-            Self::Color2(_) => TypeVariant::Color2,
+            fn try_from(i: i32) -> Result<Self> {
+                let e = match i {
+                    0 => Color2::Red2,
+1 => Color2::Green2,
+2 => Color2::Blue2,
+                    #[allow(unreachable_patterns)]
+                    _ => return Err(Error::Invalid),
+                };
+                Ok(e)
+            }
         }
-    }
-}
 
-impl Name for Type {
-    #[must_use]
-    fn name(&self) -> &'static str {
-        Self::name(self)
-    }
-}
-
-impl Variants<TypeVariant> for Type {
-    fn variants() -> slice::Iter<'static, TypeVariant> {
-        Self::VARIANTS.iter()
-    }
-}
-
-impl WriteXdr for Type {
-    #[cfg(feature = "std")]
-    #[allow(clippy::too_many_lines)]
-    fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
-        match self {
-            Self::MessageType(v) => v.write_xdr(w),
-            Self::Color(v) => v.write_xdr(w),
-            Self::Color2(v) => v.write_xdr(w),
+        impl From<Color2> for i32 {
+            #[must_use]
+            fn from(e: Color2) -> Self {
+                e as Self
+            }
         }
-    }
-}
+
+        impl ReadXdr for Color2 {
+            #[cfg(feature = "std")]
+            fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self> {
+                r.with_limited_depth(|r| {
+                    let e = i32::read_xdr(r)?;
+                    let v: Self = e.try_into()?;
+                    Ok(v)
+                })
+            }
+        }
+
+        impl WriteXdr for Color2 {
+            #[cfg(feature = "std")]
+            fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
+                w.with_limited_depth(|w| {
+                    let i: i32 = (*self).into();
+                    i.write_xdr(w)
+                })
+            }
+        }
+
+        #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+        #[cfg_attr(
+          all(feature = "serde", feature = "alloc"),
+          derive(serde::Serialize, serde::Deserialize),
+          serde(rename_all = "snake_case")
+        )]
+        #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
+        pub enum TypeVariant {
+            MessageType,
+Color,
+Color2,
+        }
+
+        impl TypeVariant {
+            pub const VARIANTS: [TypeVariant; 3] = [ TypeVariant::MessageType,
+TypeVariant::Color,
+TypeVariant::Color2, ];
+            pub const VARIANTS_STR: [&'static str; 3] = [ "MessageType",
+"Color",
+"Color2", ];
+
+            #[must_use]
+            #[allow(clippy::too_many_lines)]
+            pub const fn name(&self) -> &'static str {
+                match self {
+                    Self::MessageType => "MessageType",
+Self::Color => "Color",
+Self::Color2 => "Color2",
+                }
+            }
+
+            #[must_use]
+            #[allow(clippy::too_many_lines)]
+            pub const fn variants() -> [TypeVariant; 3] {
+                Self::VARIANTS
+            }
+        }
+
+        impl Name for TypeVariant {
+            #[must_use]
+            fn name(&self) -> &'static str {
+                Self::name(self)
+            }
+        }
+
+        impl Variants<TypeVariant> for TypeVariant {
+            fn variants() -> slice::Iter<'static, TypeVariant> {
+                Self::VARIANTS.iter()
+            }
+        }
+
+        impl core::str::FromStr for TypeVariant {
+            type Err = Error;
+            #[allow(clippy::too_many_lines)]
+            fn from_str(s: &str) -> Result<Self> {
+                match s {
+                    "MessageType" => Ok(Self::MessageType),
+"Color" => Ok(Self::Color),
+"Color2" => Ok(Self::Color2),
+                    _ => Err(Error::Invalid),
+                }
+            }
+        }
+
+        #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+        #[cfg_attr(
+          all(feature = "serde", feature = "alloc"),
+          derive(serde::Serialize, serde::Deserialize),
+          serde(rename_all = "snake_case"),
+          serde(untagged),
+        )]
+        #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
+        pub enum Type {
+            MessageType(Box<MessageType>),
+Color(Box<Color>),
+Color2(Box<Color2>),
+        }
+
+        impl Type {
+            pub const VARIANTS: [TypeVariant; 3] = [ TypeVariant::MessageType,
+TypeVariant::Color,
+TypeVariant::Color2, ];
+            pub const VARIANTS_STR: [&'static str; 3] = [ "MessageType",
+"Color",
+"Color2", ];
+
+            #[cfg(feature = "std")]
+            #[allow(clippy::too_many_lines)]
+            pub fn read_xdr<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Result<Self> {
+                match v {
+                    TypeVariant::MessageType => r.with_limited_depth(|r| Ok(Self::MessageType(Box::new(MessageType::read_xdr(r)?)))),
+TypeVariant::Color => r.with_limited_depth(|r| Ok(Self::Color(Box::new(Color::read_xdr(r)?)))),
+TypeVariant::Color2 => r.with_limited_depth(|r| Ok(Self::Color2(Box::new(Color2::read_xdr(r)?)))),
+                }
+            }
+
+            #[cfg(feature = "base64")]
+            pub fn read_xdr_base64<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Result<Self> {
+                let mut dec = Limited::new(base64::read::DecoderReader::new(&mut r.inner, base64::STANDARD), r.limits.clone());
+                let t = Self::read_xdr(v, &mut dec)?;
+                Ok(t)
+            }
+
+            #[cfg(feature = "std")]
+            pub fn read_xdr_to_end<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Result<Self> {
+                let s = Self::read_xdr(v, r)?;
+                // Check that any further reads, such as this read of one byte, read no
+                // data, indicating EOF. If a byte is read the data is invalid.
+                if r.read(&mut [0u8; 1])? == 0 {
+                    Ok(s)
+                } else {
+                    Err(Error::Invalid)
+                }
+            }
+
+            #[cfg(feature = "base64")]
+            pub fn read_xdr_base64_to_end<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Result<Self> {
+                let mut dec = Limited::new(base64::read::DecoderReader::new(&mut r.inner, base64::STANDARD), r.limits.clone());
+                let t = Self::read_xdr_to_end(v, &mut dec)?;
+                Ok(t)
+            }
+
+            #[cfg(feature = "std")]
+            #[allow(clippy::too_many_lines)]
+            pub fn read_xdr_iter<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Box<dyn Iterator<Item=Result<Self>> + '_> {
+                match v {
+                    TypeVariant::MessageType => Box::new(ReadXdrIter::<_, MessageType>::new(&mut r.inner, r.limits.clone()).map(|r| r.map(|t| Self::MessageType(Box::new(t))))),
+TypeVariant::Color => Box::new(ReadXdrIter::<_, Color>::new(&mut r.inner, r.limits.clone()).map(|r| r.map(|t| Self::Color(Box::new(t))))),
+TypeVariant::Color2 => Box::new(ReadXdrIter::<_, Color2>::new(&mut r.inner, r.limits.clone()).map(|r| r.map(|t| Self::Color2(Box::new(t))))),
+                }
+            }
+
+            #[cfg(feature = "std")]
+            #[allow(clippy::too_many_lines)]
+            pub fn read_xdr_framed_iter<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Box<dyn Iterator<Item=Result<Self>> + '_> {
+                match v {
+                    TypeVariant::MessageType => Box::new(ReadXdrIter::<_, Frame<MessageType>>::new(&mut r.inner, r.limits.clone()).map(|r| r.map(|t| Self::MessageType(Box::new(t.0))))),
+TypeVariant::Color => Box::new(ReadXdrIter::<_, Frame<Color>>::new(&mut r.inner, r.limits.clone()).map(|r| r.map(|t| Self::Color(Box::new(t.0))))),
+TypeVariant::Color2 => Box::new(ReadXdrIter::<_, Frame<Color2>>::new(&mut r.inner, r.limits.clone()).map(|r| r.map(|t| Self::Color2(Box::new(t.0))))),
+                }
+            }
+
+            #[cfg(feature = "base64")]
+            #[allow(clippy::too_many_lines)]
+            pub fn read_xdr_base64_iter<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Box<dyn Iterator<Item=Result<Self>> + '_> {
+                let dec = base64::read::DecoderReader::new(&mut r.inner, base64::STANDARD);
+                match v {
+                    TypeVariant::MessageType => Box::new(ReadXdrIter::<_, MessageType>::new(dec, r.limits.clone()).map(|r| r.map(|t| Self::MessageType(Box::new(t))))),
+TypeVariant::Color => Box::new(ReadXdrIter::<_, Color>::new(dec, r.limits.clone()).map(|r| r.map(|t| Self::Color(Box::new(t))))),
+TypeVariant::Color2 => Box::new(ReadXdrIter::<_, Color2>::new(dec, r.limits.clone()).map(|r| r.map(|t| Self::Color2(Box::new(t))))),
+                }
+            }
+
+            #[cfg(feature = "std")]
+            pub fn from_xdr<B: AsRef<[u8]>>(v: TypeVariant, bytes: B, limits: Limits) -> Result<Self> {
+                let mut cursor = Limited::new(Cursor::new(bytes.as_ref()), limits);
+                let t = Self::read_xdr_to_end(v, &mut cursor)?;
+                Ok(t)
+            }
+
+            #[cfg(feature = "base64")]
+            pub fn from_xdr_base64(v: TypeVariant, b64: impl AsRef<[u8]>, limits: Limits) -> Result<Self> {
+                let mut b64_reader = Cursor::new(b64);
+                let mut dec = Limited::new(base64::read::DecoderReader::new(&mut b64_reader, base64::STANDARD), limits);
+                let t = Self::read_xdr_to_end(v, &mut dec)?;
+                Ok(t)
+            }
+
+            #[cfg(all(feature = "std", feature = "serde_json"))]
+            #[allow(clippy::too_many_lines)]
+            pub fn read_json(v: TypeVariant, r: impl Read) -> Result<Self> {
+                match v {
+                    TypeVariant::MessageType => Ok(Self::MessageType(Box::new(serde_json::from_reader(r)?))),
+TypeVariant::Color => Ok(Self::Color(Box::new(serde_json::from_reader(r)?))),
+TypeVariant::Color2 => Ok(Self::Color2(Box::new(serde_json::from_reader(r)?))),
+                }
+            }
+
+            #[cfg(feature = "alloc")]
+            #[must_use]
+            #[allow(clippy::too_many_lines)]
+            pub fn value(&self) -> &dyn core::any::Any {
+                #[allow(clippy::match_same_arms)]
+                match self {
+                    Self::MessageType(ref v) => v.as_ref(),
+Self::Color(ref v) => v.as_ref(),
+Self::Color2(ref v) => v.as_ref(),
+                }
+            }
+
+            #[must_use]
+            #[allow(clippy::too_many_lines)]
+            pub const fn name(&self) -> &'static str {
+                match self {
+                    Self::MessageType(_) => "MessageType",
+Self::Color(_) => "Color",
+Self::Color2(_) => "Color2",
+                }
+            }
+
+            #[must_use]
+            #[allow(clippy::too_many_lines)]
+            pub const fn variants() -> [TypeVariant; 3] {
+                Self::VARIANTS
+            }
+
+            #[must_use]
+            #[allow(clippy::too_many_lines)]
+            pub const fn variant(&self) -> TypeVariant {
+                match self {
+                    Self::MessageType(_) => TypeVariant::MessageType,
+Self::Color(_) => TypeVariant::Color,
+Self::Color2(_) => TypeVariant::Color2,
+                }
+            }
+        }
+
+        impl Name for Type {
+            #[must_use]
+            fn name(&self) -> &'static str {
+                Self::name(self)
+            }
+        }
+
+        impl Variants<TypeVariant> for Type {
+            fn variants() -> slice::Iter<'static, TypeVariant> {
+                Self::VARIANTS.iter()
+            }
+        }
+
+        impl WriteXdr for Type {
+            #[cfg(feature = "std")]
+            #[allow(clippy::too_many_lines)]
+            fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
+                match self {
+                    Self::MessageType(v) => v.write_xdr(w),
+Self::Color(v) => v.write_xdr(w),
+Self::Color2(v) => v.write_xdr(w),
+                }
+            }
+        }

@@ -733,6 +733,40 @@ module Xdrgen
           }
           EOS
           end
+          if is_fixed_array_opaque(typedef.type) && !@options[:rust_types_custom_jsonschema_impl].include?(name typedef)
+          out.puts <<-EOS.strip_heredoc
+          impl schemars::JsonSchema for #{name typedef} {
+              fn schema_name() -> String {
+                  "#{name typedef}".to_string()
+              }
+
+              fn is_referenceable() -> bool {
+                  false
+              }
+
+              fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
+                  let schema_ = String::json_schema(gen);
+                  if let schemars::schema::Schema::Object(mut schema) = schema_ {
+                      schema.extensions.insert(
+                          "contentEncoding".to_owned(),
+                          serde_json::Value::String("hex".to_string()),
+                      );
+                      schema.extensions.insert(
+                          "contentMediaType".to_owned(),
+                          serde_json::Value::String("application/binary".to_string()),
+                      );
+                      mut_string(schema.into(), |string| schemars::schema::StringValidation {
+                          max_length: SOME(MAX * 2),
+                          min_length: SOME(MAX * 2),
+                          ..string
+                      })
+                  } else {
+                      schema_
+                  }
+              }
+          }
+          EOS
+          end
           out.puts <<-EOS.strip_heredoc
           impl From<#{name typedef}> for #{reference(typedef, typedef.type)} {
               #[must_use]
