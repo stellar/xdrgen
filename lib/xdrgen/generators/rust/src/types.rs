@@ -888,7 +888,7 @@ impl<T, const MAX: u32> Default for VecM<T, MAX> {
     }
 }
 
-#[cfg(all(feature = "schemars", feature = "serde", feature = "alloc"))]
+#[cfg(feature = "schemars")]
 impl<T: schemars::JsonSchema, const MAX: u32> schemars::JsonSchema for VecM<T, MAX> {
     fn schema_name() -> String {
         format!("VecM<{}, {}>", T::schema_name(), MAX)
@@ -899,9 +899,11 @@ impl<T: schemars::JsonSchema, const MAX: u32> schemars::JsonSchema for VecM<T, M
     }
 
     fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
-        mut_array(Vec::<T>::json_schema(gen), |array| schemars::schema::ArrayValidation {
-            max_items: Some(MAX),
-            ..array
+        mut_array(Vec::<T>::json_schema(gen), |array| {
+            schemars::schema::ArrayValidation {
+                max_items: Some(MAX),
+                ..array
+            }
         })
     }
 }
@@ -1341,7 +1343,7 @@ impl<const MAX: u32> Deref for BytesM<MAX> {
     }
 }
 
-#[cfg(all(feature = "schemars", feature = "serde", feature = "alloc"))]
+#[cfg(feature = "schemars")]
 impl<const MAX: u32> schemars::JsonSchema for BytesM<MAX> {
     fn schema_name() -> String {
         format!("BytesM<{}>", MAX)
@@ -1761,7 +1763,7 @@ impl<const MAX: u32> Default for StringM<MAX> {
     }
 }
 
-#[cfg(all(feature = "schemars", feature = "serde", feature = "alloc"))]
+#[cfg(feature = "schemars")]
 impl<const MAX: u32> schemars::JsonSchema for StringM<MAX> {
     fn schema_name() -> String {
         format!("StringM<{}>", MAX)
@@ -1772,9 +1774,11 @@ impl<const MAX: u32> schemars::JsonSchema for StringM<MAX> {
     }
 
     fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
-        mut_string(String::json_schema(gen), |string| schemars::schema::StringValidation {
-            max_length: Some(MAX),
-            ..string
+        mut_string(String::json_schema(gen), |string| {
+            schemars::schema::StringValidation {
+                max_length: Some(MAX),
+                ..string
+            }
         })
     }
 }
@@ -2095,7 +2099,7 @@ pub struct Frame<T>(pub T)
 where
     T: ReadXdr;
 
-#[cfg(all(feature = "schemars", feature = "serde", feature = "alloc"))]
+#[cfg(feature = "schemars")]
 impl<T: schemars::JsonSchema + ReadXdr> schemars::JsonSchema for Frame<T> {
     fn schema_name() -> String {
         format!("Frame<{}>", T::schema_name())
@@ -2134,8 +2138,11 @@ where
     }
 }
 
-#[cfg(all(feature = "schemars", feature = "serde", feature = "alloc"))]
-fn mut_array(schema: schemars::schema::Schema, f: impl FnOnce(schemars::schema::ArrayValidation) -> schemars::schema::ArrayValidation) -> schemars::schema::Schema {
+#[cfg(feature = "schemars")]
+fn mut_array(
+    schema: schemars::schema::Schema,
+    f: impl FnOnce(schemars::schema::ArrayValidation) -> schemars::schema::ArrayValidation,
+) -> schemars::schema::Schema {
     if let schemars::schema::Schema::Object(mut schema) = schema {
         if let Some(array) = schema.array.clone() {
             schema.array = Some(Box::new(f(*array)));
@@ -2146,8 +2153,11 @@ fn mut_array(schema: schemars::schema::Schema, f: impl FnOnce(schemars::schema::
     }
 }
 
-#[cfg(all(feature = "schemars", feature = "serde", feature = "alloc"))]
-fn mut_string(schema: schemars::schema::Schema, f: impl FnOnce(schemars::schema::StringValidation) -> schemars::schema::StringValidation) -> schemars::schema::Schema {
+#[cfg(feature = "schemars")]
+fn mut_string(
+    schema: schemars::schema::Schema,
+    f: impl FnOnce(schemars::schema::StringValidation) -> schemars::schema::StringValidation,
+) -> schemars::schema::Schema {
     if let schemars::schema::Schema::Object(mut schema) = schema {
         let string = *schema.string.unwrap_or_default().clone();
         let s = f(string);

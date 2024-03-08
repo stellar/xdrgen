@@ -102,10 +102,7 @@ module Xdrgen
           derive(serde::Serialize, serde::Deserialize),
           serde(rename_all = "snake_case")
         )]
-        #[cfg_attr(
-          all(feature = "schemars", feature = "serde", feature = "alloc"),
-          derive(schemars::JsonSchema)
-        )]
+        #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
         pub enum TypeVariant {
             #{types.map { |t| "#{t}," }.join("\n")}
         }
@@ -160,10 +157,7 @@ module Xdrgen
           serde(rename_all = "snake_case"),
           serde(untagged),
         )]
-        #[cfg_attr(
-          all(feature = "schemars", feature = "serde", feature = "alloc"),
-          derive(schemars::JsonSchema)
-        )]
+        #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
         pub enum Type {
             #{types.map { |t| "#{t}(Box<#{t}>)," }.join("\n")}
         }
@@ -378,7 +372,7 @@ module Xdrgen
           out.puts %{#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]}
         end
         if !@options[:rust_types_custom_jsonschema_impl].include?(name struct)
-          out.puts %{#[cfg_attr(all(feature = "schemars", feature = "serde", feature = "alloc"), derive(schemars::JsonSchema))]}
+          out.puts %{#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]}
         end
         out.puts "pub struct #{name struct} {"
         out.indent do
@@ -427,7 +421,7 @@ module Xdrgen
           out.puts %{#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]}
         end
         if !@options[:rust_types_custom_jsonschema_impl].include?(name enum)
-          out.puts %{#[cfg_attr(all(feature = "schemars", feature = "serde", feature = "alloc"), derive(schemars::JsonSchema))]}
+          out.puts %{#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]}
         end
         out.puts "#[repr(i32)]"
         out.puts "pub enum #{name enum} {"
@@ -559,7 +553,7 @@ module Xdrgen
           out.puts %{#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]}
         end
         if !@options[:rust_types_custom_jsonschema_impl].include?(name union)
-          out.puts %{#[cfg_attr(all(feature = "schemars", feature = "serde", feature = "alloc"), derive(schemars::JsonSchema))]}
+          out.puts %{#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]}
         end
         out.puts "#[allow(clippy::large_enum_variant)]"
         out.puts "pub enum #{name union} {"
@@ -696,7 +690,7 @@ module Xdrgen
             out.puts %{#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]}
           end
           if !@options[:rust_types_custom_jsonschema_impl].include?(name typedef)
-            out.puts %{#[cfg_attr(all(feature = "schemars", feature = "serde", feature = "alloc"), derive(schemars::JsonSchema))]}
+            out.puts %{#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]}
           end
           if !is_fixed_array_opaque(typedef.type)
             out.puts "#[derive(Debug)]"

@@ -4,9 +4,10 @@
 #![allow(clippy::missing_errors_doc, clippy::unreadable_literal)]
 
 /// `XDR_FILES_SHA256` is a list of pairs of source files and their SHA256 hashes.
-pub const XDR_FILES_SHA256: [(&str, &str); 1] = [
-  ("spec/fixtures/generator/optional.x", "3241e832fcf00bca4315ecb6c259621dafb0e302a63a993f5504b0b5cebb6bd7")
-];
+pub const XDR_FILES_SHA256: [(&str, &str); 1] = [(
+    "spec/fixtures/generator/optional.x",
+    "3241e832fcf00bca4315ecb6c259621dafb0e302a63a993f5504b0b5cebb6bd7",
+)];
 
 use core::{array::TryFromSliceError, fmt, fmt::Debug, marker::Sized, ops::Deref, slice};
 
@@ -874,7 +875,15 @@ impl<T: WriteXdr, const N: usize> WriteXdr for [T; N] {
 #[cfg(feature = "alloc")]
 #[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-#[cfg_attr(all(feature = "schemars", feature = "serde", feature = "alloc"), derive(schemars::JsonSchema))]
+#[cfg_attr(
+    all(
+        feature = "schemars",
+        feature = "serde",
+        feature = "serde_json",
+        feature = "alloc"
+    ),
+    derive(schemars::JsonSchema)
+)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 pub struct VecM<T, const MAX: u32 = { u32::MAX }>(Vec<T>);
 
@@ -1282,7 +1291,15 @@ impl<T: WriteXdr, const MAX: u32> WriteXdr for VecM<T, MAX> {
     feature = "serde",
     derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr)
 )]
-#[cfg_attr(all(feature = "schemars", feature = "serde", feature = "alloc"), derive(schemars::JsonSchema))]
+#[cfg_attr(
+    all(
+        feature = "schemars",
+        feature = "serde",
+        feature = "serde_json",
+        feature = "alloc"
+    ),
+    derive(schemars::JsonSchema)
+)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 pub struct BytesM<const MAX: u32 = { u32::MAX }>(Vec<u8>);
 
@@ -1664,7 +1681,15 @@ impl<const MAX: u32> WriteXdr for BytesM<MAX> {
     feature = "serde",
     derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr)
 )]
-#[cfg_attr(all(feature = "schemars", feature = "serde", feature = "alloc"), derive(schemars::JsonSchema))]
+#[cfg_attr(
+    all(
+        feature = "schemars",
+        feature = "serde",
+        feature = "serde_json",
+        feature = "alloc"
+    ),
+    derive(schemars::JsonSchema)
+)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 pub struct StringM<const MAX: u32 = { u32::MAX }>(Vec<u8>);
 
@@ -2036,7 +2061,15 @@ impl<const MAX: u32> WriteXdr for StringM<MAX> {
     derive(serde::Serialize, serde::Deserialize),
     serde(rename_all = "snake_case")
 )]
-#[cfg_attr(all(feature = "schemars", feature = "serde", feature = "alloc"), derive(schemars::JsonSchema))]
+#[cfg_attr(
+    all(
+        feature = "schemars",
+        feature = "serde",
+        feature = "serde_json",
+        feature = "alloc"
+    ),
+    derive(schemars::JsonSchema)
+)]
 pub struct Frame<T>(pub T)
 where
     T: ReadXdr;
@@ -2711,266 +2744,323 @@ pub type Arr = [i32; 2];
 ///
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
-#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr))]
-#[cfg_attr(all(feature = "schemars", feature = "serde", feature = "alloc"), derive(schemars::JsonSchema))]
+#[cfg_attr(
+    all(feature = "serde", feature = "alloc"),
+    derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr)
+)]
+#[cfg_attr(
+    all(
+        feature = "schemars",
+        feature = "serde",
+        feature = "serde_json",
+        feature = "alloc"
+    ),
+    derive(schemars::JsonSchema)
+)]
 pub struct HasOptions {
-  pub first_option: Option<i32>,
-  pub second_option: Option<i32>,
-  pub third_option: Option<i32>,
+    pub first_option: Option<i32>,
+    pub second_option: Option<i32>,
+    pub third_option: Option<i32>,
 }
 
-        impl ReadXdr for HasOptions {
-            #[cfg(feature = "std")]
-            fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self> {
-                r.with_limited_depth(|r| {
-                    Ok(Self{
-                      first_option: Option::<i32>::read_xdr(r)?,
-second_option: Option::<i32>::read_xdr(r)?,
-third_option: Option::<i32>::read_xdr(r)?,
-                    })
-                })
+impl ReadXdr for HasOptions {
+    #[cfg(feature = "std")]
+    fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self> {
+        r.with_limited_depth(|r| {
+            Ok(Self {
+                first_option: Option::<i32>::read_xdr(r)?,
+                second_option: Option::<i32>::read_xdr(r)?,
+                third_option: Option::<i32>::read_xdr(r)?,
+            })
+        })
+    }
+}
+
+impl WriteXdr for HasOptions {
+    #[cfg(feature = "std")]
+    fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
+        w.with_limited_depth(|w| {
+            self.first_option.write_xdr(w)?;
+            self.second_option.write_xdr(w)?;
+            self.third_option.write_xdr(w)?;
+            Ok(())
+        })
+    }
+}
+
+#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[cfg_attr(
+    all(feature = "serde", feature = "alloc"),
+    derive(serde::Serialize, serde::Deserialize, schemars::JsonSchema),
+    serde(rename_all = "snake_case")
+)]
+#[cfg_attr(
+    all(
+        feature = "schemars",
+        feature = "serde",
+        feature = "serde_json",
+        feature = "alloc"
+    ),
+    derive(schemars::JsonSchema)
+)]
+pub enum TypeVariant {
+    Arr,
+    HasOptions,
+}
+
+impl TypeVariant {
+    pub const VARIANTS: [TypeVariant; 2] = [TypeVariant::Arr, TypeVariant::HasOptions];
+    pub const VARIANTS_STR: [&'static str; 2] = ["Arr", "HasOptions"];
+
+    #[must_use]
+    #[allow(clippy::too_many_lines)]
+    pub const fn name(&self) -> &'static str {
+        match self {
+            Self::Arr => "Arr",
+            Self::HasOptions => "HasOptions",
+        }
+    }
+
+    #[must_use]
+    #[allow(clippy::too_many_lines)]
+    pub const fn variants() -> [TypeVariant; 2] {
+        Self::VARIANTS
+    }
+}
+
+impl Name for TypeVariant {
+    #[must_use]
+    fn name(&self) -> &'static str {
+        Self::name(self)
+    }
+}
+
+impl Variants<TypeVariant> for TypeVariant {
+    fn variants() -> slice::Iter<'static, TypeVariant> {
+        Self::VARIANTS.iter()
+    }
+}
+
+impl core::str::FromStr for TypeVariant {
+    type Err = Error;
+    #[allow(clippy::too_many_lines)]
+    fn from_str(s: &str) -> Result<Self> {
+        match s {
+            "Arr" => Ok(Self::Arr),
+            "HasOptions" => Ok(Self::HasOptions),
+            _ => Err(Error::Invalid),
+        }
+    }
+}
+
+#[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[cfg_attr(
+    all(feature = "serde", feature = "alloc"),
+    derive(serde::Serialize, serde::Deserialize, schemars::JsonSchema),
+    serde(rename_all = "snake_case"),
+    serde(untagged)
+)]
+#[cfg_attr(
+    all(
+        feature = "schemars",
+        feature = "serde",
+        feature = "serde_json",
+        feature = "alloc"
+    ),
+    derive(schemars::JsonSchema)
+)]
+pub enum Type {
+    Arr(Box<Arr>),
+    HasOptions(Box<HasOptions>),
+}
+
+impl Type {
+    pub const VARIANTS: [TypeVariant; 2] = [TypeVariant::Arr, TypeVariant::HasOptions];
+    pub const VARIANTS_STR: [&'static str; 2] = ["Arr", "HasOptions"];
+
+    #[cfg(feature = "std")]
+    #[allow(clippy::too_many_lines)]
+    pub fn read_xdr<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Result<Self> {
+        match v {
+            TypeVariant::Arr => {
+                r.with_limited_depth(|r| Ok(Self::Arr(Box::new(Arr::read_xdr(r)?))))
+            }
+            TypeVariant::HasOptions => {
+                r.with_limited_depth(|r| Ok(Self::HasOptions(Box::new(HasOptions::read_xdr(r)?))))
             }
         }
+    }
 
-        impl WriteXdr for HasOptions {
-            #[cfg(feature = "std")]
-            fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
-                w.with_limited_depth(|w| {
-                    self.first_option.write_xdr(w)?;
-self.second_option.write_xdr(w)?;
-self.third_option.write_xdr(w)?;
-                    Ok(())
-                })
-            }
+    #[cfg(feature = "base64")]
+    pub fn read_xdr_base64<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Result<Self> {
+        let mut dec = Limited::new(
+            base64::read::DecoderReader::new(&mut r.inner, base64::STANDARD),
+            r.limits.clone(),
+        );
+        let t = Self::read_xdr(v, &mut dec)?;
+        Ok(t)
+    }
+
+    #[cfg(feature = "std")]
+    pub fn read_xdr_to_end<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Result<Self> {
+        let s = Self::read_xdr(v, r)?;
+        // Check that any further reads, such as this read of one byte, read no
+        // data, indicating EOF. If a byte is read the data is invalid.
+        if r.read(&mut [0u8; 1])? == 0 {
+            Ok(s)
+        } else {
+            Err(Error::Invalid)
         }
+    }
 
-        #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
-        #[cfg_attr(
-          all(feature = "serde", feature = "alloc"),
-          derive(serde::Serialize, serde::Deserialize, schemars::JsonSchema),
-          serde(rename_all = "snake_case")
-        )]
-        #[cfg_attr(
-          all(feature = "schemars", feature = "serde", feature = "alloc"),
-          derive(schemars::JsonSchema)
-        )]
-        pub enum TypeVariant {
-            Arr,
-HasOptions,
+    #[cfg(feature = "base64")]
+    pub fn read_xdr_base64_to_end<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Result<Self> {
+        let mut dec = Limited::new(
+            base64::read::DecoderReader::new(&mut r.inner, base64::STANDARD),
+            r.limits.clone(),
+        );
+        let t = Self::read_xdr_to_end(v, &mut dec)?;
+        Ok(t)
+    }
+
+    #[cfg(feature = "std")]
+    #[allow(clippy::too_many_lines)]
+    pub fn read_xdr_iter<R: Read>(
+        v: TypeVariant,
+        r: &mut Limited<R>,
+    ) -> Box<dyn Iterator<Item = Result<Self>> + '_> {
+        match v {
+            TypeVariant::Arr => Box::new(
+                ReadXdrIter::<_, Arr>::new(&mut r.inner, r.limits.clone())
+                    .map(|r| r.map(|t| Self::Arr(Box::new(t)))),
+            ),
+            TypeVariant::HasOptions => Box::new(
+                ReadXdrIter::<_, HasOptions>::new(&mut r.inner, r.limits.clone())
+                    .map(|r| r.map(|t| Self::HasOptions(Box::new(t)))),
+            ),
         }
+    }
 
-        impl TypeVariant {
-            pub const VARIANTS: [TypeVariant; 2] = [ TypeVariant::Arr,
-TypeVariant::HasOptions, ];
-            pub const VARIANTS_STR: [&'static str; 2] = [ "Arr",
-"HasOptions", ];
-
-            #[must_use]
-            #[allow(clippy::too_many_lines)]
-            pub const fn name(&self) -> &'static str {
-                match self {
-                    Self::Arr => "Arr",
-Self::HasOptions => "HasOptions",
-                }
-            }
-
-            #[must_use]
-            #[allow(clippy::too_many_lines)]
-            pub const fn variants() -> [TypeVariant; 2] {
-                Self::VARIANTS
-            }
+    #[cfg(feature = "std")]
+    #[allow(clippy::too_many_lines)]
+    pub fn read_xdr_framed_iter<R: Read>(
+        v: TypeVariant,
+        r: &mut Limited<R>,
+    ) -> Box<dyn Iterator<Item = Result<Self>> + '_> {
+        match v {
+            TypeVariant::Arr => Box::new(
+                ReadXdrIter::<_, Frame<Arr>>::new(&mut r.inner, r.limits.clone())
+                    .map(|r| r.map(|t| Self::Arr(Box::new(t.0)))),
+            ),
+            TypeVariant::HasOptions => Box::new(
+                ReadXdrIter::<_, Frame<HasOptions>>::new(&mut r.inner, r.limits.clone())
+                    .map(|r| r.map(|t| Self::HasOptions(Box::new(t.0)))),
+            ),
         }
+    }
 
-        impl Name for TypeVariant {
-            #[must_use]
-            fn name(&self) -> &'static str {
-                Self::name(self)
-            }
+    #[cfg(feature = "base64")]
+    #[allow(clippy::too_many_lines)]
+    pub fn read_xdr_base64_iter<R: Read>(
+        v: TypeVariant,
+        r: &mut Limited<R>,
+    ) -> Box<dyn Iterator<Item = Result<Self>> + '_> {
+        let dec = base64::read::DecoderReader::new(&mut r.inner, base64::STANDARD);
+        match v {
+            TypeVariant::Arr => Box::new(
+                ReadXdrIter::<_, Arr>::new(dec, r.limits.clone())
+                    .map(|r| r.map(|t| Self::Arr(Box::new(t)))),
+            ),
+            TypeVariant::HasOptions => Box::new(
+                ReadXdrIter::<_, HasOptions>::new(dec, r.limits.clone())
+                    .map(|r| r.map(|t| Self::HasOptions(Box::new(t)))),
+            ),
         }
+    }
 
-        impl Variants<TypeVariant> for TypeVariant {
-            fn variants() -> slice::Iter<'static, TypeVariant> {
-                Self::VARIANTS.iter()
-            }
+    #[cfg(feature = "std")]
+    pub fn from_xdr<B: AsRef<[u8]>>(v: TypeVariant, bytes: B, limits: Limits) -> Result<Self> {
+        let mut cursor = Limited::new(Cursor::new(bytes.as_ref()), limits);
+        let t = Self::read_xdr_to_end(v, &mut cursor)?;
+        Ok(t)
+    }
+
+    #[cfg(feature = "base64")]
+    pub fn from_xdr_base64(v: TypeVariant, b64: impl AsRef<[u8]>, limits: Limits) -> Result<Self> {
+        let mut b64_reader = Cursor::new(b64);
+        let mut dec = Limited::new(
+            base64::read::DecoderReader::new(&mut b64_reader, base64::STANDARD),
+            limits,
+        );
+        let t = Self::read_xdr_to_end(v, &mut dec)?;
+        Ok(t)
+    }
+
+    #[cfg(all(feature = "std", feature = "serde_json"))]
+    #[allow(clippy::too_many_lines)]
+    pub fn read_json(v: TypeVariant, r: impl Read) -> Result<Self> {
+        match v {
+            TypeVariant::Arr => Ok(Self::Arr(Box::new(serde_json::from_reader(r)?))),
+            TypeVariant::HasOptions => Ok(Self::HasOptions(Box::new(serde_json::from_reader(r)?))),
         }
+    }
 
-        impl core::str::FromStr for TypeVariant {
-            type Err = Error;
-            #[allow(clippy::too_many_lines)]
-            fn from_str(s: &str) -> Result<Self> {
-                match s {
-                    "Arr" => Ok(Self::Arr),
-"HasOptions" => Ok(Self::HasOptions),
-                    _ => Err(Error::Invalid),
-                }
-            }
+    #[cfg(feature = "alloc")]
+    #[must_use]
+    #[allow(clippy::too_many_lines)]
+    pub fn value(&self) -> &dyn core::any::Any {
+        #[allow(clippy::match_same_arms)]
+        match self {
+            Self::Arr(ref v) => v.as_ref(),
+            Self::HasOptions(ref v) => v.as_ref(),
         }
+    }
 
-        #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
-        #[cfg_attr(
-          all(feature = "serde", feature = "alloc"),
-          derive(serde::Serialize, serde::Deserialize, schemars::JsonSchema),
-          serde(rename_all = "snake_case"),
-          serde(untagged),
-        )]
-        #[cfg_attr(
-          all(feature = "schemars", feature = "serde", feature = "alloc"),
-          derive(schemars::JsonSchema)
-        )]
-        pub enum Type {
-            Arr(Box<Arr>),
-HasOptions(Box<HasOptions>),
+    #[must_use]
+    #[allow(clippy::too_many_lines)]
+    pub const fn name(&self) -> &'static str {
+        match self {
+            Self::Arr(_) => "Arr",
+            Self::HasOptions(_) => "HasOptions",
         }
+    }
 
-        impl Type {
-            pub const VARIANTS: [TypeVariant; 2] = [ TypeVariant::Arr,
-TypeVariant::HasOptions, ];
-            pub const VARIANTS_STR: [&'static str; 2] = [ "Arr",
-"HasOptions", ];
+    #[must_use]
+    #[allow(clippy::too_many_lines)]
+    pub const fn variants() -> [TypeVariant; 2] {
+        Self::VARIANTS
+    }
 
-            #[cfg(feature = "std")]
-            #[allow(clippy::too_many_lines)]
-            pub fn read_xdr<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Result<Self> {
-                match v {
-                    TypeVariant::Arr => r.with_limited_depth(|r| Ok(Self::Arr(Box::new(Arr::read_xdr(r)?)))),
-TypeVariant::HasOptions => r.with_limited_depth(|r| Ok(Self::HasOptions(Box::new(HasOptions::read_xdr(r)?)))),
-                }
-            }
-
-            #[cfg(feature = "base64")]
-            pub fn read_xdr_base64<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Result<Self> {
-                let mut dec = Limited::new(base64::read::DecoderReader::new(&mut r.inner, base64::STANDARD), r.limits.clone());
-                let t = Self::read_xdr(v, &mut dec)?;
-                Ok(t)
-            }
-
-            #[cfg(feature = "std")]
-            pub fn read_xdr_to_end<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Result<Self> {
-                let s = Self::read_xdr(v, r)?;
-                // Check that any further reads, such as this read of one byte, read no
-                // data, indicating EOF. If a byte is read the data is invalid.
-                if r.read(&mut [0u8; 1])? == 0 {
-                    Ok(s)
-                } else {
-                    Err(Error::Invalid)
-                }
-            }
-
-            #[cfg(feature = "base64")]
-            pub fn read_xdr_base64_to_end<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Result<Self> {
-                let mut dec = Limited::new(base64::read::DecoderReader::new(&mut r.inner, base64::STANDARD), r.limits.clone());
-                let t = Self::read_xdr_to_end(v, &mut dec)?;
-                Ok(t)
-            }
-
-            #[cfg(feature = "std")]
-            #[allow(clippy::too_many_lines)]
-            pub fn read_xdr_iter<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Box<dyn Iterator<Item=Result<Self>> + '_> {
-                match v {
-                    TypeVariant::Arr => Box::new(ReadXdrIter::<_, Arr>::new(&mut r.inner, r.limits.clone()).map(|r| r.map(|t| Self::Arr(Box::new(t))))),
-TypeVariant::HasOptions => Box::new(ReadXdrIter::<_, HasOptions>::new(&mut r.inner, r.limits.clone()).map(|r| r.map(|t| Self::HasOptions(Box::new(t))))),
-                }
-            }
-
-            #[cfg(feature = "std")]
-            #[allow(clippy::too_many_lines)]
-            pub fn read_xdr_framed_iter<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Box<dyn Iterator<Item=Result<Self>> + '_> {
-                match v {
-                    TypeVariant::Arr => Box::new(ReadXdrIter::<_, Frame<Arr>>::new(&mut r.inner, r.limits.clone()).map(|r| r.map(|t| Self::Arr(Box::new(t.0))))),
-TypeVariant::HasOptions => Box::new(ReadXdrIter::<_, Frame<HasOptions>>::new(&mut r.inner, r.limits.clone()).map(|r| r.map(|t| Self::HasOptions(Box::new(t.0))))),
-                }
-            }
-
-            #[cfg(feature = "base64")]
-            #[allow(clippy::too_many_lines)]
-            pub fn read_xdr_base64_iter<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Box<dyn Iterator<Item=Result<Self>> + '_> {
-                let dec = base64::read::DecoderReader::new(&mut r.inner, base64::STANDARD);
-                match v {
-                    TypeVariant::Arr => Box::new(ReadXdrIter::<_, Arr>::new(dec, r.limits.clone()).map(|r| r.map(|t| Self::Arr(Box::new(t))))),
-TypeVariant::HasOptions => Box::new(ReadXdrIter::<_, HasOptions>::new(dec, r.limits.clone()).map(|r| r.map(|t| Self::HasOptions(Box::new(t))))),
-                }
-            }
-
-            #[cfg(feature = "std")]
-            pub fn from_xdr<B: AsRef<[u8]>>(v: TypeVariant, bytes: B, limits: Limits) -> Result<Self> {
-                let mut cursor = Limited::new(Cursor::new(bytes.as_ref()), limits);
-                let t = Self::read_xdr_to_end(v, &mut cursor)?;
-                Ok(t)
-            }
-
-            #[cfg(feature = "base64")]
-            pub fn from_xdr_base64(v: TypeVariant, b64: impl AsRef<[u8]>, limits: Limits) -> Result<Self> {
-                let mut b64_reader = Cursor::new(b64);
-                let mut dec = Limited::new(base64::read::DecoderReader::new(&mut b64_reader, base64::STANDARD), limits);
-                let t = Self::read_xdr_to_end(v, &mut dec)?;
-                Ok(t)
-            }
-
-            #[cfg(all(feature = "std", feature = "serde_json"))]
-            #[allow(clippy::too_many_lines)]
-            pub fn read_json(v: TypeVariant, r: impl Read) -> Result<Self> {
-                match v {
-                    TypeVariant::Arr => Ok(Self::Arr(Box::new(serde_json::from_reader(r)?))),
-TypeVariant::HasOptions => Ok(Self::HasOptions(Box::new(serde_json::from_reader(r)?))),
-                }
-            }
-
-            #[cfg(feature = "alloc")]
-            #[must_use]
-            #[allow(clippy::too_many_lines)]
-            pub fn value(&self) -> &dyn core::any::Any {
-                #[allow(clippy::match_same_arms)]
-                match self {
-                    Self::Arr(ref v) => v.as_ref(),
-Self::HasOptions(ref v) => v.as_ref(),
-                }
-            }
-
-            #[must_use]
-            #[allow(clippy::too_many_lines)]
-            pub const fn name(&self) -> &'static str {
-                match self {
-                    Self::Arr(_) => "Arr",
-Self::HasOptions(_) => "HasOptions",
-                }
-            }
-
-            #[must_use]
-            #[allow(clippy::too_many_lines)]
-            pub const fn variants() -> [TypeVariant; 2] {
-                Self::VARIANTS
-            }
-
-            #[must_use]
-            #[allow(clippy::too_many_lines)]
-            pub const fn variant(&self) -> TypeVariant {
-                match self {
-                    Self::Arr(_) => TypeVariant::Arr,
-Self::HasOptions(_) => TypeVariant::HasOptions,
-                }
-            }
+    #[must_use]
+    #[allow(clippy::too_many_lines)]
+    pub const fn variant(&self) -> TypeVariant {
+        match self {
+            Self::Arr(_) => TypeVariant::Arr,
+            Self::HasOptions(_) => TypeVariant::HasOptions,
         }
+    }
+}
 
-        impl Name for Type {
-            #[must_use]
-            fn name(&self) -> &'static str {
-                Self::name(self)
-            }
-        }
+impl Name for Type {
+    #[must_use]
+    fn name(&self) -> &'static str {
+        Self::name(self)
+    }
+}
 
-        impl Variants<TypeVariant> for Type {
-            fn variants() -> slice::Iter<'static, TypeVariant> {
-                Self::VARIANTS.iter()
-            }
-        }
+impl Variants<TypeVariant> for Type {
+    fn variants() -> slice::Iter<'static, TypeVariant> {
+        Self::VARIANTS.iter()
+    }
+}
 
-        impl WriteXdr for Type {
-            #[cfg(feature = "std")]
-            #[allow(clippy::too_many_lines)]
-            fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
-                match self {
-                    Self::Arr(v) => v.write_xdr(w),
-Self::HasOptions(v) => v.write_xdr(w),
-                }
-            }
+impl WriteXdr for Type {
+    #[cfg(feature = "std")]
+    #[allow(clippy::too_many_lines)]
+    fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
+        match self {
+            Self::Arr(v) => v.write_xdr(w),
+            Self::HasOptions(v) => v.write_xdr(w),
         }
+    }
+}
