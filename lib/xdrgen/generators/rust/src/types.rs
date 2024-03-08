@@ -1346,7 +1346,7 @@ impl<const MAX: u32> Deref for BytesM<MAX> {
 #[cfg(feature = "schemars")]
 impl<const MAX: u32> schemars::JsonSchema for BytesM<MAX> {
     fn schema_name() -> String {
-        format!("BytesM<{}>", MAX)
+        format!("BytesM<{MAX}>")
     }
 
     fn is_referenceable() -> bool {
@@ -1766,7 +1766,7 @@ impl<const MAX: u32> Default for StringM<MAX> {
 #[cfg(feature = "schemars")]
 impl<const MAX: u32> schemars::JsonSchema for StringM<MAX> {
     fn schema_name() -> String {
-        format!("StringM<{}>", MAX)
+        format!("StringM<{MAX}>")
     }
 
     fn is_referenceable() -> bool {

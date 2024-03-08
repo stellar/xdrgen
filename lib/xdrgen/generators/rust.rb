@@ -689,7 +689,7 @@ module Xdrgen
           else
             out.puts %{#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]}
           end
-          if !@options[:rust_types_custom_jsonschema_impl].include?(name typedef)
+          if !is_fixed_array_opaque(typedef.type) && !@options[:rust_types_custom_jsonschema_impl].include?(name typedef)
             out.puts %{#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]}
           end
           if !is_fixed_array_opaque(typedef.type)
@@ -735,6 +735,7 @@ module Xdrgen
           end
           if is_fixed_array_opaque(typedef.type) && !@options[:rust_types_custom_jsonschema_impl].include?(name typedef)
           out.puts <<-EOS.strip_heredoc
+          #[cfg(feature = "schemars")]
           impl schemars::JsonSchema for #{name typedef} {
               fn schema_name() -> String {
                   "#{name typedef}".to_string()
@@ -756,8 +757,8 @@ module Xdrgen
                           serde_json::Value::String("application/binary".to_string()),
                       );
                       mut_string(schema.into(), |string| schemars::schema::StringValidation {
-                          max_length: Some(MAX * 2),
-                          min_length: Some(MAX * 2),
+                          max_length: Some(#{typedef.type.size} * 2),
+                          min_length: Some(#{typedef.type.size} * 2),
                           ..string
                       })
                   } else {
@@ -977,6 +978,12 @@ module Xdrgen
         else
           raise "Unknown reference type: #{type.class.name}, #{type.class.ancestors}"
         end
+      end
+
+      def array_size(type)
+        _, size = type.array_size
+        size = name @top.find_definition(size) if is_named
+        size
       end
 
       def reference(parent, type)

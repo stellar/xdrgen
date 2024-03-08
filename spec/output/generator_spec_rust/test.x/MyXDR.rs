@@ -1356,7 +1356,7 @@ impl<const MAX: u32> Deref for BytesM<MAX> {
 #[cfg(feature = "schemars")]
 impl<const MAX: u32> schemars::JsonSchema for BytesM<MAX> {
     fn schema_name() -> String {
-        format!("BytesM<{}>", MAX)
+        format!("BytesM<{MAX}>")
     }
 
     fn is_referenceable() -> bool {
@@ -1776,7 +1776,7 @@ impl<const MAX: u32> Default for StringM<MAX> {
 #[cfg(feature = "schemars")]
 impl<const MAX: u32> schemars::JsonSchema for StringM<MAX> {
     fn schema_name() -> String {
-        format!("StringM<{}>", MAX)
+        format!("StringM<{MAX}>")
     }
 
     fn is_referenceable() -> bool {
@@ -2813,7 +2813,6 @@ mod test {
 #[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr))]
-#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 pub struct Uint512(pub [u8; 64]);
 
 impl core::fmt::Debug for Uint512 {
@@ -2844,6 +2843,7 @@ impl core::str::FromStr for Uint512 {
       hex::decode(s).map_err(|_| Error::InvalidHex)?.try_into()
   }
 }
+#[cfg(feature = "schemars")]
 impl schemars::JsonSchema for Uint512 {
     fn schema_name() -> String {
         "Uint512".to_string()
@@ -2865,8 +2865,8 @@ impl schemars::JsonSchema for Uint512 {
                 serde_json::Value::String("application/binary".to_string()),
             );
             mut_string(schema.into(), |string| schemars::schema::StringValidation {
-                max_length: Some(MAX * 2),
-                min_length: Some(MAX * 2),
+                max_length: Some(64 * 2),
+                min_length: Some(64 * 2),
                 ..string
             })
         } else {
@@ -3367,7 +3367,6 @@ impl AsRef<[u8]> for Str2 {
 #[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr))]
-#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 pub struct Hash(pub [u8; 32]);
 
 impl core::fmt::Debug for Hash {
@@ -3398,6 +3397,7 @@ impl core::str::FromStr for Hash {
       hex::decode(s).map_err(|_| Error::InvalidHex)?.try_into()
   }
 }
+#[cfg(feature = "schemars")]
 impl schemars::JsonSchema for Hash {
     fn schema_name() -> String {
         "Hash".to_string()
@@ -3419,8 +3419,8 @@ impl schemars::JsonSchema for Hash {
                 serde_json::Value::String("application/binary".to_string()),
             );
             mut_string(schema.into(), |string| schemars::schema::StringValidation {
-                max_length: Some(MAX * 2),
-                min_length: Some(MAX * 2),
+                max_length: Some(32 * 2),
+                min_length: Some(32 * 2),
                 ..string
             })
         } else {
