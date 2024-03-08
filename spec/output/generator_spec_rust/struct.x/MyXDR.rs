@@ -1375,7 +1375,7 @@ impl<const MAX: u32> schemars::JsonSchema for BytesM<MAX> {
                 serde_json::Value::String("application/binary".to_string()),
             );
             mut_string(schema.into(), |string| schemars::schema::StringValidation {
-                max_length: Some(MAX * 2),
+                max_length: MAX.checked_mul(2).map(Some).unwrap_or_default(),
                 min_length: None,
                 ..string
             })

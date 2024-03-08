@@ -757,8 +757,8 @@ module Xdrgen
                           serde_json::Value::String("application/binary".to_string()),
                       );
                       mut_string(schema.into(), |string| schemars::schema::StringValidation {
-                          max_length: Some(#{typedef.type.size} * 2),
-                          min_length: Some(#{typedef.type.size} * 2),
+                          max_length: #{typedef.type.size}_u32.checked_mul(2).map(Some).unwrap_or_default(),
+                          min_length: #{typedef.type.size}_u32.checked_mul(2).map(Some).unwrap_or_default(),
                           ..string
                       })
                   } else {

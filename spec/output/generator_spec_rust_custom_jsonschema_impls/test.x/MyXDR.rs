@@ -1375,7 +1375,7 @@ impl<const MAX: u32> schemars::JsonSchema for BytesM<MAX> {
                 serde_json::Value::String("application/binary".to_string()),
             );
             mut_string(schema.into(), |string| schemars::schema::StringValidation {
-                max_length: Some(MAX * 2),
+                max_length: MAX.checked_mul(2).map(Some).unwrap_or_default(),
                 min_length: None,
                 ..string
             })
@@ -2865,8 +2865,8 @@ impl schemars::JsonSchema for Uint512 {
                 serde_json::Value::String("application/binary".to_string()),
             );
             mut_string(schema.into(), |string| schemars::schema::StringValidation {
-                max_length: Some(64 * 2),
-                min_length: Some(64 * 2),
+                max_length: 64_u32.checked_mul(2).map(Some).unwrap_or_default(),
+                min_length: 64_u32.checked_mul(2).map(Some).unwrap_or_default(),
                 ..string
             })
         } else {
@@ -3419,8 +3419,8 @@ impl schemars::JsonSchema for Hash {
                 serde_json::Value::String("application/binary".to_string()),
             );
             mut_string(schema.into(), |string| schemars::schema::StringValidation {
-                max_length: Some(32 * 2),
-                min_length: Some(32 * 2),
+                max_length: 32_u32.checked_mul(2).map(Some).unwrap_or_default(),
+                min_length: 32_u32.checked_mul(2).map(Some).unwrap_or_default(),
                 ..string
             })
         } else {
