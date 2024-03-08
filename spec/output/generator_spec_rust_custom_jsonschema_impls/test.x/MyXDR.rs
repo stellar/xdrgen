@@ -2865,8 +2865,8 @@ impl schemars::JsonSchema for Uint512 {
                 serde_json::Value::String("application/binary".to_string()),
             );
             mut_string(schema.into(), |string| schemars::schema::StringValidation {
-                max_length: SOME(MAX * 2),
-                min_length: SOME(MAX * 2),
+                max_length: Some(MAX * 2),
+                min_length: Some(MAX * 2),
                 ..string
             })
         } else {
@@ -3419,8 +3419,8 @@ impl schemars::JsonSchema for Hash {
                 serde_json::Value::String("application/binary".to_string()),
             );
             mut_string(schema.into(), |string| schemars::schema::StringValidation {
-                max_length: SOME(MAX * 2),
-                min_length: SOME(MAX * 2),
+                max_length: Some(MAX * 2),
+                min_length: Some(MAX * 2),
                 ..string
             })
         } else {
