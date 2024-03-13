@@ -16,6 +16,7 @@ module Xdrgen
         render_top_matter(out)
         render_lib(out)
         render_definitions(out, @top)
+        render_type_macro(out, @types)
         render_enum_of_all_types(out, @types)
         out.break
       end
@@ -92,6 +93,26 @@ module Xdrgen
         lib = IO.read(__dir__ + "/rust/src/types.rs")
         out.puts(lib)
         out.break
+      end
+
+      def render_type_macro(out, types)
+        out.puts <<-EOS.strip_heredoc
+        #[doc(hidden)]
+        #[macro_export]
+        macro_rules! _call_macro_with_each_type_#{@output.inputs_hash} {
+            // The x-macro takes a single ident, the name of a macro to call ...
+            ($macro_to_call_back:ident, $($context:tt),*) => {{
+                // ... and calls it back, once for each XDR type.
+                #{types.map do |t|
+                <<-EOS
+                $macro_to_call_back!(#{t}, $($context),*);
+                EOS
+                end.join("\n")}
+
+            }};
+        }
+        pub use _call_macro_with_each_type_#{@output.inputs_hash} as call_macro_with_each_type;
+        EOS
       end
 
       def render_enum_of_all_types(out, types)
