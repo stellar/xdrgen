@@ -145,6 +145,15 @@ module Xdrgen
             pub const fn variants() -> [TypeVariant; #{types.count}] {
                 Self::VARIANTS
             }
+
+            #[cfg(feature = "schemars")]
+            #[must_use]
+            #[allow(clippy::too_many_lines)]
+            pub fn json_schema(&self, gen: schemars::gen::SchemaGenerator) -> schemars::schema::RootSchema {
+                match self {
+                    #{types.map { |t| "Self::#{t} => gen.into_root_schema_for::<#{t}>()," }.join("\n")}
+                }
+            }
         }
 
         impl Name for TypeVariant {
