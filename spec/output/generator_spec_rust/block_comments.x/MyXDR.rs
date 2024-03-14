@@ -2902,6 +2902,18 @@ impl WriteXdr for AccountFlags {
     }
 }
 
+#[doc(hidden)]
+#[macro_export]
+macro_rules! _call_macro_with_each_type_9d0f06a028d93fff5280b1251f38188afa3499e5f6893a4152f411801a4981fa {
+    // The x-macro takes a single ident, the name of a macro to call ...
+    ($macro_to_call_back:ident, $($context:tt),*) => {{
+        // ... and calls it back, once for each XDR type.
+                        $macro_to_call_back!(AccountFlags, $($context),*);
+
+
+    }};
+}
+pub use _call_macro_with_each_type_9d0f06a028d93fff5280b1251f38188afa3499e5f6893a4152f411801a4981fa as call_macro_with_each_type;
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(
   all(feature = "serde", feature = "alloc"),
@@ -2929,6 +2941,15 @@ impl TypeVariant {
     #[allow(clippy::too_many_lines)]
     pub const fn variants() -> [TypeVariant; 1] {
         Self::VARIANTS
+    }
+
+    #[cfg(feature = "schemars")]
+    #[must_use]
+    #[allow(clippy::too_many_lines)]
+    pub fn json_schema(&self, gen: schemars::gen::SchemaGenerator) -> schemars::schema::RootSchema {
+        match self {
+            Self::AccountFlags => gen.into_root_schema_for::<AccountFlags>(),
+        }
     }
 }
 

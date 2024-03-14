@@ -2866,6 +2866,20 @@ self.max_string.write_xdr(w)?;
             }
         }
 
+#[doc(hidden)]
+#[macro_export]
+macro_rules! _call_macro_with_each_type_affa3aa4c3210bb4d49be3717cdef1248f6ac8a7666a47223fe1f0619caea7f3 {
+    // The x-macro takes a single ident, the name of a macro to call ...
+    ($macro_to_call_back:ident, $($context:tt),*) => {{
+        // ... and calls it back, once for each XDR type.
+                        $macro_to_call_back!(Int64, $($context),*);
+
+        $macro_to_call_back!(MyStruct, $($context),*);
+
+
+    }};
+}
+pub use _call_macro_with_each_type_affa3aa4c3210bb4d49be3717cdef1248f6ac8a7666a47223fe1f0619caea7f3 as call_macro_with_each_type;
         #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
         #[cfg_attr(
           all(feature = "serde", feature = "alloc"),
@@ -2897,6 +2911,16 @@ Self::MyStruct => "MyStruct",
             #[allow(clippy::too_many_lines)]
             pub const fn variants() -> [TypeVariant; 2] {
                 Self::VARIANTS
+            }
+
+            #[cfg(feature = "schemars")]
+            #[must_use]
+            #[allow(clippy::too_many_lines)]
+            pub fn json_schema(&self, gen: schemars::gen::SchemaGenerator) -> schemars::schema::RootSchema {
+                match self {
+                    Self::Int64 => gen.into_root_schema_for::<Int64>(),
+Self::MyStruct => gen.into_root_schema_for::<MyStruct>(),
+                }
             }
         }
 

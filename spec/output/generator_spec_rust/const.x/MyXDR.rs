@@ -2828,6 +2828,20 @@ pub type TestArray = [i32; Foo];
 ///
 pub type TestArray2 = VecM::<i32, 1>;
 
+#[doc(hidden)]
+#[macro_export]
+macro_rules! _call_macro_with_each_type_3373f465eb9c507fb16aa111a9fc228f7fdfff3a0de270501ce7ef48da570cfa {
+    // The x-macro takes a single ident, the name of a macro to call ...
+    ($macro_to_call_back:ident, $($context:tt),*) => {{
+        // ... and calls it back, once for each XDR type.
+                        $macro_to_call_back!(TestArray, $($context),*);
+
+        $macro_to_call_back!(TestArray2, $($context),*);
+
+
+    }};
+}
+pub use _call_macro_with_each_type_3373f465eb9c507fb16aa111a9fc228f7fdfff3a0de270501ce7ef48da570cfa as call_macro_with_each_type;
         #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
         #[cfg_attr(
           all(feature = "serde", feature = "alloc"),
@@ -2859,6 +2873,16 @@ Self::TestArray2 => "TestArray2",
             #[allow(clippy::too_many_lines)]
             pub const fn variants() -> [TypeVariant; 2] {
                 Self::VARIANTS
+            }
+
+            #[cfg(feature = "schemars")]
+            #[must_use]
+            #[allow(clippy::too_many_lines)]
+            pub fn json_schema(&self, gen: schemars::gen::SchemaGenerator) -> schemars::schema::RootSchema {
+                match self {
+                    Self::TestArray => gen.into_root_schema_for::<TestArray>(),
+Self::TestArray2 => gen.into_root_schema_for::<TestArray2>(),
+                }
             }
         }
 

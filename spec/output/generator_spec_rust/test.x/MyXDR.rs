@@ -4498,6 +4498,62 @@ self.nested_union.write_xdr(w)?;
             }
         }
 
+#[doc(hidden)]
+#[macro_export]
+macro_rules! _call_macro_with_each_type_451cf50fb89e1944017262c2b763549aab1ebdaf504672a21cbf6787d7478a32 {
+    // The x-macro takes a single ident, the name of a macro to call ...
+    ($macro_to_call_back:ident, $($context:tt),*) => {{
+        // ... and calls it back, once for each XDR type.
+                        $macro_to_call_back!(Uint512, $($context),*);
+
+        $macro_to_call_back!(Uint513, $($context),*);
+
+        $macro_to_call_back!(Uint514, $($context),*);
+
+        $macro_to_call_back!(Str, $($context),*);
+
+        $macro_to_call_back!(Str2, $($context),*);
+
+        $macro_to_call_back!(Hash, $($context),*);
+
+        $macro_to_call_back!(Hashes1, $($context),*);
+
+        $macro_to_call_back!(Hashes2, $($context),*);
+
+        $macro_to_call_back!(Hashes3, $($context),*);
+
+        $macro_to_call_back!(OptHash1, $($context),*);
+
+        $macro_to_call_back!(OptHash2, $($context),*);
+
+        $macro_to_call_back!(Int1, $($context),*);
+
+        $macro_to_call_back!(Int2, $($context),*);
+
+        $macro_to_call_back!(Int3, $($context),*);
+
+        $macro_to_call_back!(Int4, $($context),*);
+
+        $macro_to_call_back!(MyStruct, $($context),*);
+
+        $macro_to_call_back!(LotsOfMyStructs, $($context),*);
+
+        $macro_to_call_back!(HasStuff, $($context),*);
+
+        $macro_to_call_back!(Color, $($context),*);
+
+        $macro_to_call_back!(Nester, $($context),*);
+
+        $macro_to_call_back!(NesterNestedEnum, $($context),*);
+
+        $macro_to_call_back!(NesterNestedStruct, $($context),*);
+
+        $macro_to_call_back!(NesterNestedUnion, $($context),*);
+
+
+    }};
+}
+pub use _call_macro_with_each_type_451cf50fb89e1944017262c2b763549aab1ebdaf504672a21cbf6787d7478a32 as call_macro_with_each_type;
         #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
         #[cfg_attr(
           all(feature = "serde", feature = "alloc"),
@@ -4613,6 +4669,37 @@ Self::NesterNestedUnion => "NesterNestedUnion",
             #[allow(clippy::too_many_lines)]
             pub const fn variants() -> [TypeVariant; 23] {
                 Self::VARIANTS
+            }
+
+            #[cfg(feature = "schemars")]
+            #[must_use]
+            #[allow(clippy::too_many_lines)]
+            pub fn json_schema(&self, gen: schemars::gen::SchemaGenerator) -> schemars::schema::RootSchema {
+                match self {
+                    Self::Uint512 => gen.into_root_schema_for::<Uint512>(),
+Self::Uint513 => gen.into_root_schema_for::<Uint513>(),
+Self::Uint514 => gen.into_root_schema_for::<Uint514>(),
+Self::Str => gen.into_root_schema_for::<Str>(),
+Self::Str2 => gen.into_root_schema_for::<Str2>(),
+Self::Hash => gen.into_root_schema_for::<Hash>(),
+Self::Hashes1 => gen.into_root_schema_for::<Hashes1>(),
+Self::Hashes2 => gen.into_root_schema_for::<Hashes2>(),
+Self::Hashes3 => gen.into_root_schema_for::<Hashes3>(),
+Self::OptHash1 => gen.into_root_schema_for::<OptHash1>(),
+Self::OptHash2 => gen.into_root_schema_for::<OptHash2>(),
+Self::Int1 => gen.into_root_schema_for::<Int1>(),
+Self::Int2 => gen.into_root_schema_for::<Int2>(),
+Self::Int3 => gen.into_root_schema_for::<Int3>(),
+Self::Int4 => gen.into_root_schema_for::<Int4>(),
+Self::MyStruct => gen.into_root_schema_for::<MyStruct>(),
+Self::LotsOfMyStructs => gen.into_root_schema_for::<LotsOfMyStructs>(),
+Self::HasStuff => gen.into_root_schema_for::<HasStuff>(),
+Self::Color => gen.into_root_schema_for::<Color>(),
+Self::Nester => gen.into_root_schema_for::<Nester>(),
+Self::NesterNestedEnum => gen.into_root_schema_for::<NesterNestedEnum>(),
+Self::NesterNestedStruct => gen.into_root_schema_for::<NesterNestedStruct>(),
+Self::NesterNestedUnion => gen.into_root_schema_for::<NesterNestedUnion>(),
+                }
             }
         }
 

@@ -3125,6 +3125,26 @@ Self::Offer => ().write_xdr(w)?,
             }
         }
 
+#[doc(hidden)]
+#[macro_export]
+macro_rules! _call_macro_with_each_type_b56a2637c7d9c5cca50c3bd448f8bb94137deedc856160163057efb0521c7013 {
+    // The x-macro takes a single ident, the name of a macro to call ...
+    ($macro_to_call_back:ident, $($context:tt),*) => {{
+        // ... and calls it back, once for each XDR type.
+                        $macro_to_call_back!(UnionKey, $($context),*);
+
+        $macro_to_call_back!(Foo, $($context),*);
+
+        $macro_to_call_back!(MyUnion, $($context),*);
+
+        $macro_to_call_back!(MyUnionOne, $($context),*);
+
+        $macro_to_call_back!(MyUnionTwo, $($context),*);
+
+
+    }};
+}
+pub use _call_macro_with_each_type_b56a2637c7d9c5cca50c3bd448f8bb94137deedc856160163057efb0521c7013 as call_macro_with_each_type;
         #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
         #[cfg_attr(
           all(feature = "serde", feature = "alloc"),
@@ -3168,6 +3188,19 @@ Self::MyUnionTwo => "MyUnionTwo",
             #[allow(clippy::too_many_lines)]
             pub const fn variants() -> [TypeVariant; 5] {
                 Self::VARIANTS
+            }
+
+            #[cfg(feature = "schemars")]
+            #[must_use]
+            #[allow(clippy::too_many_lines)]
+            pub fn json_schema(&self, gen: schemars::gen::SchemaGenerator) -> schemars::schema::RootSchema {
+                match self {
+                    Self::UnionKey => gen.into_root_schema_for::<UnionKey>(),
+Self::Foo => gen.into_root_schema_for::<Foo>(),
+Self::MyUnion => gen.into_root_schema_for::<MyUnion>(),
+Self::MyUnionOne => gen.into_root_schema_for::<MyUnionOne>(),
+Self::MyUnionTwo => gen.into_root_schema_for::<MyUnionTwo>(),
+                }
             }
         }
 

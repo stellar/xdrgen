@@ -2858,6 +2858,20 @@ self.third_option.write_xdr(w)?;
             }
         }
 
+#[doc(hidden)]
+#[macro_export]
+macro_rules! _call_macro_with_each_type_59540777b0327956eb5415514add930c472e7de4e37184dfa74795d616f9875d {
+    // The x-macro takes a single ident, the name of a macro to call ...
+    ($macro_to_call_back:ident, $($context:tt),*) => {{
+        // ... and calls it back, once for each XDR type.
+                        $macro_to_call_back!(Arr, $($context),*);
+
+        $macro_to_call_back!(HasOptions, $($context),*);
+
+
+    }};
+}
+pub use _call_macro_with_each_type_59540777b0327956eb5415514add930c472e7de4e37184dfa74795d616f9875d as call_macro_with_each_type;
         #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
         #[cfg_attr(
           all(feature = "serde", feature = "alloc"),
@@ -2889,6 +2903,16 @@ Self::HasOptions => "HasOptions",
             #[allow(clippy::too_many_lines)]
             pub const fn variants() -> [TypeVariant; 2] {
                 Self::VARIANTS
+            }
+
+            #[cfg(feature = "schemars")]
+            #[must_use]
+            #[allow(clippy::too_many_lines)]
+            pub fn json_schema(&self, gen: schemars::gen::SchemaGenerator) -> schemars::schema::RootSchema {
+                match self {
+                    Self::Arr => gen.into_root_schema_for::<Arr>(),
+Self::HasOptions => gen.into_root_schema_for::<HasOptions>(),
+                }
             }
         }
 

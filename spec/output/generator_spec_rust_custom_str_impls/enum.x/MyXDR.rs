@@ -3204,6 +3204,22 @@ Self::Blue2 => "Blue2",
             }
         }
 
+#[doc(hidden)]
+#[macro_export]
+macro_rules! _call_macro_with_each_type_03c2a103be81d5866909c1a9b63857b87b586004b71facdd64b932a7aa688b72 {
+    // The x-macro takes a single ident, the name of a macro to call ...
+    ($macro_to_call_back:ident, $($context:tt),*) => {{
+        // ... and calls it back, once for each XDR type.
+                        $macro_to_call_back!(MessageType, $($context),*);
+
+        $macro_to_call_back!(Color, $($context),*);
+
+        $macro_to_call_back!(Color2, $($context),*);
+
+
+    }};
+}
+pub use _call_macro_with_each_type_03c2a103be81d5866909c1a9b63857b87b586004b71facdd64b932a7aa688b72 as call_macro_with_each_type;
         #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
         #[cfg_attr(
           all(feature = "serde", feature = "alloc"),
@@ -3239,6 +3255,17 @@ Self::Color2 => "Color2",
             #[allow(clippy::too_many_lines)]
             pub const fn variants() -> [TypeVariant; 3] {
                 Self::VARIANTS
+            }
+
+            #[cfg(feature = "schemars")]
+            #[must_use]
+            #[allow(clippy::too_many_lines)]
+            pub fn json_schema(&self, gen: schemars::gen::SchemaGenerator) -> schemars::schema::RootSchema {
+                match self {
+                    Self::MessageType => gen.into_root_schema_for::<MessageType>(),
+Self::Color => gen.into_root_schema_for::<Color>(),
+Self::Color2 => gen.into_root_schema_for::<Color2>(),
+                }
             }
         }
 
