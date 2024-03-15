@@ -1,3 +1,13 @@
+// Module  is generated from:
+//  spec/fixtures/generator/struct.x
+
+#![allow(clippy::missing_errors_doc, clippy::unreadable_literal)]
+
+/// `XDR_FILES_SHA256` is a list of pairs of source files and their SHA256 hashes.
+pub const XDR_FILES_SHA256: [(&str, &str); 1] = [
+  ("spec/fixtures/generator/struct.x", "c6911a83390e3b499c078fd0c579132eacce88a4a0538d3b8b5e57747a58db4a")
+];
+
 use core::{array::TryFromSliceError, fmt, fmt::Debug, marker::Sized, ops::Deref, slice};
 
 #[cfg(feature = "std")]
@@ -899,18 +909,12 @@ impl<T: schemars::JsonSchema, const MAX: u32> schemars::JsonSchema for VecM<T, M
     }
 
     fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
-        let schema = Vec::<T>::json_schema(gen);
-        if let schemars::schema::Schema::Object(mut schema) = schema {
-            if let Some(array) = schema.array.clone() {
-                schema.array = Some(Box::new(schemars::schema::ArrayValidation {
-                    max_items: Some(MAX),
-                    ..*array
-                }));
+        mut_array(Vec::<T>::json_schema(gen), |array| {
+            schemars::schema::ArrayValidation {
+                max_items: Some(MAX),
+                ..array
             }
-            schema.into()
-        } else {
-            schema
-        }
+        })
     }
 }
 
@@ -1360,8 +1364,8 @@ impl<const MAX: u32> schemars::JsonSchema for BytesM<MAX> {
     }
 
     fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
-        let schema = String::json_schema(gen);
-        if let schemars::schema::Schema::Object(mut schema) = schema {
+        let schema_ = String::json_schema(gen);
+        if let schemars::schema::Schema::Object(mut schema) = schema_ {
             schema.extensions.insert(
                 "contentEncoding".to_owned(),
                 serde_json::Value::String("hex".to_string()),
@@ -1370,15 +1374,13 @@ impl<const MAX: u32> schemars::JsonSchema for BytesM<MAX> {
                 "contentMediaType".to_owned(),
                 serde_json::Value::String("application/binary".to_string()),
             );
-            let string = *schema.string.unwrap_or_default().clone();
-            schema.string = Some(Box::new(schemars::schema::StringValidation {
+            mut_string(schema.into(), |string| schemars::schema::StringValidation {
                 max_length: MAX.checked_mul(2).map(Some).unwrap_or_default(),
                 min_length: None,
                 ..string
-            }));
-            schema.into()
+            })
         } else {
-            schema
+            schema_
         }
     }
 }
@@ -1777,18 +1779,17 @@ impl<const MAX: u32> schemars::JsonSchema for StringM<MAX> {
         format!("StringM<{MAX}>")
     }
 
+    fn is_referenceable() -> bool {
+        false
+    }
+
     fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
-        let schema = String::json_schema(gen);
-        if let schemars::schema::Schema::Object(mut schema) = schema {
-            let string = *schema.string.unwrap_or_default().clone();
-            schema.string = Some(Box::new(schemars::schema::StringValidation {
+        mut_string(String::json_schema(gen), |string| {
+            schemars::schema::StringValidation {
                 max_length: Some(MAX),
                 ..string
-            }));
-            schema.into()
-        } else {
-            schema
-        }
+            }
+        })
     }
 }
 
@@ -2114,6 +2115,10 @@ impl<T: schemars::JsonSchema + ReadXdr> schemars::JsonSchema for Frame<T> {
         format!("Frame<{}>", T::schema_name())
     }
 
+    fn is_referenceable() -> bool {
+        false
+    }
+
     fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
         T::json_schema(gen)
     }
@@ -2140,6 +2145,37 @@ where
             // record.
             Err(Error::Unsupported)
         }
+    }
+}
+
+#[cfg(feature = "schemars")]
+fn mut_array(
+    schema: schemars::schema::Schema,
+    f: impl FnOnce(schemars::schema::ArrayValidation) -> schemars::schema::ArrayValidation,
+) -> schemars::schema::Schema {
+    if let schemars::schema::Schema::Object(mut schema) = schema {
+        if let Some(array) = schema.array.clone() {
+            schema.array = Some(Box::new(f(*array)));
+        }
+        schema.into()
+    } else {
+        schema
+    }
+}
+
+#[cfg(feature = "schemars")]
+fn mut_string(
+    schema: schemars::schema::Schema,
+    f: impl FnOnce(schemars::schema::StringValidation) -> schemars::schema::StringValidation,
+) -> schemars::schema::Schema {
+    if let schemars::schema::Schema::Object(mut schema) = schema {
+        let string = *schema.string.unwrap_or_default().clone();
+        let s = f(string);
+        schema.string = Some(Box::new(s));
+
+        schema.into()
+    } else {
+        schema
     }
 }
 
@@ -2767,3 +2803,313 @@ mod test {
         assert_eq!(v.to_option(), Some(1));
     }
 }
+
+/// Int64 is an XDR Typedef defines as:
+///
+/// ```text
+/// typedef hyper int64;
+/// ```
+///
+pub type Int64 = i64;
+
+/// MyStruct is an XDR Struct defines as:
+///
+/// ```text
+/// struct MyStruct
+/// {
+///     int    someInt;
+///     int64  aBigInt;
+///     opaque someOpaque[10];
+///     string someString<>;
+///     string maxString<100>;
+/// };
+/// ```
+///
+#[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
+#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
+pub struct MyStruct {
+  pub some_int: i32,
+  pub a_big_int: i64,
+  pub some_opaque: [u8; 10],
+  pub some_string: StringM,
+  pub max_string: StringM::<100>,
+}
+
+        impl ReadXdr for MyStruct {
+            #[cfg(feature = "std")]
+            fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self> {
+                r.with_limited_depth(|r| {
+                    Ok(Self{
+                      some_int: i32::read_xdr(r)?,
+a_big_int: i64::read_xdr(r)?,
+some_opaque: <[u8; 10]>::read_xdr(r)?,
+some_string: StringM::read_xdr(r)?,
+max_string: StringM::<100>::read_xdr(r)?,
+                    })
+                })
+            }
+        }
+
+        impl WriteXdr for MyStruct {
+            #[cfg(feature = "std")]
+            fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
+                w.with_limited_depth(|w| {
+                    self.some_int.write_xdr(w)?;
+self.a_big_int.write_xdr(w)?;
+self.some_opaque.write_xdr(w)?;
+self.some_string.write_xdr(w)?;
+self.max_string.write_xdr(w)?;
+                    Ok(())
+                })
+            }
+        }
+
+#[doc(hidden)]
+#[macro_export]
+macro_rules! _call_macro_with_each_type_6c6fcf0d09aabf041e68a1515efab2c7a4d8b74d95f4af21a71c061ef03a25af {
+    // The x-macro takes a single ident, the name of a macro to call ...
+    ($macro_to_call_back:ident, $($context:tt),*) => {{
+        // ... and calls it back, once for each XDR type.
+                        $macro_to_call_back!(Int64, $($context),*);
+
+        $macro_to_call_back!(MyStruct, $($context),*);
+
+
+    }};
+}
+pub use _call_macro_with_each_type_6c6fcf0d09aabf041e68a1515efab2c7a4d8b74d95f4af21a71c061ef03a25af as call_macro_with_each_type;
+        #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+        #[cfg_attr(
+          all(feature = "serde", feature = "alloc"),
+          derive(serde::Serialize, serde::Deserialize),
+          serde(rename_all = "snake_case")
+        )]
+        #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
+        pub enum TypeVariant {
+            Int64,
+MyStruct,
+        }
+
+        impl TypeVariant {
+            pub const VARIANTS: [TypeVariant; 2] = [ TypeVariant::Int64,
+TypeVariant::MyStruct, ];
+            pub const VARIANTS_STR: [&'static str; 2] = [ "Int64",
+"MyStruct", ];
+
+            #[must_use]
+            #[allow(clippy::too_many_lines)]
+            pub const fn name(&self) -> &'static str {
+                match self {
+                    Self::Int64 => "Int64",
+Self::MyStruct => "MyStruct",
+                }
+            }
+
+            #[must_use]
+            #[allow(clippy::too_many_lines)]
+            pub const fn variants() -> [TypeVariant; 2] {
+                Self::VARIANTS
+            }
+
+            #[cfg(feature = "schemars")]
+            #[must_use]
+            #[allow(clippy::too_many_lines)]
+            pub fn json_schema(&self, gen: schemars::gen::SchemaGenerator) -> schemars::schema::RootSchema {
+                match self {
+                    Self::Int64 => gen.into_root_schema_for::<Int64>(),
+Self::MyStruct => gen.into_root_schema_for::<MyStruct>(),
+                }
+            }
+        }
+
+        impl Name for TypeVariant {
+            #[must_use]
+            fn name(&self) -> &'static str {
+                Self::name(self)
+            }
+        }
+
+        impl Variants<TypeVariant> for TypeVariant {
+            fn variants() -> slice::Iter<'static, TypeVariant> {
+                Self::VARIANTS.iter()
+            }
+        }
+
+        impl core::str::FromStr for TypeVariant {
+            type Err = Error;
+            #[allow(clippy::too_many_lines)]
+            fn from_str(s: &str) -> Result<Self> {
+                match s {
+                    "Int64" => Ok(Self::Int64),
+"MyStruct" => Ok(Self::MyStruct),
+                    _ => Err(Error::Invalid),
+                }
+            }
+        }
+
+        #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+        #[cfg_attr(
+          all(feature = "serde", feature = "alloc"),
+          derive(serde::Serialize, serde::Deserialize),
+          serde(rename_all = "snake_case"),
+          serde(untagged),
+        )]
+        #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
+        pub enum Type {
+            Int64(Box<Int64>),
+MyStruct(Box<MyStruct>),
+        }
+
+        impl Type {
+            pub const VARIANTS: [TypeVariant; 2] = [ TypeVariant::Int64,
+TypeVariant::MyStruct, ];
+            pub const VARIANTS_STR: [&'static str; 2] = [ "Int64",
+"MyStruct", ];
+
+            #[cfg(feature = "std")]
+            #[allow(clippy::too_many_lines)]
+            pub fn read_xdr<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Result<Self> {
+                match v {
+                    TypeVariant::Int64 => r.with_limited_depth(|r| Ok(Self::Int64(Box::new(Int64::read_xdr(r)?)))),
+TypeVariant::MyStruct => r.with_limited_depth(|r| Ok(Self::MyStruct(Box::new(MyStruct::read_xdr(r)?)))),
+                }
+            }
+
+            #[cfg(feature = "base64")]
+            pub fn read_xdr_base64<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Result<Self> {
+                let mut dec = Limited::new(base64::read::DecoderReader::new(&mut r.inner, base64::STANDARD), r.limits.clone());
+                let t = Self::read_xdr(v, &mut dec)?;
+                Ok(t)
+            }
+
+            #[cfg(feature = "std")]
+            pub fn read_xdr_to_end<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Result<Self> {
+                let s = Self::read_xdr(v, r)?;
+                // Check that any further reads, such as this read of one byte, read no
+                // data, indicating EOF. If a byte is read the data is invalid.
+                if r.read(&mut [0u8; 1])? == 0 {
+                    Ok(s)
+                } else {
+                    Err(Error::Invalid)
+                }
+            }
+
+            #[cfg(feature = "base64")]
+            pub fn read_xdr_base64_to_end<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Result<Self> {
+                let mut dec = Limited::new(base64::read::DecoderReader::new(&mut r.inner, base64::STANDARD), r.limits.clone());
+                let t = Self::read_xdr_to_end(v, &mut dec)?;
+                Ok(t)
+            }
+
+            #[cfg(feature = "std")]
+            #[allow(clippy::too_many_lines)]
+            pub fn read_xdr_iter<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Box<dyn Iterator<Item=Result<Self>> + '_> {
+                match v {
+                    TypeVariant::Int64 => Box::new(ReadXdrIter::<_, Int64>::new(&mut r.inner, r.limits.clone()).map(|r| r.map(|t| Self::Int64(Box::new(t))))),
+TypeVariant::MyStruct => Box::new(ReadXdrIter::<_, MyStruct>::new(&mut r.inner, r.limits.clone()).map(|r| r.map(|t| Self::MyStruct(Box::new(t))))),
+                }
+            }
+
+            #[cfg(feature = "std")]
+            #[allow(clippy::too_many_lines)]
+            pub fn read_xdr_framed_iter<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Box<dyn Iterator<Item=Result<Self>> + '_> {
+                match v {
+                    TypeVariant::Int64 => Box::new(ReadXdrIter::<_, Frame<Int64>>::new(&mut r.inner, r.limits.clone()).map(|r| r.map(|t| Self::Int64(Box::new(t.0))))),
+TypeVariant::MyStruct => Box::new(ReadXdrIter::<_, Frame<MyStruct>>::new(&mut r.inner, r.limits.clone()).map(|r| r.map(|t| Self::MyStruct(Box::new(t.0))))),
+                }
+            }
+
+            #[cfg(feature = "base64")]
+            #[allow(clippy::too_many_lines)]
+            pub fn read_xdr_base64_iter<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Box<dyn Iterator<Item=Result<Self>> + '_> {
+                let dec = base64::read::DecoderReader::new(&mut r.inner, base64::STANDARD);
+                match v {
+                    TypeVariant::Int64 => Box::new(ReadXdrIter::<_, Int64>::new(dec, r.limits.clone()).map(|r| r.map(|t| Self::Int64(Box::new(t))))),
+TypeVariant::MyStruct => Box::new(ReadXdrIter::<_, MyStruct>::new(dec, r.limits.clone()).map(|r| r.map(|t| Self::MyStruct(Box::new(t))))),
+                }
+            }
+
+            #[cfg(feature = "std")]
+            pub fn from_xdr<B: AsRef<[u8]>>(v: TypeVariant, bytes: B, limits: Limits) -> Result<Self> {
+                let mut cursor = Limited::new(Cursor::new(bytes.as_ref()), limits);
+                let t = Self::read_xdr_to_end(v, &mut cursor)?;
+                Ok(t)
+            }
+
+            #[cfg(feature = "base64")]
+            pub fn from_xdr_base64(v: TypeVariant, b64: impl AsRef<[u8]>, limits: Limits) -> Result<Self> {
+                let mut b64_reader = Cursor::new(b64);
+                let mut dec = Limited::new(base64::read::DecoderReader::new(&mut b64_reader, base64::STANDARD), limits);
+                let t = Self::read_xdr_to_end(v, &mut dec)?;
+                Ok(t)
+            }
+
+            #[cfg(all(feature = "std", feature = "serde_json"))]
+            #[allow(clippy::too_many_lines)]
+            pub fn read_json(v: TypeVariant, r: impl Read) -> Result<Self> {
+                match v {
+                    TypeVariant::Int64 => Ok(Self::Int64(Box::new(serde_json::from_reader(r)?))),
+TypeVariant::MyStruct => Ok(Self::MyStruct(Box::new(serde_json::from_reader(r)?))),
+                }
+            }
+
+            #[cfg(feature = "alloc")]
+            #[must_use]
+            #[allow(clippy::too_many_lines)]
+            pub fn value(&self) -> &dyn core::any::Any {
+                #[allow(clippy::match_same_arms)]
+                match self {
+                    Self::Int64(ref v) => v.as_ref(),
+Self::MyStruct(ref v) => v.as_ref(),
+                }
+            }
+
+            #[must_use]
+            #[allow(clippy::too_many_lines)]
+            pub const fn name(&self) -> &'static str {
+                match self {
+                    Self::Int64(_) => "Int64",
+Self::MyStruct(_) => "MyStruct",
+                }
+            }
+
+            #[must_use]
+            #[allow(clippy::too_many_lines)]
+            pub const fn variants() -> [TypeVariant; 2] {
+                Self::VARIANTS
+            }
+
+            #[must_use]
+            #[allow(clippy::too_many_lines)]
+            pub const fn variant(&self) -> TypeVariant {
+                match self {
+                    Self::Int64(_) => TypeVariant::Int64,
+Self::MyStruct(_) => TypeVariant::MyStruct,
+                }
+            }
+        }
+
+        impl Name for Type {
+            #[must_use]
+            fn name(&self) -> &'static str {
+                Self::name(self)
+            }
+        }
+
+        impl Variants<TypeVariant> for Type {
+            fn variants() -> slice::Iter<'static, TypeVariant> {
+                Self::VARIANTS.iter()
+            }
+        }
+
+        impl WriteXdr for Type {
+            #[cfg(feature = "std")]
+            #[allow(clippy::too_many_lines)]
+            fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
+                match self {
+                    Self::Int64(v) => v.write_xdr(w),
+Self::MyStruct(v) => v.write_xdr(w),
+                }
+            }
+        }

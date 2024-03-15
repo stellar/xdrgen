@@ -73,6 +73,7 @@ c = Xdrgen::Compilation.new(
   namespace: "MyProgram::XDR",
   options: {
     rust_types_custom_str_impl: [],
+    rust_types_custom_jsonschema_impl: [],
   },
 )
 

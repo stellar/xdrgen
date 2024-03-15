@@ -898,6 +898,26 @@ impl<T, const MAX: u32> Default for VecM<T, MAX> {
     }
 }
 
+#[cfg(feature = "schemars")]
+impl<T: schemars::JsonSchema, const MAX: u32> schemars::JsonSchema for VecM<T, MAX> {
+    fn schema_name() -> String {
+        format!("VecM<{}, {}>", T::schema_name(), MAX)
+    }
+
+    fn is_referenceable() -> bool {
+        false
+    }
+
+    fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
+        mut_array(Vec::<T>::json_schema(gen), |array| {
+            schemars::schema::ArrayValidation {
+                max_items: Some(MAX),
+                ..array
+            }
+        })
+    }
+}
+
 impl<T, const MAX: u32> VecM<T, MAX> {
     pub const MAX_LEN: usize = { MAX as usize };
 
@@ -1333,6 +1353,38 @@ impl<const MAX: u32> Deref for BytesM<MAX> {
     }
 }
 
+#[cfg(feature = "schemars")]
+impl<const MAX: u32> schemars::JsonSchema for BytesM<MAX> {
+    fn schema_name() -> String {
+        format!("BytesM<{MAX}>")
+    }
+
+    fn is_referenceable() -> bool {
+        false
+    }
+
+    fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
+        let schema_ = String::json_schema(gen);
+        if let schemars::schema::Schema::Object(mut schema) = schema_ {
+            schema.extensions.insert(
+                "contentEncoding".to_owned(),
+                serde_json::Value::String("hex".to_string()),
+            );
+            schema.extensions.insert(
+                "contentMediaType".to_owned(),
+                serde_json::Value::String("application/binary".to_string()),
+            );
+            mut_string(schema.into(), |string| schemars::schema::StringValidation {
+                max_length: MAX.checked_mul(2).map(Some).unwrap_or_default(),
+                min_length: None,
+                ..string
+            })
+        } else {
+            schema_
+        }
+    }
+}
+
 impl<const MAX: u32> Default for BytesM<MAX> {
     fn default() -> Self {
         Self(Vec::default())
@@ -1721,6 +1773,26 @@ impl<const MAX: u32> Default for StringM<MAX> {
     }
 }
 
+#[cfg(feature = "schemars")]
+impl<const MAX: u32> schemars::JsonSchema for StringM<MAX> {
+    fn schema_name() -> String {
+        format!("StringM<{MAX}>")
+    }
+
+    fn is_referenceable() -> bool {
+        false
+    }
+
+    fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
+        mut_string(String::json_schema(gen), |string| {
+            schemars::schema::StringValidation {
+                max_length: Some(MAX),
+                ..string
+            }
+        })
+    }
+}
+
 impl<const MAX: u32> StringM<MAX> {
     pub const MAX_LEN: usize = { MAX as usize };
 
@@ -2037,6 +2109,21 @@ pub struct Frame<T>(pub T)
 where
     T: ReadXdr;
 
+#[cfg(feature = "schemars")]
+impl<T: schemars::JsonSchema + ReadXdr> schemars::JsonSchema for Frame<T> {
+    fn schema_name() -> String {
+        format!("Frame<{}>", T::schema_name())
+    }
+
+    fn is_referenceable() -> bool {
+        false
+    }
+
+    fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
+        T::json_schema(gen)
+    }
+}
+
 impl<T> ReadXdr for Frame<T>
 where
     T: ReadXdr,
@@ -2058,6 +2145,37 @@ where
             // record.
             Err(Error::Unsupported)
         }
+    }
+}
+
+#[cfg(feature = "schemars")]
+fn mut_array(
+    schema: schemars::schema::Schema,
+    f: impl FnOnce(schemars::schema::ArrayValidation) -> schemars::schema::ArrayValidation,
+) -> schemars::schema::Schema {
+    if let schemars::schema::Schema::Object(mut schema) = schema {
+        if let Some(array) = schema.array.clone() {
+            schema.array = Some(Box::new(f(*array)));
+        }
+        schema.into()
+    } else {
+        schema
+    }
+}
+
+#[cfg(feature = "schemars")]
+fn mut_string(
+    schema: schemars::schema::Schema,
+    f: impl FnOnce(schemars::schema::StringValidation) -> schemars::schema::StringValidation,
+) -> schemars::schema::Schema {
+    if let schemars::schema::Schema::Object(mut schema) = schema {
+        let string = *schema.string.unwrap_or_default().clone();
+        let s = f(string);
+        schema.string = Some(Box::new(s));
+
+        schema.into()
+    } else {
+        schema
     }
 }
 
@@ -2715,6 +2833,7 @@ pub type Multi = i32;
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr))]
+#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 #[repr(i32)]
 pub enum UnionKey {
   Error = 0,
@@ -2822,6 +2941,7 @@ Self::Multi => "Multi",
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr))]
+#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 #[allow(clippy::large_enum_variant)]
 pub enum MyUnion {
   Error(i32),
@@ -2932,6 +3052,7 @@ Self::Multi(v) => v.write_xdr(w)?,
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
+#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 #[allow(clippy::large_enum_variant)]
 pub enum IntUnion {
   V0(i32),
@@ -3034,6 +3155,7 @@ Self::V1(v) => v.write_xdr(w)?,
 #[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
+#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 #[derive(Debug)]
 pub struct IntUnion2(pub IntUnion);
 
@@ -3076,12 +3198,35 @@ impl WriteXdr for IntUnion2 {
     }
 }
 
+#[doc(hidden)]
+#[macro_export]
+macro_rules! _call_macro_with_each_type_d63f5de629d12eba02922f123f0547e9eff5460d475c54163bb76b57be65e30d {
+    // The x-macro takes a single ident, the name of a macro to call ...
+    ($macro_to_call_back:ident, $($context:tt),*) => {{
+        // ... and calls it back, once for each XDR type.
+                        $macro_to_call_back!(SError, $($context),*);
+
+        $macro_to_call_back!(Multi, $($context),*);
+
+        $macro_to_call_back!(UnionKey, $($context),*);
+
+        $macro_to_call_back!(MyUnion, $($context),*);
+
+        $macro_to_call_back!(IntUnion, $($context),*);
+
+        $macro_to_call_back!(IntUnion2, $($context),*);
+
+
+    }};
+}
+pub use _call_macro_with_each_type_d63f5de629d12eba02922f123f0547e9eff5460d475c54163bb76b57be65e30d as call_macro_with_each_type;
         #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
         #[cfg_attr(
           all(feature = "serde", feature = "alloc"),
           derive(serde::Serialize, serde::Deserialize),
           serde(rename_all = "snake_case")
         )]
+        #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
         pub enum TypeVariant {
             SError,
 Multi,
@@ -3123,6 +3268,20 @@ Self::IntUnion2 => "IntUnion2",
             pub const fn variants() -> [TypeVariant; 6] {
                 Self::VARIANTS
             }
+
+            #[cfg(feature = "schemars")]
+            #[must_use]
+            #[allow(clippy::too_many_lines)]
+            pub fn json_schema(&self, gen: schemars::gen::SchemaGenerator) -> schemars::schema::RootSchema {
+                match self {
+                    Self::SError => gen.into_root_schema_for::<SError>(),
+Self::Multi => gen.into_root_schema_for::<Multi>(),
+Self::UnionKey => gen.into_root_schema_for::<UnionKey>(),
+Self::MyUnion => gen.into_root_schema_for::<MyUnion>(),
+Self::IntUnion => gen.into_root_schema_for::<IntUnion>(),
+Self::IntUnion2 => gen.into_root_schema_for::<IntUnion2>(),
+                }
+            }
         }
 
         impl Name for TypeVariant {
@@ -3161,6 +3320,7 @@ Self::IntUnion2 => "IntUnion2",
           serde(rename_all = "snake_case"),
           serde(untagged),
         )]
+        #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
         pub enum Type {
             SError(Box<SError>),
 Multi(Box<Multi>),

@@ -18,11 +18,28 @@ describe Xdrgen::Generators::Rust do
           "MyStruct",
           "LotsOfMyStructs",
         ],
+        rust_types_custom_jsonschema_impl: [],
+      }
+    end
+
+    it "can generate #{File.basename path} with custom jsonschema impls" do
+      c = generate path, "_custom_jsonschema_impls", {
+        rust_types_custom_str_impl: [],
+        rust_types_custom_jsonschema_impl: [
+          "Foo",
+          "TestArray",
+          "Color2",
+          "UnionKey",
+          "MyUnion",
+          "HasOptions",
+          "MyStruct",
+          "LotsOfMyStructs",
+        ],
       }
     end
   end
 
-  def generate(path, output_sub_path, options = {rust_types_custom_str_impl: []})
+  def generate(path, output_sub_path, options = {rust_types_custom_str_impl: [], rust_types_custom_jsonschema_impl: []})
     compilation = Xdrgen::Compilation.new(
         [path],
         output_dir: "#{SPEC_ROOT}/output/generator_spec_rust#{output_sub_path}/#{File.basename path}",
