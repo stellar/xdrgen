@@ -776,8 +776,8 @@ module Xdrgen
               }
 
               fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
-                  let schema_ = String::json_schema(gen);
-                  if let schemars::schema::Schema::Object(mut schema) = schema_ {
+                  let schema = String::json_schema(gen);
+                  if let schemars::schema::Schema::Object(mut schema) = schema {
                       schema.extensions.insert(
                           "contentEncoding".to_owned(),
                           serde_json::Value::String("hex".to_string()),
@@ -786,13 +786,15 @@ module Xdrgen
                           "contentMediaType".to_owned(),
                           serde_json::Value::String("application/binary".to_string()),
                       );
-                      mut_string(schema.into(), |string| schemars::schema::StringValidation {
+                      let string = *schema.string.unwrap_or_default().clone();
+                      schema.string = Some(Box::new(schemars::schema::StringValidation {
                           max_length: #{typedef.type.size}_u32.checked_mul(2).map(Some).unwrap_or_default(),
                           min_length: #{typedef.type.size}_u32.checked_mul(2).map(Some).unwrap_or_default(),
                           ..string
-                      })
+                      }));
+                      schema.into()
                   } else {
-                      schema_
+                      schema
                   }
               }
           }

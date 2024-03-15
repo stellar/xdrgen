@@ -2849,10 +2849,6 @@ impl schemars::JsonSchema for Uint512 {
         "Uint512".to_string()
     }
 
-    fn is_referenceable() -> bool {
-        false
-    }
-
     fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
         let schema_ = String::json_schema(gen);
         if let schemars::schema::Schema::Object(mut schema) = schema_ {
@@ -3401,10 +3397,6 @@ impl core::str::FromStr for Hash {
 impl schemars::JsonSchema for Hash {
     fn schema_name() -> String {
         "Hash".to_string()
-    }
-
-    fn is_referenceable() -> bool {
-        false
     }
 
     fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
