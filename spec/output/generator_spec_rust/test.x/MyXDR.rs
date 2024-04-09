@@ -4478,7 +4478,7 @@ self.nested_union.write_xdr(w)?;
 
 #[doc(hidden)]
 #[macro_export]
-macro_rules! _call_macro_with_each_type_451cf50fb89e1944017262c2b763549aab1ebdaf504672a21cbf6787d7478a32 {
+macro_rules! _call_macro_with_each_type_e24b0e9c3b4b66eafcd77916658ca28e1d60d143481be4d82bf8cce4463a7367 {
     // The x-macro takes a single ident, the name of a macro to call ...
     ($macro_to_call_back:ident, $($context:tt),*) => {{
         // ... and calls it back, once for each XDR type.
@@ -4531,7 +4531,7 @@ macro_rules! _call_macro_with_each_type_451cf50fb89e1944017262c2b763549aab1ebdaf
 
     }};
 }
-pub use _call_macro_with_each_type_451cf50fb89e1944017262c2b763549aab1ebdaf504672a21cbf6787d7478a32 as call_macro_with_each_type;
+pub use _call_macro_with_each_type_e24b0e9c3b4b66eafcd77916658ca28e1d60d143481be4d82bf8cce4463a7367 as call_macro_with_each_type;
         #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
         #[cfg_attr(
           all(feature = "serde", feature = "alloc"),

@@ -3174,7 +3174,7 @@ impl WriteXdr for IntUnion2 {
 
 #[doc(hidden)]
 #[macro_export]
-macro_rules! _call_macro_with_each_type_d63f5de629d12eba02922f123f0547e9eff5460d475c54163bb76b57be65e30d {
+macro_rules! _call_macro_with_each_type_cd6e4f23ff27b6b5d2d930232808270230458251208274bd545652ec703bb921 {
     // The x-macro takes a single ident, the name of a macro to call ...
     ($macro_to_call_back:ident, $($context:tt),*) => {{
         // ... and calls it back, once for each XDR type.
@@ -3193,7 +3193,7 @@ macro_rules! _call_macro_with_each_type_d63f5de629d12eba02922f123f0547e9eff5460d
 
     }};
 }
-pub use _call_macro_with_each_type_d63f5de629d12eba02922f123f0547e9eff5460d475c54163bb76b57be65e30d as call_macro_with_each_type;
+pub use _call_macro_with_each_type_cd6e4f23ff27b6b5d2d930232808270230458251208274bd545652ec703bb921 as call_macro_with_each_type;
         #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
         #[cfg_attr(
           all(feature = "serde", feature = "alloc"),

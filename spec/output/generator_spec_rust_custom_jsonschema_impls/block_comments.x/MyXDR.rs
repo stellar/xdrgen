@@ -2878,7 +2878,7 @@ impl WriteXdr for AccountFlags {
 
 #[doc(hidden)]
 #[macro_export]
-macro_rules! _call_macro_with_each_type_7319176558878d16553d6bc15fca9327d2a54ec2e1565fb25d3f81de4cee570a {
+macro_rules! _call_macro_with_each_type_315c3ec204e8759c65e2143522758b394627f663209ed117a1bdeb1b461fc5d8 {
     // The x-macro takes a single ident, the name of a macro to call ...
     ($macro_to_call_back:ident, $($context:tt),*) => {{
         // ... and calls it back, once for each XDR type.
@@ -2887,7 +2887,7 @@ macro_rules! _call_macro_with_each_type_7319176558878d16553d6bc15fca9327d2a54ec2
 
     }};
 }
-pub use _call_macro_with_each_type_7319176558878d16553d6bc15fca9327d2a54ec2e1565fb25d3f81de4cee570a as call_macro_with_each_type;
+pub use _call_macro_with_each_type_315c3ec204e8759c65e2143522758b394627f663209ed117a1bdeb1b461fc5d8 as call_macro_with_each_type;
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(
   all(feature = "serde", feature = "alloc"),
