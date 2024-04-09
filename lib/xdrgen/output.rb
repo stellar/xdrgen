@@ -17,7 +17,7 @@ module Xdrgen
       Digest::SHA256.hexdigest(
         [
           Digest::SHA256.hexdigest(relative_source_paths.map { |p| Digest::SHA256.file(p).hexdigest }.join),
-          Digest::SHA256.hexdigest(@source_paths.map { |p| Digest::SHA256.hexdigest(p) }.join),
+          Digest::SHA256.hexdigest(relative_source_paths.map { |p| Digest::SHA256.hexdigest(p) }.join),
           Digest::SHA256.hexdigest(@output_dir),
         ].join
       )

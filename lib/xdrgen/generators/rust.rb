@@ -96,7 +96,6 @@ module Xdrgen
       end
 
       def render_type_macro(out, types)
-        puts "OUTPUT DIR: #{@output.output_dir}"
         out.puts <<-EOS.strip_heredoc
         #[doc(hidden)]
         #[macro_export]
