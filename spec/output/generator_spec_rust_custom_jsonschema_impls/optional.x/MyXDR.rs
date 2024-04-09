@@ -909,12 +909,18 @@ impl<T: schemars::JsonSchema, const MAX: u32> schemars::JsonSchema for VecM<T, M
     }
 
     fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
-        mut_array(Vec::<T>::json_schema(gen), |array| {
-            schemars::schema::ArrayValidation {
-                max_items: Some(MAX),
-                ..array
+        let schema = Vec::<T>::json_schema(gen);
+        if let schemars::schema::Schema::Object(mut schema) = schema {
+            if let Some(array) = schema.array.clone() {
+                schema.array = Some(Box::new(schemars::schema::ArrayValidation {
+                    max_items: Some(MAX),
+                    ..*array
+                }));
             }
-        })
+            schema.into()
+        } else {
+            schema
+        }
     }
 }
 
@@ -1364,8 +1370,8 @@ impl<const MAX: u32> schemars::JsonSchema for BytesM<MAX> {
     }
 
     fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
-        let schema_ = String::json_schema(gen);
-        if let schemars::schema::Schema::Object(mut schema) = schema_ {
+        let schema = String::json_schema(gen);
+        if let schemars::schema::Schema::Object(mut schema) = schema {
             schema.extensions.insert(
                 "contentEncoding".to_owned(),
                 serde_json::Value::String("hex".to_string()),
@@ -1374,13 +1380,15 @@ impl<const MAX: u32> schemars::JsonSchema for BytesM<MAX> {
                 "contentMediaType".to_owned(),
                 serde_json::Value::String("application/binary".to_string()),
             );
-            mut_string(schema.into(), |string| schemars::schema::StringValidation {
+            let string = *schema.string.unwrap_or_default().clone();
+            schema.string = Some(Box::new(schemars::schema::StringValidation {
                 max_length: MAX.checked_mul(2).map(Some).unwrap_or_default(),
                 min_length: None,
                 ..string
-            })
+            }));
+            schema.into()
         } else {
-            schema_
+            schema
         }
     }
 }
@@ -1779,17 +1787,18 @@ impl<const MAX: u32> schemars::JsonSchema for StringM<MAX> {
         format!("StringM<{MAX}>")
     }
 
-    fn is_referenceable() -> bool {
-        false
-    }
-
     fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
-        mut_string(String::json_schema(gen), |string| {
-            schemars::schema::StringValidation {
+        let schema = String::json_schema(gen);
+        if let schemars::schema::Schema::Object(mut schema) = schema {
+            let string = *schema.string.unwrap_or_default().clone();
+            schema.string = Some(Box::new(schemars::schema::StringValidation {
                 max_length: Some(MAX),
                 ..string
-            }
-        })
+            }));
+            schema.into()
+        } else {
+            schema
+        }
     }
 }
 
@@ -2115,10 +2124,6 @@ impl<T: schemars::JsonSchema + ReadXdr> schemars::JsonSchema for Frame<T> {
         format!("Frame<{}>", T::schema_name())
     }
 
-    fn is_referenceable() -> bool {
-        false
-    }
-
     fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
         T::json_schema(gen)
     }
@@ -2145,37 +2150,6 @@ where
             // record.
             Err(Error::Unsupported)
         }
-    }
-}
-
-#[cfg(feature = "schemars")]
-fn mut_array(
-    schema: schemars::schema::Schema,
-    f: impl FnOnce(schemars::schema::ArrayValidation) -> schemars::schema::ArrayValidation,
-) -> schemars::schema::Schema {
-    if let schemars::schema::Schema::Object(mut schema) = schema {
-        if let Some(array) = schema.array.clone() {
-            schema.array = Some(Box::new(f(*array)));
-        }
-        schema.into()
-    } else {
-        schema
-    }
-}
-
-#[cfg(feature = "schemars")]
-fn mut_string(
-    schema: schemars::schema::Schema,
-    f: impl FnOnce(schemars::schema::StringValidation) -> schemars::schema::StringValidation,
-) -> schemars::schema::Schema {
-    if let schemars::schema::Schema::Object(mut schema) = schema {
-        let string = *schema.string.unwrap_or_default().clone();
-        let s = f(string);
-        schema.string = Some(Box::new(s));
-
-        schema.into()
-    } else {
-        schema
     }
 }
 
