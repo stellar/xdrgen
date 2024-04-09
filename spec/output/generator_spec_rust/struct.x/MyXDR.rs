@@ -2842,7 +2842,7 @@ self.max_string.write_xdr(w)?;
 
 #[doc(hidden)]
 #[macro_export]
-macro_rules! _call_macro_with_each_type_a215be981ee6741a031d48dc3a3e519f8d70545b67b3f5707b9a33af8636c8d6 {
+macro_rules! _call_macro_with_each_type_41b8c5f04975a88bf46b4b6c3694db3c2cba6a3aacfa418d0a29ce095620190e {
     // The x-macro takes a single ident, the name of a macro to call ...
     ($macro_to_call_back:ident, $($context:tt),*) => {{
         // ... and calls it back, once for each XDR type.
@@ -2853,7 +2853,7 @@ macro_rules! _call_macro_with_each_type_a215be981ee6741a031d48dc3a3e519f8d70545b
 
     }};
 }
-pub use _call_macro_with_each_type_a215be981ee6741a031d48dc3a3e519f8d70545b67b3f5707b9a33af8636c8d6 as call_macro_with_each_type;
+pub use _call_macro_with_each_type_41b8c5f04975a88bf46b4b6c3694db3c2cba6a3aacfa418d0a29ce095620190e as call_macro_with_each_type;
         #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
         #[cfg_attr(
           all(feature = "serde", feature = "alloc"),

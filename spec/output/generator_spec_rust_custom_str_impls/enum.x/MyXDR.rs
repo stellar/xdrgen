@@ -3180,7 +3180,7 @@ Self::Blue2 => "Blue2",
 
 #[doc(hidden)]
 #[macro_export]
-macro_rules! _call_macro_with_each_type_5dd8baea08297014cf6d9fee29d033253bed54eccb920a09737dd71d9e681b2f {
+macro_rules! _call_macro_with_each_type_aa19b80318b0b7d6b41ff992531f171f853eac9d20d41cb686f4e888a6eaa384 {
     // The x-macro takes a single ident, the name of a macro to call ...
     ($macro_to_call_back:ident, $($context:tt),*) => {{
         // ... and calls it back, once for each XDR type.
@@ -3193,7 +3193,7 @@ macro_rules! _call_macro_with_each_type_5dd8baea08297014cf6d9fee29d033253bed54ec
 
     }};
 }
-pub use _call_macro_with_each_type_5dd8baea08297014cf6d9fee29d033253bed54eccb920a09737dd71d9e681b2f as call_macro_with_each_type;
+pub use _call_macro_with_each_type_aa19b80318b0b7d6b41ff992531f171f853eac9d20d41cb686f4e888a6eaa384 as call_macro_with_each_type;
         #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
         #[cfg_attr(
           all(feature = "serde", feature = "alloc"),
