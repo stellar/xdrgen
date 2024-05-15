@@ -11,11 +11,12 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.util.Arrays;
 
-// === xdr source ============================================================
-
-//  typedef opaque Hash[32];
-
-//  ===========================================================================
+/**
+ * Hash's original definition in the XDR file is:
+ * <pre>
+ * typedef opaque Hash[32];
+ * </pre>
+ */
 public class Hash implements XdrElement {
   private byte[] Hash;
 

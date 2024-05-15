@@ -10,33 +10,34 @@ import org.stellar.sdk.Base64Factory;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 
-// === xdr source ============================================================
-
-//  enum MessageType
-//  {
-//      ERROR_MSG,    
-//      HELLO,
-//      DONT_HAVE,
-//  
-//      GET_PEERS,   // gets a list of peers this guy knows about        
-//      PEERS,
-//  
-//      GET_TX_SET,  // gets a particular txset by hash        
-//      TX_SET,    
-//  
-//      GET_VALIDATIONS, // gets validations for a given ledger hash        
-//      VALIDATIONS,    
-//  
-//      TRANSACTION, //pass on a tx you have heard about        
-//      JSON_TRANSACTION,
-//  
-//      // FBA        
-//      GET_FBA_QUORUMSET,        
-//      FBA_QUORUMSET,    
-//      FBA_MESSAGE
-//  };
-
-//  ===========================================================================
+/**
+ * MessageType's original definition in the XDR file is:
+ * <pre>
+ * enum MessageType
+ * {
+ *     ERROR_MSG,    
+ *     HELLO,
+ *     DONT_HAVE,
+ * 
+ *     GET_PEERS,   // gets a list of peers this guy knows about        
+ *     PEERS,
+ * 
+ *     GET_TX_SET,  // gets a particular txset by hash        
+ *     TX_SET,    
+ * 
+ *     GET_VALIDATIONS, // gets validations for a given ledger hash        
+ *     VALIDATIONS,    
+ * 
+ *     TRANSACTION, //pass on a tx you have heard about        
+ *     JSON_TRANSACTION,
+ * 
+ *     // FBA        
+ *     GET_FBA_QUORUMSET,        
+ *     FBA_QUORUMSET,    
+ *     FBA_MESSAGE
+ * };
+ * </pre>
+ */
 public enum MessageType implements XdrElement {
   ERROR_MSG(0),
   HELLO(1),

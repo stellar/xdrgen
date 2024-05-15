@@ -11,26 +11,27 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.util.Objects;
 
-// === xdr source ============================================================
-
-//  union MyUnion switch (UnionKey type)
-//  {
-//      case ONE:
-//          struct {
-//              int someInt;
-//          } one;
-//  
-//      case TWO:
-//          struct {
-//              int someInt;
-//              Foo foo;
-//          } two;
-//  
-//      case OFFER:
-//          void;
-//  };
-
-//  ===========================================================================
+/**
+ * MyUnion's original definition in the XDR file is:
+ * <pre>
+ * union MyUnion switch (UnionKey type)
+ * {
+ *     case ONE:
+ *         struct {
+ *             int someInt;
+ *         } one;
+ * 
+ *     case TWO:
+ *         struct {
+ *             int someInt;
+ *             Foo foo;
+ *         } two;
+ * 
+ *     case OFFER:
+ *         void;
+ * };
+ * </pre>
+ */
 public class MyUnion implements XdrElement {
   public MyUnion () {}
   UnionKey type;
@@ -155,6 +156,14 @@ public class MyUnion implements XdrElement {
     return decode(xdrDataInputStream);
   }
 
+  /**
+   * MyUnionOne's original definition in the XDR file is:
+   * <pre>
+   * struct {
+   *             int someInt;
+   *         }
+   * </pre>
+   */
   public static class MyUnionOne implements XdrElement {
     public MyUnionOne () {}
     private Integer someInt;
@@ -228,6 +237,15 @@ public class MyUnion implements XdrElement {
     }
 
   }
+  /**
+   * MyUnionTwo's original definition in the XDR file is:
+   * <pre>
+   * struct {
+   *             int someInt;
+   *             Foo foo;
+   *         }
+   * </pre>
+   */
   public static class MyUnionTwo implements XdrElement {
     public MyUnionTwo () {}
     private Integer someInt;

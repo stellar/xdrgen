@@ -10,15 +10,16 @@ import org.stellar.sdk.Base64Factory;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 
-// === xdr source ============================================================
-
-//  enum Color {
-//      RED=0,  
-//      GREEN=1,  
-//      BLUE=2  
-//  };
-
-//  ===========================================================================
+/**
+ * Color's original definition in the XDR file is:
+ * <pre>
+ * enum Color {
+ *     RED=0,  
+ *     GREEN=1,  
+ *     BLUE=2  
+ * };
+ * </pre>
+ */
 public enum Color implements XdrElement {
   RED(0),
   GREEN(1),

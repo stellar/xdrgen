@@ -11,11 +11,12 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.util.Objects;
 
-// === xdr source ============================================================
-
-//  typedef unsigned hyper  int4;
-
-//  ===========================================================================
+/**
+ * Int4's original definition in the XDR file is:
+ * <pre>
+ * typedef unsigned hyper  int4;
+ * </pre>
+ */
 public class Int4 implements XdrElement {
   private XdrUnsignedHyperInteger int4;
 

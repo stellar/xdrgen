@@ -11,20 +11,21 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.util.Objects;
 
-// === xdr source ============================================================
-
-//  struct MyStruct
-//  {
-//      uint512 field1;
-//      optHash1 field2;
-//      int1 field3;
-//      unsigned int field4;
-//      float field5;
-//      double field6;
-//      bool field7;
-//  };
-
-//  ===========================================================================
+/**
+ * MyStruct's original definition in the XDR file is:
+ * <pre>
+ * struct MyStruct
+ * {
+ *     uint512 field1;
+ *     optHash1 field2;
+ *     int1 field3;
+ *     unsigned int field4;
+ *     float field5;
+ *     double field6;
+ *     bool field7;
+ * };
+ * </pre>
+ */
 public class MyStruct implements XdrElement {
   public MyStruct () {}
   private Uint512 field1;

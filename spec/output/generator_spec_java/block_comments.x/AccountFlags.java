@@ -10,14 +10,15 @@ import org.stellar.sdk.Base64Factory;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 
-// === xdr source ============================================================
-
-//  enum AccountFlags
-//  { // masks for each flag
-//      AUTH_REQUIRED_FLAG = 0x1
-//  };
-
-//  ===========================================================================
+/**
+ * AccountFlags's original definition in the XDR file is:
+ * <pre>
+ * enum AccountFlags
+ * { // masks for each flag
+ *     AUTH_REQUIRED_FLAG = 0x1
+ * };
+ * </pre>
+ */
 public enum AccountFlags implements XdrElement {
   AUTH_REQUIRED_FLAG(1),
   ;
