@@ -11,11 +11,12 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.util.Arrays;
 
-// === xdr source ============================================================
-
-//  typedef int Arr[2];
-
-//  ===========================================================================
+/**
+ * Arr's original definition in the XDR file is:
+ * <pre>
+ * typedef int Arr[2];
+ * </pre>
+ */
 public class Arr implements XdrElement {
   private Integer[] Arr;
 

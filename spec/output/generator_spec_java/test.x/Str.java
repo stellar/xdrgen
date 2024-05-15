@@ -11,11 +11,12 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.util.Objects;
 
-// === xdr source ============================================================
-
-//  typedef string str<64>;
-
-//  ===========================================================================
+/**
+ * Str's original definition in the XDR file is:
+ * <pre>
+ * typedef string str&lt;64&gt;;
+ * </pre>
+ */
 public class Str implements XdrElement {
   private XdrString str;
 

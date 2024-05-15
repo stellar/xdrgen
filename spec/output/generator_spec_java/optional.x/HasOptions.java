@@ -11,16 +11,17 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.util.Objects;
 
-// === xdr source ============================================================
-
-//  struct HasOptions
-//  {
-//    int* firstOption;
-//    int *secondOption;
-//    Arr *thirdOption;
-//  };
-
-//  ===========================================================================
+/**
+ * HasOptions's original definition in the XDR file is:
+ * <pre>
+ * struct HasOptions
+ * {
+ *   int&#42; firstOption;
+ *   int &#42;secondOption;
+ *   Arr &#42;thirdOption;
+ * };
+ * </pre>
+ */
 public class HasOptions implements XdrElement {
   public HasOptions () {}
   private Integer firstOption;

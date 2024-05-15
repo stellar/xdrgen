@@ -10,14 +10,15 @@ import org.stellar.sdk.Base64Factory;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 
-// === xdr source ============================================================
-
-//  enum UnionKey {
-//    ERROR,
-//    MULTI
-//  };
-
-//  ===========================================================================
+/**
+ * UnionKey's original definition in the XDR file is:
+ * <pre>
+ * enum UnionKey {
+ *   ERROR,
+ *   MULTI
+ * };
+ * </pre>
+ */
 public enum UnionKey implements XdrElement {
   ERROR(0),
   MULTI(1),

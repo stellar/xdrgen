@@ -10,15 +10,16 @@ import org.stellar.sdk.Base64Factory;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 
-// === xdr source ============================================================
-
-//  enum Color2 {
-//      RED2=RED,  
-//      GREEN2=1,  
-//      BLUE2=2  
-//  };
-
-//  ===========================================================================
+/**
+ * Color2's original definition in the XDR file is:
+ * <pre>
+ * enum Color2 {
+ *     RED2=RED,  
+ *     GREEN2=1,  
+ *     BLUE2=2  
+ * };
+ * </pre>
+ */
 public enum Color2 implements XdrElement {
   RED2(0),
   GREEN2(1),

@@ -11,11 +11,12 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.util.Objects;
 
-// === xdr source ============================================================
-
-//  typedef unsigned int    int3;
-
-//  ===========================================================================
+/**
+ * Int3's original definition in the XDR file is:
+ * <pre>
+ * typedef unsigned int    int3;
+ * </pre>
+ */
 public class Int3 implements XdrElement {
   private XdrUnsignedInteger int3;
 

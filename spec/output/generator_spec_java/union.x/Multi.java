@@ -11,11 +11,12 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.util.Objects;
 
-// === xdr source ============================================================
-
-//  typedef int Multi;
-
-//  ===========================================================================
+/**
+ * Multi's original definition in the XDR file is:
+ * <pre>
+ * typedef int Multi;
+ * </pre>
+ */
 public class Multi implements XdrElement {
   private Integer Multi;
 

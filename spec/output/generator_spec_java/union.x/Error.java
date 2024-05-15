@@ -11,11 +11,12 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.util.Objects;
 
-// === xdr source ============================================================
-
-//  typedef int Error;
-
-//  ===========================================================================
+/**
+ * Error's original definition in the XDR file is:
+ * <pre>
+ * typedef int Error;
+ * </pre>
+ */
 public class Error implements XdrElement {
   private Integer Error;
 
