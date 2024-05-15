@@ -11,11 +11,12 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.util.Objects;
 
-// === xdr source ============================================================
-
-//  typedef IntUnion IntUnion2;
-
-//  ===========================================================================
+/**
+ * IntUnion2's original definition in the XDR file is:
+ * <pre>
+ * typedef IntUnion IntUnion2;
+ * </pre>
+ */
 public class IntUnion2 implements XdrElement {
   private IntUnion IntUnion2;
 

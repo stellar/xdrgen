@@ -11,30 +11,31 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.util.Objects;
 
-// === xdr source ============================================================
-
-//  struct Nester
-//  {
-//    enum {
-//      BLAH_1,
-//      BLAH_2
-//    } nestedEnum;
-//  
-//    struct {
-//      int blah;
-//    } nestedStruct;
-//  
-//    union switch (Color color) {
-//      case RED:
-//        void;
-//      default:
-//        int blah2;
-//    } nestedUnion;
-//  
-//  
-//  };
-
-//  ===========================================================================
+/**
+ * Nester's original definition in the XDR file is:
+ * <pre>
+ * struct Nester
+ * {
+ *   enum {
+ *     BLAH_1,
+ *     BLAH_2
+ *   } nestedEnum;
+ * 
+ *   struct {
+ *     int blah;
+ *   } nestedStruct;
+ * 
+ *   union switch (Color color) {
+ *     case RED:
+ *       void;
+ *     default:
+ *       int blah2;
+ *   } nestedUnion;
+ * 
+ * 
+ * };
+ * </pre>
+ */
 public class Nester implements XdrElement {
   public Nester () {}
   private NesterNestedEnum nestedEnum;
@@ -139,6 +140,15 @@ public class Nester implements XdrElement {
     }
   }
 
+  /**
+   * NesterNestedEnum's original definition in the XDR file is:
+   * <pre>
+   * enum {
+   *     BLAH_1,
+   *     BLAH_2
+   *   }
+   * </pre>
+   */
   public static enum NesterNestedEnum implements XdrElement {
     BLAH_1(0),
     BLAH_2(1),
@@ -195,6 +205,14 @@ public class Nester implements XdrElement {
     }
 
   }
+  /**
+   * NesterNestedStruct's original definition in the XDR file is:
+   * <pre>
+   * struct {
+   *     int blah;
+   *   }
+   * </pre>
+   */
   public static class NesterNestedStruct implements XdrElement {
     public NesterNestedStruct () {}
     private Integer blah;
@@ -268,6 +286,17 @@ public class Nester implements XdrElement {
     }
 
   }
+  /**
+   * NesterNestedUnion's original definition in the XDR file is:
+   * <pre>
+   * union switch (Color color) {
+   *     case RED:
+   *       void;
+   *     default:
+   *       int blah2;
+   *   }
+   * </pre>
+   */
   public static class NesterNestedUnion implements XdrElement {
     public NesterNestedUnion () {}
     Color color;

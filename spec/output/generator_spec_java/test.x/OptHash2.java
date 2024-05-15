@@ -11,11 +11,12 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.util.Objects;
 
-// === xdr source ============================================================
-
-//  typedef Hash* optHash2;
-
-//  ===========================================================================
+/**
+ * OptHash2's original definition in the XDR file is:
+ * <pre>
+ * typedef Hash&#42; optHash2;
+ * </pre>
+ */
 public class OptHash2 implements XdrElement {
   private Hash optHash2;
 

@@ -138,6 +138,7 @@ module Xdrgen
       def render_nested_definitions(defn, out, post_name="implements XdrElement")
         return unless defn.respond_to? :nested_definitions
         defn.nested_definitions.each{|ndefn|
+          render_source_comment out, ndefn
           case ndefn
           when AST::Definitions::Struct ;
             name = name ndefn
@@ -699,17 +700,12 @@ module Xdrgen
       def render_source_comment(out, defn)
         return if defn.is_a?(AST::Definitions::Namespace)
 
-        out.puts <<-EOS.strip_heredoc
-        // === xdr source ============================================================
-
-        EOS
-
-        out.puts "//  " + defn.text_value.split("\n").join("\n//  ")
-
-        out.puts <<-EOS.strip_heredoc
-
-        //  ===========================================================================
-        EOS
+        out.puts "/**"
+        out.puts " * #{name defn}'s original definition in the XDR file is:"
+        out.puts " * <pre>"
+        out.puts " * " + escape_html(defn.text_value).split("\n").join("\n * ")
+        out.puts " * </pre>"
+        out.puts " */"
       end
 
       def render_base64(return_type, out)
@@ -960,6 +956,14 @@ module Xdrgen
 
       def name_string(name)
         name.camelize
+      end
+
+      def escape_html(value)
+        value.to_s
+             .gsub('&', '&amp;')
+             .gsub('<', '&lt;')
+             .gsub('>', '&gt;')
+             .gsub('*', '&#42;') # to avoid encountering`*/`
       end
     end
   end

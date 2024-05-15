@@ -12,19 +12,20 @@ import java.io.ByteArrayOutputStream;
 import java.util.Objects;
 import java.util.Arrays;
 
-// === xdr source ============================================================
-
-//  union MyUnion switch (UnionKey type)
-//  {
-//      case ERROR:
-//          Error error;
-//      case MULTI:
-//          Multi things<>;
-//  
-//  
-//  };
-
-//  ===========================================================================
+/**
+ * MyUnion's original definition in the XDR file is:
+ * <pre>
+ * union MyUnion switch (UnionKey type)
+ * {
+ *     case ERROR:
+ *         Error error;
+ *     case MULTI:
+ *         Multi things&lt;&gt;;
+ * 
+ * 
+ * };
+ * </pre>
+ */
 public class MyUnion implements XdrElement {
   public MyUnion () {}
   UnionKey type;

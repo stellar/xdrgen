@@ -11,11 +11,12 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.util.Arrays;
 
-// === xdr source ============================================================
-
-//  typedef int TestArray2<FOO>;
-
-//  ===========================================================================
+/**
+ * TestArray2's original definition in the XDR file is:
+ * <pre>
+ * typedef int TestArray2&lt;FOO&gt;;
+ * </pre>
+ */
 public class TestArray2 implements XdrElement {
   private Integer[] TestArray2;
 

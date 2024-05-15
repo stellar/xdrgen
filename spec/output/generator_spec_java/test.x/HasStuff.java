@@ -11,14 +11,15 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.util.Objects;
 
-// === xdr source ============================================================
-
-//  struct HasStuff
-//  {
-//    LotsOfMyStructs data;
-//  };
-
-//  ===========================================================================
+/**
+ * HasStuff's original definition in the XDR file is:
+ * <pre>
+ * struct HasStuff
+ * {
+ *   LotsOfMyStructs data;
+ * };
+ * </pre>
+ */
 public class HasStuff implements XdrElement {
   public HasStuff () {}
   private LotsOfMyStructs data;

@@ -12,18 +12,19 @@ import java.io.ByteArrayOutputStream;
 import java.util.Objects;
 import java.util.Arrays;
 
-// === xdr source ============================================================
-
-//  union IntUnion switch (int type)
-//  {
-//      case 0:
-//          Error error;
-//      case 1:
-//          Multi things<>;
-//  
-//  };
-
-//  ===========================================================================
+/**
+ * IntUnion's original definition in the XDR file is:
+ * <pre>
+ * union IntUnion switch (int type)
+ * {
+ *     case 0:
+ *         Error error;
+ *     case 1:
+ *         Multi things&lt;&gt;;
+ * 
+ * };
+ * </pre>
+ */
 public class IntUnion implements XdrElement {
   public IntUnion () {}
   Integer type;

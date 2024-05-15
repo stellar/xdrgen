@@ -11,11 +11,12 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.util.Objects;
 
-// === xdr source ============================================================
-
-//  typedef string str2<>;
-
-//  ===========================================================================
+/**
+ * Str2's original definition in the XDR file is:
+ * <pre>
+ * typedef string str2&lt;&gt;;
+ * </pre>
+ */
 public class Str2 implements XdrElement {
   private XdrString str2;
 

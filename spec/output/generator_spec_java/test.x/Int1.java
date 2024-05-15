@@ -11,11 +11,12 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.util.Objects;
 
-// === xdr source ============================================================
-
-//  typedef int             int1;
-
-//  ===========================================================================
+/**
+ * Int1's original definition in the XDR file is:
+ * <pre>
+ * typedef int             int1;
+ * </pre>
+ */
 public class Int1 implements XdrElement {
   private Integer int1;
 

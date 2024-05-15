@@ -11,11 +11,12 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.util.Objects;
 
-// === xdr source ============================================================
-
-//  typedef hyper           int2;
-
-//  ===========================================================================
+/**
+ * Int2's original definition in the XDR file is:
+ * <pre>
+ * typedef hyper           int2;
+ * </pre>
+ */
 public class Int2 implements XdrElement {
   private Long int2;
 

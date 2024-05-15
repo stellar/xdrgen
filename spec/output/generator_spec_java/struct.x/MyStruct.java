@@ -12,18 +12,19 @@ import java.io.ByteArrayOutputStream;
 import java.util.Objects;
 import java.util.Arrays;
 
-// === xdr source ============================================================
-
-//  struct MyStruct
-//  {
-//      int    someInt;
-//      int64  aBigInt;
-//      opaque someOpaque[10];
-//      string someString<>;
-//      string maxString<100>;
-//  };
-
-//  ===========================================================================
+/**
+ * MyStruct's original definition in the XDR file is:
+ * <pre>
+ * struct MyStruct
+ * {
+ *     int    someInt;
+ *     int64  aBigInt;
+ *     opaque someOpaque[10];
+ *     string someString&lt;&gt;;
+ *     string maxString&lt;100&gt;;
+ * };
+ * </pre>
+ */
 public class MyStruct implements XdrElement {
   public MyStruct () {}
   private Integer someInt;

@@ -11,11 +11,12 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.util.Arrays;
 
-// === xdr source ============================================================
-
-//  typedef Hash Hashes2<12>;
-
-//  ===========================================================================
+/**
+ * Hashes2's original definition in the XDR file is:
+ * <pre>
+ * typedef Hash Hashes2&lt;12&gt;;
+ * </pre>
+ */
 public class Hashes2 implements XdrElement {
   private Hash[] Hashes2;
 

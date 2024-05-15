@@ -11,11 +11,12 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.util.Objects;
 
-// === xdr source ============================================================
-
-//  typedef hyper int64;
-
-//  ===========================================================================
+/**
+ * Int64's original definition in the XDR file is:
+ * <pre>
+ * typedef hyper int64;
+ * </pre>
+ */
 public class Int64 implements XdrElement {
   private Long int64;
 

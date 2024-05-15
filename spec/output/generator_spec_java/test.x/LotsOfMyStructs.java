@@ -11,14 +11,15 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.util.Arrays;
 
-// === xdr source ============================================================
-
-//  struct LotsOfMyStructs
-//  {
-//      MyStruct members<>;
-//  };
-
-//  ===========================================================================
+/**
+ * LotsOfMyStructs's original definition in the XDR file is:
+ * <pre>
+ * struct LotsOfMyStructs
+ * {
+ *     MyStruct members&lt;&gt;;
+ * };
+ * </pre>
+ */
 public class LotsOfMyStructs implements XdrElement {
   public LotsOfMyStructs () {}
   private MyStruct[] members;

@@ -11,11 +11,12 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.util.Arrays;
 
-// === xdr source ============================================================
-
-//  typedef opaque uint514<>;
-
-//  ===========================================================================
+/**
+ * Uint514's original definition in the XDR file is:
+ * <pre>
+ * typedef opaque uint514&lt;&gt;;
+ * </pre>
+ */
 public class Uint514 implements XdrElement {
   private byte[] uint514;
 
