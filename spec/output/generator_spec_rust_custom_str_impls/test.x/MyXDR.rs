@@ -4476,62 +4476,6 @@ self.nested_union.write_xdr(w)?;
             }
         }
 
-#[doc(hidden)]
-#[macro_export]
-macro_rules! _call_macro_with_each_type_c6e2e3cb430678fd6861b5bc15e0e7c0659ed72f3cc50f4b316db382c9b5e7cc {
-    // The x-macro takes a single ident, the name of a macro to call ...
-    ($macro_to_call_back:ident, $($context:tt),*) => {{
-        // ... and calls it back, once for each XDR type.
-                        $macro_to_call_back!(Uint512, $($context),*);
-
-        $macro_to_call_back!(Uint513, $($context),*);
-
-        $macro_to_call_back!(Uint514, $($context),*);
-
-        $macro_to_call_back!(Str, $($context),*);
-
-        $macro_to_call_back!(Str2, $($context),*);
-
-        $macro_to_call_back!(Hash, $($context),*);
-
-        $macro_to_call_back!(Hashes1, $($context),*);
-
-        $macro_to_call_back!(Hashes2, $($context),*);
-
-        $macro_to_call_back!(Hashes3, $($context),*);
-
-        $macro_to_call_back!(OptHash1, $($context),*);
-
-        $macro_to_call_back!(OptHash2, $($context),*);
-
-        $macro_to_call_back!(Int1, $($context),*);
-
-        $macro_to_call_back!(Int2, $($context),*);
-
-        $macro_to_call_back!(Int3, $($context),*);
-
-        $macro_to_call_back!(Int4, $($context),*);
-
-        $macro_to_call_back!(MyStruct, $($context),*);
-
-        $macro_to_call_back!(LotsOfMyStructs, $($context),*);
-
-        $macro_to_call_back!(HasStuff, $($context),*);
-
-        $macro_to_call_back!(Color, $($context),*);
-
-        $macro_to_call_back!(Nester, $($context),*);
-
-        $macro_to_call_back!(NesterNestedEnum, $($context),*);
-
-        $macro_to_call_back!(NesterNestedStruct, $($context),*);
-
-        $macro_to_call_back!(NesterNestedUnion, $($context),*);
-
-
-    }};
-}
-pub use _call_macro_with_each_type_c6e2e3cb430678fd6861b5bc15e0e7c0659ed72f3cc50f4b316db382c9b5e7cc as call_macro_with_each_type;
         #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
         #[cfg_attr(
           all(feature = "serde", feature = "alloc"),

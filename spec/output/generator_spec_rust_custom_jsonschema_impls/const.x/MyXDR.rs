@@ -2802,20 +2802,6 @@ pub type TestArray = [i32; Foo];
 ///
 pub type TestArray2 = VecM::<i32, 1>;
 
-#[doc(hidden)]
-#[macro_export]
-macro_rules! _call_macro_with_each_type_3987b1b0da55480e72d9b9d05876aab566f3bd4b52c950bf1ace1cbcea0648dd {
-    // The x-macro takes a single ident, the name of a macro to call ...
-    ($macro_to_call_back:ident, $($context:tt),*) => {{
-        // ... and calls it back, once for each XDR type.
-                        $macro_to_call_back!(TestArray, $($context),*);
-
-        $macro_to_call_back!(TestArray2, $($context),*);
-
-
-    }};
-}
-pub use _call_macro_with_each_type_3987b1b0da55480e72d9b9d05876aab566f3bd4b52c950bf1ace1cbcea0648dd as call_macro_with_each_type;
         #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
         #[cfg_attr(
           all(feature = "serde", feature = "alloc"),

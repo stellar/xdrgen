@@ -2832,20 +2832,6 @@ self.third_option.write_xdr(w)?;
             }
         }
 
-#[doc(hidden)]
-#[macro_export]
-macro_rules! _call_macro_with_each_type_265be17b7cc3a2b3e82a1c941ba7edc1996a561d0c6c0116b00087c35fa94a90 {
-    // The x-macro takes a single ident, the name of a macro to call ...
-    ($macro_to_call_back:ident, $($context:tt),*) => {{
-        // ... and calls it back, once for each XDR type.
-                        $macro_to_call_back!(Arr, $($context),*);
-
-        $macro_to_call_back!(HasOptions, $($context),*);
-
-
-    }};
-}
-pub use _call_macro_with_each_type_265be17b7cc3a2b3e82a1c941ba7edc1996a561d0c6c0116b00087c35fa94a90 as call_macro_with_each_type;
         #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
         #[cfg_attr(
           all(feature = "serde", feature = "alloc"),
