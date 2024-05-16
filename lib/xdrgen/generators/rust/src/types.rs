@@ -888,6 +888,32 @@ impl<T, const MAX: u32> Default for VecM<T, MAX> {
     }
 }
 
+#[cfg(feature = "schemars")]
+impl<T: schemars::JsonSchema, const MAX: u32> schemars::JsonSchema for VecM<T, MAX> {
+    fn schema_name() -> String {
+        format!("VecM<{}, {}>", T::schema_name(), MAX)
+    }
+
+    fn is_referenceable() -> bool {
+        false
+    }
+
+    fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
+        let schema = Vec::<T>::json_schema(gen);
+        if let schemars::schema::Schema::Object(mut schema) = schema {
+            if let Some(array) = schema.array.clone() {
+                schema.array = Some(Box::new(schemars::schema::ArrayValidation {
+                    max_items: Some(MAX),
+                    ..*array
+                }));
+            }
+            schema.into()
+        } else {
+            schema
+        }
+    }
+}
+
 impl<T, const MAX: u32> VecM<T, MAX> {
     pub const MAX_LEN: usize = { MAX as usize };
 
@@ -1323,6 +1349,40 @@ impl<const MAX: u32> Deref for BytesM<MAX> {
     }
 }
 
+#[cfg(feature = "schemars")]
+impl<const MAX: u32> schemars::JsonSchema for BytesM<MAX> {
+    fn schema_name() -> String {
+        format!("BytesM<{MAX}>")
+    }
+
+    fn is_referenceable() -> bool {
+        false
+    }
+
+    fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
+        let schema = String::json_schema(gen);
+        if let schemars::schema::Schema::Object(mut schema) = schema {
+            schema.extensions.insert(
+                "contentEncoding".to_owned(),
+                serde_json::Value::String("hex".to_string()),
+            );
+            schema.extensions.insert(
+                "contentMediaType".to_owned(),
+                serde_json::Value::String("application/binary".to_string()),
+            );
+            let string = *schema.string.unwrap_or_default().clone();
+            schema.string = Some(Box::new(schemars::schema::StringValidation {
+                max_length: MAX.checked_mul(2).map(Some).unwrap_or_default(),
+                min_length: None,
+                ..string
+            }));
+            schema.into()
+        } else {
+            schema
+        }
+    }
+}
+
 impl<const MAX: u32> Default for BytesM<MAX> {
     fn default() -> Self {
         Self(Vec::default())
@@ -1711,6 +1771,27 @@ impl<const MAX: u32> Default for StringM<MAX> {
     }
 }
 
+#[cfg(feature = "schemars")]
+impl<const MAX: u32> schemars::JsonSchema for StringM<MAX> {
+    fn schema_name() -> String {
+        format!("StringM<{MAX}>")
+    }
+
+    fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
+        let schema = String::json_schema(gen);
+        if let schemars::schema::Schema::Object(mut schema) = schema {
+            let string = *schema.string.unwrap_or_default().clone();
+            schema.string = Some(Box::new(schemars::schema::StringValidation {
+                max_length: Some(MAX),
+                ..string
+            }));
+            schema.into()
+        } else {
+            schema
+        }
+    }
+}
+
 impl<const MAX: u32> StringM<MAX> {
     pub const MAX_LEN: usize = { MAX as usize };
 
@@ -2026,6 +2107,17 @@ impl<const MAX: u32> WriteXdr for StringM<MAX> {
 pub struct Frame<T>(pub T)
 where
     T: ReadXdr;
+
+#[cfg(feature = "schemars")]
+impl<T: schemars::JsonSchema + ReadXdr> schemars::JsonSchema for Frame<T> {
+    fn schema_name() -> String {
+        format!("Frame<{}>", T::schema_name())
+    }
+
+    fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
+        T::json_schema(gen)
+    }
+}
 
 impl<T> ReadXdr for Frame<T>
 where

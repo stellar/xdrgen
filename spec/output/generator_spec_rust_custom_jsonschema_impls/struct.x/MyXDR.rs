@@ -1,11 +1,11 @@
 // Module  is generated from:
-//  spec/fixtures/generator/optional.x
+//  spec/fixtures/generator/struct.x
 
 #![allow(clippy::missing_errors_doc, clippy::unreadable_literal)]
 
 /// `XDR_FILES_SHA256` is a list of pairs of source files and their SHA256 hashes.
 pub const XDR_FILES_SHA256: [(&str, &str); 1] = [
-  ("spec/fixtures/generator/optional.x", "3241e832fcf00bca4315ecb6c259621dafb0e302a63a993f5504b0b5cebb6bd7")
+  ("spec/fixtures/generator/struct.x", "c6911a83390e3b499c078fd0c579132eacce88a4a0538d3b8b5e57747a58db4a")
 ];
 
 use core::{array::TryFromSliceError, fmt, fmt::Debug, marker::Sized, ops::Deref, slice};
@@ -2778,55 +2778,62 @@ mod test {
     }
 }
 
-/// Arr is an XDR Typedef defines as:
+/// Int64 is an XDR Typedef defines as:
 ///
 /// ```text
-/// typedef int Arr[2];
+/// typedef hyper int64;
 /// ```
 ///
-pub type Arr = [i32; 2];
+pub type Int64 = i64;
 
-/// HasOptions is an XDR Struct defines as:
+/// MyStruct is an XDR Struct defines as:
 ///
 /// ```text
-/// struct HasOptions
+/// struct MyStruct
 /// {
-///   int* firstOption;
-///   int *secondOption;
-///   Arr *thirdOption;
+///     int    someInt;
+///     int64  aBigInt;
+///     opaque someOpaque[10];
+///     string someString<>;
+///     string maxString<100>;
 /// };
 /// ```
 ///
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
-#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
-pub struct HasOptions {
-  pub first_option: Option<i32>,
-  pub second_option: Option<i32>,
-  pub third_option: Option<i32>,
+pub struct MyStruct {
+  pub some_int: i32,
+  pub a_big_int: i64,
+  pub some_opaque: [u8; 10],
+  pub some_string: StringM,
+  pub max_string: StringM::<100>,
 }
 
-        impl ReadXdr for HasOptions {
+        impl ReadXdr for MyStruct {
             #[cfg(feature = "std")]
             fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self> {
                 r.with_limited_depth(|r| {
                     Ok(Self{
-                      first_option: Option::<i32>::read_xdr(r)?,
-second_option: Option::<i32>::read_xdr(r)?,
-third_option: Option::<i32>::read_xdr(r)?,
+                      some_int: i32::read_xdr(r)?,
+a_big_int: i64::read_xdr(r)?,
+some_opaque: <[u8; 10]>::read_xdr(r)?,
+some_string: StringM::read_xdr(r)?,
+max_string: StringM::<100>::read_xdr(r)?,
                     })
                 })
             }
         }
 
-        impl WriteXdr for HasOptions {
+        impl WriteXdr for MyStruct {
             #[cfg(feature = "std")]
             fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
                 w.with_limited_depth(|w| {
-                    self.first_option.write_xdr(w)?;
-self.second_option.write_xdr(w)?;
-self.third_option.write_xdr(w)?;
+                    self.some_int.write_xdr(w)?;
+self.a_big_int.write_xdr(w)?;
+self.some_opaque.write_xdr(w)?;
+self.some_string.write_xdr(w)?;
+self.max_string.write_xdr(w)?;
                     Ok(())
                 })
             }
@@ -2840,22 +2847,22 @@ self.third_option.write_xdr(w)?;
         )]
         #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
         pub enum TypeVariant {
-            Arr,
-HasOptions,
+            Int64,
+MyStruct,
         }
 
         impl TypeVariant {
-            pub const VARIANTS: [TypeVariant; 2] = [ TypeVariant::Arr,
-TypeVariant::HasOptions, ];
-            pub const VARIANTS_STR: [&'static str; 2] = [ "Arr",
-"HasOptions", ];
+            pub const VARIANTS: [TypeVariant; 2] = [ TypeVariant::Int64,
+TypeVariant::MyStruct, ];
+            pub const VARIANTS_STR: [&'static str; 2] = [ "Int64",
+"MyStruct", ];
 
             #[must_use]
             #[allow(clippy::too_many_lines)]
             pub const fn name(&self) -> &'static str {
                 match self {
-                    Self::Arr => "Arr",
-Self::HasOptions => "HasOptions",
+                    Self::Int64 => "Int64",
+Self::MyStruct => "MyStruct",
                 }
             }
 
@@ -2870,8 +2877,8 @@ Self::HasOptions => "HasOptions",
             #[allow(clippy::too_many_lines)]
             pub fn json_schema(&self, gen: schemars::gen::SchemaGenerator) -> schemars::schema::RootSchema {
                 match self {
-                    Self::Arr => gen.into_root_schema_for::<Arr>(),
-Self::HasOptions => gen.into_root_schema_for::<HasOptions>(),
+                    Self::Int64 => gen.into_root_schema_for::<Int64>(),
+Self::MyStruct => gen.into_root_schema_for::<MyStruct>(),
                 }
             }
         }
@@ -2894,8 +2901,8 @@ Self::HasOptions => gen.into_root_schema_for::<HasOptions>(),
             #[allow(clippy::too_many_lines)]
             fn from_str(s: &str) -> Result<Self> {
                 match s {
-                    "Arr" => Ok(Self::Arr),
-"HasOptions" => Ok(Self::HasOptions),
+                    "Int64" => Ok(Self::Int64),
+"MyStruct" => Ok(Self::MyStruct),
                     _ => Err(Error::Invalid),
                 }
             }
@@ -2910,22 +2917,22 @@ Self::HasOptions => gen.into_root_schema_for::<HasOptions>(),
         )]
         #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
         pub enum Type {
-            Arr(Box<Arr>),
-HasOptions(Box<HasOptions>),
+            Int64(Box<Int64>),
+MyStruct(Box<MyStruct>),
         }
 
         impl Type {
-            pub const VARIANTS: [TypeVariant; 2] = [ TypeVariant::Arr,
-TypeVariant::HasOptions, ];
-            pub const VARIANTS_STR: [&'static str; 2] = [ "Arr",
-"HasOptions", ];
+            pub const VARIANTS: [TypeVariant; 2] = [ TypeVariant::Int64,
+TypeVariant::MyStruct, ];
+            pub const VARIANTS_STR: [&'static str; 2] = [ "Int64",
+"MyStruct", ];
 
             #[cfg(feature = "std")]
             #[allow(clippy::too_many_lines)]
             pub fn read_xdr<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Result<Self> {
                 match v {
-                    TypeVariant::Arr => r.with_limited_depth(|r| Ok(Self::Arr(Box::new(Arr::read_xdr(r)?)))),
-TypeVariant::HasOptions => r.with_limited_depth(|r| Ok(Self::HasOptions(Box::new(HasOptions::read_xdr(r)?)))),
+                    TypeVariant::Int64 => r.with_limited_depth(|r| Ok(Self::Int64(Box::new(Int64::read_xdr(r)?)))),
+TypeVariant::MyStruct => r.with_limited_depth(|r| Ok(Self::MyStruct(Box::new(MyStruct::read_xdr(r)?)))),
                 }
             }
 
@@ -2959,8 +2966,8 @@ TypeVariant::HasOptions => r.with_limited_depth(|r| Ok(Self::HasOptions(Box::new
             #[allow(clippy::too_many_lines)]
             pub fn read_xdr_iter<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Box<dyn Iterator<Item=Result<Self>> + '_> {
                 match v {
-                    TypeVariant::Arr => Box::new(ReadXdrIter::<_, Arr>::new(&mut r.inner, r.limits.clone()).map(|r| r.map(|t| Self::Arr(Box::new(t))))),
-TypeVariant::HasOptions => Box::new(ReadXdrIter::<_, HasOptions>::new(&mut r.inner, r.limits.clone()).map(|r| r.map(|t| Self::HasOptions(Box::new(t))))),
+                    TypeVariant::Int64 => Box::new(ReadXdrIter::<_, Int64>::new(&mut r.inner, r.limits.clone()).map(|r| r.map(|t| Self::Int64(Box::new(t))))),
+TypeVariant::MyStruct => Box::new(ReadXdrIter::<_, MyStruct>::new(&mut r.inner, r.limits.clone()).map(|r| r.map(|t| Self::MyStruct(Box::new(t))))),
                 }
             }
 
@@ -2968,8 +2975,8 @@ TypeVariant::HasOptions => Box::new(ReadXdrIter::<_, HasOptions>::new(&mut r.inn
             #[allow(clippy::too_many_lines)]
             pub fn read_xdr_framed_iter<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Box<dyn Iterator<Item=Result<Self>> + '_> {
                 match v {
-                    TypeVariant::Arr => Box::new(ReadXdrIter::<_, Frame<Arr>>::new(&mut r.inner, r.limits.clone()).map(|r| r.map(|t| Self::Arr(Box::new(t.0))))),
-TypeVariant::HasOptions => Box::new(ReadXdrIter::<_, Frame<HasOptions>>::new(&mut r.inner, r.limits.clone()).map(|r| r.map(|t| Self::HasOptions(Box::new(t.0))))),
+                    TypeVariant::Int64 => Box::new(ReadXdrIter::<_, Frame<Int64>>::new(&mut r.inner, r.limits.clone()).map(|r| r.map(|t| Self::Int64(Box::new(t.0))))),
+TypeVariant::MyStruct => Box::new(ReadXdrIter::<_, Frame<MyStruct>>::new(&mut r.inner, r.limits.clone()).map(|r| r.map(|t| Self::MyStruct(Box::new(t.0))))),
                 }
             }
 
@@ -2978,8 +2985,8 @@ TypeVariant::HasOptions => Box::new(ReadXdrIter::<_, Frame<HasOptions>>::new(&mu
             pub fn read_xdr_base64_iter<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Box<dyn Iterator<Item=Result<Self>> + '_> {
                 let dec = base64::read::DecoderReader::new(&mut r.inner, base64::STANDARD);
                 match v {
-                    TypeVariant::Arr => Box::new(ReadXdrIter::<_, Arr>::new(dec, r.limits.clone()).map(|r| r.map(|t| Self::Arr(Box::new(t))))),
-TypeVariant::HasOptions => Box::new(ReadXdrIter::<_, HasOptions>::new(dec, r.limits.clone()).map(|r| r.map(|t| Self::HasOptions(Box::new(t))))),
+                    TypeVariant::Int64 => Box::new(ReadXdrIter::<_, Int64>::new(dec, r.limits.clone()).map(|r| r.map(|t| Self::Int64(Box::new(t))))),
+TypeVariant::MyStruct => Box::new(ReadXdrIter::<_, MyStruct>::new(dec, r.limits.clone()).map(|r| r.map(|t| Self::MyStruct(Box::new(t))))),
                 }
             }
 
@@ -3002,8 +3009,8 @@ TypeVariant::HasOptions => Box::new(ReadXdrIter::<_, HasOptions>::new(dec, r.lim
             #[allow(clippy::too_many_lines)]
             pub fn read_json(v: TypeVariant, r: impl Read) -> Result<Self> {
                 match v {
-                    TypeVariant::Arr => Ok(Self::Arr(Box::new(serde_json::from_reader(r)?))),
-TypeVariant::HasOptions => Ok(Self::HasOptions(Box::new(serde_json::from_reader(r)?))),
+                    TypeVariant::Int64 => Ok(Self::Int64(Box::new(serde_json::from_reader(r)?))),
+TypeVariant::MyStruct => Ok(Self::MyStruct(Box::new(serde_json::from_reader(r)?))),
                 }
             }
 
@@ -3013,8 +3020,8 @@ TypeVariant::HasOptions => Ok(Self::HasOptions(Box::new(serde_json::from_reader(
             pub fn value(&self) -> &dyn core::any::Any {
                 #[allow(clippy::match_same_arms)]
                 match self {
-                    Self::Arr(ref v) => v.as_ref(),
-Self::HasOptions(ref v) => v.as_ref(),
+                    Self::Int64(ref v) => v.as_ref(),
+Self::MyStruct(ref v) => v.as_ref(),
                 }
             }
 
@@ -3022,8 +3029,8 @@ Self::HasOptions(ref v) => v.as_ref(),
             #[allow(clippy::too_many_lines)]
             pub const fn name(&self) -> &'static str {
                 match self {
-                    Self::Arr(_) => "Arr",
-Self::HasOptions(_) => "HasOptions",
+                    Self::Int64(_) => "Int64",
+Self::MyStruct(_) => "MyStruct",
                 }
             }
 
@@ -3037,8 +3044,8 @@ Self::HasOptions(_) => "HasOptions",
             #[allow(clippy::too_many_lines)]
             pub const fn variant(&self) -> TypeVariant {
                 match self {
-                    Self::Arr(_) => TypeVariant::Arr,
-Self::HasOptions(_) => TypeVariant::HasOptions,
+                    Self::Int64(_) => TypeVariant::Int64,
+Self::MyStruct(_) => TypeVariant::MyStruct,
                 }
             }
         }
@@ -3061,8 +3068,8 @@ Self::HasOptions(_) => TypeVariant::HasOptions,
             #[allow(clippy::too_many_lines)]
             fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
                 match self {
-                    Self::Arr(v) => v.write_xdr(w),
-Self::HasOptions(v) => v.write_xdr(w),
+                    Self::Int64(v) => v.write_xdr(w),
+Self::MyStruct(v) => v.write_xdr(w),
                 }
             }
         }

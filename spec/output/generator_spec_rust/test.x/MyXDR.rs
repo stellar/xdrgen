@@ -898,6 +898,32 @@ impl<T, const MAX: u32> Default for VecM<T, MAX> {
     }
 }
 
+#[cfg(feature = "schemars")]
+impl<T: schemars::JsonSchema, const MAX: u32> schemars::JsonSchema for VecM<T, MAX> {
+    fn schema_name() -> String {
+        format!("VecM<{}, {}>", T::schema_name(), MAX)
+    }
+
+    fn is_referenceable() -> bool {
+        false
+    }
+
+    fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
+        let schema = Vec::<T>::json_schema(gen);
+        if let schemars::schema::Schema::Object(mut schema) = schema {
+            if let Some(array) = schema.array.clone() {
+                schema.array = Some(Box::new(schemars::schema::ArrayValidation {
+                    max_items: Some(MAX),
+                    ..*array
+                }));
+            }
+            schema.into()
+        } else {
+            schema
+        }
+    }
+}
+
 impl<T, const MAX: u32> VecM<T, MAX> {
     pub const MAX_LEN: usize = { MAX as usize };
 
@@ -1333,6 +1359,40 @@ impl<const MAX: u32> Deref for BytesM<MAX> {
     }
 }
 
+#[cfg(feature = "schemars")]
+impl<const MAX: u32> schemars::JsonSchema for BytesM<MAX> {
+    fn schema_name() -> String {
+        format!("BytesM<{MAX}>")
+    }
+
+    fn is_referenceable() -> bool {
+        false
+    }
+
+    fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
+        let schema = String::json_schema(gen);
+        if let schemars::schema::Schema::Object(mut schema) = schema {
+            schema.extensions.insert(
+                "contentEncoding".to_owned(),
+                serde_json::Value::String("hex".to_string()),
+            );
+            schema.extensions.insert(
+                "contentMediaType".to_owned(),
+                serde_json::Value::String("application/binary".to_string()),
+            );
+            let string = *schema.string.unwrap_or_default().clone();
+            schema.string = Some(Box::new(schemars::schema::StringValidation {
+                max_length: MAX.checked_mul(2).map(Some).unwrap_or_default(),
+                min_length: None,
+                ..string
+            }));
+            schema.into()
+        } else {
+            schema
+        }
+    }
+}
+
 impl<const MAX: u32> Default for BytesM<MAX> {
     fn default() -> Self {
         Self(Vec::default())
@@ -1721,6 +1781,27 @@ impl<const MAX: u32> Default for StringM<MAX> {
     }
 }
 
+#[cfg(feature = "schemars")]
+impl<const MAX: u32> schemars::JsonSchema for StringM<MAX> {
+    fn schema_name() -> String {
+        format!("StringM<{MAX}>")
+    }
+
+    fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
+        let schema = String::json_schema(gen);
+        if let schemars::schema::Schema::Object(mut schema) = schema {
+            let string = *schema.string.unwrap_or_default().clone();
+            schema.string = Some(Box::new(schemars::schema::StringValidation {
+                max_length: Some(MAX),
+                ..string
+            }));
+            schema.into()
+        } else {
+            schema
+        }
+    }
+}
+
 impl<const MAX: u32> StringM<MAX> {
     pub const MAX_LEN: usize = { MAX as usize };
 
@@ -2036,6 +2117,17 @@ impl<const MAX: u32> WriteXdr for StringM<MAX> {
 pub struct Frame<T>(pub T)
 where
     T: ReadXdr;
+
+#[cfg(feature = "schemars")]
+impl<T: schemars::JsonSchema + ReadXdr> schemars::JsonSchema for Frame<T> {
+    fn schema_name() -> String {
+        format!("Frame<{}>", T::schema_name())
+    }
+
+    fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
+        T::json_schema(gen)
+    }
+}
 
 impl<T> ReadXdr for Frame<T>
 where
@@ -2725,6 +2817,39 @@ impl core::str::FromStr for Uint512 {
       hex::decode(s).map_err(|_| Error::InvalidHex)?.try_into()
   }
 }
+#[cfg(feature = "schemars")]
+impl schemars::JsonSchema for Uint512 {
+    fn schema_name() -> String {
+        "Uint512".to_string()
+    }
+
+    fn is_referenceable() -> bool {
+        false
+    }
+
+    fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
+        let schema = String::json_schema(gen);
+        if let schemars::schema::Schema::Object(mut schema) = schema {
+            schema.extensions.insert(
+                "contentEncoding".to_owned(),
+                serde_json::Value::String("hex".to_string()),
+            );
+            schema.extensions.insert(
+                "contentMediaType".to_owned(),
+                serde_json::Value::String("application/binary".to_string()),
+            );
+            let string = *schema.string.unwrap_or_default().clone();
+            schema.string = Some(Box::new(schemars::schema::StringValidation {
+                max_length: 64_u32.checked_mul(2).map(Some).unwrap_or_default(),
+                min_length: 64_u32.checked_mul(2).map(Some).unwrap_or_default(),
+                ..string
+            }));
+            schema.into()
+        } else {
+            schema
+        }
+    }
+}
 impl From<Uint512> for [u8; 64] {
     #[must_use]
     fn from(x: Uint512) -> Self {
@@ -2811,6 +2936,7 @@ impl AsRef<[u8]> for Uint512 {
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[derive(Default)]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
+#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 #[derive(Debug)]
 pub struct Uint513(pub BytesM::<64>);
 
@@ -2912,6 +3038,7 @@ impl AsRef<[u8]> for Uint513 {
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[derive(Default)]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
+#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 #[derive(Debug)]
 pub struct Uint514(pub BytesM);
 
@@ -3013,6 +3140,7 @@ impl AsRef<[u8]> for Uint514 {
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[derive(Default)]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
+#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 #[derive(Debug)]
 pub struct Str(pub StringM::<64>);
 
@@ -3114,6 +3242,7 @@ impl AsRef<[u8]> for Str {
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[derive(Default)]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
+#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 #[derive(Debug)]
 pub struct Str2(pub StringM);
 
@@ -3244,6 +3373,39 @@ impl core::str::FromStr for Hash {
       hex::decode(s).map_err(|_| Error::InvalidHex)?.try_into()
   }
 }
+#[cfg(feature = "schemars")]
+impl schemars::JsonSchema for Hash {
+    fn schema_name() -> String {
+        "Hash".to_string()
+    }
+
+    fn is_referenceable() -> bool {
+        false
+    }
+
+    fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
+        let schema = String::json_schema(gen);
+        if let schemars::schema::Schema::Object(mut schema) = schema {
+            schema.extensions.insert(
+                "contentEncoding".to_owned(),
+                serde_json::Value::String("hex".to_string()),
+            );
+            schema.extensions.insert(
+                "contentMediaType".to_owned(),
+                serde_json::Value::String("application/binary".to_string()),
+            );
+            let string = *schema.string.unwrap_or_default().clone();
+            schema.string = Some(Box::new(schemars::schema::StringValidation {
+                max_length: 32_u32.checked_mul(2).map(Some).unwrap_or_default(),
+                min_length: 32_u32.checked_mul(2).map(Some).unwrap_or_default(),
+                ..string
+            }));
+            schema.into()
+        } else {
+            schema
+        }
+    }
+}
 impl From<Hash> for [u8; 32] {
     #[must_use]
     fn from(x: Hash) -> Self {
@@ -3329,6 +3491,7 @@ impl AsRef<[u8]> for Hash {
 #[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
+#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 #[derive(Debug)]
 pub struct Hashes1(pub [Hash; 12]);
 
@@ -3418,6 +3581,7 @@ impl AsRef<[Hash]> for Hashes1 {
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[derive(Default)]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
+#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 #[derive(Debug)]
 pub struct Hashes2(pub VecM::<Hash, 12>);
 
@@ -3519,6 +3683,7 @@ impl AsRef<[Hash]> for Hashes2 {
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[derive(Default)]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
+#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 #[derive(Debug)]
 pub struct Hashes3(pub VecM::<Hash>);
 
@@ -3619,6 +3784,7 @@ impl AsRef<[Hash]> for Hashes3 {
 #[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
+#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 #[derive(Debug)]
 pub struct OptHash1(pub Option<Hash>);
 
@@ -3670,6 +3836,7 @@ impl WriteXdr for OptHash1 {
 #[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
+#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 #[derive(Debug)]
 pub struct OptHash2(pub Option<Hash>);
 
@@ -3762,6 +3929,7 @@ pub type Int4 = u64;
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
+#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 pub struct MyStruct {
   pub field1: Uint512,
   pub field2: OptHash1,
@@ -3817,6 +3985,7 @@ self.field7.write_xdr(w)?;
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
+#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 pub struct LotsOfMyStructs {
   pub members: VecM::<MyStruct>,
 }
@@ -3854,6 +4023,7 @@ impl WriteXdr for LotsOfMyStructs {
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
+#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 pub struct HasStuff {
   pub data: LotsOfMyStructs,
 }
@@ -3893,6 +4063,7 @@ impl WriteXdr for HasStuff {
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
+#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 #[repr(i32)]
 pub enum Color {
   Red = 0,
@@ -4016,6 +4187,7 @@ pub const BAR: u64 = FOO;
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
+#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 #[repr(i32)]
 pub enum NesterNestedEnum {
   1 = 0,
@@ -4116,6 +4288,7 @@ Self::2 => "2",
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
+#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 pub struct NesterNestedStruct {
   pub blah: i32,
 }
@@ -4156,6 +4329,7 @@ impl WriteXdr for NesterNestedStruct {
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
+#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 #[allow(clippy::large_enum_variant)]
 pub enum NesterNestedUnion {
   Red,
@@ -4270,6 +4444,7 @@ impl WriteXdr for NesterNestedUnion {
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
+#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 pub struct Nester {
   pub nested_enum: NesterNestedEnum,
   pub nested_struct: NesterNestedStruct,
@@ -4307,6 +4482,7 @@ self.nested_union.write_xdr(w)?;
           derive(serde::Serialize, serde::Deserialize),
           serde(rename_all = "snake_case")
         )]
+        #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
         pub enum TypeVariant {
             Uint512,
 Uint513,
@@ -4416,6 +4592,37 @@ Self::NesterNestedUnion => "NesterNestedUnion",
             pub const fn variants() -> [TypeVariant; 23] {
                 Self::VARIANTS
             }
+
+            #[cfg(feature = "schemars")]
+            #[must_use]
+            #[allow(clippy::too_many_lines)]
+            pub fn json_schema(&self, gen: schemars::gen::SchemaGenerator) -> schemars::schema::RootSchema {
+                match self {
+                    Self::Uint512 => gen.into_root_schema_for::<Uint512>(),
+Self::Uint513 => gen.into_root_schema_for::<Uint513>(),
+Self::Uint514 => gen.into_root_schema_for::<Uint514>(),
+Self::Str => gen.into_root_schema_for::<Str>(),
+Self::Str2 => gen.into_root_schema_for::<Str2>(),
+Self::Hash => gen.into_root_schema_for::<Hash>(),
+Self::Hashes1 => gen.into_root_schema_for::<Hashes1>(),
+Self::Hashes2 => gen.into_root_schema_for::<Hashes2>(),
+Self::Hashes3 => gen.into_root_schema_for::<Hashes3>(),
+Self::OptHash1 => gen.into_root_schema_for::<OptHash1>(),
+Self::OptHash2 => gen.into_root_schema_for::<OptHash2>(),
+Self::Int1 => gen.into_root_schema_for::<Int1>(),
+Self::Int2 => gen.into_root_schema_for::<Int2>(),
+Self::Int3 => gen.into_root_schema_for::<Int3>(),
+Self::Int4 => gen.into_root_schema_for::<Int4>(),
+Self::MyStruct => gen.into_root_schema_for::<MyStruct>(),
+Self::LotsOfMyStructs => gen.into_root_schema_for::<LotsOfMyStructs>(),
+Self::HasStuff => gen.into_root_schema_for::<HasStuff>(),
+Self::Color => gen.into_root_schema_for::<Color>(),
+Self::Nester => gen.into_root_schema_for::<Nester>(),
+Self::NesterNestedEnum => gen.into_root_schema_for::<NesterNestedEnum>(),
+Self::NesterNestedStruct => gen.into_root_schema_for::<NesterNestedStruct>(),
+Self::NesterNestedUnion => gen.into_root_schema_for::<NesterNestedUnion>(),
+                }
+            }
         }
 
         impl Name for TypeVariant {
@@ -4471,6 +4678,7 @@ Self::NesterNestedUnion => "NesterNestedUnion",
           serde(rename_all = "snake_case"),
           serde(untagged),
         )]
+        #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
         pub enum Type {
             Uint512(Box<Uint512>),
 Uint513(Box<Uint513>),

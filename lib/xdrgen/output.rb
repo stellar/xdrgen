@@ -13,12 +13,26 @@ module Xdrgen
       @files      = {}
     end
 
+    def inputs_hash
+      Digest::SHA256.hexdigest(
+        [
+          Digest::SHA256.hexdigest(relative_source_paths.map { |p| Digest::SHA256.file(p).hexdigest }.join),
+          Digest::SHA256.hexdigest(relative_source_paths.map { |p| Digest::SHA256.hexdigest(p) }.join),
+          Digest::SHA256.hexdigest(@output_dir),
+        ].join
+      )
+    end
+
     def relative_source_paths
       @source_paths.map { |p| Pathname.new(p).expand_path.relative_path_from(Dir.pwd).to_s }.sort
     end
 
     def relative_source_path_sha256_hashes
       relative_source_paths.map { |p| [p, Digest::SHA256.file(p).hexdigest] }.to_h
+    end
+
+    def relative_source_path_sha256_hash
+      Digest::SHA256.hexdigest(relative_source_paths.map { |p| Digest::SHA256.file(p).hexdigest }.join)
     end
 
     def open(child_path)

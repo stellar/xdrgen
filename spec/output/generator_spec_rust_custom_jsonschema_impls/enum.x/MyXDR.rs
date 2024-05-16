@@ -1,11 +1,11 @@
 // Module  is generated from:
-//  spec/fixtures/generator/optional.x
+//  spec/fixtures/generator/enum.x
 
 #![allow(clippy::missing_errors_doc, clippy::unreadable_literal)]
 
 /// `XDR_FILES_SHA256` is a list of pairs of source files and their SHA256 hashes.
 pub const XDR_FILES_SHA256: [(&str, &str); 1] = [
-  ("spec/fixtures/generator/optional.x", "3241e832fcf00bca4315ecb6c259621dafb0e302a63a993f5504b0b5cebb6bd7")
+  ("spec/fixtures/generator/enum.x", "35cf5e97e2057039640ed260e8b38bb2733a3c3ca8529c93877bdec02a999d7f")
 ];
 
 use core::{array::TryFromSliceError, fmt, fmt::Debug, marker::Sized, ops::Deref, slice};
@@ -2778,56 +2778,401 @@ mod test {
     }
 }
 
-/// Arr is an XDR Typedef defines as:
+/// MessageType is an XDR Enum defines as:
 ///
 /// ```text
-/// typedef int Arr[2];
-/// ```
-///
-pub type Arr = [i32; 2];
-
-/// HasOptions is an XDR Struct defines as:
-///
-/// ```text
-/// struct HasOptions
+/// enum MessageType
 /// {
-///   int* firstOption;
-///   int *secondOption;
-///   Arr *thirdOption;
+///     ERROR_MSG,    
+///     HELLO,
+///     DONT_HAVE,
+/// 
+///     GET_PEERS,   // gets a list of peers this guy knows about        
+///     PEERS,
+/// 
+///     GET_TX_SET,  // gets a particular txset by hash        
+///     TX_SET,    
+/// 
+///     GET_VALIDATIONS, // gets validations for a given ledger hash        
+///     VALIDATIONS,    
+/// 
+///     TRANSACTION, //pass on a tx you have heard about        
+///     JSON_TRANSACTION,
+/// 
+///     // FBA        
+///     GET_FBA_QUORUMSET,        
+///     FBA_QUORUMSET,    
+///     FBA_MESSAGE
 /// };
 /// ```
 ///
-#[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+// enum
+#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
-pub struct HasOptions {
-  pub first_option: Option<i32>,
-  pub second_option: Option<i32>,
-  pub third_option: Option<i32>,
+#[repr(i32)]
+pub enum MessageType {
+  ErrorMsg = 0,
+  Hello = 1,
+  DontHave = 2,
+  GetPeers = 3,
+  Peers = 4,
+  GetTxSet = 5,
+  TxSet = 6,
+  GetValidations = 7,
+  Validations = 8,
+  Transaction = 9,
+  JsonTransaction = 10,
+  GetFbaQuorumset = 11,
+  FbaQuorumset = 12,
+  FbaMessage = 13,
 }
 
-        impl ReadXdr for HasOptions {
+        impl MessageType {
+            pub const VARIANTS: [MessageType; 14] = [ MessageType::ErrorMsg,
+MessageType::Hello,
+MessageType::DontHave,
+MessageType::GetPeers,
+MessageType::Peers,
+MessageType::GetTxSet,
+MessageType::TxSet,
+MessageType::GetValidations,
+MessageType::Validations,
+MessageType::Transaction,
+MessageType::JsonTransaction,
+MessageType::GetFbaQuorumset,
+MessageType::FbaQuorumset,
+MessageType::FbaMessage, ];
+            pub const VARIANTS_STR: [&'static str; 14] = [ "ErrorMsg",
+"Hello",
+"DontHave",
+"GetPeers",
+"Peers",
+"GetTxSet",
+"TxSet",
+"GetValidations",
+"Validations",
+"Transaction",
+"JsonTransaction",
+"GetFbaQuorumset",
+"FbaQuorumset",
+"FbaMessage", ];
+
+            #[must_use]
+            pub const fn name(&self) -> &'static str {
+                match self {
+                    Self::ErrorMsg => "ErrorMsg",
+Self::Hello => "Hello",
+Self::DontHave => "DontHave",
+Self::GetPeers => "GetPeers",
+Self::Peers => "Peers",
+Self::GetTxSet => "GetTxSet",
+Self::TxSet => "TxSet",
+Self::GetValidations => "GetValidations",
+Self::Validations => "Validations",
+Self::Transaction => "Transaction",
+Self::JsonTransaction => "JsonTransaction",
+Self::GetFbaQuorumset => "GetFbaQuorumset",
+Self::FbaQuorumset => "FbaQuorumset",
+Self::FbaMessage => "FbaMessage",
+                }
+            }
+
+            #[must_use]
+            pub const fn variants() -> [MessageType; 14] {
+                Self::VARIANTS
+            }
+        }
+
+        impl Name for MessageType {
+            #[must_use]
+            fn name(&self) -> &'static str {
+                Self::name(self)
+            }
+        }
+
+        impl Variants<MessageType> for MessageType {
+            fn variants() -> slice::Iter<'static, MessageType> {
+                Self::VARIANTS.iter()
+            }
+        }
+
+        impl Enum for MessageType {}
+
+        impl fmt::Display for MessageType {
+            fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+                f.write_str(self.name())
+            }
+        }
+
+        impl TryFrom<i32> for MessageType {
+            type Error = Error;
+
+            fn try_from(i: i32) -> Result<Self> {
+                let e = match i {
+                    0 => MessageType::ErrorMsg,
+1 => MessageType::Hello,
+2 => MessageType::DontHave,
+3 => MessageType::GetPeers,
+4 => MessageType::Peers,
+5 => MessageType::GetTxSet,
+6 => MessageType::TxSet,
+7 => MessageType::GetValidations,
+8 => MessageType::Validations,
+9 => MessageType::Transaction,
+10 => MessageType::JsonTransaction,
+11 => MessageType::GetFbaQuorumset,
+12 => MessageType::FbaQuorumset,
+13 => MessageType::FbaMessage,
+                    #[allow(unreachable_patterns)]
+                    _ => return Err(Error::Invalid),
+                };
+                Ok(e)
+            }
+        }
+
+        impl From<MessageType> for i32 {
+            #[must_use]
+            fn from(e: MessageType) -> Self {
+                e as Self
+            }
+        }
+
+        impl ReadXdr for MessageType {
             #[cfg(feature = "std")]
             fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self> {
                 r.with_limited_depth(|r| {
-                    Ok(Self{
-                      first_option: Option::<i32>::read_xdr(r)?,
-second_option: Option::<i32>::read_xdr(r)?,
-third_option: Option::<i32>::read_xdr(r)?,
-                    })
+                    let e = i32::read_xdr(r)?;
+                    let v: Self = e.try_into()?;
+                    Ok(v)
                 })
             }
         }
 
-        impl WriteXdr for HasOptions {
+        impl WriteXdr for MessageType {
             #[cfg(feature = "std")]
             fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
                 w.with_limited_depth(|w| {
-                    self.first_option.write_xdr(w)?;
-self.second_option.write_xdr(w)?;
-self.third_option.write_xdr(w)?;
-                    Ok(())
+                    let i: i32 = (*self).into();
+                    i.write_xdr(w)
+                })
+            }
+        }
+
+/// Color is an XDR Enum defines as:
+///
+/// ```text
+/// enum Color {
+///     RED=0,  
+///     GREEN=1,  
+///     BLUE=2  
+/// };
+/// ```
+///
+// enum
+#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
+#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
+#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
+#[repr(i32)]
+pub enum Color {
+  Red = 0,
+  Green = 1,
+  Blue = 2,
+}
+
+        impl Color {
+            pub const VARIANTS: [Color; 3] = [ Color::Red,
+Color::Green,
+Color::Blue, ];
+            pub const VARIANTS_STR: [&'static str; 3] = [ "Red",
+"Green",
+"Blue", ];
+
+            #[must_use]
+            pub const fn name(&self) -> &'static str {
+                match self {
+                    Self::Red => "Red",
+Self::Green => "Green",
+Self::Blue => "Blue",
+                }
+            }
+
+            #[must_use]
+            pub const fn variants() -> [Color; 3] {
+                Self::VARIANTS
+            }
+        }
+
+        impl Name for Color {
+            #[must_use]
+            fn name(&self) -> &'static str {
+                Self::name(self)
+            }
+        }
+
+        impl Variants<Color> for Color {
+            fn variants() -> slice::Iter<'static, Color> {
+                Self::VARIANTS.iter()
+            }
+        }
+
+        impl Enum for Color {}
+
+        impl fmt::Display for Color {
+            fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+                f.write_str(self.name())
+            }
+        }
+
+        impl TryFrom<i32> for Color {
+            type Error = Error;
+
+            fn try_from(i: i32) -> Result<Self> {
+                let e = match i {
+                    0 => Color::Red,
+1 => Color::Green,
+2 => Color::Blue,
+                    #[allow(unreachable_patterns)]
+                    _ => return Err(Error::Invalid),
+                };
+                Ok(e)
+            }
+        }
+
+        impl From<Color> for i32 {
+            #[must_use]
+            fn from(e: Color) -> Self {
+                e as Self
+            }
+        }
+
+        impl ReadXdr for Color {
+            #[cfg(feature = "std")]
+            fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self> {
+                r.with_limited_depth(|r| {
+                    let e = i32::read_xdr(r)?;
+                    let v: Self = e.try_into()?;
+                    Ok(v)
+                })
+            }
+        }
+
+        impl WriteXdr for Color {
+            #[cfg(feature = "std")]
+            fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
+                w.with_limited_depth(|w| {
+                    let i: i32 = (*self).into();
+                    i.write_xdr(w)
+                })
+            }
+        }
+
+/// Color2 is an XDR Enum defines as:
+///
+/// ```text
+/// enum Color2 {
+///     RED2=RED,  
+///     GREEN2=1,  
+///     BLUE2=2  
+/// };
+/// ```
+///
+// enum
+#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
+#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
+#[repr(i32)]
+pub enum Color2 {
+  Red2 = 0,
+  Green2 = 1,
+  Blue2 = 2,
+}
+
+        impl Color2 {
+            pub const VARIANTS: [Color2; 3] = [ Color2::Red2,
+Color2::Green2,
+Color2::Blue2, ];
+            pub const VARIANTS_STR: [&'static str; 3] = [ "Red2",
+"Green2",
+"Blue2", ];
+
+            #[must_use]
+            pub const fn name(&self) -> &'static str {
+                match self {
+                    Self::Red2 => "Red2",
+Self::Green2 => "Green2",
+Self::Blue2 => "Blue2",
+                }
+            }
+
+            #[must_use]
+            pub const fn variants() -> [Color2; 3] {
+                Self::VARIANTS
+            }
+        }
+
+        impl Name for Color2 {
+            #[must_use]
+            fn name(&self) -> &'static str {
+                Self::name(self)
+            }
+        }
+
+        impl Variants<Color2> for Color2 {
+            fn variants() -> slice::Iter<'static, Color2> {
+                Self::VARIANTS.iter()
+            }
+        }
+
+        impl Enum for Color2 {}
+
+        impl fmt::Display for Color2 {
+            fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+                f.write_str(self.name())
+            }
+        }
+
+        impl TryFrom<i32> for Color2 {
+            type Error = Error;
+
+            fn try_from(i: i32) -> Result<Self> {
+                let e = match i {
+                    0 => Color2::Red2,
+1 => Color2::Green2,
+2 => Color2::Blue2,
+                    #[allow(unreachable_patterns)]
+                    _ => return Err(Error::Invalid),
+                };
+                Ok(e)
+            }
+        }
+
+        impl From<Color2> for i32 {
+            #[must_use]
+            fn from(e: Color2) -> Self {
+                e as Self
+            }
+        }
+
+        impl ReadXdr for Color2 {
+            #[cfg(feature = "std")]
+            fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self> {
+                r.with_limited_depth(|r| {
+                    let e = i32::read_xdr(r)?;
+                    let v: Self = e.try_into()?;
+                    Ok(v)
+                })
+            }
+        }
+
+        impl WriteXdr for Color2 {
+            #[cfg(feature = "std")]
+            fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
+                w.with_limited_depth(|w| {
+                    let i: i32 = (*self).into();
+                    i.write_xdr(w)
                 })
             }
         }
@@ -2840,28 +3185,32 @@ self.third_option.write_xdr(w)?;
         )]
         #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
         pub enum TypeVariant {
-            Arr,
-HasOptions,
+            MessageType,
+Color,
+Color2,
         }
 
         impl TypeVariant {
-            pub const VARIANTS: [TypeVariant; 2] = [ TypeVariant::Arr,
-TypeVariant::HasOptions, ];
-            pub const VARIANTS_STR: [&'static str; 2] = [ "Arr",
-"HasOptions", ];
+            pub const VARIANTS: [TypeVariant; 3] = [ TypeVariant::MessageType,
+TypeVariant::Color,
+TypeVariant::Color2, ];
+            pub const VARIANTS_STR: [&'static str; 3] = [ "MessageType",
+"Color",
+"Color2", ];
 
             #[must_use]
             #[allow(clippy::too_many_lines)]
             pub const fn name(&self) -> &'static str {
                 match self {
-                    Self::Arr => "Arr",
-Self::HasOptions => "HasOptions",
+                    Self::MessageType => "MessageType",
+Self::Color => "Color",
+Self::Color2 => "Color2",
                 }
             }
 
             #[must_use]
             #[allow(clippy::too_many_lines)]
-            pub const fn variants() -> [TypeVariant; 2] {
+            pub const fn variants() -> [TypeVariant; 3] {
                 Self::VARIANTS
             }
 
@@ -2870,8 +3219,9 @@ Self::HasOptions => "HasOptions",
             #[allow(clippy::too_many_lines)]
             pub fn json_schema(&self, gen: schemars::gen::SchemaGenerator) -> schemars::schema::RootSchema {
                 match self {
-                    Self::Arr => gen.into_root_schema_for::<Arr>(),
-Self::HasOptions => gen.into_root_schema_for::<HasOptions>(),
+                    Self::MessageType => gen.into_root_schema_for::<MessageType>(),
+Self::Color => gen.into_root_schema_for::<Color>(),
+Self::Color2 => gen.into_root_schema_for::<Color2>(),
                 }
             }
         }
@@ -2894,8 +3244,9 @@ Self::HasOptions => gen.into_root_schema_for::<HasOptions>(),
             #[allow(clippy::too_many_lines)]
             fn from_str(s: &str) -> Result<Self> {
                 match s {
-                    "Arr" => Ok(Self::Arr),
-"HasOptions" => Ok(Self::HasOptions),
+                    "MessageType" => Ok(Self::MessageType),
+"Color" => Ok(Self::Color),
+"Color2" => Ok(Self::Color2),
                     _ => Err(Error::Invalid),
                 }
             }
@@ -2910,22 +3261,26 @@ Self::HasOptions => gen.into_root_schema_for::<HasOptions>(),
         )]
         #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
         pub enum Type {
-            Arr(Box<Arr>),
-HasOptions(Box<HasOptions>),
+            MessageType(Box<MessageType>),
+Color(Box<Color>),
+Color2(Box<Color2>),
         }
 
         impl Type {
-            pub const VARIANTS: [TypeVariant; 2] = [ TypeVariant::Arr,
-TypeVariant::HasOptions, ];
-            pub const VARIANTS_STR: [&'static str; 2] = [ "Arr",
-"HasOptions", ];
+            pub const VARIANTS: [TypeVariant; 3] = [ TypeVariant::MessageType,
+TypeVariant::Color,
+TypeVariant::Color2, ];
+            pub const VARIANTS_STR: [&'static str; 3] = [ "MessageType",
+"Color",
+"Color2", ];
 
             #[cfg(feature = "std")]
             #[allow(clippy::too_many_lines)]
             pub fn read_xdr<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Result<Self> {
                 match v {
-                    TypeVariant::Arr => r.with_limited_depth(|r| Ok(Self::Arr(Box::new(Arr::read_xdr(r)?)))),
-TypeVariant::HasOptions => r.with_limited_depth(|r| Ok(Self::HasOptions(Box::new(HasOptions::read_xdr(r)?)))),
+                    TypeVariant::MessageType => r.with_limited_depth(|r| Ok(Self::MessageType(Box::new(MessageType::read_xdr(r)?)))),
+TypeVariant::Color => r.with_limited_depth(|r| Ok(Self::Color(Box::new(Color::read_xdr(r)?)))),
+TypeVariant::Color2 => r.with_limited_depth(|r| Ok(Self::Color2(Box::new(Color2::read_xdr(r)?)))),
                 }
             }
 
@@ -2959,8 +3314,9 @@ TypeVariant::HasOptions => r.with_limited_depth(|r| Ok(Self::HasOptions(Box::new
             #[allow(clippy::too_many_lines)]
             pub fn read_xdr_iter<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Box<dyn Iterator<Item=Result<Self>> + '_> {
                 match v {
-                    TypeVariant::Arr => Box::new(ReadXdrIter::<_, Arr>::new(&mut r.inner, r.limits.clone()).map(|r| r.map(|t| Self::Arr(Box::new(t))))),
-TypeVariant::HasOptions => Box::new(ReadXdrIter::<_, HasOptions>::new(&mut r.inner, r.limits.clone()).map(|r| r.map(|t| Self::HasOptions(Box::new(t))))),
+                    TypeVariant::MessageType => Box::new(ReadXdrIter::<_, MessageType>::new(&mut r.inner, r.limits.clone()).map(|r| r.map(|t| Self::MessageType(Box::new(t))))),
+TypeVariant::Color => Box::new(ReadXdrIter::<_, Color>::new(&mut r.inner, r.limits.clone()).map(|r| r.map(|t| Self::Color(Box::new(t))))),
+TypeVariant::Color2 => Box::new(ReadXdrIter::<_, Color2>::new(&mut r.inner, r.limits.clone()).map(|r| r.map(|t| Self::Color2(Box::new(t))))),
                 }
             }
 
@@ -2968,8 +3324,9 @@ TypeVariant::HasOptions => Box::new(ReadXdrIter::<_, HasOptions>::new(&mut r.inn
             #[allow(clippy::too_many_lines)]
             pub fn read_xdr_framed_iter<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Box<dyn Iterator<Item=Result<Self>> + '_> {
                 match v {
-                    TypeVariant::Arr => Box::new(ReadXdrIter::<_, Frame<Arr>>::new(&mut r.inner, r.limits.clone()).map(|r| r.map(|t| Self::Arr(Box::new(t.0))))),
-TypeVariant::HasOptions => Box::new(ReadXdrIter::<_, Frame<HasOptions>>::new(&mut r.inner, r.limits.clone()).map(|r| r.map(|t| Self::HasOptions(Box::new(t.0))))),
+                    TypeVariant::MessageType => Box::new(ReadXdrIter::<_, Frame<MessageType>>::new(&mut r.inner, r.limits.clone()).map(|r| r.map(|t| Self::MessageType(Box::new(t.0))))),
+TypeVariant::Color => Box::new(ReadXdrIter::<_, Frame<Color>>::new(&mut r.inner, r.limits.clone()).map(|r| r.map(|t| Self::Color(Box::new(t.0))))),
+TypeVariant::Color2 => Box::new(ReadXdrIter::<_, Frame<Color2>>::new(&mut r.inner, r.limits.clone()).map(|r| r.map(|t| Self::Color2(Box::new(t.0))))),
                 }
             }
 
@@ -2978,8 +3335,9 @@ TypeVariant::HasOptions => Box::new(ReadXdrIter::<_, Frame<HasOptions>>::new(&mu
             pub fn read_xdr_base64_iter<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Box<dyn Iterator<Item=Result<Self>> + '_> {
                 let dec = base64::read::DecoderReader::new(&mut r.inner, base64::STANDARD);
                 match v {
-                    TypeVariant::Arr => Box::new(ReadXdrIter::<_, Arr>::new(dec, r.limits.clone()).map(|r| r.map(|t| Self::Arr(Box::new(t))))),
-TypeVariant::HasOptions => Box::new(ReadXdrIter::<_, HasOptions>::new(dec, r.limits.clone()).map(|r| r.map(|t| Self::HasOptions(Box::new(t))))),
+                    TypeVariant::MessageType => Box::new(ReadXdrIter::<_, MessageType>::new(dec, r.limits.clone()).map(|r| r.map(|t| Self::MessageType(Box::new(t))))),
+TypeVariant::Color => Box::new(ReadXdrIter::<_, Color>::new(dec, r.limits.clone()).map(|r| r.map(|t| Self::Color(Box::new(t))))),
+TypeVariant::Color2 => Box::new(ReadXdrIter::<_, Color2>::new(dec, r.limits.clone()).map(|r| r.map(|t| Self::Color2(Box::new(t))))),
                 }
             }
 
@@ -3002,8 +3360,9 @@ TypeVariant::HasOptions => Box::new(ReadXdrIter::<_, HasOptions>::new(dec, r.lim
             #[allow(clippy::too_many_lines)]
             pub fn read_json(v: TypeVariant, r: impl Read) -> Result<Self> {
                 match v {
-                    TypeVariant::Arr => Ok(Self::Arr(Box::new(serde_json::from_reader(r)?))),
-TypeVariant::HasOptions => Ok(Self::HasOptions(Box::new(serde_json::from_reader(r)?))),
+                    TypeVariant::MessageType => Ok(Self::MessageType(Box::new(serde_json::from_reader(r)?))),
+TypeVariant::Color => Ok(Self::Color(Box::new(serde_json::from_reader(r)?))),
+TypeVariant::Color2 => Ok(Self::Color2(Box::new(serde_json::from_reader(r)?))),
                 }
             }
 
@@ -3013,8 +3372,9 @@ TypeVariant::HasOptions => Ok(Self::HasOptions(Box::new(serde_json::from_reader(
             pub fn value(&self) -> &dyn core::any::Any {
                 #[allow(clippy::match_same_arms)]
                 match self {
-                    Self::Arr(ref v) => v.as_ref(),
-Self::HasOptions(ref v) => v.as_ref(),
+                    Self::MessageType(ref v) => v.as_ref(),
+Self::Color(ref v) => v.as_ref(),
+Self::Color2(ref v) => v.as_ref(),
                 }
             }
 
@@ -3022,14 +3382,15 @@ Self::HasOptions(ref v) => v.as_ref(),
             #[allow(clippy::too_many_lines)]
             pub const fn name(&self) -> &'static str {
                 match self {
-                    Self::Arr(_) => "Arr",
-Self::HasOptions(_) => "HasOptions",
+                    Self::MessageType(_) => "MessageType",
+Self::Color(_) => "Color",
+Self::Color2(_) => "Color2",
                 }
             }
 
             #[must_use]
             #[allow(clippy::too_many_lines)]
-            pub const fn variants() -> [TypeVariant; 2] {
+            pub const fn variants() -> [TypeVariant; 3] {
                 Self::VARIANTS
             }
 
@@ -3037,8 +3398,9 @@ Self::HasOptions(_) => "HasOptions",
             #[allow(clippy::too_many_lines)]
             pub const fn variant(&self) -> TypeVariant {
                 match self {
-                    Self::Arr(_) => TypeVariant::Arr,
-Self::HasOptions(_) => TypeVariant::HasOptions,
+                    Self::MessageType(_) => TypeVariant::MessageType,
+Self::Color(_) => TypeVariant::Color,
+Self::Color2(_) => TypeVariant::Color2,
                 }
             }
         }
@@ -3061,8 +3423,9 @@ Self::HasOptions(_) => TypeVariant::HasOptions,
             #[allow(clippy::too_many_lines)]
             fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
                 match self {
-                    Self::Arr(v) => v.write_xdr(w),
-Self::HasOptions(v) => v.write_xdr(w),
+                    Self::MessageType(v) => v.write_xdr(w),
+Self::Color(v) => v.write_xdr(w),
+Self::Color2(v) => v.write_xdr(w),
                 }
             }
         }

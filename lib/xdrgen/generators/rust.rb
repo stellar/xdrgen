@@ -102,6 +102,7 @@ module Xdrgen
           derive(serde::Serialize, serde::Deserialize),
           serde(rename_all = "snake_case")
         )]
+        #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
         pub enum TypeVariant {
             #{types.map { |t| "#{t}," }.join("\n")}
         }
@@ -122,6 +123,15 @@ module Xdrgen
             #[allow(clippy::too_many_lines)]
             pub const fn variants() -> [TypeVariant; #{types.count}] {
                 Self::VARIANTS
+            }
+
+            #[cfg(feature = "schemars")]
+            #[must_use]
+            #[allow(clippy::too_many_lines)]
+            pub fn json_schema(&self, gen: schemars::gen::SchemaGenerator) -> schemars::schema::RootSchema {
+                match self {
+                    #{types.map { |t| "Self::#{t} => gen.into_root_schema_for::<#{t}>()," }.join("\n")}
+                }
             }
         }
 
@@ -156,6 +166,7 @@ module Xdrgen
           serde(rename_all = "snake_case"),
           serde(untagged),
         )]
+        #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
         pub enum Type {
             #{types.map { |t| "#{t}(Box<#{t}>)," }.join("\n")}
         }
@@ -369,6 +380,9 @@ module Xdrgen
         else
           out.puts %{#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]}
         end
+        if !@options[:rust_types_custom_jsonschema_impl].include?(name struct)
+          out.puts %{#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]}
+        end
         out.puts "pub struct #{name struct} {"
         out.indent do
           struct.members.each do |m|
@@ -414,6 +428,9 @@ module Xdrgen
           out.puts %{#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr))]}
         else
           out.puts %{#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]}
+        end
+        if !@options[:rust_types_custom_jsonschema_impl].include?(name enum)
+          out.puts %{#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]}
         end
         out.puts "#[repr(i32)]"
         out.puts "pub enum #{name enum} {"
@@ -543,6 +560,9 @@ module Xdrgen
           out.puts %{#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr))]}
         else
           out.puts %{#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]}
+        end
+        if !@options[:rust_types_custom_jsonschema_impl].include?(name union)
+          out.puts %{#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]}
         end
         out.puts "#[allow(clippy::large_enum_variant)]"
         out.puts "pub enum #{name union} {"
@@ -678,6 +698,9 @@ module Xdrgen
           else
             out.puts %{#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]}
           end
+          if !is_fixed_array_opaque(typedef.type) && !@options[:rust_types_custom_jsonschema_impl].include?(name typedef)
+            out.puts %{#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]}
+          end
           if !is_fixed_array_opaque(typedef.type)
             out.puts "#[derive(Debug)]"
           end
@@ -716,6 +739,43 @@ module Xdrgen
             fn from_str(s: &str) -> core::result::Result<Self, Self::Err> {
                 hex::decode(s).map_err(|_| Error::InvalidHex)?.try_into()
             }
+          }
+          EOS
+          end
+          if is_fixed_array_opaque(typedef.type) && !@options[:rust_types_custom_jsonschema_impl].include?(name typedef)
+          out.puts <<-EOS.strip_heredoc
+          #[cfg(feature = "schemars")]
+          impl schemars::JsonSchema for #{name typedef} {
+              fn schema_name() -> String {
+                  "#{name typedef}".to_string()
+              }
+
+              fn is_referenceable() -> bool {
+                  false
+              }
+
+              fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
+                  let schema = String::json_schema(gen);
+                  if let schemars::schema::Schema::Object(mut schema) = schema {
+                      schema.extensions.insert(
+                          "contentEncoding".to_owned(),
+                          serde_json::Value::String("hex".to_string()),
+                      );
+                      schema.extensions.insert(
+                          "contentMediaType".to_owned(),
+                          serde_json::Value::String("application/binary".to_string()),
+                      );
+                      let string = *schema.string.unwrap_or_default().clone();
+                      schema.string = Some(Box::new(schemars::schema::StringValidation {
+                          max_length: #{typedef.type.size}_u32.checked_mul(2).map(Some).unwrap_or_default(),
+                          min_length: #{typedef.type.size}_u32.checked_mul(2).map(Some).unwrap_or_default(),
+                          ..string
+                      }));
+                      schema.into()
+                  } else {
+                      schema
+                  }
+              }
           }
           EOS
           end
@@ -929,6 +989,12 @@ module Xdrgen
         else
           raise "Unknown reference type: #{type.class.name}, #{type.class.ancestors}"
         end
+      end
+
+      def array_size(type)
+        _, size = type.array_size
+        size = name @top.find_definition(size) if is_named
+        size
       end
 
       def reference(parent, type)
