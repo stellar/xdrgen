@@ -5,11 +5,13 @@ package MyXDR;
 
 import java.io.IOException;
 
-import static MyXDR.Constants.*;
 import org.stellar.sdk.Base64Factory;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.util.Objects;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
+import static MyXDR.Constants.*;
 
 /**
  * Multi's original definition in the XDR file is:
@@ -17,23 +19,11 @@ import java.util.Objects;
  * typedef int Multi;
  * </pre>
  */
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class Multi implements XdrElement {
   private Integer Multi;
-
-  public Multi() {}
-
-  public Multi(Integer Multi) {
-    this.Multi = Multi;
-  }
-
-  public Integer getMulti() {
-    return this.Multi;
-  }
-
-  public void setMulti(Integer value) {
-    this.Multi = value;
-  }
-
   public static void encode(XdrDataOutputStream stream, Multi  encodedMulti) throws IOException {
     stream.writeInt(encodedMulti.Multi);
   }
@@ -47,20 +37,6 @@ public class Multi implements XdrElement {
     return decodedMulti;
   }
 
-  @Override
-  public int hashCode() {
-    return Objects.hash(this.Multi);
-  }
-
-  @Override
-  public boolean equals(Object object) {
-    if (!(object instanceof Multi)) {
-      return false;
-    }
-
-    Multi other = (Multi) object;
-    return Objects.equals(this.Multi, other.Multi);
-  }
   @Override
   public String toXdrBase64() throws IOException {
     return Base64Factory.getInstance().encodeToString(toXdrByteArray());

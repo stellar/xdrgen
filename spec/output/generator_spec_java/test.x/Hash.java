@@ -5,11 +5,13 @@ package MyXDR;
 
 import java.io.IOException;
 
-import static MyXDR.Constants.*;
 import org.stellar.sdk.Base64Factory;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.util.Arrays;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
+import static MyXDR.Constants.*;
 
 /**
  * Hash's original definition in the XDR file is:
@@ -17,23 +19,11 @@ import java.util.Arrays;
  * typedef opaque Hash[32];
  * </pre>
  */
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class Hash implements XdrElement {
   private byte[] Hash;
-
-  public Hash() {}
-
-  public Hash(byte[] Hash) {
-    this.Hash = Hash;
-  }
-
-  public byte[] getHash() {
-    return this.Hash;
-  }
-
-  public void setHash(byte[] value) {
-    this.Hash = value;
-  }
-
   public static void encode(XdrDataOutputStream stream, Hash  encodedHash) throws IOException {
     int Hashsize = encodedHash.Hash.length;
     stream.write(encodedHash.getHash(), 0, Hashsize);
@@ -50,20 +40,6 @@ public class Hash implements XdrElement {
     return decodedHash;
   }
 
-  @Override
-  public int hashCode() {
-    return Arrays.hashCode(this.Hash);
-  }
-
-  @Override
-  public boolean equals(Object object) {
-    if (!(object instanceof Hash)) {
-      return false;
-    }
-
-    Hash other = (Hash) object;
-    return Arrays.equals(this.Hash, other.Hash);
-  }
   @Override
   public String toXdrBase64() throws IOException {
     return Base64Factory.getInstance().encodeToString(toXdrByteArray());

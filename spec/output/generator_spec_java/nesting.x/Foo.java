@@ -5,11 +5,13 @@ package MyXDR;
 
 import java.io.IOException;
 
-import static MyXDR.Constants.*;
 import org.stellar.sdk.Base64Factory;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.util.Objects;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
+import static MyXDR.Constants.*;
 
 /**
  * Foo's original definition in the XDR file is:
@@ -17,23 +19,11 @@ import java.util.Objects;
  * typedef int Foo;
  * </pre>
  */
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class Foo implements XdrElement {
   private Integer Foo;
-
-  public Foo() {}
-
-  public Foo(Integer Foo) {
-    this.Foo = Foo;
-  }
-
-  public Integer getFoo() {
-    return this.Foo;
-  }
-
-  public void setFoo(Integer value) {
-    this.Foo = value;
-  }
-
   public static void encode(XdrDataOutputStream stream, Foo  encodedFoo) throws IOException {
     stream.writeInt(encodedFoo.Foo);
   }
@@ -47,20 +37,6 @@ public class Foo implements XdrElement {
     return decodedFoo;
   }
 
-  @Override
-  public int hashCode() {
-    return Objects.hash(this.Foo);
-  }
-
-  @Override
-  public boolean equals(Object object) {
-    if (!(object instanceof Foo)) {
-      return false;
-    }
-
-    Foo other = (Foo) object;
-    return Objects.equals(this.Foo, other.Foo);
-  }
   @Override
   public String toXdrBase64() throws IOException {
     return Base64Factory.getInstance().encodeToString(toXdrByteArray());

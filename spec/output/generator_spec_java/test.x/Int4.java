@@ -5,11 +5,13 @@ package MyXDR;
 
 import java.io.IOException;
 
-import static MyXDR.Constants.*;
 import org.stellar.sdk.Base64Factory;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.util.Objects;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
+import static MyXDR.Constants.*;
 
 /**
  * Int4's original definition in the XDR file is:
@@ -17,23 +19,11 @@ import java.util.Objects;
  * typedef unsigned hyper  int4;
  * </pre>
  */
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class Int4 implements XdrElement {
   private XdrUnsignedHyperInteger int4;
-
-  public Int4() {}
-
-  public Int4(XdrUnsignedHyperInteger int4) {
-    this.int4 = int4;
-  }
-
-  public XdrUnsignedHyperInteger getInt4() {
-    return this.int4;
-  }
-
-  public void setInt4(XdrUnsignedHyperInteger value) {
-    this.int4 = value;
-  }
-
   public static void encode(XdrDataOutputStream stream, Int4  encodedInt4) throws IOException {
     encodedInt4.int4.encode(stream);
   }
@@ -47,20 +37,6 @@ public class Int4 implements XdrElement {
     return decodedInt4;
   }
 
-  @Override
-  public int hashCode() {
-    return Objects.hash(this.int4);
-  }
-
-  @Override
-  public boolean equals(Object object) {
-    if (!(object instanceof Int4)) {
-      return false;
-    }
-
-    Int4 other = (Int4) object;
-    return Objects.equals(this.int4, other.int4);
-  }
   @Override
   public String toXdrBase64() throws IOException {
     return Base64Factory.getInstance().encodeToString(toXdrByteArray());

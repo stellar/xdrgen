@@ -5,7 +5,6 @@ package MyXDR;
 
 import java.io.IOException;
 
-import static MyXDR.Constants.*;
 import org.stellar.sdk.Base64Factory;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -20,16 +19,16 @@ import java.io.ByteArrayOutputStream;
  * </pre>
  */
 public enum AccountFlags implements XdrElement {
-  AUTH_REQUIRED_FLAG(1),
-  ;
-  private int mValue;
+  AUTH_REQUIRED_FLAG(1);
+
+  private final int value;
 
   AccountFlags(int value) {
-      mValue = value;
+      this.value = value;
   }
 
   public int getValue() {
-      return mValue;
+      return value;
   }
 
   public static AccountFlags decode(XdrDataInputStream stream) throws IOException {

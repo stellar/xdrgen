@@ -5,11 +5,13 @@ package MyXDR;
 
 import java.io.IOException;
 
-import static MyXDR.Constants.*;
 import org.stellar.sdk.Base64Factory;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.util.Arrays;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
+import static MyXDR.Constants.*;
 
 /**
  * TestArray's original definition in the XDR file is:
@@ -17,23 +19,11 @@ import java.util.Arrays;
  * typedef int TestArray[FOO];
  * </pre>
  */
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class TestArray implements XdrElement {
   private Integer[] TestArray;
-
-  public TestArray() {}
-
-  public TestArray(Integer[] TestArray) {
-    this.TestArray = TestArray;
-  }
-
-  public Integer[] getTestArray() {
-    return this.TestArray;
-  }
-
-  public void setTestArray(Integer[] value) {
-    this.TestArray = value;
-  }
-
   public static void encode(XdrDataOutputStream stream, TestArray  encodedTestArray) throws IOException {
     int TestArraysize = encodedTestArray.getTestArray().length;
     for (int i = 0; i < TestArraysize; i++) {
@@ -54,20 +44,6 @@ public class TestArray implements XdrElement {
     return decodedTestArray;
   }
 
-  @Override
-  public int hashCode() {
-    return Arrays.hashCode(this.TestArray);
-  }
-
-  @Override
-  public boolean equals(Object object) {
-    if (!(object instanceof TestArray)) {
-      return false;
-    }
-
-    TestArray other = (TestArray) object;
-    return Arrays.equals(this.TestArray, other.TestArray);
-  }
   @Override
   public String toXdrBase64() throws IOException {
     return Base64Factory.getInstance().encodeToString(toXdrByteArray());

@@ -5,11 +5,13 @@ package MyXDR;
 
 import java.io.IOException;
 
-import static MyXDR.Constants.*;
 import org.stellar.sdk.Base64Factory;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.util.Objects;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
+import static MyXDR.Constants.*;
 
 /**
  * Error's original definition in the XDR file is:
@@ -17,23 +19,11 @@ import java.util.Objects;
  * typedef int Error;
  * </pre>
  */
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class Error implements XdrElement {
   private Integer Error;
-
-  public Error() {}
-
-  public Error(Integer Error) {
-    this.Error = Error;
-  }
-
-  public Integer getError() {
-    return this.Error;
-  }
-
-  public void setError(Integer value) {
-    this.Error = value;
-  }
-
   public static void encode(XdrDataOutputStream stream, Error  encodedError) throws IOException {
     stream.writeInt(encodedError.Error);
   }
@@ -47,20 +37,6 @@ public class Error implements XdrElement {
     return decodedError;
   }
 
-  @Override
-  public int hashCode() {
-    return Objects.hash(this.Error);
-  }
-
-  @Override
-  public boolean equals(Object object) {
-    if (!(object instanceof Error)) {
-      return false;
-    }
-
-    Error other = (Error) object;
-    return Objects.equals(this.Error, other.Error);
-  }
   @Override
   public String toXdrBase64() throws IOException {
     return Base64Factory.getInstance().encodeToString(toXdrByteArray());

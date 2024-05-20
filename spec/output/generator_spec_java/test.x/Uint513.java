@@ -5,11 +5,13 @@ package MyXDR;
 
 import java.io.IOException;
 
-import static MyXDR.Constants.*;
 import org.stellar.sdk.Base64Factory;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.util.Arrays;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
+import static MyXDR.Constants.*;
 
 /**
  * Uint513's original definition in the XDR file is:
@@ -17,23 +19,11 @@ import java.util.Arrays;
  * typedef opaque uint513&lt;64&gt;;
  * </pre>
  */
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class Uint513 implements XdrElement {
   private byte[] uint513;
-
-  public Uint513() {}
-
-  public Uint513(byte[] uint513) {
-    this.uint513 = uint513;
-  }
-
-  public byte[] getUint513() {
-    return this.uint513;
-  }
-
-  public void setUint513(byte[] value) {
-    this.uint513 = value;
-  }
-
   public static void encode(XdrDataOutputStream stream, Uint513  encodedUint513) throws IOException {
     int uint513size = encodedUint513.uint513.length;
     stream.writeInt(uint513size);
@@ -51,20 +41,6 @@ public class Uint513 implements XdrElement {
     return decodedUint513;
   }
 
-  @Override
-  public int hashCode() {
-    return Arrays.hashCode(this.uint513);
-  }
-
-  @Override
-  public boolean equals(Object object) {
-    if (!(object instanceof Uint513)) {
-      return false;
-    }
-
-    Uint513 other = (Uint513) object;
-    return Arrays.equals(this.uint513, other.uint513);
-  }
   @Override
   public String toXdrBase64() throws IOException {
     return Base64Factory.getInstance().encodeToString(toXdrByteArray());

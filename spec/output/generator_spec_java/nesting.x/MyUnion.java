@@ -5,11 +5,14 @@ package MyXDR;
 
 import java.io.IOException;
 
-import static MyXDR.Constants.*;
 import org.stellar.sdk.Base64Factory;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.util.Objects;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import static MyXDR.Constants.*;
 
 /**
  * MyUnion's original definition in the XDR file is:
@@ -32,58 +35,14 @@ import java.util.Objects;
  * };
  * </pre>
  */
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder(toBuilder = true)
 public class MyUnion implements XdrElement {
-  public MyUnion () {}
-  UnionKey type;
-  public UnionKey getDiscriminant() {
-    return this.type;
-  }
-  public void setDiscriminant(UnionKey value) {
-    this.type = value;
-  }
+  private UnionKey discriminant;
   private MyUnionOne one;
-  public MyUnionOne getOne() {
-    return this.one;
-  }
-  public void setOne(MyUnionOne value) {
-    this.one = value;
-  }
   private MyUnionTwo two;
-  public MyUnionTwo getTwo() {
-    return this.two;
-  }
-  public void setTwo(MyUnionTwo value) {
-    this.two = value;
-  }
-
-  public static final class Builder {
-    private UnionKey discriminant;
-    private MyUnionOne one;
-    private MyUnionTwo two;
-
-    public Builder discriminant(UnionKey discriminant) {
-      this.discriminant = discriminant;
-      return this;
-    }
-
-    public Builder one(MyUnionOne one) {
-      this.one = one;
-      return this;
-    }
-
-    public Builder two(MyUnionTwo two) {
-      this.two = two;
-      return this;
-    }
-
-    public MyUnion build() {
-      MyUnion val = new MyUnion();
-      val.setDiscriminant(discriminant);
-      val.setOne(this.one);
-      val.setTwo(this.two);
-      return val;
-    }
-  }
 
   public static void encode(XdrDataOutputStream stream, MyUnion encodedMyUnion) throws IOException {
   //Xdrgen::AST::Identifier
@@ -120,19 +79,6 @@ public class MyUnion implements XdrElement {
     return decodedMyUnion;
   }
   @Override
-  public int hashCode() {
-    return Objects.hash(this.one, this.two, this.type);
-  }
-  @Override
-  public boolean equals(Object object) {
-    if (!(object instanceof MyUnion)) {
-      return false;
-    }
-
-    MyUnion other = (MyUnion) object;
-    return Objects.equals(this.one, other.one) && Objects.equals(this.two, other.two) && Objects.equals(this.type, other.type);
-  }
-  @Override
   public String toXdrBase64() throws IOException {
     return Base64Factory.getInstance().encodeToString(toXdrByteArray());
   }
@@ -164,15 +110,12 @@ public class MyUnion implements XdrElement {
    *         }
    * </pre>
    */
+  @Data
+  @NoArgsConstructor
+  @AllArgsConstructor
+  @Builder(toBuilder = true)
   public static class MyUnionOne implements XdrElement {
-    public MyUnionOne () {}
     private Integer someInt;
-    public Integer getSomeInt() {
-      return this.someInt;
-    }
-    public void setSomeInt(Integer value) {
-      this.someInt = value;
-    }
     public static void encode(XdrDataOutputStream stream, MyUnionOne encodedMyUnionOne) throws IOException{
       stream.writeInt(encodedMyUnionOne.someInt);
     }
@@ -184,20 +127,6 @@ public class MyUnion implements XdrElement {
       decodedMyUnionOne.someInt = stream.readInt();
       return decodedMyUnionOne;
     }
-    @Override
-    public int hashCode() {
-      return Objects.hash(this.someInt);
-    }
-    @Override
-    public boolean equals(Object object) {
-      if (!(object instanceof MyUnionOne)) {
-        return false;
-      }
-
-      MyUnionOne other = (MyUnionOne) object;
-      return Objects.equals(this.someInt, other.someInt);
-    }
-
     @Override
     public String toXdrBase64() throws IOException {
       return Base64Factory.getInstance().encodeToString(toXdrByteArray());
@@ -221,20 +150,6 @@ public class MyUnion implements XdrElement {
       XdrDataInputStream xdrDataInputStream = new XdrDataInputStream(byteArrayInputStream);
       return decode(xdrDataInputStream);
     }
-    public static final class Builder {
-      private Integer someInt;
-
-      public Builder someInt(Integer someInt) {
-        this.someInt = someInt;
-        return this;
-      }
-
-      public MyUnionOne build() {
-        MyUnionOne val = new MyUnionOne();
-        val.setSomeInt(this.someInt);
-        return val;
-      }
-    }
 
   }
   /**
@@ -246,22 +161,13 @@ public class MyUnion implements XdrElement {
    *         }
    * </pre>
    */
+  @Data
+  @NoArgsConstructor
+  @AllArgsConstructor
+  @Builder(toBuilder = true)
   public static class MyUnionTwo implements XdrElement {
-    public MyUnionTwo () {}
     private Integer someInt;
-    public Integer getSomeInt() {
-      return this.someInt;
-    }
-    public void setSomeInt(Integer value) {
-      this.someInt = value;
-    }
     private Foo foo;
-    public Foo getFoo() {
-      return this.foo;
-    }
-    public void setFoo(Foo value) {
-      this.foo = value;
-    }
     public static void encode(XdrDataOutputStream stream, MyUnionTwo encodedMyUnionTwo) throws IOException{
       stream.writeInt(encodedMyUnionTwo.someInt);
       Foo.encode(stream, encodedMyUnionTwo.foo);
@@ -275,20 +181,6 @@ public class MyUnion implements XdrElement {
       decodedMyUnionTwo.foo = Foo.decode(stream);
       return decodedMyUnionTwo;
     }
-    @Override
-    public int hashCode() {
-      return Objects.hash(this.someInt, this.foo);
-    }
-    @Override
-    public boolean equals(Object object) {
-      if (!(object instanceof MyUnionTwo)) {
-        return false;
-      }
-
-      MyUnionTwo other = (MyUnionTwo) object;
-      return Objects.equals(this.someInt, other.someInt) && Objects.equals(this.foo, other.foo);
-    }
-
     @Override
     public String toXdrBase64() throws IOException {
       return Base64Factory.getInstance().encodeToString(toXdrByteArray());
@@ -311,27 +203,6 @@ public class MyUnion implements XdrElement {
       ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(xdr);
       XdrDataInputStream xdrDataInputStream = new XdrDataInputStream(byteArrayInputStream);
       return decode(xdrDataInputStream);
-    }
-    public static final class Builder {
-      private Integer someInt;
-      private Foo foo;
-
-      public Builder someInt(Integer someInt) {
-        this.someInt = someInt;
-        return this;
-      }
-
-      public Builder foo(Foo foo) {
-        this.foo = foo;
-        return this;
-      }
-
-      public MyUnionTwo build() {
-        MyUnionTwo val = new MyUnionTwo();
-        val.setSomeInt(this.someInt);
-        val.setFoo(this.foo);
-        return val;
-      }
     }
 
   }

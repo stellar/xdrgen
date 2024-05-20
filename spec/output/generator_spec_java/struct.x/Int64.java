@@ -5,11 +5,13 @@ package MyXDR;
 
 import java.io.IOException;
 
-import static MyXDR.Constants.*;
 import org.stellar.sdk.Base64Factory;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.util.Objects;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
+import static MyXDR.Constants.*;
 
 /**
  * Int64's original definition in the XDR file is:
@@ -17,23 +19,11 @@ import java.util.Objects;
  * typedef hyper int64;
  * </pre>
  */
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class Int64 implements XdrElement {
   private Long int64;
-
-  public Int64() {}
-
-  public Int64(Long int64) {
-    this.int64 = int64;
-  }
-
-  public Long getInt64() {
-    return this.int64;
-  }
-
-  public void setInt64(Long value) {
-    this.int64 = value;
-  }
-
   public static void encode(XdrDataOutputStream stream, Int64  encodedInt64) throws IOException {
     stream.writeLong(encodedInt64.int64);
   }
@@ -47,20 +37,6 @@ public class Int64 implements XdrElement {
     return decodedInt64;
   }
 
-  @Override
-  public int hashCode() {
-    return Objects.hash(this.int64);
-  }
-
-  @Override
-  public boolean equals(Object object) {
-    if (!(object instanceof Int64)) {
-      return false;
-    }
-
-    Int64 other = (Int64) object;
-    return Objects.equals(this.int64, other.int64);
-  }
   @Override
   public String toXdrBase64() throws IOException {
     return Base64Factory.getInstance().encodeToString(toXdrByteArray());

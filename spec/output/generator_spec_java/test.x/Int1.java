@@ -5,11 +5,13 @@ package MyXDR;
 
 import java.io.IOException;
 
-import static MyXDR.Constants.*;
 import org.stellar.sdk.Base64Factory;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.util.Objects;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
+import static MyXDR.Constants.*;
 
 /**
  * Int1's original definition in the XDR file is:
@@ -17,23 +19,11 @@ import java.util.Objects;
  * typedef int             int1;
  * </pre>
  */
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class Int1 implements XdrElement {
   private Integer int1;
-
-  public Int1() {}
-
-  public Int1(Integer int1) {
-    this.int1 = int1;
-  }
-
-  public Integer getInt1() {
-    return this.int1;
-  }
-
-  public void setInt1(Integer value) {
-    this.int1 = value;
-  }
-
   public static void encode(XdrDataOutputStream stream, Int1  encodedInt1) throws IOException {
     stream.writeInt(encodedInt1.int1);
   }
@@ -47,20 +37,6 @@ public class Int1 implements XdrElement {
     return decodedInt1;
   }
 
-  @Override
-  public int hashCode() {
-    return Objects.hash(this.int1);
-  }
-
-  @Override
-  public boolean equals(Object object) {
-    if (!(object instanceof Int1)) {
-      return false;
-    }
-
-    Int1 other = (Int1) object;
-    return Objects.equals(this.int1, other.int1);
-  }
   @Override
   public String toXdrBase64() throws IOException {
     return Base64Factory.getInstance().encodeToString(toXdrByteArray());

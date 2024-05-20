@@ -5,11 +5,13 @@ package MyXDR;
 
 import java.io.IOException;
 
-import static MyXDR.Constants.*;
 import org.stellar.sdk.Base64Factory;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.util.Arrays;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
+import static MyXDR.Constants.*;
 
 /**
  * Hashes2's original definition in the XDR file is:
@@ -17,23 +19,11 @@ import java.util.Arrays;
  * typedef Hash Hashes2&lt;12&gt;;
  * </pre>
  */
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class Hashes2 implements XdrElement {
   private Hash[] Hashes2;
-
-  public Hashes2() {}
-
-  public Hashes2(Hash[] Hashes2) {
-    this.Hashes2 = Hashes2;
-  }
-
-  public Hash[] getHashes2() {
-    return this.Hashes2;
-  }
-
-  public void setHashes2(Hash[] value) {
-    this.Hashes2 = value;
-  }
-
   public static void encode(XdrDataOutputStream stream, Hashes2  encodedHashes2) throws IOException {
     int Hashes2size = encodedHashes2.getHashes2().length;
     stream.writeInt(Hashes2size);
@@ -55,20 +45,6 @@ public class Hashes2 implements XdrElement {
     return decodedHashes2;
   }
 
-  @Override
-  public int hashCode() {
-    return Arrays.hashCode(this.Hashes2);
-  }
-
-  @Override
-  public boolean equals(Object object) {
-    if (!(object instanceof Hashes2)) {
-      return false;
-    }
-
-    Hashes2 other = (Hashes2) object;
-    return Arrays.equals(this.Hashes2, other.Hashes2);
-  }
   @Override
   public String toXdrBase64() throws IOException {
     return Base64Factory.getInstance().encodeToString(toXdrByteArray());

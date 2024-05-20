@@ -5,11 +5,13 @@ package MyXDR;
 
 import java.io.IOException;
 
-import static MyXDR.Constants.*;
 import org.stellar.sdk.Base64Factory;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.util.Objects;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
+import static MyXDR.Constants.*;
 
 /**
  * Str's original definition in the XDR file is:
@@ -17,23 +19,11 @@ import java.util.Objects;
  * typedef string str&lt;64&gt;;
  * </pre>
  */
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class Str implements XdrElement {
   private XdrString str;
-
-  public Str() {}
-
-  public Str(XdrString str) {
-    this.str = str;
-  }
-
-  public XdrString getStr() {
-    return this.str;
-  }
-
-  public void setStr(XdrString value) {
-    this.str = value;
-  }
-
   public static void encode(XdrDataOutputStream stream, Str  encodedStr) throws IOException {
     encodedStr.str.encode(stream);
   }
@@ -47,20 +37,6 @@ public class Str implements XdrElement {
     return decodedStr;
   }
 
-  @Override
-  public int hashCode() {
-    return Objects.hash(this.str);
-  }
-
-  @Override
-  public boolean equals(Object object) {
-    if (!(object instanceof Str)) {
-      return false;
-    }
-
-    Str other = (Str) object;
-    return Objects.equals(this.str, other.str);
-  }
   @Override
   public String toXdrBase64() throws IOException {
     return Base64Factory.getInstance().encodeToString(toXdrByteArray());
