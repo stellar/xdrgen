@@ -25,8 +25,8 @@ import static MyXDR.Constants.*;
 public class Uint512 implements XdrElement {
   private byte[] uint512;
   public static void encode(XdrDataOutputStream stream, Uint512  encodedUint512) throws IOException {
-    int uint512size = encodedUint512.uint512.length;
-    stream.write(encodedUint512.getUint512(), 0, uint512size);
+    int uint512Size = encodedUint512.uint512.length;
+    stream.write(encodedUint512.getUint512(), 0, uint512Size);
   }
 
   public void encode(XdrDataOutputStream stream) throws IOException {
@@ -34,9 +34,9 @@ public class Uint512 implements XdrElement {
   }
   public static Uint512 decode(XdrDataInputStream stream) throws IOException {
     Uint512 decodedUint512 = new Uint512();
-    int uint512size = 64;
-    decodedUint512.uint512 = new byte[uint512size];
-    stream.read(decodedUint512.uint512, 0, uint512size);
+    int uint512Size = 64;
+    decodedUint512.uint512 = new byte[uint512Size];
+    stream.read(decodedUint512.uint512, 0, uint512Size);
     return decodedUint512;
   }
 

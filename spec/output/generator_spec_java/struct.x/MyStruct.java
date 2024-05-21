@@ -40,8 +40,8 @@ public class MyStruct implements XdrElement {
   public static void encode(XdrDataOutputStream stream, MyStruct encodedMyStruct) throws IOException{
     stream.writeInt(encodedMyStruct.someInt);
     Int64.encode(stream, encodedMyStruct.aBigInt);
-    int someOpaquesize = encodedMyStruct.someOpaque.length;
-    stream.write(encodedMyStruct.getSomeOpaque(), 0, someOpaquesize);
+    int someOpaqueSize = encodedMyStruct.someOpaque.length;
+    stream.write(encodedMyStruct.getSomeOpaque(), 0, someOpaqueSize);
     encodedMyStruct.someString.encode(stream);
     encodedMyStruct.maxString.encode(stream);
   }
@@ -52,9 +52,9 @@ public class MyStruct implements XdrElement {
     MyStruct decodedMyStruct = new MyStruct();
     decodedMyStruct.someInt = stream.readInt();
     decodedMyStruct.aBigInt = Int64.decode(stream);
-    int someOpaquesize = 10;
-    decodedMyStruct.someOpaque = new byte[someOpaquesize];
-    stream.read(decodedMyStruct.someOpaque, 0, someOpaquesize);
+    int someOpaqueSize = 10;
+    decodedMyStruct.someOpaque = new byte[someOpaqueSize];
+    stream.read(decodedMyStruct.someOpaque, 0, someOpaqueSize);
     decodedMyStruct.someString = XdrString.decode(stream, Integer.MAX_VALUE);
     decodedMyStruct.maxString = XdrString.decode(stream, 100);
     return decodedMyStruct;

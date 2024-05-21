@@ -25,8 +25,8 @@ import static MyXDR.Constants.*;
 public class Hashes1 implements XdrElement {
   private Hash[] Hashes1;
   public static void encode(XdrDataOutputStream stream, Hashes1  encodedHashes1) throws IOException {
-    int Hashes1size = encodedHashes1.getHashes1().length;
-    for (int i = 0; i < Hashes1size; i++) {
+    int Hashes1Size = encodedHashes1.getHashes1().length;
+    for (int i = 0; i < Hashes1Size; i++) {
       Hash.encode(stream, encodedHashes1.Hashes1[i]);
     }
   }
@@ -36,9 +36,9 @@ public class Hashes1 implements XdrElement {
   }
   public static Hashes1 decode(XdrDataInputStream stream) throws IOException {
     Hashes1 decodedHashes1 = new Hashes1();
-    int Hashes1size = 12;
-    decodedHashes1.Hashes1 = new Hash[Hashes1size];
-    for (int i = 0; i < Hashes1size; i++) {
+    int Hashes1Size = 12;
+    decodedHashes1.Hashes1 = new Hash[Hashes1Size];
+    for (int i = 0; i < Hashes1Size; i++) {
       decodedHashes1.Hashes1[i] = Hash.decode(stream);
     }
     return decodedHashes1;

@@ -463,20 +463,20 @@ module Xdrgen
         end
         case member.declaration
         when AST::Declarations::Opaque ;
-          out.puts "int #{member.name}size = #{value}.#{member.name}.length;"
+          out.puts "int #{member.name}Size = #{value}.#{member.name}.length;"
           unless member.declaration.fixed?
-            out.puts "stream.writeInt(#{member.name}size);"
+            out.puts "stream.writeInt(#{member.name}Size);"
           end
           out.puts <<-EOS.strip_heredoc
-            stream.write(#{value}.get#{member.name.slice(0,1).capitalize+member.name.slice(1..-1)}(), 0, #{member.name}size);
+            stream.write(#{value}.get#{member.name.slice(0,1).capitalize+member.name.slice(1..-1)}(), 0, #{member.name}Size);
           EOS
         when AST::Declarations::Array ;
-          out.puts "int #{member.name}size = #{value}.get#{member.name.slice(0,1).capitalize+member.name.slice(1..-1)}().length;"
+          out.puts "int #{member.name}Size = #{value}.get#{member.name.slice(0,1).capitalize+member.name.slice(1..-1)}().length;"
           unless member.declaration.fixed?
-            out.puts "stream.writeInt(#{member.name}size);"
+            out.puts "stream.writeInt(#{member.name}Size);"
           end
           out.puts <<-EOS.strip_heredoc
-            for (int i = 0; i < #{member.name}size; i++) {
+            for (int i = 0; i < #{member.name}Size; i++) {
               #{encode_type member.declaration.type, "#{value}.#{member.name}[i]"};
             }
           EOS
@@ -533,23 +533,23 @@ module Xdrgen
         case member.declaration
         when AST::Declarations::Opaque ;
           if (member.declaration.fixed?)
-            out.puts "int #{member.name}size = #{member.declaration.size};"
+            out.puts "int #{member.name}Size = #{member.declaration.size};"
           else
-            out.puts "int #{member.name}size = stream.readInt();"
+            out.puts "int #{member.name}Size = stream.readInt();"
           end
           out.puts <<-EOS.strip_heredoc
-            #{value}.#{member.name} = new byte[#{member.name}size];
-            stream.read(#{value}.#{member.name}, 0, #{member.name}size);
+            #{value}.#{member.name} = new byte[#{member.name}Size];
+            stream.read(#{value}.#{member.name}, 0, #{member.name}Size);
           EOS
         when AST::Declarations::Array ;
           if (member.declaration.fixed?)
-            out.puts "int #{member.name}size = #{member.declaration.size};"
+            out.puts "int #{member.name}Size = #{member.declaration.size};"
           else
-            out.puts "int #{member.name}size = stream.readInt();"
+            out.puts "int #{member.name}Size = stream.readInt();"
           end
           out.puts <<-EOS.strip_heredoc
-            #{value}.#{member.name} = new #{type_string member.type}[#{member.name}size];
-            for (int i = 0; i < #{member.name}size; i++) {
+            #{value}.#{member.name} = new #{type_string member.type}[#{member.name}Size];
+            for (int i = 0; i < #{member.name}Size; i++) {
               #{value}.#{member.name}[i] = #{decode_type member.declaration};
             }
           EOS

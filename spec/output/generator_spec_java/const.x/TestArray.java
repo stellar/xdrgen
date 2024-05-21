@@ -25,8 +25,8 @@ import static MyXDR.Constants.*;
 public class TestArray implements XdrElement {
   private Integer[] TestArray;
   public static void encode(XdrDataOutputStream stream, TestArray  encodedTestArray) throws IOException {
-    int TestArraysize = encodedTestArray.getTestArray().length;
-    for (int i = 0; i < TestArraysize; i++) {
+    int TestArraySize = encodedTestArray.getTestArray().length;
+    for (int i = 0; i < TestArraySize; i++) {
       stream.writeInt(encodedTestArray.TestArray[i]);
     }
   }
@@ -36,9 +36,9 @@ public class TestArray implements XdrElement {
   }
   public static TestArray decode(XdrDataInputStream stream) throws IOException {
     TestArray decodedTestArray = new TestArray();
-    int TestArraysize = FOO;
-    decodedTestArray.TestArray = new Integer[TestArraysize];
-    for (int i = 0; i < TestArraysize; i++) {
+    int TestArraySize = FOO;
+    decodedTestArray.TestArray = new Integer[TestArraySize];
+    for (int i = 0; i < TestArraySize; i++) {
       decodedTestArray.TestArray[i] = stream.readInt();
     }
     return decodedTestArray;

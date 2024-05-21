@@ -25,8 +25,8 @@ import static MyXDR.Constants.*;
 public class Arr implements XdrElement {
   private Integer[] Arr;
   public static void encode(XdrDataOutputStream stream, Arr  encodedArr) throws IOException {
-    int Arrsize = encodedArr.getArr().length;
-    for (int i = 0; i < Arrsize; i++) {
+    int ArrSize = encodedArr.getArr().length;
+    for (int i = 0; i < ArrSize; i++) {
       stream.writeInt(encodedArr.Arr[i]);
     }
   }
@@ -36,9 +36,9 @@ public class Arr implements XdrElement {
   }
   public static Arr decode(XdrDataInputStream stream) throws IOException {
     Arr decodedArr = new Arr();
-    int Arrsize = 2;
-    decodedArr.Arr = new Integer[Arrsize];
-    for (int i = 0; i < Arrsize; i++) {
+    int ArrSize = 2;
+    decodedArr.Arr = new Integer[ArrSize];
+    for (int i = 0; i < ArrSize; i++) {
       decodedArr.Arr[i] = stream.readInt();
     }
     return decodedArr;

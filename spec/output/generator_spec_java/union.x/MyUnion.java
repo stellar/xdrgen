@@ -46,9 +46,9 @@ public class MyUnion implements XdrElement {
   Error.encode(stream, encodedMyUnion.error);
   break;
   case MULTI:
-  int thingssize = encodedMyUnion.getThings().length;
-  stream.writeInt(thingssize);
-  for (int i = 0; i < thingssize; i++) {
+  int thingsSize = encodedMyUnion.getThings().length;
+  stream.writeInt(thingsSize);
+  for (int i = 0; i < thingsSize; i++) {
     Multi.encode(stream, encodedMyUnion.things[i]);
   }
   break;
@@ -66,9 +66,9 @@ public class MyUnion implements XdrElement {
   decodedMyUnion.error = Error.decode(stream);
   break;
   case MULTI:
-  int thingssize = stream.readInt();
-  decodedMyUnion.things = new Multi[thingssize];
-  for (int i = 0; i < thingssize; i++) {
+  int thingsSize = stream.readInt();
+  decodedMyUnion.things = new Multi[thingsSize];
+  for (int i = 0; i < thingsSize; i++) {
     decodedMyUnion.things[i] = Multi.decode(stream);
   }
   break;

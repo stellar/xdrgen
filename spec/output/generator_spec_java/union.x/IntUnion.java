@@ -45,9 +45,9 @@ public class IntUnion implements XdrElement {
   Error.encode(stream, encodedIntUnion.error);
   break;
   case 1:
-  int thingssize = encodedIntUnion.getThings().length;
-  stream.writeInt(thingssize);
-  for (int i = 0; i < thingssize; i++) {
+  int thingsSize = encodedIntUnion.getThings().length;
+  stream.writeInt(thingsSize);
+  for (int i = 0; i < thingsSize; i++) {
     Multi.encode(stream, encodedIntUnion.things[i]);
   }
   break;
@@ -65,9 +65,9 @@ public class IntUnion implements XdrElement {
   decodedIntUnion.error = Error.decode(stream);
   break;
   case 1:
-  int thingssize = stream.readInt();
-  decodedIntUnion.things = new Multi[thingssize];
-  for (int i = 0; i < thingssize; i++) {
+  int thingsSize = stream.readInt();
+  decodedIntUnion.things = new Multi[thingsSize];
+  for (int i = 0; i < thingsSize; i++) {
     decodedIntUnion.things[i] = Multi.decode(stream);
   }
   break;

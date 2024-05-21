@@ -30,9 +30,9 @@ import static MyXDR.Constants.*;
 public class LotsOfMyStructs implements XdrElement {
   private MyStruct[] members;
   public static void encode(XdrDataOutputStream stream, LotsOfMyStructs encodedLotsOfMyStructs) throws IOException{
-    int memberssize = encodedLotsOfMyStructs.getMembers().length;
-    stream.writeInt(memberssize);
-    for (int i = 0; i < memberssize; i++) {
+    int membersSize = encodedLotsOfMyStructs.getMembers().length;
+    stream.writeInt(membersSize);
+    for (int i = 0; i < membersSize; i++) {
       MyStruct.encode(stream, encodedLotsOfMyStructs.members[i]);
     }
   }
@@ -41,9 +41,9 @@ public class LotsOfMyStructs implements XdrElement {
   }
   public static LotsOfMyStructs decode(XdrDataInputStream stream) throws IOException {
     LotsOfMyStructs decodedLotsOfMyStructs = new LotsOfMyStructs();
-    int memberssize = stream.readInt();
-    decodedLotsOfMyStructs.members = new MyStruct[memberssize];
-    for (int i = 0; i < memberssize; i++) {
+    int membersSize = stream.readInt();
+    decodedLotsOfMyStructs.members = new MyStruct[membersSize];
+    for (int i = 0; i < membersSize; i++) {
       decodedLotsOfMyStructs.members[i] = MyStruct.decode(stream);
     }
     return decodedLotsOfMyStructs;
