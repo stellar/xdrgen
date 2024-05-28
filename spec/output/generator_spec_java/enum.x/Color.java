@@ -5,7 +5,6 @@ package MyXDR;
 
 import java.io.IOException;
 
-import static MyXDR.Constants.*;
 import org.stellar.sdk.Base64Factory;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -23,16 +22,16 @@ import java.io.ByteArrayOutputStream;
 public enum Color implements XdrElement {
   RED(0),
   GREEN(1),
-  BLUE(2),
-  ;
-  private int mValue;
+  BLUE(2);
+
+  private final int value;
 
   Color(int value) {
-      mValue = value;
+      this.value = value;
   }
 
   public int getValue() {
-      return mValue;
+      return value;
   }
 
   public static Color decode(XdrDataInputStream stream) throws IOException {

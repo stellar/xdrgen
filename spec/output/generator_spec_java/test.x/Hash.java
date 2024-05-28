@@ -5,11 +5,13 @@ package MyXDR;
 
 import java.io.IOException;
 
-import static MyXDR.Constants.*;
 import org.stellar.sdk.Base64Factory;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.util.Arrays;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
+import static MyXDR.Constants.*;
 
 /**
  * Hash's original definition in the XDR file is:
@@ -17,26 +19,14 @@ import java.util.Arrays;
  * typedef opaque Hash[32];
  * </pre>
  */
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class Hash implements XdrElement {
   private byte[] Hash;
-
-  public Hash() {}
-
-  public Hash(byte[] Hash) {
-    this.Hash = Hash;
-  }
-
-  public byte[] getHash() {
-    return this.Hash;
-  }
-
-  public void setHash(byte[] value) {
-    this.Hash = value;
-  }
-
   public static void encode(XdrDataOutputStream stream, Hash  encodedHash) throws IOException {
-    int Hashsize = encodedHash.Hash.length;
-    stream.write(encodedHash.getHash(), 0, Hashsize);
+    int HashSize = encodedHash.Hash.length;
+    stream.write(encodedHash.getHash(), 0, HashSize);
   }
 
   public void encode(XdrDataOutputStream stream) throws IOException {
@@ -44,26 +34,12 @@ public class Hash implements XdrElement {
   }
   public static Hash decode(XdrDataInputStream stream) throws IOException {
     Hash decodedHash = new Hash();
-    int Hashsize = 32;
-    decodedHash.Hash = new byte[Hashsize];
-    stream.read(decodedHash.Hash, 0, Hashsize);
+    int HashSize = 32;
+    decodedHash.Hash = new byte[HashSize];
+    stream.read(decodedHash.Hash, 0, HashSize);
     return decodedHash;
   }
 
-  @Override
-  public int hashCode() {
-    return Arrays.hashCode(this.Hash);
-  }
-
-  @Override
-  public boolean equals(Object object) {
-    if (!(object instanceof Hash)) {
-      return false;
-    }
-
-    Hash other = (Hash) object;
-    return Arrays.equals(this.Hash, other.Hash);
-  }
   @Override
   public String toXdrBase64() throws IOException {
     return Base64Factory.getInstance().encodeToString(toXdrByteArray());

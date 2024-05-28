@@ -5,11 +5,13 @@ package MyXDR;
 
 import java.io.IOException;
 
-import static MyXDR.Constants.*;
 import org.stellar.sdk.Base64Factory;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.util.Objects;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
+import static MyXDR.Constants.*;
 
 /**
  * IntUnion2's original definition in the XDR file is:
@@ -17,23 +19,11 @@ import java.util.Objects;
  * typedef IntUnion IntUnion2;
  * </pre>
  */
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class IntUnion2 implements XdrElement {
   private IntUnion IntUnion2;
-
-  public IntUnion2() {}
-
-  public IntUnion2(IntUnion IntUnion2) {
-    this.IntUnion2 = IntUnion2;
-  }
-
-  public IntUnion getIntUnion2() {
-    return this.IntUnion2;
-  }
-
-  public void setIntUnion2(IntUnion value) {
-    this.IntUnion2 = value;
-  }
-
   public static void encode(XdrDataOutputStream stream, IntUnion2  encodedIntUnion2) throws IOException {
     IntUnion.encode(stream, encodedIntUnion2.IntUnion2);
   }
@@ -47,20 +37,6 @@ public class IntUnion2 implements XdrElement {
     return decodedIntUnion2;
   }
 
-  @Override
-  public int hashCode() {
-    return Objects.hash(this.IntUnion2);
-  }
-
-  @Override
-  public boolean equals(Object object) {
-    if (!(object instanceof IntUnion2)) {
-      return false;
-    }
-
-    IntUnion2 other = (IntUnion2) object;
-    return Objects.equals(this.IntUnion2, other.IntUnion2);
-  }
   @Override
   public String toXdrBase64() throws IOException {
     return Base64Factory.getInstance().encodeToString(toXdrByteArray());

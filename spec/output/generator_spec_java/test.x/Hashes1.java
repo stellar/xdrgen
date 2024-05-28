@@ -5,11 +5,13 @@ package MyXDR;
 
 import java.io.IOException;
 
-import static MyXDR.Constants.*;
 import org.stellar.sdk.Base64Factory;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.util.Arrays;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
+import static MyXDR.Constants.*;
 
 /**
  * Hashes1's original definition in the XDR file is:
@@ -17,26 +19,14 @@ import java.util.Arrays;
  * typedef Hash Hashes1[12];
  * </pre>
  */
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class Hashes1 implements XdrElement {
   private Hash[] Hashes1;
-
-  public Hashes1() {}
-
-  public Hashes1(Hash[] Hashes1) {
-    this.Hashes1 = Hashes1;
-  }
-
-  public Hash[] getHashes1() {
-    return this.Hashes1;
-  }
-
-  public void setHashes1(Hash[] value) {
-    this.Hashes1 = value;
-  }
-
   public static void encode(XdrDataOutputStream stream, Hashes1  encodedHashes1) throws IOException {
-    int Hashes1size = encodedHashes1.getHashes1().length;
-    for (int i = 0; i < Hashes1size; i++) {
+    int Hashes1Size = encodedHashes1.getHashes1().length;
+    for (int i = 0; i < Hashes1Size; i++) {
       Hash.encode(stream, encodedHashes1.Hashes1[i]);
     }
   }
@@ -46,28 +36,14 @@ public class Hashes1 implements XdrElement {
   }
   public static Hashes1 decode(XdrDataInputStream stream) throws IOException {
     Hashes1 decodedHashes1 = new Hashes1();
-    int Hashes1size = 12;
-    decodedHashes1.Hashes1 = new Hash[Hashes1size];
-    for (int i = 0; i < Hashes1size; i++) {
+    int Hashes1Size = 12;
+    decodedHashes1.Hashes1 = new Hash[Hashes1Size];
+    for (int i = 0; i < Hashes1Size; i++) {
       decodedHashes1.Hashes1[i] = Hash.decode(stream);
     }
     return decodedHashes1;
   }
 
-  @Override
-  public int hashCode() {
-    return Arrays.hashCode(this.Hashes1);
-  }
-
-  @Override
-  public boolean equals(Object object) {
-    if (!(object instanceof Hashes1)) {
-      return false;
-    }
-
-    Hashes1 other = (Hashes1) object;
-    return Arrays.equals(this.Hashes1, other.Hashes1);
-  }
   @Override
   public String toXdrBase64() throws IOException {
     return Base64Factory.getInstance().encodeToString(toXdrByteArray());

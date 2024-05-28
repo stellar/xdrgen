@@ -5,7 +5,6 @@ package MyXDR;
 
 import java.io.IOException;
 
-import static MyXDR.Constants.*;
 import org.stellar.sdk.Base64Factory;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -23,16 +22,16 @@ import java.io.ByteArrayOutputStream;
 public enum UnionKey implements XdrElement {
   ONE(1),
   TWO(2),
-  OFFER(3),
-  ;
-  private int mValue;
+  OFFER(3);
+
+  private final int value;
 
   UnionKey(int value) {
-      mValue = value;
+      this.value = value;
   }
 
   public int getValue() {
-      return mValue;
+      return value;
   }
 
   public static UnionKey decode(XdrDataInputStream stream) throws IOException {

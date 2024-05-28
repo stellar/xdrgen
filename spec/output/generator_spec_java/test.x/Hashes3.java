@@ -5,11 +5,13 @@ package MyXDR;
 
 import java.io.IOException;
 
-import static MyXDR.Constants.*;
 import org.stellar.sdk.Base64Factory;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.util.Arrays;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
+import static MyXDR.Constants.*;
 
 /**
  * Hashes3's original definition in the XDR file is:
@@ -17,27 +19,15 @@ import java.util.Arrays;
  * typedef Hash Hashes3&lt;&gt;;
  * </pre>
  */
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class Hashes3 implements XdrElement {
   private Hash[] Hashes3;
-
-  public Hashes3() {}
-
-  public Hashes3(Hash[] Hashes3) {
-    this.Hashes3 = Hashes3;
-  }
-
-  public Hash[] getHashes3() {
-    return this.Hashes3;
-  }
-
-  public void setHashes3(Hash[] value) {
-    this.Hashes3 = value;
-  }
-
   public static void encode(XdrDataOutputStream stream, Hashes3  encodedHashes3) throws IOException {
-    int Hashes3size = encodedHashes3.getHashes3().length;
-    stream.writeInt(Hashes3size);
-    for (int i = 0; i < Hashes3size; i++) {
+    int Hashes3Size = encodedHashes3.getHashes3().length;
+    stream.writeInt(Hashes3Size);
+    for (int i = 0; i < Hashes3Size; i++) {
       Hash.encode(stream, encodedHashes3.Hashes3[i]);
     }
   }
@@ -47,28 +37,14 @@ public class Hashes3 implements XdrElement {
   }
   public static Hashes3 decode(XdrDataInputStream stream) throws IOException {
     Hashes3 decodedHashes3 = new Hashes3();
-    int Hashes3size = stream.readInt();
-    decodedHashes3.Hashes3 = new Hash[Hashes3size];
-    for (int i = 0; i < Hashes3size; i++) {
+    int Hashes3Size = stream.readInt();
+    decodedHashes3.Hashes3 = new Hash[Hashes3Size];
+    for (int i = 0; i < Hashes3Size; i++) {
       decodedHashes3.Hashes3[i] = Hash.decode(stream);
     }
     return decodedHashes3;
   }
 
-  @Override
-  public int hashCode() {
-    return Arrays.hashCode(this.Hashes3);
-  }
-
-  @Override
-  public boolean equals(Object object) {
-    if (!(object instanceof Hashes3)) {
-      return false;
-    }
-
-    Hashes3 other = (Hashes3) object;
-    return Arrays.equals(this.Hashes3, other.Hashes3);
-  }
   @Override
   public String toXdrBase64() throws IOException {
     return Base64Factory.getInstance().encodeToString(toXdrByteArray());

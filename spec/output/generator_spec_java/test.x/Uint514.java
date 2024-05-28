@@ -5,11 +5,13 @@ package MyXDR;
 
 import java.io.IOException;
 
-import static MyXDR.Constants.*;
 import org.stellar.sdk.Base64Factory;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.util.Arrays;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
+import static MyXDR.Constants.*;
 
 /**
  * Uint514's original definition in the XDR file is:
@@ -17,27 +19,15 @@ import java.util.Arrays;
  * typedef opaque uint514&lt;&gt;;
  * </pre>
  */
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class Uint514 implements XdrElement {
   private byte[] uint514;
-
-  public Uint514() {}
-
-  public Uint514(byte[] uint514) {
-    this.uint514 = uint514;
-  }
-
-  public byte[] getUint514() {
-    return this.uint514;
-  }
-
-  public void setUint514(byte[] value) {
-    this.uint514 = value;
-  }
-
   public static void encode(XdrDataOutputStream stream, Uint514  encodedUint514) throws IOException {
-    int uint514size = encodedUint514.uint514.length;
-    stream.writeInt(uint514size);
-    stream.write(encodedUint514.getUint514(), 0, uint514size);
+    int uint514Size = encodedUint514.uint514.length;
+    stream.writeInt(uint514Size);
+    stream.write(encodedUint514.getUint514(), 0, uint514Size);
   }
 
   public void encode(XdrDataOutputStream stream) throws IOException {
@@ -45,26 +35,12 @@ public class Uint514 implements XdrElement {
   }
   public static Uint514 decode(XdrDataInputStream stream) throws IOException {
     Uint514 decodedUint514 = new Uint514();
-    int uint514size = stream.readInt();
-    decodedUint514.uint514 = new byte[uint514size];
-    stream.read(decodedUint514.uint514, 0, uint514size);
+    int uint514Size = stream.readInt();
+    decodedUint514.uint514 = new byte[uint514Size];
+    stream.read(decodedUint514.uint514, 0, uint514Size);
     return decodedUint514;
   }
 
-  @Override
-  public int hashCode() {
-    return Arrays.hashCode(this.uint514);
-  }
-
-  @Override
-  public boolean equals(Object object) {
-    if (!(object instanceof Uint514)) {
-      return false;
-    }
-
-    Uint514 other = (Uint514) object;
-    return Arrays.equals(this.uint514, other.uint514);
-  }
   @Override
   public String toXdrBase64() throws IOException {
     return Base64Factory.getInstance().encodeToString(toXdrByteArray());

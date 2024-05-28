@@ -5,11 +5,13 @@ package MyXDR;
 
 import java.io.IOException;
 
-import static MyXDR.Constants.*;
 import org.stellar.sdk.Base64Factory;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.util.Objects;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
+import static MyXDR.Constants.*;
 
 /**
  * OptHash1's original definition in the XDR file is:
@@ -17,23 +19,11 @@ import java.util.Objects;
  * typedef Hash &#42;optHash1;
  * </pre>
  */
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class OptHash1 implements XdrElement {
   private Hash optHash1;
-
-  public OptHash1() {}
-
-  public OptHash1(Hash optHash1) {
-    this.optHash1 = optHash1;
-  }
-
-  public Hash getOptHash1() {
-    return this.optHash1;
-  }
-
-  public void setOptHash1(Hash value) {
-    this.optHash1 = value;
-  }
-
   public static void encode(XdrDataOutputStream stream, OptHash1  encodedOptHash1) throws IOException {
     if (encodedOptHash1.optHash1 != null) {
     stream.writeInt(1);
@@ -55,20 +45,6 @@ public class OptHash1 implements XdrElement {
     return decodedOptHash1;
   }
 
-  @Override
-  public int hashCode() {
-    return Objects.hash(this.optHash1);
-  }
-
-  @Override
-  public boolean equals(Object object) {
-    if (!(object instanceof OptHash1)) {
-      return false;
-    }
-
-    OptHash1 other = (OptHash1) object;
-    return Objects.equals(this.optHash1, other.optHash1);
-  }
   @Override
   public String toXdrBase64() throws IOException {
     return Base64Factory.getInstance().encodeToString(toXdrByteArray());

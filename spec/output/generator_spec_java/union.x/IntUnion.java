@@ -5,12 +5,14 @@ package MyXDR;
 
 import java.io.IOException;
 
-import static MyXDR.Constants.*;
 import org.stellar.sdk.Base64Factory;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.util.Objects;
-import java.util.Arrays;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import static MyXDR.Constants.*;
 
 /**
  * IntUnion's original definition in the XDR file is:
@@ -25,58 +27,14 @@ import java.util.Arrays;
  * };
  * </pre>
  */
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder(toBuilder = true)
 public class IntUnion implements XdrElement {
-  public IntUnion () {}
-  Integer type;
-  public Integer getDiscriminant() {
-    return this.type;
-  }
-  public void setDiscriminant(Integer value) {
-    this.type = value;
-  }
+  private Integer discriminant;
   private Error error;
-  public Error getError() {
-    return this.error;
-  }
-  public void setError(Error value) {
-    this.error = value;
-  }
   private Multi[] things;
-  public Multi[] getThings() {
-    return this.things;
-  }
-  public void setThings(Multi[] value) {
-    this.things = value;
-  }
-
-  public static final class Builder {
-    private Integer discriminant;
-    private Error error;
-    private Multi[] things;
-
-    public Builder discriminant(Integer discriminant) {
-      this.discriminant = discriminant;
-      return this;
-    }
-
-    public Builder error(Error error) {
-      this.error = error;
-      return this;
-    }
-
-    public Builder things(Multi[] things) {
-      this.things = things;
-      return this;
-    }
-
-    public IntUnion build() {
-      IntUnion val = new IntUnion();
-      val.setDiscriminant(discriminant);
-      val.setError(this.error);
-      val.setThings(this.things);
-      return val;
-    }
-  }
 
   public static void encode(XdrDataOutputStream stream, IntUnion encodedIntUnion) throws IOException {
   //Xdrgen::AST::Typespecs::Int
@@ -87,9 +45,9 @@ public class IntUnion implements XdrElement {
   Error.encode(stream, encodedIntUnion.error);
   break;
   case 1:
-  int thingssize = encodedIntUnion.getThings().length;
-  stream.writeInt(thingssize);
-  for (int i = 0; i < thingssize; i++) {
+  int thingsSize = encodedIntUnion.getThings().length;
+  stream.writeInt(thingsSize);
+  for (int i = 0; i < thingsSize; i++) {
     Multi.encode(stream, encodedIntUnion.things[i]);
   }
   break;
@@ -107,27 +65,14 @@ public class IntUnion implements XdrElement {
   decodedIntUnion.error = Error.decode(stream);
   break;
   case 1:
-  int thingssize = stream.readInt();
-  decodedIntUnion.things = new Multi[thingssize];
-  for (int i = 0; i < thingssize; i++) {
+  int thingsSize = stream.readInt();
+  decodedIntUnion.things = new Multi[thingsSize];
+  for (int i = 0; i < thingsSize; i++) {
     decodedIntUnion.things[i] = Multi.decode(stream);
   }
   break;
   }
     return decodedIntUnion;
-  }
-  @Override
-  public int hashCode() {
-    return Objects.hash(this.error, Arrays.hashCode(this.things), this.type);
-  }
-  @Override
-  public boolean equals(Object object) {
-    if (!(object instanceof IntUnion)) {
-      return false;
-    }
-
-    IntUnion other = (IntUnion) object;
-    return Objects.equals(this.error, other.error) && Arrays.equals(this.things, other.things) && Objects.equals(this.type, other.type);
   }
   @Override
   public String toXdrBase64() throws IOException {

@@ -5,11 +5,13 @@ package MyXDR;
 
 import java.io.IOException;
 
-import static MyXDR.Constants.*;
 import org.stellar.sdk.Base64Factory;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.util.Objects;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
+import static MyXDR.Constants.*;
 
 /**
  * Int3's original definition in the XDR file is:
@@ -17,23 +19,11 @@ import java.util.Objects;
  * typedef unsigned int    int3;
  * </pre>
  */
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class Int3 implements XdrElement {
   private XdrUnsignedInteger int3;
-
-  public Int3() {}
-
-  public Int3(XdrUnsignedInteger int3) {
-    this.int3 = int3;
-  }
-
-  public XdrUnsignedInteger getInt3() {
-    return this.int3;
-  }
-
-  public void setInt3(XdrUnsignedInteger value) {
-    this.int3 = value;
-  }
-
   public static void encode(XdrDataOutputStream stream, Int3  encodedInt3) throws IOException {
     encodedInt3.int3.encode(stream);
   }
@@ -47,20 +37,6 @@ public class Int3 implements XdrElement {
     return decodedInt3;
   }
 
-  @Override
-  public int hashCode() {
-    return Objects.hash(this.int3);
-  }
-
-  @Override
-  public boolean equals(Object object) {
-    if (!(object instanceof Int3)) {
-      return false;
-    }
-
-    Int3 other = (Int3) object;
-    return Objects.equals(this.int3, other.int3);
-  }
   @Override
   public String toXdrBase64() throws IOException {
     return Base64Factory.getInstance().encodeToString(toXdrByteArray());

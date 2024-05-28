@@ -5,7 +5,6 @@ package MyXDR;
 
 import java.io.IOException;
 
-import static MyXDR.Constants.*;
 import org.stellar.sdk.Base64Factory;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -52,16 +51,16 @@ public enum MessageType implements XdrElement {
   JSON_TRANSACTION(10),
   GET_FBA_QUORUMSET(11),
   FBA_QUORUMSET(12),
-  FBA_MESSAGE(13),
-  ;
-  private int mValue;
+  FBA_MESSAGE(13);
+
+  private final int value;
 
   MessageType(int value) {
-      mValue = value;
+      this.value = value;
   }
 
   public int getValue() {
-      return mValue;
+      return value;
   }
 
   public static MessageType decode(XdrDataInputStream stream) throws IOException {

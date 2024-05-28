@@ -5,11 +5,14 @@ package MyXDR;
 
 import java.io.IOException;
 
-import static MyXDR.Constants.*;
 import org.stellar.sdk.Base64Factory;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.util.Objects;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import static MyXDR.Constants.*;
 
 /**
  * HasOptions's original definition in the XDR file is:
@@ -22,29 +25,14 @@ import java.util.Objects;
  * };
  * </pre>
  */
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder(toBuilder = true)
 public class HasOptions implements XdrElement {
-  public HasOptions () {}
   private Integer firstOption;
-  public Integer getFirstOption() {
-    return this.firstOption;
-  }
-  public void setFirstOption(Integer value) {
-    this.firstOption = value;
-  }
   private Integer secondOption;
-  public Integer getSecondOption() {
-    return this.secondOption;
-  }
-  public void setSecondOption(Integer value) {
-    this.secondOption = value;
-  }
   private Arr thirdOption;
-  public Arr getThirdOption() {
-    return this.thirdOption;
-  }
-  public void setThirdOption(Arr value) {
-    this.thirdOption = value;
-  }
   public static void encode(XdrDataOutputStream stream, HasOptions encodedHasOptions) throws IOException{
     if (encodedHasOptions.firstOption != null) {
     stream.writeInt(1);
@@ -85,20 +73,6 @@ public class HasOptions implements XdrElement {
     return decodedHasOptions;
   }
   @Override
-  public int hashCode() {
-    return Objects.hash(this.firstOption, this.secondOption, this.thirdOption);
-  }
-  @Override
-  public boolean equals(Object object) {
-    if (!(object instanceof HasOptions)) {
-      return false;
-    }
-
-    HasOptions other = (HasOptions) object;
-    return Objects.equals(this.firstOption, other.firstOption) && Objects.equals(this.secondOption, other.secondOption) && Objects.equals(this.thirdOption, other.thirdOption);
-  }
-
-  @Override
   public String toXdrBase64() throws IOException {
     return Base64Factory.getInstance().encodeToString(toXdrByteArray());
   }
@@ -120,33 +94,5 @@ public class HasOptions implements XdrElement {
     ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(xdr);
     XdrDataInputStream xdrDataInputStream = new XdrDataInputStream(byteArrayInputStream);
     return decode(xdrDataInputStream);
-  }
-  public static final class Builder {
-    private Integer firstOption;
-    private Integer secondOption;
-    private Arr thirdOption;
-
-    public Builder firstOption(Integer firstOption) {
-      this.firstOption = firstOption;
-      return this;
-    }
-
-    public Builder secondOption(Integer secondOption) {
-      this.secondOption = secondOption;
-      return this;
-    }
-
-    public Builder thirdOption(Arr thirdOption) {
-      this.thirdOption = thirdOption;
-      return this;
-    }
-
-    public HasOptions build() {
-      HasOptions val = new HasOptions();
-      val.setFirstOption(this.firstOption);
-      val.setSecondOption(this.secondOption);
-      val.setThirdOption(this.thirdOption);
-      return val;
-    }
   }
 }

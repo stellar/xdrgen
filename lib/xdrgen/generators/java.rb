@@ -48,56 +48,17 @@ module Xdrgen
         imports.add("java.io.ByteArrayOutputStream")
 
         case defn
-        when AST::Definitions::Struct ;
-          defn.members.each do |m|
-            if is_decl_array(m.declaration)
-              imports.add('java.util.Arrays')
-            else
-              imports.add('java.util.Objects')
-            end
-          end
-          # if we have more than one member field then the
-          # hash code will be computed by
-          # Objects.hash(field1, field2, ..., fieldN)
-          # therefore, we should always import java.util.Objects
-          if defn.members.length > 1
-            imports.add("java.util.Objects")
-          end
-        when AST::Definitions::Enum ;
-          # no imports required for enums
-        when AST::Definitions::Union ;
-          nonVoidArms = defn.arms.select { |arm| !arm.void? }
-          # add 1 because of the discriminant
-          totalFields = nonVoidArms.length + 1
-
-          if is_type_array(defn.discriminant.type)
-            imports.add('java.util.Arrays')
-          else
-            imports.add('java.util.Objects')
-          end
-
-          nonVoidArms.each do |a|
-            if is_decl_array(a.declaration)
-              imports.add('java.util.Arrays')
-            else
-              imports.add('java.util.Objects')
-            end
-          end
-
-          # if we have more than one field then the
-          # hash code will be computed by
-          # Objects.hash(field1, field2, ..., fieldN)
-          # therefore, we should always import java.util.Objects
-          # if we have more than one field
-          if totalFields > 1
-            imports.add("java.util.Objects")
-          end
-        when AST::Definitions::Typedef ;
-          if is_decl_array(defn.declaration)
-            imports.add('java.util.Arrays')
-          else
-            imports.add('java.util.Objects')
-          end
+        when AST::Definitions::Struct, AST::Definitions::Union
+          imports.add("lombok.Data")
+          imports.add("lombok.NoArgsConstructor")
+          imports.add("lombok.AllArgsConstructor")
+          imports.add("lombok.Builder")
+          imports.add("static #{@namespace}.Constants.*")
+        when AST::Definitions::Typedef
+          imports.add("lombok.Data")
+          imports.add("lombok.NoArgsConstructor")
+          imports.add("lombok.AllArgsConstructor")
+          imports.add("static #{@namespace}.Constants.*")
         end
 
         if defn.respond_to? :nested_definitions
@@ -111,21 +72,21 @@ module Xdrgen
 
         case defn
         when AST::Definitions::Struct ;
-          render_element "public class", imports, defn do |out|
+          render_element defn, imports, defn do |out|
             render_struct defn, out
             render_nested_definitions defn, out
           end
         when AST::Definitions::Enum ;
-          render_element "public enum", imports, defn do |out|
+          render_element defn, imports, defn do |out|
             render_enum defn, out
           end
         when AST::Definitions::Union ;
-          render_element "public class", imports, defn do |out|
+          render_element defn, imports, defn do |out|
             render_union defn, out
             render_nested_definitions defn, out
           end
         when AST::Definitions::Typedef ;
-          render_element "public class", imports, defn do |out|
+          render_element defn, imports, defn do |out|
             render_typedef defn, out
           end
         when AST::Definitions::Const ;
@@ -142,6 +103,10 @@ module Xdrgen
           case ndefn
           when AST::Definitions::Struct ;
             name = name ndefn
+            out.puts "@Data"
+            out.puts "@NoArgsConstructor"
+            out.puts "@AllArgsConstructor"
+            out.puts "@Builder(toBuilder = true)"
             out.puts "public static class #{name} #{post_name} {"
             out.indent do
               render_struct ndefn, out
@@ -157,6 +122,10 @@ module Xdrgen
             out.puts "}"
           when AST::Definitions::Union ;
             name = name ndefn
+            out.puts "@Data"
+            out.puts "@NoArgsConstructor"
+            out.puts "@AllArgsConstructor"
+            out.puts "@Builder(toBuilder = true)"
             out.puts "public static class #{name} #{post_name} {"
             out.indent do
               render_union ndefn, out
@@ -165,6 +134,9 @@ module Xdrgen
             out.puts "}"
           when AST::Definitions::Typedef ;
             name = name ndefn
+            out.puts "@Data"
+            out.puts "@NoArgsConstructor"
+            out.puts "@AllArgsConstructor"
             out.puts "public static class #{name} #{post_name} {"
             out.indent do
               render_typedef ndefn, out
@@ -174,18 +146,31 @@ module Xdrgen
         }
       end
 
-      def render_element(type, imports, element, post_name="implements XdrElement")
+      def render_element(defn, imports, element, post_name="implements XdrElement")
         path = element.name.camelize + ".java"
         name = name_string element.name
         out  = @output.open(path)
         render_top_matter out
-        out.puts "import static #{@namespace}.Constants.*;"
         imports.each do |import|
           out.puts "import #{import};"
         end
         out.puts "\n"
         render_source_comment out, element
-        out.puts "#{type} #{name} #{post_name} {"
+        case defn
+        when AST::Definitions::Struct, AST::Definitions::Union
+          out.puts "@Data"
+          out.puts "@NoArgsConstructor"
+          out.puts "@AllArgsConstructor"
+          out.puts "@Builder(toBuilder = true)"
+          out.puts "public class #{name} #{post_name} {"
+        when AST::Definitions::Enum
+          out.puts "public enum #{name} #{post_name} {"
+        when AST::Definitions::Typedef
+          out.puts "@Data"
+          out.puts "@NoArgsConstructor"
+          out.puts "@AllArgsConstructor"
+          out.puts "public class #{name} #{post_name} {"
+        end      
         out.indent do
           yield out
           out.unbreak
@@ -208,20 +193,20 @@ module Xdrgen
 
       def render_enum(enum, out)
         out.balance_after /,[\s]*/ do
-          enum.members.each do |em|
-            out.puts "#{em.name}(#{em.value}),"
+          enum.members.each_with_index do |em, index|
+            out.puts "#{em.name}(#{em.value})#{index == enum.members.size - 1 ? ';' : ','}"
           end
         end
-        out.puts ";\n"
+        out.break
         out.puts <<-EOS.strip_heredoc
-        private int mValue;
+        private final int value;
 
         #{name_string enum.name}(int value) {
-            mValue = value;
+            this.value = value;
         }
 
         public int getValue() {
-            return mValue;
+            return value;
         }
 
         public static #{name_string enum.name} decode(XdrDataInputStream stream) throws IOException {
@@ -252,19 +237,9 @@ module Xdrgen
       end
 
       def render_struct(struct, out)
-        out.puts "public #{name struct} () {}"
         struct.members.each do |m|
-          out.puts <<-EOS.strip_heredoc
-            private #{decl_string(m.declaration)} #{m.name};
-            public #{decl_string(m.declaration)} get#{m.name.slice(0,1).capitalize+m.name.slice(1..-1)}() {
-              return this.#{m.name};
-            }
-            public void set#{m.name.slice(0,1).capitalize+m.name.slice(1..-1)}(#{decl_string m.declaration} value) {
-              this.#{m.name} = value;
-            }
-          EOS
+          out.puts "private #{decl_string(m.declaration)} #{m.name};"
         end
-
 
         out.puts "public static void encode(XdrDataOutputStream stream, #{name struct} encoded#{name struct}) throws IOException{"
         struct.members.each do |m|
@@ -294,117 +269,12 @@ module Xdrgen
         end
         out.puts "}"
 
-        hashCodeExpression = case struct.members.length
-          when 0
-            "0"
-          when 1
-            if is_decl_array(struct.members[0].declaration)
-              "Arrays.hashCode(this.#{struct.members[0].name})"
-            else
-              "Objects.hash(this.#{struct.members[0].name})"
-            end
-          else
-            "Objects.hash(#{
-              (struct.members.map { |m|
-                if is_decl_array(m.declaration)
-                  "Arrays.hashCode(this.#{m.name})"
-                else
-                  "this.#{m.name}"
-                end
-              }).join(", ")
-            })"
-        end
-        out.puts <<-EOS.strip_heredoc
-          @Override
-          public int hashCode() {
-            return #{hashCodeExpression};
-          }
-        EOS
-
-        equalParts = struct.members.map { |m|
-          if is_decl_array(m.declaration)
-            "Arrays.equals(this.#{m.name}, other.#{m.name})"
-          else
-            "Objects.equals(this.#{m.name}, other.#{m.name})"
-          end
-        }
-        equalExpression = case equalParts.length
-          when 0
-            "true"
-          else
-            equalParts.join(" && ")
-        end
-        type = name struct
-        out.puts <<-EOS.strip_heredoc
-          @Override
-          public boolean equals(Object object) {
-            if (!(object instanceof #{type})) {
-              return false;
-            }
-
-            #{type} other = (#{type}) object;
-            return #{equalExpression};
-          }
-
-        EOS
-
         render_base64((name struct), out)
-
-        out.puts "public static final class Builder {"
-        out.indent do
-          struct.members.map { |m|
-            out.puts "private #{decl_string(m.declaration)} #{m.name};"
-          }
-
-          struct.members.map { |m|
-            out.puts <<-EOS.strip_heredoc
-
-              public Builder #{m.name}(#{decl_string(m.declaration)} #{m.name}) {
-                this.#{m.name} = #{m.name};
-                return this;
-              }
-            EOS
-          }
-
-        end
-
-
-        out.indent do
-          out.break
-          out.puts "public #{name struct} build() {"
-          out.indent do
-            out.puts "#{name struct} val = new #{name struct}();"
-            struct.members.map { |m|
-              out.puts "val.set#{m.name.slice(0,1).capitalize+m.name.slice(1..-1)}(this.#{m.name});"
-            }
-            out.puts "return val;"
-          end
-          out.puts "}"
-        end
-        out.puts "}"
         out.break
       end
 
       def render_typedef(typedef, out)
-        out.puts <<-EOS.strip_heredoc
-          private #{decl_string typedef.declaration} #{typedef.name};
-
-          public #{typedef.name.camelize}() {}
-
-          public #{typedef.name.camelize}(#{decl_string typedef.declaration} #{typedef.name}) {
-            this.#{typedef.name} = #{typedef.name};
-          }
-
-          public #{decl_string typedef.declaration} get#{typedef.name.slice(0,1).capitalize+typedef.name.slice(1..-1)}() {
-            return this.#{typedef.name};
-          }
-
-          public void set#{typedef.name.slice(0,1).capitalize+typedef.name.slice(1..-1)}(#{decl_string typedef.declaration} value) {
-            this.#{typedef.name} = value;
-          }
-
-        EOS
-
+        out.puts "private #{decl_string typedef.declaration} #{typedef.name};"
         out.puts "public static void encode(XdrDataOutputStream stream, #{name typedef}  encoded#{name typedef}) throws IOException {"
         out.indent do
           encode_member "encoded#{name typedef}", typedef, out
@@ -428,112 +298,16 @@ module Xdrgen
         end
         out.puts "}"
         out.break
-
-        hash_coder_for_decl =
-          if is_decl_array(typedef.declaration)
-            "Arrays.hashCode"
-          else
-            "Objects.hash"
-          end
-        out.puts <<-EOS.strip_heredoc
-          @Override
-          public int hashCode() {
-            return #{hash_coder_for_decl}(this.#{typedef.name});
-          }
-
-        EOS
-
-        equals_for_decl =
-          if is_decl_array(typedef.declaration)
-            "Arrays.equals"
-          else
-            "Objects.equals"
-          end
-        type = name_string typedef.name
-        out.puts <<-EOS.strip_heredoc
-          @Override
-          public boolean equals(Object object) {
-            if (!(object instanceof #{type})) {
-              return false;
-            }
-
-            #{type} other = (#{type}) object;
-            return #{equals_for_decl}(this.#{typedef.name}, other.#{typedef.name});
-          }
-        EOS
         render_base64(typedef.name.camelize, out)
       end
 
       def render_union(union, out)
-        out.puts "public #{name union} () {}"
-        out.puts <<-EOS.strip_heredoc
-          #{type_string union.discriminant.type} #{union.discriminant.name};
-          public #{type_string union.discriminant.type} getDiscriminant() {
-            return this.#{union.discriminant.name};
-          }
-          public void setDiscriminant(#{type_string union.discriminant.type} value) {
-            this.#{union.discriminant.name} = value;
-          }
-        EOS
+        out.puts "private #{type_string union.discriminant.type} discriminant;"
         union.arms.each do |arm|
           next if arm.void?
-          out.puts <<-EOS.strip_heredoc
-            private #{decl_string(arm.declaration)} #{arm.name};
-            public #{decl_string(arm.declaration)} get#{arm.name.slice(0,1).capitalize+arm.name.slice(1..-1)}() {
-              return this.#{arm.name};
-            }
-            public void set#{arm.name.slice(0,1).capitalize+arm.name.slice(1..-1)}(#{decl_string arm.declaration} value) {
-              this.#{arm.name} = value;
-            }
-          EOS
+          out.puts "private #{decl_string(arm.declaration)} #{arm.name};"
         end
         out.break
-
-        out.puts "public static final class Builder {"
-        out.indent do
-          out.puts "private #{type_string union.discriminant.type} discriminant;"
-          union.arms.each do |arm|
-            next if arm.void?
-            out.puts "private #{decl_string(arm.declaration)} #{arm.name};"
-          end
-          out.break
-
-          out.puts <<-EOS.strip_heredoc
-            public Builder discriminant(#{type_string union.discriminant.type} discriminant) {
-              this.discriminant = discriminant;
-              return this;
-            }
-          EOS
-
-          union.arms.each do |arm|
-            next if arm.void?
-            out.puts <<-EOS.strip_heredoc
-
-              public Builder #{arm.name}(#{decl_string(arm.declaration)} #{arm.name}) {
-                this.#{arm.name} = #{arm.name};
-                return this;
-              }
-            EOS
-          end
-        end
-
-        out.indent do
-          out.break
-          out.puts "public #{name union} build() {"
-          out.indent do
-            out.puts "#{name union} val = new #{name union}();"
-            out.puts "val.setDiscriminant(discriminant);"
-            union.arms.each do |arm|
-              next if arm.void?
-              out.puts "val.set#{arm.name.slice(0,1).capitalize+arm.name.slice(1..-1)}(this.#{arm.name});"
-            end
-            out.puts "return val;"
-          end
-          out.puts "}"
-        end
-        out.puts "}"
-        out.break
-
 
         out.puts "public static void encode(XdrDataOutputStream stream, #{name union} encoded#{name union}) throws IOException {"
         out.puts('//' + union.discriminant.type.class.to_s)
@@ -622,65 +396,6 @@ module Xdrgen
           out.puts "return decoded#{name union};"
         end
         out.puts "}"
-
-        nonVoidArms = union.arms.select { |arm| !arm.void? }
-
-        discriminantPart = if is_type_array(union.discriminant.type)
-          "Arrays.hashCode(this.#{union.discriminant.name})"
-        else
-          "this.#{union.discriminant.name}"
-        end
-
-        parts = nonVoidArms.map { |a|
-          if is_decl_array(a.declaration)
-            "Arrays.hashCode(this.#{a.name})"
-          else
-            "this.#{a.name}"
-          end
-        }
-        parts.append(discriminantPart)
-
-        hashCodeExpression = "Objects.hash(#{parts.join(", ")})"
-        out.puts <<-EOS.strip_heredoc
-          @Override
-          public int hashCode() {
-            return #{hashCodeExpression};
-          }
-        EOS
-
-        equalParts = nonVoidArms.map { |a|
-          if is_decl_array(a.declaration)
-            "Arrays.equals(this.#{a.name}, other.#{a.name})"
-          else
-            "Objects.equals(this.#{a.name}, other.#{a.name})"
-          end
-        }
-        equalParts.append(
-          if is_type_array(union.discriminant.type)
-            "Arrays.equals(this.#{union.discriminant.name}, other.#{union.discriminant.name})"
-          else
-            "Objects.equals(this.#{union.discriminant.name}, other.#{union.discriminant.name})"
-          end
-        )
-
-        equalExpression = case equalParts.length
-          when 0
-            "true"
-          else
-            equalParts.join(" && ")
-        end
-        type = name union
-        out.puts <<-EOS.strip_heredoc
-          @Override
-          public boolean equals(Object object) {
-            if (!(object instanceof #{type})) {
-              return false;
-            }
-
-            #{type} other = (#{type}) object;
-            return #{equalExpression};
-          }
-        EOS
         render_base64((name union), out)
         out.break
       end
@@ -748,20 +463,20 @@ module Xdrgen
         end
         case member.declaration
         when AST::Declarations::Opaque ;
-          out.puts "int #{member.name}size = #{value}.#{member.name}.length;"
+          out.puts "int #{member.name}Size = #{value}.#{member.name}.length;"
           unless member.declaration.fixed?
-            out.puts "stream.writeInt(#{member.name}size);"
+            out.puts "stream.writeInt(#{member.name}Size);"
           end
           out.puts <<-EOS.strip_heredoc
-            stream.write(#{value}.get#{member.name.slice(0,1).capitalize+member.name.slice(1..-1)}(), 0, #{member.name}size);
+            stream.write(#{value}.get#{member.name.slice(0,1).capitalize+member.name.slice(1..-1)}(), 0, #{member.name}Size);
           EOS
         when AST::Declarations::Array ;
-          out.puts "int #{member.name}size = #{value}.get#{member.name.slice(0,1).capitalize+member.name.slice(1..-1)}().length;"
+          out.puts "int #{member.name}Size = #{value}.get#{member.name.slice(0,1).capitalize+member.name.slice(1..-1)}().length;"
           unless member.declaration.fixed?
-            out.puts "stream.writeInt(#{member.name}size);"
+            out.puts "stream.writeInt(#{member.name}Size);"
           end
           out.puts <<-EOS.strip_heredoc
-            for (int i = 0; i < #{member.name}size; i++) {
+            for (int i = 0; i < #{member.name}Size; i++) {
               #{encode_type member.declaration.type, "#{value}.#{member.name}[i]"};
             }
           EOS
@@ -818,23 +533,23 @@ module Xdrgen
         case member.declaration
         when AST::Declarations::Opaque ;
           if (member.declaration.fixed?)
-            out.puts "int #{member.name}size = #{member.declaration.size};"
+            out.puts "int #{member.name}Size = #{member.declaration.size};"
           else
-            out.puts "int #{member.name}size = stream.readInt();"
+            out.puts "int #{member.name}Size = stream.readInt();"
           end
           out.puts <<-EOS.strip_heredoc
-            #{value}.#{member.name} = new byte[#{member.name}size];
-            stream.read(#{value}.#{member.name}, 0, #{member.name}size);
+            #{value}.#{member.name} = new byte[#{member.name}Size];
+            stream.read(#{value}.#{member.name}, 0, #{member.name}Size);
           EOS
         when AST::Declarations::Array ;
           if (member.declaration.fixed?)
-            out.puts "int #{member.name}size = #{member.declaration.size};"
+            out.puts "int #{member.name}Size = #{member.declaration.size};"
           else
-            out.puts "int #{member.name}size = stream.readInt();"
+            out.puts "int #{member.name}Size = stream.readInt();"
           end
           out.puts <<-EOS.strip_heredoc
-            #{value}.#{member.name} = new #{type_string member.type}[#{member.name}size];
-            for (int i = 0; i < #{member.name}size; i++) {
+            #{value}.#{member.name} = new #{type_string member.type}[#{member.name}Size];
+            for (int i = 0; i < #{member.name}Size; i++) {
               #{value}.#{member.name}[i] = #{decode_type member.declaration};
             }
           EOS
