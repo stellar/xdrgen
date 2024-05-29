@@ -33,28 +33,25 @@ public class HasOptions implements XdrElement {
   private Integer firstOption;
   private Integer secondOption;
   private Arr thirdOption;
-  public static void encode(XdrDataOutputStream stream, HasOptions encodedHasOptions) throws IOException{
-    if (encodedHasOptions.firstOption != null) {
+  public void encode(XdrDataOutputStream stream) throws IOException{
+    if (firstOption != null) {
     stream.writeInt(1);
-    stream.writeInt(encodedHasOptions.firstOption);
+    stream.writeInt(firstOption);
     } else {
     stream.writeInt(0);
     }
-    if (encodedHasOptions.secondOption != null) {
+    if (secondOption != null) {
     stream.writeInt(1);
-    stream.writeInt(encodedHasOptions.secondOption);
+    stream.writeInt(secondOption);
     } else {
     stream.writeInt(0);
     }
-    if (encodedHasOptions.thirdOption != null) {
+    if (thirdOption != null) {
     stream.writeInt(1);
-    Arr.encode(stream, encodedHasOptions.thirdOption);
+    thirdOption.encode(stream);
     } else {
     stream.writeInt(0);
     }
-  }
-  public void encode(XdrDataOutputStream stream) throws IOException {
-    encode(stream, this);
   }
   public static HasOptions decode(XdrDataInputStream stream) throws IOException {
     HasOptions decodedHasOptions = new HasOptions();
@@ -72,19 +69,6 @@ public class HasOptions implements XdrElement {
     }
     return decodedHasOptions;
   }
-  @Override
-  public String toXdrBase64() throws IOException {
-    return Base64Factory.getInstance().encodeToString(toXdrByteArray());
-  }
-
-  @Override
-  public byte[] toXdrByteArray() throws IOException {
-    ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-    XdrDataOutputStream xdrDataOutputStream = new XdrDataOutputStream(byteArrayOutputStream);
-    encode(xdrDataOutputStream);
-    return byteArrayOutputStream.toByteArray();
-  }
-
   public static HasOptions fromXdrBase64(String xdr) throws IOException {
     byte[] bytes = Base64Factory.getInstance().decode(xdr);
     return fromXdrByteArray(bytes);

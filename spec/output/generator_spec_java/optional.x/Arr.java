@@ -24,16 +24,13 @@ import static MyXDR.Constants.*;
 @AllArgsConstructor
 public class Arr implements XdrElement {
   private Integer[] Arr;
-  public static void encode(XdrDataOutputStream stream, Arr  encodedArr) throws IOException {
-    int ArrSize = encodedArr.getArr().length;
+  public void encode(XdrDataOutputStream stream) throws IOException {
+    int ArrSize = getArr().length;
     for (int i = 0; i < ArrSize; i++) {
-      stream.writeInt(encodedArr.Arr[i]);
+      stream.writeInt(Arr[i]);
     }
   }
 
-  public void encode(XdrDataOutputStream stream) throws IOException {
-    encode(stream, this);
-  }
   public static Arr decode(XdrDataInputStream stream) throws IOException {
     Arr decodedArr = new Arr();
     int ArrSize = 2;
@@ -42,19 +39,6 @@ public class Arr implements XdrElement {
       decodedArr.Arr[i] = stream.readInt();
     }
     return decodedArr;
-  }
-
-  @Override
-  public String toXdrBase64() throws IOException {
-    return Base64Factory.getInstance().encodeToString(toXdrByteArray());
-  }
-
-  @Override
-  public byte[] toXdrByteArray() throws IOException {
-    ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-    XdrDataOutputStream xdrDataOutputStream = new XdrDataOutputStream(byteArrayOutputStream);
-    encode(xdrDataOutputStream);
-    return byteArrayOutputStream.toByteArray();
   }
 
   public static Arr fromXdrBase64(String xdr) throws IOException {

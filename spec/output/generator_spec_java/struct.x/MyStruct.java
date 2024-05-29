@@ -37,16 +37,13 @@ public class MyStruct implements XdrElement {
   private byte[] someOpaque;
   private XdrString someString;
   private XdrString maxString;
-  public static void encode(XdrDataOutputStream stream, MyStruct encodedMyStruct) throws IOException{
-    stream.writeInt(encodedMyStruct.someInt);
-    Int64.encode(stream, encodedMyStruct.aBigInt);
-    int someOpaqueSize = encodedMyStruct.someOpaque.length;
-    stream.write(encodedMyStruct.getSomeOpaque(), 0, someOpaqueSize);
-    encodedMyStruct.someString.encode(stream);
-    encodedMyStruct.maxString.encode(stream);
-  }
-  public void encode(XdrDataOutputStream stream) throws IOException {
-    encode(stream, this);
+  public void encode(XdrDataOutputStream stream) throws IOException{
+    stream.writeInt(someInt);
+    aBigInt.encode(stream);
+    int someOpaqueSize = someOpaque.length;
+    stream.write(getSomeOpaque(), 0, someOpaqueSize);
+    someString.encode(stream);
+    maxString.encode(stream);
   }
   public static MyStruct decode(XdrDataInputStream stream) throws IOException {
     MyStruct decodedMyStruct = new MyStruct();
@@ -59,19 +56,6 @@ public class MyStruct implements XdrElement {
     decodedMyStruct.maxString = XdrString.decode(stream, 100);
     return decodedMyStruct;
   }
-  @Override
-  public String toXdrBase64() throws IOException {
-    return Base64Factory.getInstance().encodeToString(toXdrByteArray());
-  }
-
-  @Override
-  public byte[] toXdrByteArray() throws IOException {
-    ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-    XdrDataOutputStream xdrDataOutputStream = new XdrDataOutputStream(byteArrayOutputStream);
-    encode(xdrDataOutputStream);
-    return byteArrayOutputStream.toByteArray();
-  }
-
   public static MyStruct fromXdrBase64(String xdr) throws IOException {
     byte[] bytes = Base64Factory.getInstance().decode(xdr);
     return fromXdrByteArray(bytes);

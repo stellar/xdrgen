@@ -29,15 +29,12 @@ import static MyXDR.Constants.*;
 @Builder(toBuilder = true)
 public class LotsOfMyStructs implements XdrElement {
   private MyStruct[] members;
-  public static void encode(XdrDataOutputStream stream, LotsOfMyStructs encodedLotsOfMyStructs) throws IOException{
-    int membersSize = encodedLotsOfMyStructs.getMembers().length;
+  public void encode(XdrDataOutputStream stream) throws IOException{
+    int membersSize = getMembers().length;
     stream.writeInt(membersSize);
     for (int i = 0; i < membersSize; i++) {
-      MyStruct.encode(stream, encodedLotsOfMyStructs.members[i]);
+      members[i].encode(stream);
     }
-  }
-  public void encode(XdrDataOutputStream stream) throws IOException {
-    encode(stream, this);
   }
   public static LotsOfMyStructs decode(XdrDataInputStream stream) throws IOException {
     LotsOfMyStructs decodedLotsOfMyStructs = new LotsOfMyStructs();
@@ -48,19 +45,6 @@ public class LotsOfMyStructs implements XdrElement {
     }
     return decodedLotsOfMyStructs;
   }
-  @Override
-  public String toXdrBase64() throws IOException {
-    return Base64Factory.getInstance().encodeToString(toXdrByteArray());
-  }
-
-  @Override
-  public byte[] toXdrByteArray() throws IOException {
-    ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-    XdrDataOutputStream xdrDataOutputStream = new XdrDataOutputStream(byteArrayOutputStream);
-    encode(xdrDataOutputStream);
-    return byteArrayOutputStream.toByteArray();
-  }
-
   public static LotsOfMyStructs fromXdrBase64(String xdr) throws IOException {
     byte[] bytes = Base64Factory.getInstance().decode(xdr);
     return fromXdrByteArray(bytes);

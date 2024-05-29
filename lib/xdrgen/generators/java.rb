@@ -224,12 +224,8 @@ module Xdrgen
           }
         }
 
-        public static void encode(XdrDataOutputStream stream, #{name_string enum.name} value) throws IOException {
-          stream.writeInt(value.getValue());
-        }
-
         public void encode(XdrDataOutputStream stream) throws IOException {
-          encode(stream, this);
+          stream.writeInt(value);
         }
         EOS
         render_base64((name_string enum.name), out)
@@ -241,19 +237,13 @@ module Xdrgen
           out.puts "private #{decl_string(m.declaration)} #{m.name};"
         end
 
-        out.puts "public static void encode(XdrDataOutputStream stream, #{name struct} encoded#{name struct}) throws IOException{"
+        out.puts "public void encode(XdrDataOutputStream stream) throws IOException{"
         struct.members.each do |m|
           out.indent do
-            encode_member "encoded#{name struct}", m, out
+            encode_member m, out
           end
         end
         out.puts "}"
-
-        out.puts <<-EOS.strip_heredoc
-          public void encode(XdrDataOutputStream stream) throws IOException {
-            encode(stream, this);
-          }
-        EOS
 
         out.puts <<-EOS.strip_heredoc
           public static #{name struct} decode(XdrDataInputStream stream) throws IOException {
@@ -275,18 +265,12 @@ module Xdrgen
 
       def render_typedef(typedef, out)
         out.puts "private #{decl_string typedef.declaration} #{typedef.name};"
-        out.puts "public static void encode(XdrDataOutputStream stream, #{name typedef}  encoded#{name typedef}) throws IOException {"
+        out.puts "public void encode(XdrDataOutputStream stream) throws IOException {"
         out.indent do
-          encode_member "encoded#{name typedef}", typedef, out
+          encode_member typedef, out
         end
         out.puts "}"
         out.break
-
-        out.puts <<-EOS.strip_heredoc
-          public void encode(XdrDataOutputStream stream) throws IOException {
-            encode(stream, this);
-          }
-        EOS
 
         out.puts <<-EOS.strip_heredoc
           public static #{name typedef} decode(XdrDataInputStream stream) throws IOException {
@@ -309,22 +293,20 @@ module Xdrgen
         end
         out.break
 
-        out.puts "public static void encode(XdrDataOutputStream stream, #{name union} encoded#{name union}) throws IOException {"
-        out.puts('//' + union.discriminant.type.class.to_s)
-        out.puts("//" + type_string(union.discriminant.type))
+        out.puts "public void encode(XdrDataOutputStream stream) throws IOException {"
         if union.discriminant.type.is_a?(AST::Typespecs::Int)
-          out.puts "stream.writeInt(encoded#{name union}.getDiscriminant().intValue());"
+          out.puts "stream.writeInt(discriminant);"
         elsif type_string(union.discriminant.type) == "Uint32"
           # ugly workaround for compile error after generating source for AuthenticatedMessage in stellar-core
-          out.puts "stream.writeInt(encoded#{name union}.getDiscriminant().getUint32().getNumber().intValue());"
+          out.puts "stream.writeInt(discriminant.getUint32().getNumber().intValue());"
         else
-          out.puts "stream.writeInt(encoded#{name union}.getDiscriminant().getValue());"
+          out.puts "stream.writeInt(discriminant.getValue());"
         end
         if type_string(union.discriminant.type) == "Uint32"
           # ugly workaround for compile error after generating source for AuthenticatedMessage in stellar-core
-          out.puts "switch (encoded#{name union}.getDiscriminant().getUint32().getNumber().intValue()) {"
+          out.puts "switch (discriminant.getUint32().getNumber().intValue()) {"
         else
-          out.puts "switch (encoded#{name union}.getDiscriminant()) {"
+          out.puts "switch (discriminant) {"
         end
         union.arms.each do |arm|
           case arm
@@ -344,15 +326,10 @@ module Xdrgen
                 end
               end
           end
-          encode_member "encoded#{name union}", arm, out
+          encode_member arm, out
           out.puts "break;"
         end
         out.puts "}\n}"
-        out.puts <<-EOS.strip_heredoc
-          public void encode(XdrDataOutputStream stream) throws IOException {
-            encode(stream, this);
-          }
-        EOS
 
         out.puts "public static #{name union} decode(XdrDataInputStream stream) throws IOException {"
         out.puts "#{name union} decoded#{name union} = new #{name union}();"
@@ -425,19 +402,6 @@ module Xdrgen
 
       def render_base64(return_type, out)
         out.puts <<-EOS.strip_heredoc
-          @Override
-          public String toXdrBase64() throws IOException {
-            return Base64Factory.getInstance().encodeToString(toXdrByteArray());
-          }
-
-          @Override
-          public byte[] toXdrByteArray() throws IOException {
-            ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-            XdrDataOutputStream xdrDataOutputStream = new XdrDataOutputStream(byteArrayOutputStream);
-            encode(xdrDataOutputStream);
-            return byteArrayOutputStream.toByteArray();
-          }
-
           public static #{return_type} fromXdrBase64(String xdr) throws IOException {
             byte[] bytes = Base64Factory.getInstance().decode(xdr);
             return fromXdrByteArray(bytes);
@@ -451,37 +415,37 @@ module Xdrgen
         EOS
       end
 
-      def encode_member(value, member, out)
+      def encode_member(member, out)
         case member.declaration
           when AST::Declarations::Void
             return
         end
 
         if member.type.sub_type == :optional
-          out.puts "if (#{value}.#{member.name} != null) {"
+          out.puts "if (#{member.name} != null) {"
           out.puts "stream.writeInt(1);"
         end
         case member.declaration
         when AST::Declarations::Opaque ;
-          out.puts "int #{member.name}Size = #{value}.#{member.name}.length;"
+          out.puts "int #{member.name}Size = #{member.name}.length;"
           unless member.declaration.fixed?
             out.puts "stream.writeInt(#{member.name}Size);"
           end
           out.puts <<-EOS.strip_heredoc
-            stream.write(#{value}.get#{member.name.slice(0,1).capitalize+member.name.slice(1..-1)}(), 0, #{member.name}Size);
+            stream.write(get#{member.name.slice(0,1).capitalize+member.name.slice(1..-1)}(), 0, #{member.name}Size);
           EOS
         when AST::Declarations::Array ;
-          out.puts "int #{member.name}Size = #{value}.get#{member.name.slice(0,1).capitalize+member.name.slice(1..-1)}().length;"
+          out.puts "int #{member.name}Size = get#{member.name.slice(0,1).capitalize+member.name.slice(1..-1)}().length;"
           unless member.declaration.fixed?
             out.puts "stream.writeInt(#{member.name}Size);"
           end
           out.puts <<-EOS.strip_heredoc
             for (int i = 0; i < #{member.name}Size; i++) {
-              #{encode_type member.declaration.type, "#{value}.#{member.name}[i]"};
+              #{encode_type member.declaration.type, "#{member.name}[i]"};
             }
           EOS
         else
-          out.puts "#{encode_type member.declaration.type, "#{value}.#{member.name}"};"
+          out.puts "#{encode_type member.declaration.type, "#{member.name}"};"
         end
         if member.type.sub_type == :optional
           out.puts "} else {"
@@ -511,10 +475,10 @@ module Xdrgen
         when AST::Typespecs::String ;
           "#{value}.encode(stream)"
         when AST::Typespecs::Simple ;
-          "#{name type.resolved_type}.encode(stream, #{value})"
+          "#{value}.encode(stream)"
         when AST::Concerns::NestedDefinition ;
-          "#{name type}.encode(stream, #{value})"
-        else
+          "#{value}.encode(stream)"
+      else
           raise "Unknown typespec: #{type.class.name}"
         end
       end

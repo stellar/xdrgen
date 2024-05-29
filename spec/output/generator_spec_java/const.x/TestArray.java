@@ -24,16 +24,13 @@ import static MyXDR.Constants.*;
 @AllArgsConstructor
 public class TestArray implements XdrElement {
   private Integer[] TestArray;
-  public static void encode(XdrDataOutputStream stream, TestArray  encodedTestArray) throws IOException {
-    int TestArraySize = encodedTestArray.getTestArray().length;
+  public void encode(XdrDataOutputStream stream) throws IOException {
+    int TestArraySize = getTestArray().length;
     for (int i = 0; i < TestArraySize; i++) {
-      stream.writeInt(encodedTestArray.TestArray[i]);
+      stream.writeInt(TestArray[i]);
     }
   }
 
-  public void encode(XdrDataOutputStream stream) throws IOException {
-    encode(stream, this);
-  }
   public static TestArray decode(XdrDataInputStream stream) throws IOException {
     TestArray decodedTestArray = new TestArray();
     int TestArraySize = FOO;
@@ -42,19 +39,6 @@ public class TestArray implements XdrElement {
       decodedTestArray.TestArray[i] = stream.readInt();
     }
     return decodedTestArray;
-  }
-
-  @Override
-  public String toXdrBase64() throws IOException {
-    return Base64Factory.getInstance().encodeToString(toXdrByteArray());
-  }
-
-  @Override
-  public byte[] toXdrByteArray() throws IOException {
-    ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-    XdrDataOutputStream xdrDataOutputStream = new XdrDataOutputStream(byteArrayOutputStream);
-    encode(xdrDataOutputStream);
-    return byteArrayOutputStream.toByteArray();
   }
 
   public static TestArray fromXdrBase64(String xdr) throws IOException {

@@ -24,33 +24,17 @@ import static MyXDR.Constants.*;
 @AllArgsConstructor
 public class Hash implements XdrElement {
   private byte[] Hash;
-  public static void encode(XdrDataOutputStream stream, Hash  encodedHash) throws IOException {
-    int HashSize = encodedHash.Hash.length;
-    stream.write(encodedHash.getHash(), 0, HashSize);
+  public void encode(XdrDataOutputStream stream) throws IOException {
+    int HashSize = Hash.length;
+    stream.write(getHash(), 0, HashSize);
   }
 
-  public void encode(XdrDataOutputStream stream) throws IOException {
-    encode(stream, this);
-  }
   public static Hash decode(XdrDataInputStream stream) throws IOException {
     Hash decodedHash = new Hash();
     int HashSize = 32;
     decodedHash.Hash = new byte[HashSize];
     stream.read(decodedHash.Hash, 0, HashSize);
     return decodedHash;
-  }
-
-  @Override
-  public String toXdrBase64() throws IOException {
-    return Base64Factory.getInstance().encodeToString(toXdrByteArray());
-  }
-
-  @Override
-  public byte[] toXdrByteArray() throws IOException {
-    ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-    XdrDataOutputStream xdrDataOutputStream = new XdrDataOutputStream(byteArrayOutputStream);
-    encode(xdrDataOutputStream);
-    return byteArrayOutputStream.toByteArray();
   }
 
   public static Hash fromXdrBase64(String xdr) throws IOException {

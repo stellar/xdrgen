@@ -24,34 +24,18 @@ import static MyXDR.Constants.*;
 @AllArgsConstructor
 public class Uint513 implements XdrElement {
   private byte[] uint513;
-  public static void encode(XdrDataOutputStream stream, Uint513  encodedUint513) throws IOException {
-    int uint513Size = encodedUint513.uint513.length;
+  public void encode(XdrDataOutputStream stream) throws IOException {
+    int uint513Size = uint513.length;
     stream.writeInt(uint513Size);
-    stream.write(encodedUint513.getUint513(), 0, uint513Size);
+    stream.write(getUint513(), 0, uint513Size);
   }
 
-  public void encode(XdrDataOutputStream stream) throws IOException {
-    encode(stream, this);
-  }
   public static Uint513 decode(XdrDataInputStream stream) throws IOException {
     Uint513 decodedUint513 = new Uint513();
     int uint513Size = stream.readInt();
     decodedUint513.uint513 = new byte[uint513Size];
     stream.read(decodedUint513.uint513, 0, uint513Size);
     return decodedUint513;
-  }
-
-  @Override
-  public String toXdrBase64() throws IOException {
-    return Base64Factory.getInstance().encodeToString(toXdrByteArray());
-  }
-
-  @Override
-  public byte[] toXdrByteArray() throws IOException {
-    ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-    XdrDataOutputStream xdrDataOutputStream = new XdrDataOutputStream(byteArrayOutputStream);
-    encode(xdrDataOutputStream);
-    return byteArrayOutputStream.toByteArray();
   }
 
   public static Uint513 fromXdrBase64(String xdr) throws IOException {

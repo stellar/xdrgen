@@ -24,30 +24,14 @@ import static MyXDR.Constants.*;
 @AllArgsConstructor
 public class Error implements XdrElement {
   private Integer Error;
-  public static void encode(XdrDataOutputStream stream, Error  encodedError) throws IOException {
-    stream.writeInt(encodedError.Error);
+  public void encode(XdrDataOutputStream stream) throws IOException {
+    stream.writeInt(Error);
   }
 
-  public void encode(XdrDataOutputStream stream) throws IOException {
-    encode(stream, this);
-  }
   public static Error decode(XdrDataInputStream stream) throws IOException {
     Error decodedError = new Error();
     decodedError.Error = stream.readInt();
     return decodedError;
-  }
-
-  @Override
-  public String toXdrBase64() throws IOException {
-    return Base64Factory.getInstance().encodeToString(toXdrByteArray());
-  }
-
-  @Override
-  public byte[] toXdrByteArray() throws IOException {
-    ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-    XdrDataOutputStream xdrDataOutputStream = new XdrDataOutputStream(byteArrayOutputStream);
-    encode(xdrDataOutputStream);
-    return byteArrayOutputStream.toByteArray();
   }
 
   public static Error fromXdrBase64(String xdr) throws IOException {

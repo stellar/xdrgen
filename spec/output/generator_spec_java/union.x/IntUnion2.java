@@ -24,30 +24,14 @@ import static MyXDR.Constants.*;
 @AllArgsConstructor
 public class IntUnion2 implements XdrElement {
   private IntUnion IntUnion2;
-  public static void encode(XdrDataOutputStream stream, IntUnion2  encodedIntUnion2) throws IOException {
-    IntUnion.encode(stream, encodedIntUnion2.IntUnion2);
+  public void encode(XdrDataOutputStream stream) throws IOException {
+    IntUnion2.encode(stream);
   }
 
-  public void encode(XdrDataOutputStream stream) throws IOException {
-    encode(stream, this);
-  }
   public static IntUnion2 decode(XdrDataInputStream stream) throws IOException {
     IntUnion2 decodedIntUnion2 = new IntUnion2();
     decodedIntUnion2.IntUnion2 = IntUnion.decode(stream);
     return decodedIntUnion2;
-  }
-
-  @Override
-  public String toXdrBase64() throws IOException {
-    return Base64Factory.getInstance().encodeToString(toXdrByteArray());
-  }
-
-  @Override
-  public byte[] toXdrByteArray() throws IOException {
-    ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-    XdrDataOutputStream xdrDataOutputStream = new XdrDataOutputStream(byteArrayOutputStream);
-    encode(xdrDataOutputStream);
-    return byteArrayOutputStream.toByteArray();
   }
 
   public static IntUnion2 fromXdrBase64(String xdr) throws IOException {

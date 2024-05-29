@@ -41,17 +41,14 @@ public class MyStruct implements XdrElement {
   private Float field5;
   private Double field6;
   private Boolean field7;
-  public static void encode(XdrDataOutputStream stream, MyStruct encodedMyStruct) throws IOException{
-    Uint512.encode(stream, encodedMyStruct.field1);
-    OptHash1.encode(stream, encodedMyStruct.field2);
-    Int1.encode(stream, encodedMyStruct.field3);
-    encodedMyStruct.field4.encode(stream);
-    stream.writeFloat(encodedMyStruct.field5);
-    stream.writeDouble(encodedMyStruct.field6);
-    stream.writeInt(encodedMyStruct.field7 ? 1 : 0);
-  }
-  public void encode(XdrDataOutputStream stream) throws IOException {
-    encode(stream, this);
+  public void encode(XdrDataOutputStream stream) throws IOException{
+    field1.encode(stream);
+    field2.encode(stream);
+    field3.encode(stream);
+    field4.encode(stream);
+    stream.writeFloat(field5);
+    stream.writeDouble(field6);
+    stream.writeInt(field7 ? 1 : 0);
   }
   public static MyStruct decode(XdrDataInputStream stream) throws IOException {
     MyStruct decodedMyStruct = new MyStruct();
@@ -64,19 +61,6 @@ public class MyStruct implements XdrElement {
     decodedMyStruct.field7 = stream.readInt() == 1 ? true : false;
     return decodedMyStruct;
   }
-  @Override
-  public String toXdrBase64() throws IOException {
-    return Base64Factory.getInstance().encodeToString(toXdrByteArray());
-  }
-
-  @Override
-  public byte[] toXdrByteArray() throws IOException {
-    ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-    XdrDataOutputStream xdrDataOutputStream = new XdrDataOutputStream(byteArrayOutputStream);
-    encode(xdrDataOutputStream);
-    return byteArrayOutputStream.toByteArray();
-  }
-
   public static MyStruct fromXdrBase64(String xdr) throws IOException {
     byte[] bytes = Base64Factory.getInstance().decode(xdr);
     return fromXdrByteArray(bytes);

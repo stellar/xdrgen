@@ -37,25 +37,20 @@ public class MyUnion implements XdrElement {
   private Error error;
   private Multi[] things;
 
-  public static void encode(XdrDataOutputStream stream, MyUnion encodedMyUnion) throws IOException {
-  //Xdrgen::AST::Identifier
-  //UnionKey
-  stream.writeInt(encodedMyUnion.getDiscriminant().getValue());
-  switch (encodedMyUnion.getDiscriminant()) {
+  public void encode(XdrDataOutputStream stream) throws IOException {
+  stream.writeInt(discriminant.getValue());
+  switch (discriminant) {
   case ERROR:
-  Error.encode(stream, encodedMyUnion.error);
+  error.encode(stream);
   break;
   case MULTI:
-  int thingsSize = encodedMyUnion.getThings().length;
+  int thingsSize = getThings().length;
   stream.writeInt(thingsSize);
   for (int i = 0; i < thingsSize; i++) {
-    Multi.encode(stream, encodedMyUnion.things[i]);
+    things[i].encode(stream);
   }
   break;
   }
-  }
-  public void encode(XdrDataOutputStream stream) throws IOException {
-    encode(stream, this);
   }
   public static MyUnion decode(XdrDataInputStream stream) throws IOException {
   MyUnion decodedMyUnion = new MyUnion();
@@ -75,19 +70,6 @@ public class MyUnion implements XdrElement {
   }
     return decodedMyUnion;
   }
-  @Override
-  public String toXdrBase64() throws IOException {
-    return Base64Factory.getInstance().encodeToString(toXdrByteArray());
-  }
-
-  @Override
-  public byte[] toXdrByteArray() throws IOException {
-    ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-    XdrDataOutputStream xdrDataOutputStream = new XdrDataOutputStream(byteArrayOutputStream);
-    encode(xdrDataOutputStream);
-    return byteArrayOutputStream.toByteArray();
-  }
-
   public static MyUnion fromXdrBase64(String xdr) throws IOException {
     byte[] bytes = Base64Factory.getInstance().decode(xdr);
     return fromXdrByteArray(bytes);

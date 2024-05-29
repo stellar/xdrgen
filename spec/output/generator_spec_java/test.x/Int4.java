@@ -24,30 +24,14 @@ import static MyXDR.Constants.*;
 @AllArgsConstructor
 public class Int4 implements XdrElement {
   private XdrUnsignedHyperInteger int4;
-  public static void encode(XdrDataOutputStream stream, Int4  encodedInt4) throws IOException {
-    encodedInt4.int4.encode(stream);
+  public void encode(XdrDataOutputStream stream) throws IOException {
+    int4.encode(stream);
   }
 
-  public void encode(XdrDataOutputStream stream) throws IOException {
-    encode(stream, this);
-  }
   public static Int4 decode(XdrDataInputStream stream) throws IOException {
     Int4 decodedInt4 = new Int4();
     decodedInt4.int4 = XdrUnsignedHyperInteger.decode(stream);
     return decodedInt4;
-  }
-
-  @Override
-  public String toXdrBase64() throws IOException {
-    return Base64Factory.getInstance().encodeToString(toXdrByteArray());
-  }
-
-  @Override
-  public byte[] toXdrByteArray() throws IOException {
-    ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-    XdrDataOutputStream xdrDataOutputStream = new XdrDataOutputStream(byteArrayOutputStream);
-    encode(xdrDataOutputStream);
-    return byteArrayOutputStream.toByteArray();
   }
 
   public static Int4 fromXdrBase64(String xdr) throws IOException {

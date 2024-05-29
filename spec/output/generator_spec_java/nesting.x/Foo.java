@@ -24,30 +24,14 @@ import static MyXDR.Constants.*;
 @AllArgsConstructor
 public class Foo implements XdrElement {
   private Integer Foo;
-  public static void encode(XdrDataOutputStream stream, Foo  encodedFoo) throws IOException {
-    stream.writeInt(encodedFoo.Foo);
+  public void encode(XdrDataOutputStream stream) throws IOException {
+    stream.writeInt(Foo);
   }
 
-  public void encode(XdrDataOutputStream stream) throws IOException {
-    encode(stream, this);
-  }
   public static Foo decode(XdrDataInputStream stream) throws IOException {
     Foo decodedFoo = new Foo();
     decodedFoo.Foo = stream.readInt();
     return decodedFoo;
-  }
-
-  @Override
-  public String toXdrBase64() throws IOException {
-    return Base64Factory.getInstance().encodeToString(toXdrByteArray());
-  }
-
-  @Override
-  public byte[] toXdrByteArray() throws IOException {
-    ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-    XdrDataOutputStream xdrDataOutputStream = new XdrDataOutputStream(byteArrayOutputStream);
-    encode(xdrDataOutputStream);
-    return byteArrayOutputStream.toByteArray();
   }
 
   public static Foo fromXdrBase64(String xdr) throws IOException {
