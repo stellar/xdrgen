@@ -12,7 +12,6 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
-import static MyXDR.Constants.*;
 
 /**
  * Nester's original definition in the XDR file is:
@@ -47,13 +46,10 @@ public class Nester implements XdrElement {
   private NesterNestedEnum nestedEnum;
   private NesterNestedStruct nestedStruct;
   private NesterNestedUnion nestedUnion;
-  public static void encode(XdrDataOutputStream stream, Nester encodedNester) throws IOException{
-    NesterNestedEnum.encode(stream, encodedNester.nestedEnum);
-    NesterNestedStruct.encode(stream, encodedNester.nestedStruct);
-    NesterNestedUnion.encode(stream, encodedNester.nestedUnion);
-  }
-  public void encode(XdrDataOutputStream stream) throws IOException {
-    encode(stream, this);
+  public void encode(XdrDataOutputStream stream) throws IOException{
+    nestedEnum.encode(stream);
+    nestedStruct.encode(stream);
+    nestedUnion.encode(stream);
   }
   public static Nester decode(XdrDataInputStream stream) throws IOException {
     Nester decodedNester = new Nester();
@@ -62,19 +58,6 @@ public class Nester implements XdrElement {
     decodedNester.nestedUnion = NesterNestedUnion.decode(stream);
     return decodedNester;
   }
-  @Override
-  public String toXdrBase64() throws IOException {
-    return Base64Factory.getInstance().encodeToString(toXdrByteArray());
-  }
-
-  @Override
-  public byte[] toXdrByteArray() throws IOException {
-    ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-    XdrDataOutputStream xdrDataOutputStream = new XdrDataOutputStream(byteArrayOutputStream);
-    encode(xdrDataOutputStream);
-    return byteArrayOutputStream.toByteArray();
-  }
-
   public static Nester fromXdrBase64(String xdr) throws IOException {
     byte[] bytes = Base64Factory.getInstance().decode(xdr);
     return fromXdrByteArray(bytes);
@@ -119,26 +102,9 @@ public class Nester implements XdrElement {
       }
     }
 
-    public static void encode(XdrDataOutputStream stream, NestedEnum value) throws IOException {
-      stream.writeInt(value.getValue());
-    }
-
     public void encode(XdrDataOutputStream stream) throws IOException {
-      encode(stream, this);
+      stream.writeInt(value);
     }
-    @Override
-    public String toXdrBase64() throws IOException {
-      return Base64Factory.getInstance().encodeToString(toXdrByteArray());
-    }
-
-    @Override
-    public byte[] toXdrByteArray() throws IOException {
-      ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-      XdrDataOutputStream xdrDataOutputStream = new XdrDataOutputStream(byteArrayOutputStream);
-      encode(xdrDataOutputStream);
-      return byteArrayOutputStream.toByteArray();
-    }
-
     public static NestedEnum fromXdrBase64(String xdr) throws IOException {
       byte[] bytes = Base64Factory.getInstance().decode(xdr);
       return fromXdrByteArray(bytes);
@@ -165,30 +131,14 @@ public class Nester implements XdrElement {
   @Builder(toBuilder = true)
   public static class NesterNestedStruct implements XdrElement {
     private Integer blah;
-    public static void encode(XdrDataOutputStream stream, NesterNestedStruct encodedNesterNestedStruct) throws IOException{
-      stream.writeInt(encodedNesterNestedStruct.blah);
-    }
-    public void encode(XdrDataOutputStream stream) throws IOException {
-      encode(stream, this);
+    public void encode(XdrDataOutputStream stream) throws IOException{
+      stream.writeInt(blah);
     }
     public static NesterNestedStruct decode(XdrDataInputStream stream) throws IOException {
       NesterNestedStruct decodedNesterNestedStruct = new NesterNestedStruct();
       decodedNesterNestedStruct.blah = stream.readInt();
       return decodedNesterNestedStruct;
     }
-    @Override
-    public String toXdrBase64() throws IOException {
-      return Base64Factory.getInstance().encodeToString(toXdrByteArray());
-    }
-
-    @Override
-    public byte[] toXdrByteArray() throws IOException {
-      ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-      XdrDataOutputStream xdrDataOutputStream = new XdrDataOutputStream(byteArrayOutputStream);
-      encode(xdrDataOutputStream);
-      return byteArrayOutputStream.toByteArray();
-    }
-
     public static NesterNestedStruct fromXdrBase64(String xdr) throws IOException {
       byte[] bytes = Base64Factory.getInstance().decode(xdr);
       return fromXdrByteArray(bytes);
@@ -220,20 +170,15 @@ public class Nester implements XdrElement {
     private Color discriminant;
     private Integer blah2;
 
-    public static void encode(XdrDataOutputStream stream, NesterNestedUnion encodedNesterNestedUnion) throws IOException {
-    //Xdrgen::AST::Identifier
-    //Color
-    stream.writeInt(encodedNesterNestedUnion.getDiscriminant().getValue());
-    switch (encodedNesterNestedUnion.getDiscriminant()) {
+    public void encode(XdrDataOutputStream stream) throws IOException {
+    stream.writeInt(discriminant.getValue());
+    switch (discriminant) {
     case RED:
     break;
     default:
-    stream.writeInt(encodedNesterNestedUnion.blah2);
+    stream.writeInt(blah2);
     break;
     }
-    }
-    public void encode(XdrDataOutputStream stream) throws IOException {
-      encode(stream, this);
     }
     public static NesterNestedUnion decode(XdrDataInputStream stream) throws IOException {
     NesterNestedUnion decodedNesterNestedUnion = new NesterNestedUnion();
@@ -248,19 +193,6 @@ public class Nester implements XdrElement {
     }
       return decodedNesterNestedUnion;
     }
-    @Override
-    public String toXdrBase64() throws IOException {
-      return Base64Factory.getInstance().encodeToString(toXdrByteArray());
-    }
-
-    @Override
-    public byte[] toXdrByteArray() throws IOException {
-      ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-      XdrDataOutputStream xdrDataOutputStream = new XdrDataOutputStream(byteArrayOutputStream);
-      encode(xdrDataOutputStream);
-      return byteArrayOutputStream.toByteArray();
-    }
-
     public static NesterNestedUnion fromXdrBase64(String xdr) throws IOException {
       byte[] bytes = Base64Factory.getInstance().decode(xdr);
       return fromXdrByteArray(bytes);

@@ -11,7 +11,6 @@ import java.io.ByteArrayOutputStream;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
-import static MyXDR.Constants.*;
 
 /**
  * Hashes3's original definition in the XDR file is:
@@ -24,17 +23,14 @@ import static MyXDR.Constants.*;
 @AllArgsConstructor
 public class Hashes3 implements XdrElement {
   private Hash[] Hashes3;
-  public static void encode(XdrDataOutputStream stream, Hashes3  encodedHashes3) throws IOException {
-    int Hashes3Size = encodedHashes3.getHashes3().length;
+  public void encode(XdrDataOutputStream stream) throws IOException {
+    int Hashes3Size = getHashes3().length;
     stream.writeInt(Hashes3Size);
     for (int i = 0; i < Hashes3Size; i++) {
-      Hash.encode(stream, encodedHashes3.Hashes3[i]);
+      Hashes3[i].encode(stream);
     }
   }
 
-  public void encode(XdrDataOutputStream stream) throws IOException {
-    encode(stream, this);
-  }
   public static Hashes3 decode(XdrDataInputStream stream) throws IOException {
     Hashes3 decodedHashes3 = new Hashes3();
     int Hashes3Size = stream.readInt();
@@ -43,19 +39,6 @@ public class Hashes3 implements XdrElement {
       decodedHashes3.Hashes3[i] = Hash.decode(stream);
     }
     return decodedHashes3;
-  }
-
-  @Override
-  public String toXdrBase64() throws IOException {
-    return Base64Factory.getInstance().encodeToString(toXdrByteArray());
-  }
-
-  @Override
-  public byte[] toXdrByteArray() throws IOException {
-    ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-    XdrDataOutputStream xdrDataOutputStream = new XdrDataOutputStream(byteArrayOutputStream);
-    encode(xdrDataOutputStream);
-    return byteArrayOutputStream.toByteArray();
   }
 
   public static Hashes3 fromXdrBase64(String xdr) throws IOException {

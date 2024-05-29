@@ -11,7 +11,6 @@ import java.io.ByteArrayOutputStream;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
-import static MyXDR.Constants.*;
 
 /**
  * Str2's original definition in the XDR file is:
@@ -24,30 +23,14 @@ import static MyXDR.Constants.*;
 @AllArgsConstructor
 public class Str2 implements XdrElement {
   private XdrString str2;
-  public static void encode(XdrDataOutputStream stream, Str2  encodedStr2) throws IOException {
-    encodedStr2.str2.encode(stream);
+  public void encode(XdrDataOutputStream stream) throws IOException {
+    str2.encode(stream);
   }
 
-  public void encode(XdrDataOutputStream stream) throws IOException {
-    encode(stream, this);
-  }
   public static Str2 decode(XdrDataInputStream stream) throws IOException {
     Str2 decodedStr2 = new Str2();
     decodedStr2.str2 = XdrString.decode(stream, Integer.MAX_VALUE);
     return decodedStr2;
-  }
-
-  @Override
-  public String toXdrBase64() throws IOException {
-    return Base64Factory.getInstance().encodeToString(toXdrByteArray());
-  }
-
-  @Override
-  public byte[] toXdrByteArray() throws IOException {
-    ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-    XdrDataOutputStream xdrDataOutputStream = new XdrDataOutputStream(byteArrayOutputStream);
-    encode(xdrDataOutputStream);
-    return byteArrayOutputStream.toByteArray();
   }
 
   public static Str2 fromXdrBase64(String xdr) throws IOException {

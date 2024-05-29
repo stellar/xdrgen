@@ -11,7 +11,6 @@ import java.io.ByteArrayOutputStream;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
-import static MyXDR.Constants.*;
 
 /**
  * OptHash2's original definition in the XDR file is:
@@ -24,18 +23,15 @@ import static MyXDR.Constants.*;
 @AllArgsConstructor
 public class OptHash2 implements XdrElement {
   private Hash optHash2;
-  public static void encode(XdrDataOutputStream stream, OptHash2  encodedOptHash2) throws IOException {
-    if (encodedOptHash2.optHash2 != null) {
+  public void encode(XdrDataOutputStream stream) throws IOException {
+    if (optHash2 != null) {
     stream.writeInt(1);
-    Hash.encode(stream, encodedOptHash2.optHash2);
+    optHash2.encode(stream);
     } else {
     stream.writeInt(0);
     }
   }
 
-  public void encode(XdrDataOutputStream stream) throws IOException {
-    encode(stream, this);
-  }
   public static OptHash2 decode(XdrDataInputStream stream) throws IOException {
     OptHash2 decodedOptHash2 = new OptHash2();
     int optHash2Present = stream.readInt();
@@ -43,19 +39,6 @@ public class OptHash2 implements XdrElement {
     decodedOptHash2.optHash2 = Hash.decode(stream);
     }
     return decodedOptHash2;
-  }
-
-  @Override
-  public String toXdrBase64() throws IOException {
-    return Base64Factory.getInstance().encodeToString(toXdrByteArray());
-  }
-
-  @Override
-  public byte[] toXdrByteArray() throws IOException {
-    ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-    XdrDataOutputStream xdrDataOutputStream = new XdrDataOutputStream(byteArrayOutputStream);
-    encode(xdrDataOutputStream);
-    return byteArrayOutputStream.toByteArray();
   }
 
   public static OptHash2 fromXdrBase64(String xdr) throws IOException {

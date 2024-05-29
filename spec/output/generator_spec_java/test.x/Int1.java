@@ -11,7 +11,6 @@ import java.io.ByteArrayOutputStream;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
-import static MyXDR.Constants.*;
 
 /**
  * Int1's original definition in the XDR file is:
@@ -24,30 +23,14 @@ import static MyXDR.Constants.*;
 @AllArgsConstructor
 public class Int1 implements XdrElement {
   private Integer int1;
-  public static void encode(XdrDataOutputStream stream, Int1  encodedInt1) throws IOException {
-    stream.writeInt(encodedInt1.int1);
+  public void encode(XdrDataOutputStream stream) throws IOException {
+    stream.writeInt(int1);
   }
 
-  public void encode(XdrDataOutputStream stream) throws IOException {
-    encode(stream, this);
-  }
   public static Int1 decode(XdrDataInputStream stream) throws IOException {
     Int1 decodedInt1 = new Int1();
     decodedInt1.int1 = stream.readInt();
     return decodedInt1;
-  }
-
-  @Override
-  public String toXdrBase64() throws IOException {
-    return Base64Factory.getInstance().encodeToString(toXdrByteArray());
-  }
-
-  @Override
-  public byte[] toXdrByteArray() throws IOException {
-    ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-    XdrDataOutputStream xdrDataOutputStream = new XdrDataOutputStream(byteArrayOutputStream);
-    encode(xdrDataOutputStream);
-    return byteArrayOutputStream.toByteArray();
   }
 
   public static Int1 fromXdrBase64(String xdr) throws IOException {

@@ -11,7 +11,6 @@ import java.io.ByteArrayOutputStream;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
-import static MyXDR.Constants.*;
 
 /**
  * Uint512's original definition in the XDR file is:
@@ -24,33 +23,17 @@ import static MyXDR.Constants.*;
 @AllArgsConstructor
 public class Uint512 implements XdrElement {
   private byte[] uint512;
-  public static void encode(XdrDataOutputStream stream, Uint512  encodedUint512) throws IOException {
-    int uint512Size = encodedUint512.uint512.length;
-    stream.write(encodedUint512.getUint512(), 0, uint512Size);
+  public void encode(XdrDataOutputStream stream) throws IOException {
+    int uint512Size = uint512.length;
+    stream.write(getUint512(), 0, uint512Size);
   }
 
-  public void encode(XdrDataOutputStream stream) throws IOException {
-    encode(stream, this);
-  }
   public static Uint512 decode(XdrDataInputStream stream) throws IOException {
     Uint512 decodedUint512 = new Uint512();
     int uint512Size = 64;
     decodedUint512.uint512 = new byte[uint512Size];
     stream.read(decodedUint512.uint512, 0, uint512Size);
     return decodedUint512;
-  }
-
-  @Override
-  public String toXdrBase64() throws IOException {
-    return Base64Factory.getInstance().encodeToString(toXdrByteArray());
-  }
-
-  @Override
-  public byte[] toXdrByteArray() throws IOException {
-    ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-    XdrDataOutputStream xdrDataOutputStream = new XdrDataOutputStream(byteArrayOutputStream);
-    encode(xdrDataOutputStream);
-    return byteArrayOutputStream.toByteArray();
   }
 
   public static Uint512 fromXdrBase64(String xdr) throws IOException {

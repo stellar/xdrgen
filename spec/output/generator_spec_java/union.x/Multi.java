@@ -11,7 +11,6 @@ import java.io.ByteArrayOutputStream;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
-import static MyXDR.Constants.*;
 
 /**
  * Multi's original definition in the XDR file is:
@@ -24,30 +23,14 @@ import static MyXDR.Constants.*;
 @AllArgsConstructor
 public class Multi implements XdrElement {
   private Integer Multi;
-  public static void encode(XdrDataOutputStream stream, Multi  encodedMulti) throws IOException {
-    stream.writeInt(encodedMulti.Multi);
+  public void encode(XdrDataOutputStream stream) throws IOException {
+    stream.writeInt(Multi);
   }
 
-  public void encode(XdrDataOutputStream stream) throws IOException {
-    encode(stream, this);
-  }
   public static Multi decode(XdrDataInputStream stream) throws IOException {
     Multi decodedMulti = new Multi();
     decodedMulti.Multi = stream.readInt();
     return decodedMulti;
-  }
-
-  @Override
-  public String toXdrBase64() throws IOException {
-    return Base64Factory.getInstance().encodeToString(toXdrByteArray());
-  }
-
-  @Override
-  public byte[] toXdrByteArray() throws IOException {
-    ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-    XdrDataOutputStream xdrDataOutputStream = new XdrDataOutputStream(byteArrayOutputStream);
-    encode(xdrDataOutputStream);
-    return byteArrayOutputStream.toByteArray();
   }
 
   public static Multi fromXdrBase64(String xdr) throws IOException {

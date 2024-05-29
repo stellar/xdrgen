@@ -12,7 +12,6 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
-import static MyXDR.Constants.*;
 
 /**
  * IntUnion's original definition in the XDR file is:
@@ -36,25 +35,20 @@ public class IntUnion implements XdrElement {
   private Error error;
   private Multi[] things;
 
-  public static void encode(XdrDataOutputStream stream, IntUnion encodedIntUnion) throws IOException {
-  //Xdrgen::AST::Typespecs::Int
-  //Integer
-  stream.writeInt(encodedIntUnion.getDiscriminant().intValue());
-  switch (encodedIntUnion.getDiscriminant()) {
+  public void encode(XdrDataOutputStream stream) throws IOException {
+  stream.writeInt(discriminant);
+  switch (discriminant) {
   case 0:
-  Error.encode(stream, encodedIntUnion.error);
+  error.encode(stream);
   break;
   case 1:
-  int thingsSize = encodedIntUnion.getThings().length;
+  int thingsSize = getThings().length;
   stream.writeInt(thingsSize);
   for (int i = 0; i < thingsSize; i++) {
-    Multi.encode(stream, encodedIntUnion.things[i]);
+    things[i].encode(stream);
   }
   break;
   }
-  }
-  public void encode(XdrDataOutputStream stream) throws IOException {
-    encode(stream, this);
   }
   public static IntUnion decode(XdrDataInputStream stream) throws IOException {
   IntUnion decodedIntUnion = new IntUnion();
@@ -74,19 +68,6 @@ public class IntUnion implements XdrElement {
   }
     return decodedIntUnion;
   }
-  @Override
-  public String toXdrBase64() throws IOException {
-    return Base64Factory.getInstance().encodeToString(toXdrByteArray());
-  }
-
-  @Override
-  public byte[] toXdrByteArray() throws IOException {
-    ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-    XdrDataOutputStream xdrDataOutputStream = new XdrDataOutputStream(byteArrayOutputStream);
-    encode(xdrDataOutputStream);
-    return byteArrayOutputStream.toByteArray();
-  }
-
   public static IntUnion fromXdrBase64(String xdr) throws IOException {
     byte[] bytes = Base64Factory.getInstance().decode(xdr);
     return fromXdrByteArray(bytes);

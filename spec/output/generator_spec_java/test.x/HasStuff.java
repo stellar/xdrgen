@@ -12,7 +12,6 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
-import static MyXDR.Constants.*;
 
 /**
  * HasStuff's original definition in the XDR file is:
@@ -29,30 +28,14 @@ import static MyXDR.Constants.*;
 @Builder(toBuilder = true)
 public class HasStuff implements XdrElement {
   private LotsOfMyStructs data;
-  public static void encode(XdrDataOutputStream stream, HasStuff encodedHasStuff) throws IOException{
-    LotsOfMyStructs.encode(stream, encodedHasStuff.data);
-  }
-  public void encode(XdrDataOutputStream stream) throws IOException {
-    encode(stream, this);
+  public void encode(XdrDataOutputStream stream) throws IOException{
+    data.encode(stream);
   }
   public static HasStuff decode(XdrDataInputStream stream) throws IOException {
     HasStuff decodedHasStuff = new HasStuff();
     decodedHasStuff.data = LotsOfMyStructs.decode(stream);
     return decodedHasStuff;
   }
-  @Override
-  public String toXdrBase64() throws IOException {
-    return Base64Factory.getInstance().encodeToString(toXdrByteArray());
-  }
-
-  @Override
-  public byte[] toXdrByteArray() throws IOException {
-    ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-    XdrDataOutputStream xdrDataOutputStream = new XdrDataOutputStream(byteArrayOutputStream);
-    encode(xdrDataOutputStream);
-    return byteArrayOutputStream.toByteArray();
-  }
-
   public static HasStuff fromXdrBase64(String xdr) throws IOException {
     byte[] bytes = Base64Factory.getInstance().decode(xdr);
     return fromXdrByteArray(bytes);
