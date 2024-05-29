@@ -11,7 +11,6 @@ import java.io.ByteArrayOutputStream;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
-import static MyXDR.Constants.*;
 
 /**
  * TestArray's original definition in the XDR file is:
@@ -33,7 +32,7 @@ public class TestArray implements XdrElement {
 
   public static TestArray decode(XdrDataInputStream stream) throws IOException {
     TestArray decodedTestArray = new TestArray();
-    int TestArraySize = FOO;
+    int TestArraySize = Constants.FOO;
     decodedTestArray.TestArray = new Integer[TestArraySize];
     for (int i = 0; i < TestArraySize; i++) {
       decodedTestArray.TestArray[i] = stream.readInt();

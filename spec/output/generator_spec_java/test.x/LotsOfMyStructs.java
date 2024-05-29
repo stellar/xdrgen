@@ -12,7 +12,6 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
-import static MyXDR.Constants.*;
 
 /**
  * LotsOfMyStructs's original definition in the XDR file is:

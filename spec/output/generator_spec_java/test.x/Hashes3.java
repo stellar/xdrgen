@@ -11,7 +11,6 @@ import java.io.ByteArrayOutputStream;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
-import static MyXDR.Constants.*;
 
 /**
  * Hashes3's original definition in the XDR file is:

@@ -53,12 +53,10 @@ module Xdrgen
           imports.add("lombok.NoArgsConstructor")
           imports.add("lombok.AllArgsConstructor")
           imports.add("lombok.Builder")
-          imports.add("static #{@namespace}.Constants.*")
         when AST::Definitions::Typedef
           imports.add("lombok.Data")
           imports.add("lombok.NoArgsConstructor")
           imports.add("lombok.AllArgsConstructor")
-          imports.add("static #{@namespace}.Constants.*")
         end
 
         if defn.respond_to? :nested_definitions
@@ -478,7 +476,7 @@ module Xdrgen
           "#{value}.encode(stream)"
         when AST::Concerns::NestedDefinition ;
           "#{value}.encode(stream)"
-      else
+        else
           raise "Unknown typespec: #{type.class.name}"
         end
       end
@@ -497,7 +495,7 @@ module Xdrgen
         case member.declaration
         when AST::Declarations::Opaque ;
           if (member.declaration.fixed?)
-            out.puts "int #{member.name}Size = #{member.declaration.size};"
+            out.puts "int #{member.name}Size = #{convert_constant member.declaration.size};"
           else
             out.puts "int #{member.name}Size = stream.readInt();"
           end
@@ -507,7 +505,7 @@ module Xdrgen
           EOS
         when AST::Declarations::Array ;
           if (member.declaration.fixed?)
-            out.puts "int #{member.name}Size = #{member.declaration.size};"
+            out.puts "int #{member.name}Size = #{convert_constant member.declaration.size};"
           else
             out.puts "int #{member.name}Size = stream.readInt();"
           end
@@ -544,7 +542,7 @@ module Xdrgen
         when AST::Typespecs::Bool ;
           "stream.readInt() == 1 ? true : false"
         when AST::Typespecs::String ;
-          "XdrString.decode(stream, #{decl.size || 'Integer.MAX_VALUE'})"
+          "XdrString.decode(stream, #{(convert_constant decl.size) || 'Integer.MAX_VALUE'})"
         when AST::Typespecs::Simple ;
           "#{name decl.type.resolved_type}.decode(stream)"
         when AST::Concerns::NestedDefinition ;
@@ -614,7 +612,7 @@ module Xdrgen
         when AST::Typespecs::Bool ;
           "Boolean"
         when AST::Typespecs::Opaque ;
-          "Byte[#{type.size}]"
+          "Byte[#{convert_constant type.size}]"
         when AST::Typespecs::String ;
           "XdrString"
         when AST::Typespecs::Simple ;
@@ -643,6 +641,16 @@ module Xdrgen
              .gsub('<', '&lt;')
              .gsub('>', '&gt;')
              .gsub('*', '&#42;') # to avoid encountering`*/`
+      end
+
+      def convert_constant(str)
+        if str.nil? || str.empty?
+          str
+        elsif str =~ /\A\d+\z/
+          str
+        else
+          "Constants.#{str}"
+        end
       end
     end
   end
