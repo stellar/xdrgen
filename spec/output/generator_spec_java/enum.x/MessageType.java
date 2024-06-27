@@ -81,7 +81,7 @@ public enum MessageType implements XdrElement {
       case 12: return FBA_QUORUMSET;
       case 13: return FBA_MESSAGE;
       default:
-        throw new RuntimeException("Unknown enum value: " + value);
+        throw new IllegalArgumentException("Unknown enum value: " + value);
     }
   }
 

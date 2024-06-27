@@ -218,7 +218,7 @@ module Xdrgen
         end
         out.puts <<-EOS.strip_heredoc
             default:
-              throw new RuntimeException("Unknown enum value: " + value);
+              throw new IllegalArgumentException("Unknown enum value: " + value);
           }
         }
 

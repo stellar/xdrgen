@@ -41,7 +41,7 @@ public enum Color implements XdrElement {
       case 1: return GREEN;
       case 2: return BLUE;
       default:
-        throw new RuntimeException("Unknown enum value: " + value);
+        throw new IllegalArgumentException("Unknown enum value: " + value);
     }
   }
 

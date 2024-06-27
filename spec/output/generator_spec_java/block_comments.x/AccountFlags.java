@@ -36,7 +36,7 @@ public enum AccountFlags implements XdrElement {
     switch (value) {
       case 1: return AUTH_REQUIRED_FLAG;
       default:
-        throw new RuntimeException("Unknown enum value: " + value);
+        throw new IllegalArgumentException("Unknown enum value: " + value);
     }
   }
 

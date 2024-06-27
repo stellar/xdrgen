@@ -38,7 +38,7 @@ public enum UnionKey implements XdrElement {
       case 0: return ERROR;
       case 1: return MULTI;
       default:
-        throw new RuntimeException("Unknown enum value: " + value);
+        throw new IllegalArgumentException("Unknown enum value: " + value);
     }
   }
 
