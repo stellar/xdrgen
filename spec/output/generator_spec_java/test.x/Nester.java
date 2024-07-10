@@ -98,7 +98,7 @@ public class Nester implements XdrElement {
         case 0: return BLAH_1;
         case 1: return BLAH_2;
         default:
-          throw new RuntimeException("Unknown enum value: " + value);
+          throw new IllegalArgumentException("Unknown enum value: " + value);
       }
     }
 
