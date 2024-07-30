@@ -20,7 +20,7 @@ import (
 
 // XdrFilesSHA256 is the SHA256 hashes of source files.
 var XdrFilesSHA256 = map[string]string{
-  "spec/fixtures/generator/enum.x": "35cf5e97e2057039640ed260e8b38bb2733a3c3ca8529c93877bdec02a999d7f",
+  "spec/fixtures/generator/enum.x": "f764c2a2d349765e611f686e9d416b7f576ea881154d069355a2e75c898daf58",
 }
 
 var ErrMaxDecodingDepthReached = errors.New("maximum decoding depth reached")
@@ -357,5 +357,90 @@ var (
 func (s Color2) xdrType() {}
 
 var _ xdrType = (*Color2)(nil)
+
+// Color3 is an XDR Enum defines as:
+//
+//   enum Color3 {
+//        RED_1=1,
+//        RED_2_TWO=2,
+//        RED_3=3
+//    };
+//
+type Color3 int32
+const (
+  Color3Red1 Color3 = 1
+  Color3Red2Two Color3 = 2
+  Color3Red3 Color3 = 3
+)
+var color3Map = map[int32]string{
+  1: "Color3Red1",
+  2: "Color3Red2Two",
+  3: "Color3Red3",
+}
+
+// ValidEnum validates a proposed value for this enum.  Implements
+// the Enum interface for Color3
+func (e Color3) ValidEnum(v int32) bool {
+  _, ok := color3Map[v]
+  return ok
+}
+// String returns the name of `e`
+func (e Color3) String() string {
+  name, _ := color3Map[int32(e)]
+  return name
+}
+
+// EncodeTo encodes this value using the Encoder.
+func (e Color3) EncodeTo(enc *xdr.Encoder) error {
+  if _, ok := color3Map[int32(e)]; !ok {
+    return fmt.Errorf("'%d' is not a valid Color3 enum value", e)
+  }
+  _, err := enc.EncodeInt(int32(e))
+  return err
+}
+var _ decoderFrom = (*Color3)(nil)
+// DecodeFrom decodes this value using the Decoder.
+func (e *Color3) DecodeFrom(d *xdr.Decoder, maxDepth uint) (int, error) {
+  if maxDepth == 0 {
+    return 0, fmt.Errorf("decoding Color3: %w", ErrMaxDecodingDepthReached)
+  }
+  maxDepth -= 1
+  v, n, err := d.DecodeInt()
+  if err != nil {
+    return n, fmt.Errorf("decoding Color3: %w", err)
+  }
+  if _, ok := color3Map[v]; !ok {
+    return n, fmt.Errorf("'%d' is not a valid Color3 enum value", v)
+  }
+  *e = Color3(v)
+  return n, nil
+}
+// MarshalBinary implements encoding.BinaryMarshaler.
+func (s Color3) MarshalBinary() ([]byte, error) {
+  b := bytes.Buffer{}
+  e := xdr.NewEncoder(&b)
+  err := s.EncodeTo(e)
+  return b.Bytes(), err
+}
+
+// UnmarshalBinary implements encoding.BinaryUnmarshaler.
+func (s *Color3) UnmarshalBinary(inp []byte) error {
+  r := bytes.NewReader(inp)
+  o := xdr.DefaultDecodeOptions
+  o.MaxInputLen = len(inp)
+  d := xdr.NewDecoderWithOptions(r, o)
+  _, err := s.DecodeFrom(d, o.MaxDepth)
+  return err
+}
+
+var (
+  _ encoding.BinaryMarshaler   = (*Color3)(nil)
+  _ encoding.BinaryUnmarshaler = (*Color3)(nil)
+)
+
+// xdrType signals that this type represents XDR values defined by this package.
+func (s Color3) xdrType() {}
+
+var _ xdrType = (*Color3)(nil)
 
 var fmtTest = fmt.Sprint("this is a dummy usage of fmt")

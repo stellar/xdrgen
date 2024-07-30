@@ -5,3 +5,4 @@ from .constants import *
 from .message_type import MessageType
 from .color import Color
 from .color2 import Color2
+from .color3 import Color3

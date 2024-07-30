@@ -16,7 +16,12 @@ module Xdrgen::AST
 
       def name_short
         prefix = find_common_prefix(union.discriminant_type.members.map(&:name))
-        value.name.delete_prefix(prefix)
+        short = value.name.delete_prefix(prefix)
+        # Prefix the name with the first letter of the prefix if the name begins
+        # with a number, since in most languages identifiers cannot begin with
+        # numbers.
+        short = "#{prefix.first}#{short}" if /\A\d+/ === short
+        short
       end
     end
   end

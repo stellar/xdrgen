@@ -34,3 +34,9 @@ enum Color2 {
     GREEN2=1,  
     BLUE2=2  
 };
+
+enum Color3 {
+    RED_1=1,
+    RED_2_TWO=2,
+    RED_3=3
+};
