@@ -5,7 +5,7 @@
 
 /// `XDR_FILES_SHA256` is a list of pairs of source files and their SHA256 hashes.
 pub const XDR_FILES_SHA256: [(&str, &str); 1] = [
-  ("spec/fixtures/generator/enum.x", "35cf5e97e2057039640ed260e8b38bb2733a3c3ca8529c93877bdec02a999d7f")
+  ("spec/fixtures/generator/enum.x", "f764c2a2d349765e611f686e9d416b7f576ea881154d069355a2e75c898daf58")
 ];
 
 use core::{array::TryFromSliceError, fmt, fmt::Debug, marker::Sized, ops::Deref, slice};
@@ -3178,6 +3178,115 @@ Self::Blue2 => "Blue2",
             }
         }
 
+/// Color3 is an XDR Enum defines as:
+///
+/// ```text
+/// enum Color3 {
+///     RED_1=1,
+///     RED_2_TWO=2,
+///     RED_3=3
+/// };
+/// ```
+///
+// enum
+#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
+#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
+#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
+#[repr(i32)]
+pub enum Color3 {
+  R1 = 1,
+  R2Two = 2,
+  R3 = 3,
+}
+
+        impl Color3 {
+            pub const VARIANTS: [Color3; 3] = [ Color3::R1,
+Color3::R2Two,
+Color3::R3, ];
+            pub const VARIANTS_STR: [&'static str; 3] = [ "R1",
+"R2Two",
+"R3", ];
+
+            #[must_use]
+            pub const fn name(&self) -> &'static str {
+                match self {
+                    Self::R1 => "R1",
+Self::R2Two => "R2Two",
+Self::R3 => "R3",
+                }
+            }
+
+            #[must_use]
+            pub const fn variants() -> [Color3; 3] {
+                Self::VARIANTS
+            }
+        }
+
+        impl Name for Color3 {
+            #[must_use]
+            fn name(&self) -> &'static str {
+                Self::name(self)
+            }
+        }
+
+        impl Variants<Color3> for Color3 {
+            fn variants() -> slice::Iter<'static, Color3> {
+                Self::VARIANTS.iter()
+            }
+        }
+
+        impl Enum for Color3 {}
+
+        impl fmt::Display for Color3 {
+            fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+                f.write_str(self.name())
+            }
+        }
+
+        impl TryFrom<i32> for Color3 {
+            type Error = Error;
+
+            fn try_from(i: i32) -> Result<Self> {
+                let e = match i {
+                    1 => Color3::R1,
+2 => Color3::R2Two,
+3 => Color3::R3,
+                    #[allow(unreachable_patterns)]
+                    _ => return Err(Error::Invalid),
+                };
+                Ok(e)
+            }
+        }
+
+        impl From<Color3> for i32 {
+            #[must_use]
+            fn from(e: Color3) -> Self {
+                e as Self
+            }
+        }
+
+        impl ReadXdr for Color3 {
+            #[cfg(feature = "std")]
+            fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self> {
+                r.with_limited_depth(|r| {
+                    let e = i32::read_xdr(r)?;
+                    let v: Self = e.try_into()?;
+                    Ok(v)
+                })
+            }
+        }
+
+        impl WriteXdr for Color3 {
+            #[cfg(feature = "std")]
+            fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
+                w.with_limited_depth(|w| {
+                    let i: i32 = (*self).into();
+                    i.write_xdr(w)
+                })
+            }
+        }
+
         #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
         #[cfg_attr(
           all(feature = "serde", feature = "alloc"),
@@ -3189,15 +3298,18 @@ Self::Blue2 => "Blue2",
             MessageType,
 Color,
 Color2,
+Color3,
         }
 
         impl TypeVariant {
-            pub const VARIANTS: [TypeVariant; 3] = [ TypeVariant::MessageType,
+            pub const VARIANTS: [TypeVariant; 4] = [ TypeVariant::MessageType,
 TypeVariant::Color,
-TypeVariant::Color2, ];
-            pub const VARIANTS_STR: [&'static str; 3] = [ "MessageType",
+TypeVariant::Color2,
+TypeVariant::Color3, ];
+            pub const VARIANTS_STR: [&'static str; 4] = [ "MessageType",
 "Color",
-"Color2", ];
+"Color2",
+"Color3", ];
 
             #[must_use]
             #[allow(clippy::too_many_lines)]
@@ -3206,12 +3318,13 @@ TypeVariant::Color2, ];
                     Self::MessageType => "MessageType",
 Self::Color => "Color",
 Self::Color2 => "Color2",
+Self::Color3 => "Color3",
                 }
             }
 
             #[must_use]
             #[allow(clippy::too_many_lines)]
-            pub const fn variants() -> [TypeVariant; 3] {
+            pub const fn variants() -> [TypeVariant; 4] {
                 Self::VARIANTS
             }
 
@@ -3223,6 +3336,7 @@ Self::Color2 => "Color2",
                     Self::MessageType => gen.into_root_schema_for::<MessageType>(),
 Self::Color => gen.into_root_schema_for::<Color>(),
 Self::Color2 => gen.into_root_schema_for::<Color2>(),
+Self::Color3 => gen.into_root_schema_for::<Color3>(),
                 }
             }
         }
@@ -3248,6 +3362,7 @@ Self::Color2 => gen.into_root_schema_for::<Color2>(),
                     "MessageType" => Ok(Self::MessageType),
 "Color" => Ok(Self::Color),
 "Color2" => Ok(Self::Color2),
+"Color3" => Ok(Self::Color3),
                     _ => Err(Error::Invalid),
                 }
             }
@@ -3265,15 +3380,18 @@ Self::Color2 => gen.into_root_schema_for::<Color2>(),
             MessageType(Box<MessageType>),
 Color(Box<Color>),
 Color2(Box<Color2>),
+Color3(Box<Color3>),
         }
 
         impl Type {
-            pub const VARIANTS: [TypeVariant; 3] = [ TypeVariant::MessageType,
+            pub const VARIANTS: [TypeVariant; 4] = [ TypeVariant::MessageType,
 TypeVariant::Color,
-TypeVariant::Color2, ];
-            pub const VARIANTS_STR: [&'static str; 3] = [ "MessageType",
+TypeVariant::Color2,
+TypeVariant::Color3, ];
+            pub const VARIANTS_STR: [&'static str; 4] = [ "MessageType",
 "Color",
-"Color2", ];
+"Color2",
+"Color3", ];
 
             #[cfg(feature = "std")]
             #[allow(clippy::too_many_lines)]
@@ -3282,6 +3400,7 @@ TypeVariant::Color2, ];
                     TypeVariant::MessageType => r.with_limited_depth(|r| Ok(Self::MessageType(Box::new(MessageType::read_xdr(r)?)))),
 TypeVariant::Color => r.with_limited_depth(|r| Ok(Self::Color(Box::new(Color::read_xdr(r)?)))),
 TypeVariant::Color2 => r.with_limited_depth(|r| Ok(Self::Color2(Box::new(Color2::read_xdr(r)?)))),
+TypeVariant::Color3 => r.with_limited_depth(|r| Ok(Self::Color3(Box::new(Color3::read_xdr(r)?)))),
                 }
             }
 
@@ -3318,6 +3437,7 @@ TypeVariant::Color2 => r.with_limited_depth(|r| Ok(Self::Color2(Box::new(Color2:
                     TypeVariant::MessageType => Box::new(ReadXdrIter::<_, MessageType>::new(&mut r.inner, r.limits.clone()).map(|r| r.map(|t| Self::MessageType(Box::new(t))))),
 TypeVariant::Color => Box::new(ReadXdrIter::<_, Color>::new(&mut r.inner, r.limits.clone()).map(|r| r.map(|t| Self::Color(Box::new(t))))),
 TypeVariant::Color2 => Box::new(ReadXdrIter::<_, Color2>::new(&mut r.inner, r.limits.clone()).map(|r| r.map(|t| Self::Color2(Box::new(t))))),
+TypeVariant::Color3 => Box::new(ReadXdrIter::<_, Color3>::new(&mut r.inner, r.limits.clone()).map(|r| r.map(|t| Self::Color3(Box::new(t))))),
                 }
             }
 
@@ -3328,6 +3448,7 @@ TypeVariant::Color2 => Box::new(ReadXdrIter::<_, Color2>::new(&mut r.inner, r.li
                     TypeVariant::MessageType => Box::new(ReadXdrIter::<_, Frame<MessageType>>::new(&mut r.inner, r.limits.clone()).map(|r| r.map(|t| Self::MessageType(Box::new(t.0))))),
 TypeVariant::Color => Box::new(ReadXdrIter::<_, Frame<Color>>::new(&mut r.inner, r.limits.clone()).map(|r| r.map(|t| Self::Color(Box::new(t.0))))),
 TypeVariant::Color2 => Box::new(ReadXdrIter::<_, Frame<Color2>>::new(&mut r.inner, r.limits.clone()).map(|r| r.map(|t| Self::Color2(Box::new(t.0))))),
+TypeVariant::Color3 => Box::new(ReadXdrIter::<_, Frame<Color3>>::new(&mut r.inner, r.limits.clone()).map(|r| r.map(|t| Self::Color3(Box::new(t.0))))),
                 }
             }
 
@@ -3339,6 +3460,7 @@ TypeVariant::Color2 => Box::new(ReadXdrIter::<_, Frame<Color2>>::new(&mut r.inne
                     TypeVariant::MessageType => Box::new(ReadXdrIter::<_, MessageType>::new(dec, r.limits.clone()).map(|r| r.map(|t| Self::MessageType(Box::new(t))))),
 TypeVariant::Color => Box::new(ReadXdrIter::<_, Color>::new(dec, r.limits.clone()).map(|r| r.map(|t| Self::Color(Box::new(t))))),
 TypeVariant::Color2 => Box::new(ReadXdrIter::<_, Color2>::new(dec, r.limits.clone()).map(|r| r.map(|t| Self::Color2(Box::new(t))))),
+TypeVariant::Color3 => Box::new(ReadXdrIter::<_, Color3>::new(dec, r.limits.clone()).map(|r| r.map(|t| Self::Color3(Box::new(t))))),
                 }
             }
 
@@ -3364,6 +3486,7 @@ TypeVariant::Color2 => Box::new(ReadXdrIter::<_, Color2>::new(dec, r.limits.clon
                     TypeVariant::MessageType => Ok(Self::MessageType(Box::new(serde_json::from_reader(r)?))),
 TypeVariant::Color => Ok(Self::Color(Box::new(serde_json::from_reader(r)?))),
 TypeVariant::Color2 => Ok(Self::Color2(Box::new(serde_json::from_reader(r)?))),
+TypeVariant::Color3 => Ok(Self::Color3(Box::new(serde_json::from_reader(r)?))),
                 }
             }
 
@@ -3376,6 +3499,7 @@ TypeVariant::Color2 => Ok(Self::Color2(Box::new(serde_json::from_reader(r)?))),
                     Self::MessageType(ref v) => v.as_ref(),
 Self::Color(ref v) => v.as_ref(),
 Self::Color2(ref v) => v.as_ref(),
+Self::Color3(ref v) => v.as_ref(),
                 }
             }
 
@@ -3386,12 +3510,13 @@ Self::Color2(ref v) => v.as_ref(),
                     Self::MessageType(_) => "MessageType",
 Self::Color(_) => "Color",
 Self::Color2(_) => "Color2",
+Self::Color3(_) => "Color3",
                 }
             }
 
             #[must_use]
             #[allow(clippy::too_many_lines)]
-            pub const fn variants() -> [TypeVariant; 3] {
+            pub const fn variants() -> [TypeVariant; 4] {
                 Self::VARIANTS
             }
 
@@ -3402,6 +3527,7 @@ Self::Color2(_) => "Color2",
                     Self::MessageType(_) => TypeVariant::MessageType,
 Self::Color(_) => TypeVariant::Color,
 Self::Color2(_) => TypeVariant::Color2,
+Self::Color3(_) => TypeVariant::Color3,
                 }
             }
         }
@@ -3427,6 +3553,7 @@ Self::Color2(_) => TypeVariant::Color2,
                     Self::MessageType(v) => v.write_xdr(w),
 Self::Color(v) => v.write_xdr(w),
 Self::Color2(v) => v.write_xdr(w),
+Self::Color3(v) => v.write_xdr(w),
                 }
             }
         }

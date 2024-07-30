@@ -4190,21 +4190,21 @@ pub const BAR: u64 = FOO;
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 #[repr(i32)]
 pub enum NesterNestedEnum {
-  1 = 0,
-  2 = 1,
+  B1 = 0,
+  B2 = 1,
 }
 
         impl NesterNestedEnum {
-            pub const VARIANTS: [NesterNestedEnum; 2] = [ NesterNestedEnum::1,
-NesterNestedEnum::2, ];
-            pub const VARIANTS_STR: [&'static str; 2] = [ "1",
-"2", ];
+            pub const VARIANTS: [NesterNestedEnum; 2] = [ NesterNestedEnum::B1,
+NesterNestedEnum::B2, ];
+            pub const VARIANTS_STR: [&'static str; 2] = [ "B1",
+"B2", ];
 
             #[must_use]
             pub const fn name(&self) -> &'static str {
                 match self {
-                    Self::1 => "1",
-Self::2 => "2",
+                    Self::B1 => "B1",
+Self::B2 => "B2",
                 }
             }
 
@@ -4240,8 +4240,8 @@ Self::2 => "2",
 
             fn try_from(i: i32) -> Result<Self> {
                 let e = match i {
-                    0 => NesterNestedEnum::1,
-1 => NesterNestedEnum::2,
+                    0 => NesterNestedEnum::B1,
+1 => NesterNestedEnum::B2,
                     #[allow(unreachable_patterns)]
                     _ => return Err(Error::Invalid),
                 };
