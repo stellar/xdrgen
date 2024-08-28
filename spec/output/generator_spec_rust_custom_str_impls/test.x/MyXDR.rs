@@ -4916,8 +4916,14 @@ TypeVariant::NesterNestedUnion => Box::new(ReadXdrIter::<_, NesterNestedUnion>::
             }
 
             #[cfg(all(feature = "std", feature = "serde_json"))]
-            #[allow(clippy::too_many_lines)]
+            #[deprecated(note = "use from_json")]
             pub fn read_json(v: TypeVariant, r: impl Read) -> Result<Self> {
+                Self::from_json(v, r)
+            }
+
+            #[cfg(all(feature = "std", feature = "serde_json"))]
+            #[allow(clippy::too_many_lines)]
+            pub fn from_json(v: TypeVariant, r: impl Read) -> Result<Self> {
                 match v {
                     TypeVariant::Uint512 => Ok(Self::Uint512(Box::new(serde_json::from_reader(r)?))),
 TypeVariant::Uint513 => Ok(Self::Uint513(Box::new(serde_json::from_reader(r)?))),
@@ -4942,6 +4948,36 @@ TypeVariant::Nester => Ok(Self::Nester(Box::new(serde_json::from_reader(r)?))),
 TypeVariant::NesterNestedEnum => Ok(Self::NesterNestedEnum(Box::new(serde_json::from_reader(r)?))),
 TypeVariant::NesterNestedStruct => Ok(Self::NesterNestedStruct(Box::new(serde_json::from_reader(r)?))),
 TypeVariant::NesterNestedUnion => Ok(Self::NesterNestedUnion(Box::new(serde_json::from_reader(r)?))),
+                }
+            }
+
+            #[cfg(all(feature = "std", feature = "serde_json"))]
+            #[allow(clippy::too_many_lines)]
+            pub fn deserialize_json<'r, R: serde_json::de::Read<'r>>(v: TypeVariant, r: &mut serde_json::de::Deserializer<R>) -> Result<Self> {
+                match v {
+                    TypeVariant::Uint512 => Ok(Self::Uint512(Box::new(serde::de::Deserialize::deserialize(r)?))),
+TypeVariant::Uint513 => Ok(Self::Uint513(Box::new(serde::de::Deserialize::deserialize(r)?))),
+TypeVariant::Uint514 => Ok(Self::Uint514(Box::new(serde::de::Deserialize::deserialize(r)?))),
+TypeVariant::Str => Ok(Self::Str(Box::new(serde::de::Deserialize::deserialize(r)?))),
+TypeVariant::Str2 => Ok(Self::Str2(Box::new(serde::de::Deserialize::deserialize(r)?))),
+TypeVariant::Hash => Ok(Self::Hash(Box::new(serde::de::Deserialize::deserialize(r)?))),
+TypeVariant::Hashes1 => Ok(Self::Hashes1(Box::new(serde::de::Deserialize::deserialize(r)?))),
+TypeVariant::Hashes2 => Ok(Self::Hashes2(Box::new(serde::de::Deserialize::deserialize(r)?))),
+TypeVariant::Hashes3 => Ok(Self::Hashes3(Box::new(serde::de::Deserialize::deserialize(r)?))),
+TypeVariant::OptHash1 => Ok(Self::OptHash1(Box::new(serde::de::Deserialize::deserialize(r)?))),
+TypeVariant::OptHash2 => Ok(Self::OptHash2(Box::new(serde::de::Deserialize::deserialize(r)?))),
+TypeVariant::Int1 => Ok(Self::Int1(Box::new(serde::de::Deserialize::deserialize(r)?))),
+TypeVariant::Int2 => Ok(Self::Int2(Box::new(serde::de::Deserialize::deserialize(r)?))),
+TypeVariant::Int3 => Ok(Self::Int3(Box::new(serde::de::Deserialize::deserialize(r)?))),
+TypeVariant::Int4 => Ok(Self::Int4(Box::new(serde::de::Deserialize::deserialize(r)?))),
+TypeVariant::MyStruct => Ok(Self::MyStruct(Box::new(serde::de::Deserialize::deserialize(r)?))),
+TypeVariant::LotsOfMyStructs => Ok(Self::LotsOfMyStructs(Box::new(serde::de::Deserialize::deserialize(r)?))),
+TypeVariant::HasStuff => Ok(Self::HasStuff(Box::new(serde::de::Deserialize::deserialize(r)?))),
+TypeVariant::Color => Ok(Self::Color(Box::new(serde::de::Deserialize::deserialize(r)?))),
+TypeVariant::Nester => Ok(Self::Nester(Box::new(serde::de::Deserialize::deserialize(r)?))),
+TypeVariant::NesterNestedEnum => Ok(Self::NesterNestedEnum(Box::new(serde::de::Deserialize::deserialize(r)?))),
+TypeVariant::NesterNestedStruct => Ok(Self::NesterNestedStruct(Box::new(serde::de::Deserialize::deserialize(r)?))),
+TypeVariant::NesterNestedUnion => Ok(Self::NesterNestedUnion(Box::new(serde::de::Deserialize::deserialize(r)?))),
                 }
             }
 

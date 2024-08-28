@@ -3303,14 +3303,32 @@ TypeVariant::MyUnionTwo => Box::new(ReadXdrIter::<_, MyUnionTwo>::new(dec, r.lim
             }
 
             #[cfg(all(feature = "std", feature = "serde_json"))]
-            #[allow(clippy::too_many_lines)]
+            #[deprecated(note = "use from_json")]
             pub fn read_json(v: TypeVariant, r: impl Read) -> Result<Self> {
+                Self::from_json(v, r)
+            }
+
+            #[cfg(all(feature = "std", feature = "serde_json"))]
+            #[allow(clippy::too_many_lines)]
+            pub fn from_json(v: TypeVariant, r: impl Read) -> Result<Self> {
                 match v {
                     TypeVariant::UnionKey => Ok(Self::UnionKey(Box::new(serde_json::from_reader(r)?))),
 TypeVariant::Foo => Ok(Self::Foo(Box::new(serde_json::from_reader(r)?))),
 TypeVariant::MyUnion => Ok(Self::MyUnion(Box::new(serde_json::from_reader(r)?))),
 TypeVariant::MyUnionOne => Ok(Self::MyUnionOne(Box::new(serde_json::from_reader(r)?))),
 TypeVariant::MyUnionTwo => Ok(Self::MyUnionTwo(Box::new(serde_json::from_reader(r)?))),
+                }
+            }
+
+            #[cfg(all(feature = "std", feature = "serde_json"))]
+            #[allow(clippy::too_many_lines)]
+            pub fn deserialize_json<'r, R: serde_json::de::Read<'r>>(v: TypeVariant, r: &mut serde_json::de::Deserializer<R>) -> Result<Self> {
+                match v {
+                    TypeVariant::UnionKey => Ok(Self::UnionKey(Box::new(serde::de::Deserialize::deserialize(r)?))),
+TypeVariant::Foo => Ok(Self::Foo(Box::new(serde::de::Deserialize::deserialize(r)?))),
+TypeVariant::MyUnion => Ok(Self::MyUnion(Box::new(serde::de::Deserialize::deserialize(r)?))),
+TypeVariant::MyUnionOne => Ok(Self::MyUnionOne(Box::new(serde::de::Deserialize::deserialize(r)?))),
+TypeVariant::MyUnionTwo => Ok(Self::MyUnionTwo(Box::new(serde::de::Deserialize::deserialize(r)?))),
                 }
             }
 
