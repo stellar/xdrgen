@@ -3479,13 +3479,30 @@ TypeVariant::Color3 => Box::new(ReadXdrIter::<_, Color3>::new(dec, r.limits.clon
             }
 
             #[cfg(all(feature = "std", feature = "serde_json"))]
-            #[allow(clippy::too_many_lines)]
+            #[deprecated(note = "use from_json")]
             pub fn read_json(v: TypeVariant, r: impl Read) -> Result<Self> {
+                Self::from_json(v, r)
+            }
+
+            #[cfg(all(feature = "std", feature = "serde_json"))]
+            #[allow(clippy::too_many_lines)]
+            pub fn from_json(v: TypeVariant, r: impl Read) -> Result<Self> {
                 match v {
                     TypeVariant::MessageType => Ok(Self::MessageType(Box::new(serde_json::from_reader(r)?))),
 TypeVariant::Color => Ok(Self::Color(Box::new(serde_json::from_reader(r)?))),
 TypeVariant::Color2 => Ok(Self::Color2(Box::new(serde_json::from_reader(r)?))),
 TypeVariant::Color3 => Ok(Self::Color3(Box::new(serde_json::from_reader(r)?))),
+                }
+            }
+
+            #[cfg(all(feature = "std", feature = "serde_json"))]
+            #[allow(clippy::too_many_lines)]
+            pub fn deserialize_json<'r, R: serde_json::de::Read<'r>>(v: TypeVariant, r: &mut serde_json::de::Deserializer<R>) -> Result<Self> {
+                match v {
+                    TypeVariant::MessageType => Ok(Self::MessageType(Box::new(serde::de::Deserialize::deserialize(r)?))),
+TypeVariant::Color => Ok(Self::Color(Box::new(serde::de::Deserialize::deserialize(r)?))),
+TypeVariant::Color2 => Ok(Self::Color2(Box::new(serde::de::Deserialize::deserialize(r)?))),
+TypeVariant::Color3 => Ok(Self::Color3(Box::new(serde::de::Deserialize::deserialize(r)?))),
                 }
             }
 
