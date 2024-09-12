@@ -1,7 +1,7 @@
 // Module  is generated from:
 //  spec/fixtures/generator/enum.x
 
-#![allow(clippy::missing_errors_doc, clippy::unreadable_literal)]
+#![allow(clippy::missing_errors_doc, clippy::unreadable_literal, clippy::needless_question_mark)]
 
 /// `XDR_FILES_SHA256` is a list of pairs of source files and their SHA256 hashes.
 pub const XDR_FILES_SHA256: [(&str, &str); 1] = [

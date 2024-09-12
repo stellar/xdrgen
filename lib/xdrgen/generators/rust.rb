@@ -76,7 +76,7 @@ module Xdrgen
           //  #{@output.relative_source_paths.join("\n//  ")}
         EOS
         out.break
-        out.puts "#![allow(clippy::missing_errors_doc, clippy::unreadable_literal)]"
+        out.puts "#![allow(clippy::missing_errors_doc, clippy::unreadable_literal, clippy::needless_question_mark)]"
         out.break
         source_paths_sha256_hashes = @output.relative_source_path_sha256_hashes
         out.puts <<-EOS.strip_heredoc
