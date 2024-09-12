@@ -41,9 +41,7 @@ use std::{
 };
 
 #[cfg(all(not(feature = "std"), feature = "alloc"))]
-use embedded_io::{Error as _, ErrorType, Read, Write};
-#[cfg(all(not(feature = "std"), feature = "alloc"))]
-use embedded_io_cursor::Cursor;
+use embedded_io_extras::{Cursor, Error as _, ErrorType, Read, Write};
 
 /// Error contains all errors returned by functions in this crate. It can be
 /// compared via `PartialEq`, however any contained IO errors will only be
@@ -61,7 +59,7 @@ pub enum Error {
     #[cfg(feature = "std")]
     Io(io::Error),
     #[cfg(all(not(feature = "std"), feature = "alloc"))]
-    Io(embedded_io::ErrorKind),
+    Io(embedded_io_extras::ErrorKind),
     DepthLimitExceeded,
     #[cfg(feature = "serde_json")]
     Json(serde_json::Error),
@@ -87,21 +85,21 @@ impl PartialEq for Error {
 
 
 #[cfg(all(not(feature = "std"), feature = "alloc"))]
-impl embedded_io::Error for Error {
-    fn kind(&self) -> embedded_io::ErrorKind {
+impl embedded_io_extras::Error for Error {
+    fn kind(&self) -> embedded_io_extras::ErrorKind {
         match self {
             Self::Io(e) => *e,
-            _ => embedded_io::ErrorKind::Other,
+            _ => embedded_io_extras::ErrorKind::Other,
         }
     }
 }
 
 #[cfg(all(not(feature = "std"), feature = "alloc"))]
-impl From<embedded_io::ReadExactError<Error>> for Error {
-    fn from(value: embedded_io::ReadExactError<Error>) -> Self {
+impl From<embedded_io_extras::ReadExactError<Error>> for Error {
+    fn from(value: embedded_io_extras::ReadExactError<Error>) -> Self {
         match value {
-            embedded_io::ReadExactError::UnexpectedEof => Error::Io(embedded_io::ErrorKind::Other),
-            embedded_io::ReadExactError::Other(e) => e
+            embedded_io_extras::ReadExactError::UnexpectedEof => Error::Io(embedded_io_extras::ErrorKind::Other),
+            embedded_io_extras::ReadExactError::Other(e) => e
         }
     }
 }
