@@ -175,7 +175,7 @@ module Xdrgen
             pub const VARIANTS: [TypeVariant; #{types.count}] = [ #{types.map { |t| "TypeVariant::#{t}," }.join("\n")} ];
             pub const VARIANTS_STR: [&'static str; #{types.count}] = [ #{types.map { |t| "\"#{t}\"," }.join("\n")} ];
 
-            #[cfg(feature = "std")]
+            #[cfg(feature = "alloc")]
             #[allow(clippy::too_many_lines)]
             pub fn read_xdr<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Result<Self> {
                 match v {
@@ -190,7 +190,7 @@ module Xdrgen
                 Ok(t)
             }
 
-            #[cfg(feature = "std")]
+            #[cfg(feature = "alloc")]
             pub fn read_xdr_to_end<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Result<Self> {
                 let s = Self::read_xdr(v, r)?;
                 // Check that any further reads, such as this read of one byte, read no
@@ -234,7 +234,7 @@ module Xdrgen
                 }
             }
 
-            #[cfg(feature = "std")]
+            #[cfg(feature = "alloc")]
             pub fn from_xdr<B: AsRef<[u8]>>(v: TypeVariant, bytes: B, limits: Limits) -> Result<Self> {
                 let mut cursor = Limited::new(Cursor::new(bytes.as_ref()), limits);
                 let t = Self::read_xdr_to_end(v, &mut cursor)?;
@@ -318,7 +318,7 @@ module Xdrgen
         }
 
         impl WriteXdr for Type {
-            #[cfg(feature = "std")]
+            #[cfg(feature = "alloc")]
             #[allow(clippy::too_many_lines)]
             fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
                 match self {
@@ -407,7 +407,7 @@ module Xdrgen
         out.puts ""
         out.puts <<-EOS.strip_heredoc
         impl ReadXdr for #{name struct} {
-            #[cfg(feature = "std")]
+            #[cfg(feature = "alloc")]
             fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self> {
                 r.with_limited_depth(|r| {
                     Ok(Self{
@@ -420,7 +420,7 @@ module Xdrgen
         }
 
         impl WriteXdr for #{name struct} {
-            #[cfg(feature = "std")]
+            #[cfg(feature = "alloc")]
             fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
                 w.with_limited_depth(|w| {
                     #{struct.members.map do |m|
@@ -517,7 +517,7 @@ module Xdrgen
         }
 
         impl ReadXdr for #{name enum} {
-            #[cfg(feature = "std")]
+            #[cfg(feature = "alloc")]
             fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self> {
                 r.with_limited_depth(|r| {
                     let e = i32::read_xdr(r)?;
@@ -528,7 +528,7 @@ module Xdrgen
         }
 
         impl WriteXdr for #{name enum} {
-            #[cfg(feature = "std")]
+            #[cfg(feature = "alloc")]
             fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
                 w.with_limited_depth(|w| {
                     let i: i32 = (*self).into();
@@ -656,7 +656,7 @@ module Xdrgen
         impl Union<#{discriminant_type}> for #{name union} {}
 
         impl ReadXdr for #{name union} {
-            #[cfg(feature = "std")]
+            #[cfg(feature = "alloc")]
             fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self> {
                 r.with_limited_depth(|r| {
                     let dv: #{discriminant_type} = <#{discriminant_type} as ReadXdr>::read_xdr(r)?;
@@ -678,7 +678,7 @@ module Xdrgen
         }
 
         impl WriteXdr for #{name union} {
-            #[cfg(feature = "std")]
+            #[cfg(feature = "alloc")]
             fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
                 w.with_limited_depth(|w| {
                     self.discriminant().write_xdr(w)?;
@@ -816,7 +816,7 @@ module Xdrgen
           }
 
           impl ReadXdr for #{name typedef} {
-              #[cfg(feature = "std")]
+              #[cfg(feature = "alloc")]
               fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self> {
                   r.with_limited_depth(|r| {
                       let i = #{reference_to_call(typedef, typedef.type)}::read_xdr(r)?;
@@ -827,7 +827,7 @@ module Xdrgen
           }
 
           impl WriteXdr for #{name typedef} {
-              #[cfg(feature = "std")]
+              #[cfg(feature = "alloc")]
               fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
                   w.with_limited_depth(|w|{ self.0.write_xdr(w) })
               }
