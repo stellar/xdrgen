@@ -25,7 +25,6 @@ use alloc::{
     borrow::ToOwned,
     boxed::Box,
     string::{FromUtf8Error, String},
-    vec,
     vec::Vec,
 };
 #[cfg(feature = "std")]
@@ -42,6 +41,8 @@ use std::{
 
 #[cfg(feature = "embedded_io")]
 use embedded_io_extras::{Cursor, Error as _, ErrorType, Read, Write};
+#[cfg(feature = "embedded_io")]
+use alloc::vec;
 
 /// Error contains all errors returned by functions in this crate. It can be
 /// compared via `PartialEq`, however any contained IO errors will only be
