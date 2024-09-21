@@ -3088,7 +3088,7 @@ mod test_io {
 
     #[test]
     fn test_cursor_write_at_position() {
-        let mut data = vec![0u8; 10];
+        let mut data = [0u8; 10];
         {
             let mut cursor = Cursor::new(&mut data[..]);
             let write_data = b"Rust";
@@ -3101,14 +3101,14 @@ mod test_io {
             assert_eq!(cursor.position(), 10);
         }
 
-        let mut expected = vec![0u8; 10];
+        let mut expected = [0u8; 10];
         expected[6..10].copy_from_slice(b"Rust");
         assert_eq!(&data[..], &expected[..]);
     }
 
     #[test]
     fn test_cursor_write_overflow() {
-        let mut data = vec![0u8; 5];
+        let mut data = [0u8; 5];
         let mut cursor = Cursor::new(&mut data[..]);
         let write_data = b"Too long data";
 
