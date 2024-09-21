@@ -97,6 +97,7 @@ impl embedded_io_extras::Error for Error {
 impl From<embedded_io_extras::ReadExactError<Error>> for Error {
     fn from(value: embedded_io_extras::ReadExactError<Error>) -> Self {
         match value {
+            // TODO: maybe we should map the error to a more specific error?
             embedded_io_extras::ReadExactError::UnexpectedEof => Error::Io(embedded_io_extras::ErrorKind::Other),
             embedded_io_extras::ReadExactError::Other(e) => e
         }
