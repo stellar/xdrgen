@@ -2824,11 +2824,25 @@ mod test_io {
 
     use super::*;
 
+    macro_rules! assert_unexpected_eof {
+        ($result:expr) => {{
+            let err = $result.unwrap_err();
+            #[cfg(feature = "std")]
+            {
+                assert_eq!(err.kind(), io::ErrorKind::UnexpectedEof);
+            }
+            #[cfg(feature = "embedded_io")]
+            {
+                assert_eq!(err, embedded_io_extras::ReadExactError::UnexpectedEof);
+            }
+        }};
+    }
+
     #[test]
-    fn test_read_exact_success() {
+    fn test_cursor_read_exact_success() {
         let data = b"The quick brown fox jumps over the lazy dog.";
         let mut cursor = Cursor::new(data);
-        let mut buffer = [0u8; 19]; // Exactly the length of "The quick brown fox"
+        let mut buffer = [0u8; 19];
 
         // Attempt to read exactly 19 bytes
         assert!(cursor.read_exact(&mut buffer).is_ok());
@@ -2837,8 +2851,8 @@ mod test_io {
     }
 
     #[test]
-    fn test_read_exact_less_than_available() {
-        let data = b"Hello, Rust!";
+    fn test_cursor_read_exact_less_than_available() {
+        let data = b"Hello, Stellar!";
         let mut cursor = Cursor::new(data);
         let mut buffer = [0u8; 5];
 
@@ -2849,7 +2863,7 @@ mod test_io {
     }
 
     #[test]
-    fn test_read_exact_exact_eof() {
+    fn test_cursor_read_exact_exact_eof() {
         let data = b"Data";
         let mut cursor = Cursor::new(data);
         let mut buffer = [0u8; 4];
@@ -2863,21 +2877,12 @@ mod test_io {
         let mut buffer_eof = [0u8; 1];
         let result = cursor.read_exact(&mut buffer_eof);
         assert!(result.is_err());
-        #[cfg(feature = "std")]
-        assert_eq!(
-            result.unwrap_err().kind(),
-            std::io::ErrorKind::UnexpectedEof
-        );
-        #[cfg(feature = "embedded_io")]
-        assert_eq!(
-            result.unwrap_err(),
-            embedded_io_extras::ReadExactError::UnexpectedEof
-        );
+        assert_unexpected_eof!(result);
         assert_eq!(cursor.position(), 4); // Position should remain at EOF
     }
 
     #[test]
-    fn test_read_exact_past_eof() {
+    fn test_cursor_read_exact_past_eof() {
         let data = b"Short";
         let mut cursor = Cursor::new(data);
         let mut buffer = [0u8; 10]; // Requesting more bytes than available
@@ -2885,24 +2890,15 @@ mod test_io {
         // Attempt to read 10 bytes from a 5-byte buffer
         let result = cursor.read_exact(&mut buffer);
         assert!(result.is_err());
-        #[cfg(feature = "std")]
-        assert_eq!(
-            result.unwrap_err().kind(),
-            std::io::ErrorKind::UnexpectedEof
-        );
-        #[cfg(feature = "embedded_io")]
-        assert_eq!(
-            result.unwrap_err(),
-            embedded_io_extras::ReadExactError::UnexpectedEof
-        );
+        assert_unexpected_eof!(result);
         assert_eq!(cursor.position(), 5); // Position should move to EOF
     }
 
     #[test]
-    fn test_read_exact_empty_buffer() {
+    fn test_cursor_read_exact_empty_buffer() {
         let data = b"Non-empty";
         let mut cursor = Cursor::new(data);
-        let mut buffer = [0u8; 0]; // Zero-length buffer
+        let mut buffer = [0u8; 0];
 
         // Attempt to read zero bytes
         assert!(cursor.read_exact(&mut buffer).is_ok());
@@ -2910,7 +2906,7 @@ mod test_io {
     }
 
     #[test]
-    fn test_read_exact_from_empty_cursor() {
+    fn test_cursor_read_exact_from_empty_cursor() {
         let data: &[u8] = b"";
         let mut cursor = Cursor::new(data);
         let mut buffer = [0u8; 5];
@@ -2918,21 +2914,12 @@ mod test_io {
         // Attempt to read from an empty cursor
         let result = cursor.read_exact(&mut buffer);
         assert!(result.is_err());
-        #[cfg(feature = "std")]
-        assert_eq!(
-            result.unwrap_err().kind(),
-            std::io::ErrorKind::UnexpectedEof
-        );
-        #[cfg(feature = "embedded_io")]
-        assert_eq!(
-            result.unwrap_err(),
-            embedded_io_extras::ReadExactError::UnexpectedEof
-        );
+        assert_unexpected_eof!(result);
         assert_eq!(cursor.position(), 0); // Position remains at 0
     }
 
     #[test]
-    fn test_read_exact_multiple_reads() {
+    fn test_cursor_read_exact_multiple_reads() {
         let data = b"ABCDEFGHIJKLMNOPQRSTUVWXYZ";
         let mut cursor = Cursor::new(data);
 
@@ -2953,79 +2940,211 @@ mod test_io {
         // Third read: Attempt to read 10 bytes, but only 6 are available
         let result = cursor.read_exact(&mut buffer3);
         assert!(result.is_err());
-        #[cfg(feature = "std")]
-        assert_eq!(
-            result.unwrap_err().kind(),
-            std::io::ErrorKind::UnexpectedEof
-        );
-        #[cfg(feature = "embedded_io")]
-        assert_eq!(
-            result.unwrap_err(),
-            embedded_io_extras::ReadExactError::UnexpectedEof
-        );
+        assert_unexpected_eof!(result);
         // read_exact makes no promises about the content of the buffer on error
+        // https://github.com/rust-lang/rust/blob/84ac80f1921afc243d71fd0caaa4f2838c294102/library/std/src/io/impls.rs#L287
         // assert_eq!(&buffer3[..6], b"UVWXYZ");
         assert_eq!(cursor.position(), 26); // Position should be at EOF
     }
 
     #[test]
-    fn test_cursor_read_exact_after_eof() {
-        let data = b"End";
-        let mut cursor = Cursor::new(data);
-        let mut buffer = [0u8; 3];
-
-        // First read: read the entire buffer
-        assert!(cursor.read_exact(&mut buffer).is_ok());
-        assert_eq!(&buffer, b"End");
-        assert_eq!(cursor.position(), 3);
-
-        // Second read: attempt to read again, should fail
-        let mut buffer_eof = [0u8; 1];
-        let result = cursor.read_exact(&mut buffer_eof);
-        assert!(result.is_err());
-        #[cfg(feature = "std")]
-        assert_eq!(
-            result.unwrap_err().kind(),
-            std::io::ErrorKind::UnexpectedEof
-        );
-        #[cfg(feature = "embedded_io")]
-        assert_eq!(
-            result.unwrap_err(),
-            embedded_io_extras::ReadExactError::UnexpectedEof
-        );
-        assert_eq!(cursor.position(), 3); // Position remains at EOF
-    }
-
-    #[test]
     fn test_slice_read_exact_success() {
-        let data = b"SliceReadTest";
-        let mut slice = &data[..];
-        let mut buffer = [0u8; 13]; // Exact length
+        let data: &[u8] = b"The quick brown fox jumps over the lazy dog.";
+        let mut reader = data;
+        let mut buffer = [0u8; 19];
 
-        // Using Read trait directly on slice
-        assert!(slice.read_exact(&mut buffer).is_ok());
-        assert_eq!(&buffer, b"SliceReadTest");
+        // Attempt to read exactly 19 bytes
+        assert!(reader.read_exact(&mut buffer).is_ok());
+        assert_eq!(&buffer, b"The quick brown fox");
     }
 
     #[test]
-    fn test_slice_read_exact_partial() {
-        let data = b"SlicePartial";
-        let mut slice = &data[..];
-        let mut buffer = [0u8; 20]; // Request more bytes than available
+    fn test_slice_read_exact_less_than_available() {
+        let data: &[u8] = b"Hello, Stellar!";
+        let mut reader = data;
+        let mut buffer = [0u8; 5];
 
-        // Using Read trait directly on slice
-        let result = slice.read_exact(&mut buffer);
+        // Attempt to read 5 bytes from the start
+        assert!(reader.read_exact(&mut buffer).is_ok());
+        assert_eq!(&buffer, b"Hello");
+    }
+
+    #[test]
+    fn test_slice_read_exact_exact_eof() {
+        let data: &[u8] = b"Data";
+        let mut reader = data;
+        let mut buffer = [0u8; 4];
+
+        // Attempt to read exactly 4 bytes, which is the entire slice
+        assert!(reader.read_exact(&mut buffer).is_ok());
+        assert_eq!(&buffer, b"Data");
+
+        // Further attempt to read should fail with EOF
+        let mut buffer_eof = [0u8; 1];
+        let result = reader.read_exact(&mut buffer_eof);
         assert!(result.is_err());
+        assert_unexpected_eof!(result);
+    }
+
+    #[test]
+    fn test_slice_read_exact_past_eof() {
+        let data: &[u8] = b"Short";
+        let mut reader = data;
+        let mut buffer = [0u8; 10]; // Requesting more bytes than available
+
+        // Attempt to read 10 bytes from a 5-byte slice
+        let result = reader.read_exact(&mut buffer);
+        assert!(result.is_err());
+        assert_unexpected_eof!(result);
+    }
+
+    #[test]
+    fn test_slice_read_exact_empty_buffer() {
+        let data: &[u8] = b"Non-empty";
+        let mut reader = data;
+        let mut buffer = [0u8; 0]; // Zero-length buffer
+
+        // Attempt to read zero bytes
+        assert!(reader.read_exact(&mut buffer).is_ok());
+    }
+
+    #[test]
+    fn test_slice_read_exact_from_empty_slice() {
+        let data: &[u8] = b"";
+        let mut reader = data;
+        let mut buffer = [0u8; 5];
+
+        // Attempt to read from an empty slice
+        let result = reader.read_exact(&mut buffer);
+        assert!(result.is_err());
+        assert_unexpected_eof!(result);
+    }
+
+    #[test]
+    fn test_slice_read_exact_multiple_reads() {
+        let data: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        let mut reader = data;
+
+        let mut buffer1 = [0u8; 10];
+        let mut buffer2 = [0u8; 10];
+        let mut buffer3 = [0u8; 10]; // Only 6 bytes left
+
+        // First read: 10 bytes
+        assert!(reader.read_exact(&mut buffer1).is_ok());
+        assert_eq!(&buffer1, b"ABCDEFGHIJ");
+
+        // Second read: 10 bytes
+        assert!(reader.read_exact(&mut buffer2).is_ok());
+        assert_eq!(&buffer2, b"KLMNOPQRST");
+
+        // Third read: Attempt to read 10 bytes, but only 6 are available
+        let result = reader.read_exact(&mut buffer3);
+        assert!(result.is_err());
+        assert_unexpected_eof!(result);
+    }
+
+    #[test]
+    fn test_cursor_write_success() {
+        let data = Vec::with_capacity(100);
+        let mut cursor = Cursor::new(data);
+        let write_data = b"Hello, Stellar!";
+
+        assert!(cursor.write_all(write_data).is_ok());
+        assert_eq!(&cursor.get_ref()[..], write_data);
+        assert_eq!(cursor.position(), write_data.len() as u64);
+    }
+
+    #[test]
+    fn test_cursor_write_multiple_writes() {
+        let data = Vec::with_capacity(100);
+        let mut cursor = Cursor::new(data);
+        let write_data1: &[u8] = b"Hello, ";
+        let write_data2: &[u8] = b"Rust!";
+
+        // First write
+        assert!(cursor.write_all(write_data1).is_ok());
+        assert_eq!(&cursor.get_ref()[..], write_data1);
+        assert_eq!(cursor.position(), write_data1.len() as u64);
+
+        // Second write
+        assert!(cursor.write_all(write_data2).is_ok());
+        let mut expected = Vec::new();
+        expected.extend_from_slice(write_data1);
+        expected.extend_from_slice(write_data2);
+        assert_eq!(&cursor.get_ref()[..], expected.as_slice());
+        assert_eq!(cursor.position(), expected.len() as u64);
+    }
+
+    #[test]
+    fn test_cursor_write_empty() {
+        let data = Vec::with_capacity(100);
+        let mut cursor = Cursor::new(data);
+        let write_data = b"";
+
+        assert!(cursor.write_all(write_data).is_ok());
+        assert_eq!(cursor.get_ref().len(), 0);
+        assert_eq!(cursor.position(), 0);
+    }
+
+    #[test]
+    fn test_cursor_write_at_position() {
+        let mut data = vec![0u8; 10];
+        {
+            let mut cursor = Cursor::new(&mut data[..]);
+            let write_data = b"Rust";
+
+            // Move cursor to position 6
+            cursor.set_position(6);
+            assert_eq!(cursor.position(), 6);
+
+            assert!(cursor.write_all(write_data).is_ok());
+            assert_eq!(cursor.position(), 10);
+        }
+
+        let mut expected = vec![0u8; 10];
+        expected[6..10].copy_from_slice(b"Rust");
+        assert_eq!(&data[..], &expected[..]);
+    }
+
+    #[test]
+    fn test_cursor_write_overflow() {
+        let mut data = vec![0u8; 5];
+        let mut cursor = Cursor::new(&mut data[..]);
+        let write_data = b"Too long data";
+
+        let result = cursor.write_all(write_data);
+        assert!(result.is_err());
+
         #[cfg(feature = "std")]
-        assert_eq!(
-            result.unwrap_err().kind(),
-            std::io::ErrorKind::UnexpectedEof
-        );
+        assert_eq!(result.unwrap_err().kind(), io::ErrorKind::WriteZero);
         #[cfg(feature = "embedded_io")]
         assert_eq!(
-            result.unwrap_err(),
-            embedded_io_extras::ReadExactError::UnexpectedEof
+            result.unwrap_err().kind(),
+            embedded_io_extras::ErrorKind::WriteZero
         );
-        // read_exact makes no promises about the content of the buffer on error
+    }
+
+    #[test]
+    fn test_cursor_write_from_empty_cursor() {
+        let data = Vec::new();
+        let mut cursor = Cursor::new(data);
+        let write_data = b"Initial Data";
+
+        assert!(cursor.write_all(write_data).is_ok());
+        assert_eq!(&cursor.get_ref()[..], write_data);
+        assert_eq!(cursor.position(), write_data.len() as u64);
+    }
+
+    #[test]
+    fn test_cursor_write_partial() {
+        let mut data = [0u8; 5];
+        let mut cursor = Cursor::new(&mut data[..]);
+        let write_data = b"Hello, Stellar!";
+
+        // Attempt to write data that exceeds the buffer size
+        // using `write` instead of `write_all`
+        let result = cursor.write(&write_data[..7]).unwrap();
+        assert_eq!(result, 5);
+        assert_eq!(&cursor.get_ref()[..], b"Hello");
     }
 }
