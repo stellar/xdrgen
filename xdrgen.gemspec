@@ -23,7 +23,9 @@ Gem::Specification.new do |spec|
   spec.add_dependency "activesupport", "~> 6"
   spec.add_dependency "slop", "~> 3.4"
   spec.add_dependency "memoist", "~> 0.11.0"
-
+  # https://stackoverflow.com/questions/79360526/uninitialized-constant-activesupportloggerthreadsafelevellogger-nameerror
+  spec.add_dependency "concurrent-ruby", "<= 1.3.4"
+  
   spec.add_development_dependency "bundler", "~> 2"
   spec.add_development_dependency "rake", "~> 12.0"
   spec.add_development_dependency "rspec", "~> 3.1"
