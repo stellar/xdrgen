@@ -1,4 +1,5 @@
 require "xdrgen/version"
+require "logger"
 require "active_support/all"
 require 'memoist'
 
