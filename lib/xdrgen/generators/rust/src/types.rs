@@ -929,6 +929,22 @@ impl<T, const MAX: u32> VecM<T, MAX> {
     }
 }
 
+#[cfg(feature = "alloc")]
+impl<T, const MAX: u32> VecM<T, MAX> {
+    pub fn iter_mut(&mut self) -> core::slice::IterMut<'_, T> {
+        self.0.iter_mut()
+    }
+}
+
+#[cfg(feature = "alloc")]
+impl<'a, T, const MAX: u32> core::iter::IntoIterator for &'a mut VecM<T, MAX> {
+    type Item = &'a mut T;
+    type IntoIter = core::slice::IterMut<'a, T>;
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter_mut()
+    }
+}
+
 impl<T: Clone, const MAX: u32> VecM<T, MAX> {
     #[must_use]
     #[cfg(feature = "alloc")]
