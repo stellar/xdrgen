@@ -937,6 +937,10 @@ impl<T, const MAX: u32> VecM<T, MAX> {
     pub fn as_vec(&self) -> &Vec<T> {
         self.as_ref()
     }
+
+    pub fn iter_mut(&mut self) -> core::slice::IterMut<'_, T> {
+      self.0.iter_mut()
+    }
 }
 
 impl<T: Clone, const MAX: u32> VecM<T, MAX> {
