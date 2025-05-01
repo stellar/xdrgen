@@ -405,9 +405,10 @@ where
     /// deserialization.
     #[cfg(feature = "base64")]
     fn read_xdr_base64<R: Read>(r: &mut Limited<R>) -> Result<Self> {
+        let mut skip_whitespace = SkipWhitespace::new(r.inner);
         let mut dec = Limited::new(
             base64::read::DecoderReader::new(
-                &mut SkipWhitespace::new(r.inner),
+                &mut skip_whitespace,
                 base64::STANDARD,
             ),
             r.limits.clone(),
@@ -452,9 +453,10 @@ where
     /// deserialization.
     #[cfg(feature = "base64")]
     fn read_xdr_base64_to_end<R: Read>(r: &mut Limited<R>) -> Result<Self> {
+        let mut skip_whitespace = SkipWhitespace::new(r.inner);
         let mut dec = Limited::new(
             base64::read::DecoderReader::new(
-                &mut SkipWhitespace::new(r.inner),
+                &mut skip_whitespace,
                 base64::STANDARD,
             ),
             r.limits.clone(),
@@ -567,9 +569,10 @@ where
     #[cfg(feature = "base64")]
     fn from_xdr_base64(b64: impl AsRef<[u8]>, limits: Limits) -> Result<Self> {
         let mut b64_reader = Cursor::new(b64);
+        let mut skip_whitespace = SkipWhitespace::new(b64_reader);
         let mut dec = Limited::new(
             base64::read::DecoderReader::new(
-                &mut SkipWhitespace::new(b64_reader),
+                &mut skip_whitespace,
                 base64::STANDARD,
             ),
             limits,
