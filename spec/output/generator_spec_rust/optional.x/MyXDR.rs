@@ -581,7 +581,7 @@ where
             base64::read::DecoderReader::new(
                 &mut SkipWhitespace::new(b64_reader),
                 base64::STANDARD,
-            )
+            ),
             limits,
         );
         let t = Self::read_xdr_to_end(&mut dec)?;
