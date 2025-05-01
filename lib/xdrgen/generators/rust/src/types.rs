@@ -406,7 +406,10 @@ where
     #[cfg(feature = "base64")]
     fn read_xdr_base64<R: Read>(r: &mut Limited<R>) -> Result<Self> {
         let mut dec = Limited::new(
-            base64::read::DecoderReader::new(&mut r.inner, base64::STANDARD),
+            base64::read::DecoderReader::new(
+                &mut SkipWhitespace::new(r.inner),
+                base64::STANDARD,
+            ),
             r.limits.clone(),
         );
         let t = Self::read_xdr(&mut dec)?;
@@ -450,7 +453,10 @@ where
     #[cfg(feature = "base64")]
     fn read_xdr_base64_to_end<R: Read>(r: &mut Limited<R>) -> Result<Self> {
         let mut dec = Limited::new(
-            base64::read::DecoderReader::new(&mut r.inner, base64::STANDARD),
+            base64::read::DecoderReader::new(
+                &mut SkipWhitespace::new(r.inner),
+                base64::STANDARD,
+            ),
             r.limits.clone(),
         );
         let t = Self::read_xdr_to_end(&mut dec)?;
@@ -536,7 +542,10 @@ where
     fn read_xdr_base64_iter<R: Read>(
         r: &mut Limited<R>,
     ) -> ReadXdrIter<base64::read::DecoderReader<R>, Self> {
-        let dec = base64::read::DecoderReader::new(&mut r.inner, base64::STANDARD);
+        let dec = base64::read::DecoderReader::new(
+            &mut SkipWhitespace::new(r.inner),
+            base64::STANDARD,
+        );
         ReadXdrIter::new(dec, r.limits.clone())
     }
 
@@ -559,7 +568,10 @@ where
     fn from_xdr_base64(b64: impl AsRef<[u8]>, limits: Limits) -> Result<Self> {
         let mut b64_reader = Cursor::new(b64);
         let mut dec = Limited::new(
-            base64::read::DecoderReader::new(&mut b64_reader, base64::STANDARD),
+            base64::read::DecoderReader::new(
+                &mut SkipWhitespace::new(b64_reader),
+                base64::STANDARD,
+            )
             limits,
         );
         let t = Self::read_xdr_to_end(&mut dec)?;
@@ -2155,6 +2167,80 @@ where
             // TODO: Support reading those additional frames for the same
             // record.
             Err(Error::Unsupported)
+        }
+    }
+}
+
+use std::io::Read;
+
+/// Forwards read operations to the wrapped object, skipping over any
+/// whitespace.
+#[cfg(feature = "std")]
+pub struct SkipWhitespace<R: Read> {
+    pub inner: R,
+}
+
+#[cfg(feature = "std")]
+impl<R: Read> SkipWhitespace<R> {
+    pub fn new(inner: R) -> Self {
+        SkipWhitespace { inner }
+    }
+}
+
+#[cfg(feature = "std")]
+impl<R: Read> Read for SkipWhitespace<R> {
+    fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
+        let n = self.inner.read(buf)?;
+
+        let mut written = 0;
+        for read in 0..n {
+            if !buf[read].is_ascii_whitespace() {
+                buf[written] = buf[read];
+                written += 1;
+            }
+        }
+
+        Ok(written)
+    }
+}
+
+#[cfg(all(test, feature = "std"))]
+mod test_skip_whitespace {
+    use super::*;
+
+    #[test]
+    fn test() {
+        struct Test {
+            input: &'static [u8],
+            output: &'static [u8],
+        }
+        let tests = [
+            Test {
+                input: b"",
+                output: b"",
+            },
+            Test {
+                input: b" \n\t\r",
+                output: b"",
+            },
+            Test {
+                input: b"a c",
+                output: b"ac",
+            },
+            Test {
+                input: b"ab cd",
+                output: b"abcd",
+            },
+            Test {
+                input: b" ab \n cd ",
+                output: b"abcd",
+            },
+        ];
+        for (i, t) in tests.iter().enumerate() {
+            let mut skip = SkipWhitespace::new(t.input);
+            let mut output = Vec::new();
+            skip.read_to_end(&mut output).unwrap();
+            assert_eq!(output, t.output, "#{i}");
         }
     }
 }
