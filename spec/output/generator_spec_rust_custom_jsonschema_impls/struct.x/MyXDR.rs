@@ -2181,8 +2181,6 @@ where
     }
 }
 
-use std::io::Read;
-
 /// Forwards read operations to the wrapped object, skipping over any
 /// whitespace.
 #[cfg(feature = "std")]
