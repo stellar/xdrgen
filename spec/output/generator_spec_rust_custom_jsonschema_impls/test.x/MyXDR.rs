@@ -1,7 +1,7 @@
 // Module  is generated from:
 //  spec/fixtures/generator/test.x
 
-#![allow(clippy::missing_errors_doc, clippy::unreadable_literal)]
+#![allow(clippy::missing_errors_doc, clippy::unreadable_literal, clippy::needless_question_mark)]
 
 /// `XDR_FILES_SHA256` is a list of pairs of source files and their SHA256 hashes.
 pub const XDR_FILES_SHA256: [(&str, &str); 1] = [
@@ -43,13 +43,16 @@ use std::string::FromUtf8Error;
 #[cfg(feature = "arbitrary")]
 use arbitrary::Arbitrary;
 
-// TODO: Add support for read/write xdr fns when std not available.
-
 #[cfg(feature = "std")]
 use std::{
     error, io,
     io::{BufRead, BufReader, Cursor, Read, Write},
 };
+
+#[cfg(feature = "embedded_io")]
+use embedded_io_extras::{Cursor, Error as _, ErrorType, Read, Write};
+#[cfg(feature = "embedded_io")]
+use alloc::vec;
 
 /// Error contains all errors returned by functions in this crate. It can be
 /// compared via `PartialEq`, however any contained IO errors will only be
@@ -66,6 +69,8 @@ pub enum Error {
     InvalidHex,
     #[cfg(feature = "std")]
     Io(io::Error),
+    #[cfg(feature = "embedded_io")]
+    Io(embedded_io_extras::ErrorKind),
     DepthLimitExceeded,
     #[cfg(feature = "serde_json")]
     Json(serde_json::Error),
@@ -82,9 +87,30 @@ impl PartialEq for Error {
             // case for comparing errors outputted by the XDR library is for
             // error case testing, and a lack of the ability to compare has a
             // detrimental affect on failure testing, so this is a tradeoff.
-            #[cfg(feature = "std")]
+            #[cfg(any(feature = "std", feature = "embedded_io"))]
             (Self::Io(l), Self::Io(r)) => l.kind() == r.kind(),
             _ => core::mem::discriminant(self) == core::mem::discriminant(other),
+        }
+    }
+}
+
+#[cfg(feature = "embedded_io")]
+impl embedded_io_extras::Error for Error {
+    fn kind(&self) -> embedded_io_extras::ErrorKind {
+        match self {
+            Self::Io(e) => *e,
+            _ => embedded_io_extras::ErrorKind::Other,
+        }
+    }
+}
+
+#[cfg(feature = "embedded_io")]
+impl From<embedded_io_extras::ReadExactError<Error>> for Error {
+    fn from(value: embedded_io_extras::ReadExactError<Error>) -> Self {
+        match value {
+            // TODO: maybe we should map the error to a more specific error?
+            embedded_io_extras::ReadExactError::UnexpectedEof => Error::Io(embedded_io_extras::ErrorKind::Other),
+            embedded_io_extras::ReadExactError::Other(e) => e
         }
     }
 }
@@ -115,6 +141,8 @@ impl fmt::Display for Error {
             Error::InvalidHex => write!(f, "hex invalid"),
             #[cfg(feature = "std")]
             Error::Io(e) => write!(f, "{e}"),
+            #[cfg(feature = "embedded_io")]
+            Error::Io(_) => write!(f, "io error"),
             Error::DepthLimitExceeded => write!(f, "depth limit exceeded"),
             #[cfg(feature = "serde_json")]
             Error::Json(e) => write!(f, "{e}"),
@@ -167,6 +195,9 @@ impl From<Error> for () {
 #[allow(dead_code)]
 type Result<T> = core::result::Result<T, Error>;
 
+#[cfg(feature = "embedded_io")]
+impl<T> ErrorType for Limited<T> { type Error = Error; }
+
 /// Name defines types that assign a static name to their value, such as the
 /// name given to an identifier in an XDR enum, or the name given to the case in
 /// a union.
@@ -200,7 +231,7 @@ where
 
 /// `Limits` contains the limits that a limited reader or writer will be
 /// constrained to.
-#[cfg(feature = "std")]
+#[cfg(any(feature = "std", feature = "embedded_io"))]
 #[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Limits {
     /// Defines the maximum depth for recursive calls in `Read/WriteXdr` to
@@ -217,7 +248,7 @@ pub struct Limits {
     pub len: usize,
 }
 
-#[cfg(feature = "std")]
+#[cfg(any(feature = "std", feature = "embedded_io"))]
 impl Limits {
     #[must_use]
     pub fn none() -> Self {
@@ -248,13 +279,13 @@ impl Limits {
 ///
 /// Intended for use with readers and writers and limiting their reads and
 /// writes.
-#[cfg(feature = "std")]
+#[cfg(any(feature = "std", feature = "embedded_io"))]
 pub struct Limited<L> {
     pub inner: L,
     pub(crate) limits: Limits,
 }
 
-#[cfg(feature = "std")]
+#[cfg(any(feature = "std", feature = "embedded_io"))]
 impl<L> Limited<L> {
     /// Constructs a new `Limited`.
     ///
@@ -307,6 +338,14 @@ impl<R: Read> Read for Limited<R> {
     }
 }
 
+#[cfg(feature = "embedded_io")]
+impl<R: Read> Read for Limited<R> {
+    /// Forwards the read operation to the wrapped object.
+    fn read(&mut self, buf: &mut [u8]) -> core::result::Result<usize, Self::Error> {
+        self.inner.read(buf).map_err(|e| Error::Io(e.kind()))
+    }
+}
+
 #[cfg(feature = "std")]
 impl<R: BufRead> BufRead for Limited<R> {
     /// Forwards the read operation to the wrapped object.
@@ -330,6 +369,18 @@ impl<W: Write> Write for Limited<W> {
     /// Forwards the flush operation to the wrapped object.
     fn flush(&mut self) -> std::io::Result<()> {
         self.inner.flush()
+    }
+}
+
+#[cfg(feature = "embedded_io")]
+impl<W: Write> Write for Limited<W> {
+    /// Forwards the write operation to the wrapped object.
+    fn write(&mut self, buf: &[u8]) -> core::result::Result<usize, Self::Error> {
+        self.inner.write(buf).map_err(|e| Error::Io(e.kind()))
+    }
+
+    fn flush(&mut self) -> core::result::Result<(), Self::Error> {
+        self.inner.flush().map_err(|e| Error::Io(e.kind()))
     }
 }
 
@@ -406,7 +457,7 @@ where
     ///
     /// Use [`ReadXdR: Read_xdr_to_end`] when the intent is for all bytes in the
     /// read implementation to be consumed by the read.
-    #[cfg(feature = "std")]
+    #[cfg(any(feature = "std", feature = "embedded_io"))]
     fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self>;
 
     /// Construct the type from the XDR bytes base64 encoded.
@@ -441,7 +492,7 @@ where
     ///
     /// All implementations should continue if the read implementation returns
     /// [`ErrorKind::Interrupted`](std::io::ErrorKind::Interrupted).
-    #[cfg(feature = "std")]
+    #[cfg(any(feature = "std", feature = "embedded_io"))]
     fn read_xdr_to_end<R: Read>(r: &mut Limited<R>) -> Result<Self> {
         let s = Self::read_xdr(r)?;
         // Check that any further reads, such as this read of one byte, read no
@@ -481,7 +532,7 @@ where
     ///
     /// Use [`ReadXdR: Read_xdr_into_to_end`] when the intent is for all bytes
     /// in the read implementation to be consumed by the read.
-    #[cfg(feature = "std")]
+    #[cfg(any(feature = "std", feature = "embedded_io"))]
     fn read_xdr_into<R: Read>(&mut self, r: &mut Limited<R>) -> Result<()> {
         *self = Self::read_xdr(r)?;
         Ok(())
@@ -505,7 +556,7 @@ where
     ///
     /// All implementations should continue if the read implementation returns
     /// [`ErrorKind::Interrupted`](std::io::ErrorKind::Interrupted).
-    #[cfg(feature = "std")]
+    #[cfg(any(feature = "std", feature = "embedded_io"))]
     fn read_xdr_into_to_end<R: Read>(&mut self, r: &mut Limited<R>) -> Result<()> {
         Self::read_xdr_into(self, r)?;
         // Check that any further reads, such as this read of one byte, read no
@@ -554,7 +605,7 @@ where
     ///
     /// An error is returned if the bytes are not completely consumed by the
     /// deserialization.
-    #[cfg(feature = "std")]
+    #[cfg(any(feature = "std", feature = "embedded_io"))]
     fn from_xdr(bytes: impl AsRef<[u8]>, limits: Limits) -> Result<Self> {
         let mut cursor = Limited::new(Cursor::new(bytes.as_ref()), limits);
         let t = Self::read_xdr_to_end(&mut cursor)?;
@@ -578,10 +629,10 @@ where
 }
 
 pub trait WriteXdr {
-    #[cfg(feature = "std")]
+    #[cfg(any(feature = "std", feature = "embedded_io"))]
     fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()>;
 
-    #[cfg(feature = "std")]
+    #[cfg(any(feature = "std", feature = "embedded_io"))]
     fn to_xdr(&self, limits: Limits) -> Result<Vec<u8>> {
         let mut cursor = Limited::new(Cursor::new(vec![]), limits);
         self.write_xdr(&mut cursor)?;
@@ -603,13 +654,13 @@ pub trait WriteXdr {
 
 /// `Pad_len` returns the number of bytes to pad an XDR value of the given
 /// length to make the final serialized size a multiple of 4.
-#[cfg(feature = "std")]
+#[cfg(any(feature = "std", feature = "embedded_io"))]
 fn pad_len(len: usize) -> usize {
     (4 - (len % 4)) % 4
 }
 
 impl ReadXdr for i32 {
-    #[cfg(feature = "std")]
+    #[cfg(any(feature = "std", feature = "embedded_io"))]
     fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self> {
         let mut b = [0u8; 4];
         r.with_limited_depth(|r| {
@@ -621,7 +672,7 @@ impl ReadXdr for i32 {
 }
 
 impl WriteXdr for i32 {
-    #[cfg(feature = "std")]
+    #[cfg(any(feature = "std", feature = "embedded_io"))]
     fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
         let b: [u8; 4] = self.to_be_bytes();
         w.with_limited_depth(|w| {
@@ -632,7 +683,7 @@ impl WriteXdr for i32 {
 }
 
 impl ReadXdr for u32 {
-    #[cfg(feature = "std")]
+    #[cfg(any(feature = "std", feature = "embedded_io"))]
     fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self> {
         let mut b = [0u8; 4];
         r.with_limited_depth(|r| {
@@ -644,7 +695,7 @@ impl ReadXdr for u32 {
 }
 
 impl WriteXdr for u32 {
-    #[cfg(feature = "std")]
+    #[cfg(any(feature = "std", feature = "embedded_io"))]
     fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
         let b: [u8; 4] = self.to_be_bytes();
         w.with_limited_depth(|w| {
@@ -655,7 +706,7 @@ impl WriteXdr for u32 {
 }
 
 impl ReadXdr for i64 {
-    #[cfg(feature = "std")]
+    #[cfg(any(feature = "std", feature = "embedded_io"))]
     fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self> {
         let mut b = [0u8; 8];
         r.with_limited_depth(|r| {
@@ -667,7 +718,7 @@ impl ReadXdr for i64 {
 }
 
 impl WriteXdr for i64 {
-    #[cfg(feature = "std")]
+    #[cfg(any(feature = "std", feature = "embedded_io"))]
     fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
         let b: [u8; 8] = self.to_be_bytes();
         w.with_limited_depth(|w| {
@@ -678,7 +729,7 @@ impl WriteXdr for i64 {
 }
 
 impl ReadXdr for u64 {
-    #[cfg(feature = "std")]
+    #[cfg(any(feature = "std", feature = "embedded_io"))]
     fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self> {
         let mut b = [0u8; 8];
         r.with_limited_depth(|r| {
@@ -690,7 +741,7 @@ impl ReadXdr for u64 {
 }
 
 impl WriteXdr for u64 {
-    #[cfg(feature = "std")]
+    #[cfg(any(feature = "std", feature = "embedded_io"))]
     fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
         let b: [u8; 8] = self.to_be_bytes();
         w.with_limited_depth(|w| {
@@ -701,35 +752,35 @@ impl WriteXdr for u64 {
 }
 
 impl ReadXdr for f32 {
-    #[cfg(feature = "std")]
+    #[cfg(any(feature = "std", feature = "embedded_io"))]
     fn read_xdr<R: Read>(_r: &mut Limited<R>) -> Result<Self> {
         todo!()
     }
 }
 
 impl WriteXdr for f32 {
-    #[cfg(feature = "std")]
+    #[cfg(any(feature = "std", feature = "embedded_io"))]
     fn write_xdr<W: Write>(&self, _w: &mut Limited<W>) -> Result<()> {
         todo!()
     }
 }
 
 impl ReadXdr for f64 {
-    #[cfg(feature = "std")]
+    #[cfg(any(feature = "std", feature = "embedded_io"))]
     fn read_xdr<R: Read>(_r: &mut Limited<R>) -> Result<Self> {
         todo!()
     }
 }
 
 impl WriteXdr for f64 {
-    #[cfg(feature = "std")]
+    #[cfg(any(feature = "std", feature = "embedded_io"))]
     fn write_xdr<W: Write>(&self, _w: &mut Limited<W>) -> Result<()> {
         todo!()
     }
 }
 
 impl ReadXdr for bool {
-    #[cfg(feature = "std")]
+    #[cfg(any(feature = "std", feature = "embedded_io"))]
     fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self> {
         r.with_limited_depth(|r| {
             let i = u32::read_xdr(r)?;
@@ -740,7 +791,7 @@ impl ReadXdr for bool {
 }
 
 impl WriteXdr for bool {
-    #[cfg(feature = "std")]
+    #[cfg(any(feature = "std", feature = "embedded_io"))]
     fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
         w.with_limited_depth(|w| {
             let i = u32::from(*self); // true = 1, false = 0
@@ -750,7 +801,7 @@ impl WriteXdr for bool {
 }
 
 impl<T: ReadXdr> ReadXdr for Option<T> {
-    #[cfg(feature = "std")]
+    #[cfg(any(feature = "std", feature = "embedded_io"))]
     fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self> {
         r.with_limited_depth(|r| {
             let i = u32::read_xdr(r)?;
@@ -767,7 +818,7 @@ impl<T: ReadXdr> ReadXdr for Option<T> {
 }
 
 impl<T: WriteXdr> WriteXdr for Option<T> {
-    #[cfg(feature = "std")]
+    #[cfg(any(feature = "std", feature = "embedded_io"))]
     fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
         w.with_limited_depth(|w| {
             if let Some(t) = self {
@@ -782,35 +833,35 @@ impl<T: WriteXdr> WriteXdr for Option<T> {
 }
 
 impl<T: ReadXdr> ReadXdr for Box<T> {
-    #[cfg(feature = "std")]
+    #[cfg(any(feature = "std", feature = "embedded_io"))]
     fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self> {
         r.with_limited_depth(|r| Ok(Box::new(T::read_xdr(r)?)))
     }
 }
 
 impl<T: WriteXdr> WriteXdr for Box<T> {
-    #[cfg(feature = "std")]
+    #[cfg(any(feature = "std", feature = "embedded_io"))]
     fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
         w.with_limited_depth(|w| T::write_xdr(self, w))
     }
 }
 
 impl ReadXdr for () {
-    #[cfg(feature = "std")]
+    #[cfg(any(feature = "std", feature = "embedded_io"))]
     fn read_xdr<R: Read>(_r: &mut Limited<R>) -> Result<Self> {
         Ok(())
     }
 }
 
 impl WriteXdr for () {
-    #[cfg(feature = "std")]
+    #[cfg(any(feature = "std", feature = "embedded_io"))]
     fn write_xdr<W: Write>(&self, _w: &mut Limited<W>) -> Result<()> {
         Ok(())
     }
 }
 
 impl<const N: usize> ReadXdr for [u8; N] {
-    #[cfg(feature = "std")]
+    #[cfg(any(feature = "std", feature = "embedded_io"))]
     fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self> {
         r.with_limited_depth(|r| {
             r.consume_len(N)?;
@@ -829,7 +880,7 @@ impl<const N: usize> ReadXdr for [u8; N] {
 }
 
 impl<const N: usize> WriteXdr for [u8; N] {
-    #[cfg(feature = "std")]
+    #[cfg(any(feature = "std", feature = "embedded_io"))]
     fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
         w.with_limited_depth(|w| {
             w.consume_len(N)?;
@@ -843,7 +894,7 @@ impl<const N: usize> WriteXdr for [u8; N] {
 }
 
 impl<T: ReadXdr, const N: usize> ReadXdr for [T; N] {
-    #[cfg(feature = "std")]
+    #[cfg(any(feature = "std", feature = "embedded_io"))]
     fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self> {
         r.with_limited_depth(|r| {
             let mut vec = Vec::with_capacity(N);
@@ -858,7 +909,7 @@ impl<T: ReadXdr, const N: usize> ReadXdr for [T; N] {
 }
 
 impl<T: WriteXdr, const N: usize> WriteXdr for [T; N] {
-    #[cfg(feature = "std")]
+    #[cfg(any(feature = "std", feature = "embedded_io"))]
     fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
         w.with_limited_depth(|w| {
             for t in self {
@@ -1233,7 +1284,7 @@ impl<'a, const MAX: u32> TryFrom<&'a VecM<u8, MAX>> for &'a str {
 }
 
 impl<const MAX: u32> ReadXdr for VecM<u8, MAX> {
-    #[cfg(feature = "std")]
+    #[cfg(any(feature = "std", feature = "embedded_io"))]
     fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self> {
         r.with_limited_depth(|r| {
             let len: u32 = u32::read_xdr(r)?;
@@ -1260,7 +1311,7 @@ impl<const MAX: u32> ReadXdr for VecM<u8, MAX> {
 }
 
 impl<const MAX: u32> WriteXdr for VecM<u8, MAX> {
-    #[cfg(feature = "std")]
+    #[cfg(any(feature = "std", feature = "embedded_io"))]
     fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
         w.with_limited_depth(|w| {
             let len: u32 = self.len().try_into().map_err(|_| Error::LengthExceedsMax)?;
@@ -1280,7 +1331,7 @@ impl<const MAX: u32> WriteXdr for VecM<u8, MAX> {
 }
 
 impl<T: ReadXdr, const MAX: u32> ReadXdr for VecM<T, MAX> {
-    #[cfg(feature = "std")]
+    #[cfg(any(feature = "std", feature = "embedded_io"))]
     fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self> {
         r.with_limited_depth(|r| {
             let len = u32::read_xdr(r)?;
@@ -1300,7 +1351,7 @@ impl<T: ReadXdr, const MAX: u32> ReadXdr for VecM<T, MAX> {
 }
 
 impl<T: WriteXdr, const MAX: u32> WriteXdr for VecM<T, MAX> {
-    #[cfg(feature = "std")]
+    #[cfg(any(feature = "std", feature = "embedded_io"))]
     fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
         w.with_limited_depth(|w| {
             let len: u32 = self.len().try_into().map_err(|_| Error::LengthExceedsMax)?;
@@ -1673,7 +1724,7 @@ impl<'a, const MAX: u32> TryFrom<&'a BytesM<MAX>> for &'a str {
 }
 
 impl<const MAX: u32> ReadXdr for BytesM<MAX> {
-    #[cfg(feature = "std")]
+    #[cfg(any(feature = "std", feature = "embedded_io"))]
     fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self> {
         r.with_limited_depth(|r| {
             let len: u32 = u32::read_xdr(r)?;
@@ -1700,7 +1751,7 @@ impl<const MAX: u32> ReadXdr for BytesM<MAX> {
 }
 
 impl<const MAX: u32> WriteXdr for BytesM<MAX> {
-    #[cfg(feature = "std")]
+    #[cfg(any(feature = "std", feature = "embedded_io"))]
     fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
         w.with_limited_depth(|w| {
             let len: u32 = self.len().try_into().map_err(|_| Error::LengthExceedsMax)?;
@@ -2076,7 +2127,7 @@ impl<'a, const MAX: u32> TryFrom<&'a StringM<MAX>> for &'a str {
 }
 
 impl<const MAX: u32> ReadXdr for StringM<MAX> {
-    #[cfg(feature = "std")]
+    #[cfg(any(feature = "std", feature = "embedded_io"))]
     fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self> {
         r.with_limited_depth(|r| {
             let len: u32 = u32::read_xdr(r)?;
@@ -2103,7 +2154,7 @@ impl<const MAX: u32> ReadXdr for StringM<MAX> {
 }
 
 impl<const MAX: u32> WriteXdr for StringM<MAX> {
-    #[cfg(feature = "std")]
+    #[cfg(any(feature = "std", feature = "embedded_io"))]
     fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
         w.with_limited_depth(|w| {
             let len: u32 = self.len().try_into().map_err(|_| Error::LengthExceedsMax)?;
@@ -2149,7 +2200,7 @@ impl<T> ReadXdr for Frame<T>
 where
     T: ReadXdr,
 {
-    #[cfg(feature = "std")]
+    #[cfg(any(feature = "std", feature = "embedded_io"))]
     fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self> {
         // Read the frame header value that contains 1 flag-bit and a 33-bit length.
         //  - The 1 flag bit is 0 when there are more frames for the same record.
@@ -2169,10 +2220,8 @@ where
     }
 }
 
-#[cfg(all(test, feature = "std"))]
+#[cfg(all(test, any(feature = "std", feature = "embedded_io")))]
 mod tests {
-    use std::io::Cursor;
-
     use super::*;
 
     #[test]
@@ -2281,7 +2330,7 @@ mod tests {
     }
 }
 
-#[cfg(all(test, feature = "std"))]
+#[cfg(all(test, any(feature = "std", feature = "embedded_io")))]
 mod test {
     use super::*;
 
@@ -2794,6 +2843,338 @@ mod test {
     }
 }
 
+#[cfg(all(test, any(feature = "std", feature = "embedded_io")))]
+mod test_io {
+    // We will use different IO libraries according to the feature,
+    // we hope the selected IO library can work as expected
+
+    use super::*;
+
+    macro_rules! assert_unexpected_eof {
+        ($result:expr) => {{
+            let err = $result.unwrap_err();
+            #[cfg(feature = "std")]
+            {
+                assert_eq!(err.kind(), io::ErrorKind::UnexpectedEof);
+            }
+            #[cfg(feature = "embedded_io")]
+            {
+                assert_eq!(err, embedded_io_extras::ReadExactError::UnexpectedEof);
+            }
+        }};
+    }
+
+    #[test]
+    fn test_cursor_read_exact_success() {
+        let data = b"The quick brown fox jumps over the lazy dog.";
+        let mut cursor = Cursor::new(data);
+        let mut buffer = [0u8; 19];
+
+        // Attempt to read exactly 19 bytes
+        assert!(cursor.read_exact(&mut buffer).is_ok());
+        assert_eq!(&buffer, b"The quick brown fox");
+        assert_eq!(cursor.position(), 19);
+    }
+
+    #[test]
+    fn test_cursor_read_exact_less_than_available() {
+        let data = b"Hello, Stellar!";
+        let mut cursor = Cursor::new(data);
+        let mut buffer = [0u8; 5];
+
+        // Attempt to read 5 bytes from the start
+        assert!(cursor.read_exact(&mut buffer).is_ok());
+        assert_eq!(&buffer, b"Hello");
+        assert_eq!(cursor.position(), 5);
+    }
+
+    #[test]
+    fn test_cursor_read_exact_exact_eof() {
+        let data = b"Data";
+        let mut cursor = Cursor::new(data);
+        let mut buffer = [0u8; 4];
+
+        // Attempt to read exactly 4 bytes, which is the entire buffer
+        assert!(cursor.read_exact(&mut buffer).is_ok());
+        assert_eq!(&buffer, b"Data");
+        assert_eq!(cursor.position(), 4);
+
+        // Further attempt to read should fail with EOF
+        let mut buffer_eof = [0u8; 1];
+        let result = cursor.read_exact(&mut buffer_eof);
+        assert!(result.is_err());
+        assert_unexpected_eof!(result);
+        assert_eq!(cursor.position(), 4); // Position should remain at EOF
+    }
+
+    #[test]
+    fn test_cursor_read_exact_past_eof() {
+        let data = b"Short";
+        let mut cursor = Cursor::new(data);
+        let mut buffer = [0u8; 10]; // Requesting more bytes than available
+
+        // Attempt to read 10 bytes from a 5-byte buffer
+        let result = cursor.read_exact(&mut buffer);
+        assert!(result.is_err());
+        assert_unexpected_eof!(result);
+        assert_eq!(cursor.position(), 5); // Position should move to EOF
+    }
+
+    #[test]
+    fn test_cursor_read_exact_empty_buffer() {
+        let data = b"Non-empty";
+        let mut cursor = Cursor::new(data);
+        let mut buffer = [0u8; 0];
+
+        // Attempt to read zero bytes
+        assert!(cursor.read_exact(&mut buffer).is_ok());
+        assert_eq!(cursor.position(), 0); // Position should remain unchanged
+    }
+
+    #[test]
+    fn test_cursor_read_exact_from_empty_cursor() {
+        let data: &[u8] = b"";
+        let mut cursor = Cursor::new(data);
+        let mut buffer = [0u8; 5];
+
+        // Attempt to read from an empty cursor
+        let result = cursor.read_exact(&mut buffer);
+        assert!(result.is_err());
+        assert_unexpected_eof!(result);
+        assert_eq!(cursor.position(), 0); // Position remains at 0
+    }
+
+    #[test]
+    fn test_cursor_read_exact_multiple_reads() {
+        let data = b"ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        let mut cursor = Cursor::new(data);
+
+        let mut buffer1 = [0u8; 10];
+        let mut buffer2 = [0u8; 10];
+        let mut buffer3 = [0u8; 10]; // Only 6 bytes left
+
+        // First read: 10 bytes
+        assert!(cursor.read_exact(&mut buffer1).is_ok());
+        assert_eq!(&buffer1, b"ABCDEFGHIJ");
+        assert_eq!(cursor.position(), 10);
+
+        // Second read: 10 bytes
+        assert!(cursor.read_exact(&mut buffer2).is_ok());
+        assert_eq!(&buffer2, b"KLMNOPQRST");
+        assert_eq!(cursor.position(), 20);
+
+        // Third read: Attempt to read 10 bytes, but only 6 are available
+        let result = cursor.read_exact(&mut buffer3);
+        assert!(result.is_err());
+        assert_unexpected_eof!(result);
+        // read_exact makes no promises about the content of the buffer on error
+        // https://github.com/rust-lang/rust/blob/84ac80f1921afc243d71fd0caaa4f2838c294102/library/std/src/io/impls.rs#L287
+        // assert_eq!(&buffer3[..6], b"UVWXYZ");
+        assert_eq!(cursor.position(), 26); // Position should be at EOF
+    }
+
+    #[test]
+    fn test_slice_read_exact_success() {
+        let data: &[u8] = b"The quick brown fox jumps over the lazy dog.";
+        let mut reader = data;
+        let mut buffer = [0u8; 19];
+
+        // Attempt to read exactly 19 bytes
+        assert!(reader.read_exact(&mut buffer).is_ok());
+        assert_eq!(&buffer, b"The quick brown fox");
+    }
+
+    #[test]
+    fn test_slice_read_exact_less_than_available() {
+        let data: &[u8] = b"Hello, Stellar!";
+        let mut reader = data;
+        let mut buffer = [0u8; 5];
+
+        // Attempt to read 5 bytes from the start
+        assert!(reader.read_exact(&mut buffer).is_ok());
+        assert_eq!(&buffer, b"Hello");
+    }
+
+    #[test]
+    fn test_slice_read_exact_exact_eof() {
+        let data: &[u8] = b"Data";
+        let mut reader = data;
+        let mut buffer = [0u8; 4];
+
+        // Attempt to read exactly 4 bytes, which is the entire slice
+        assert!(reader.read_exact(&mut buffer).is_ok());
+        assert_eq!(&buffer, b"Data");
+
+        // Further attempt to read should fail with EOF
+        let mut buffer_eof = [0u8; 1];
+        let result = reader.read_exact(&mut buffer_eof);
+        assert!(result.is_err());
+        assert_unexpected_eof!(result);
+    }
+
+    #[test]
+    fn test_slice_read_exact_past_eof() {
+        let data: &[u8] = b"Short";
+        let mut reader = data;
+        let mut buffer = [0u8; 10]; // Requesting more bytes than available
+
+        // Attempt to read 10 bytes from a 5-byte slice
+        let result = reader.read_exact(&mut buffer);
+        assert!(result.is_err());
+        assert_unexpected_eof!(result);
+    }
+
+    #[test]
+    fn test_slice_read_exact_empty_buffer() {
+        let data: &[u8] = b"Non-empty";
+        let mut reader = data;
+        let mut buffer = [0u8; 0]; // Zero-length buffer
+
+        // Attempt to read zero bytes
+        assert!(reader.read_exact(&mut buffer).is_ok());
+    }
+
+    #[test]
+    fn test_slice_read_exact_from_empty_slice() {
+        let data: &[u8] = b"";
+        let mut reader = data;
+        let mut buffer = [0u8; 5];
+
+        // Attempt to read from an empty slice
+        let result = reader.read_exact(&mut buffer);
+        assert!(result.is_err());
+        assert_unexpected_eof!(result);
+    }
+
+    #[test]
+    fn test_slice_read_exact_multiple_reads() {
+        let data: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        let mut reader = data;
+
+        let mut buffer1 = [0u8; 10];
+        let mut buffer2 = [0u8; 10];
+        let mut buffer3 = [0u8; 10]; // Only 6 bytes left
+
+        // First read: 10 bytes
+        assert!(reader.read_exact(&mut buffer1).is_ok());
+        assert_eq!(&buffer1, b"ABCDEFGHIJ");
+
+        // Second read: 10 bytes
+        assert!(reader.read_exact(&mut buffer2).is_ok());
+        assert_eq!(&buffer2, b"KLMNOPQRST");
+
+        // Third read: Attempt to read 10 bytes, but only 6 are available
+        let result = reader.read_exact(&mut buffer3);
+        assert!(result.is_err());
+        assert_unexpected_eof!(result);
+    }
+
+    #[test]
+    fn test_cursor_write_success() {
+        let data = Vec::with_capacity(100);
+        let mut cursor = Cursor::new(data);
+        let write_data = b"Hello, Stellar!";
+
+        assert!(cursor.write_all(write_data).is_ok());
+        assert_eq!(&cursor.get_ref()[..], write_data);
+        assert_eq!(cursor.position(), write_data.len() as u64);
+    }
+
+    #[test]
+    fn test_cursor_write_multiple_writes() {
+        let data = Vec::with_capacity(100);
+        let mut cursor = Cursor::new(data);
+        let write_data1: &[u8] = b"Hello, ";
+        let write_data2: &[u8] = b"Rust!";
+
+        // First write
+        assert!(cursor.write_all(write_data1).is_ok());
+        assert_eq!(&cursor.get_ref()[..], write_data1);
+        assert_eq!(cursor.position(), write_data1.len() as u64);
+
+        // Second write
+        assert!(cursor.write_all(write_data2).is_ok());
+        let mut expected = Vec::new();
+        expected.extend_from_slice(write_data1);
+        expected.extend_from_slice(write_data2);
+        assert_eq!(&cursor.get_ref()[..], expected.as_slice());
+        assert_eq!(cursor.position(), expected.len() as u64);
+    }
+
+    #[test]
+    fn test_cursor_write_empty() {
+        let data = Vec::with_capacity(100);
+        let mut cursor = Cursor::new(data);
+        let write_data = b"";
+
+        assert!(cursor.write_all(write_data).is_ok());
+        assert_eq!(cursor.get_ref().len(), 0);
+        assert_eq!(cursor.position(), 0);
+    }
+
+    #[test]
+    fn test_cursor_write_at_position() {
+        let mut data = [0u8; 10];
+        {
+            let mut cursor = Cursor::new(&mut data[..]);
+            let write_data = b"Rust";
+
+            // Move cursor to position 6
+            cursor.set_position(6);
+            assert_eq!(cursor.position(), 6);
+
+            assert!(cursor.write_all(write_data).is_ok());
+            assert_eq!(cursor.position(), 10);
+        }
+
+        let mut expected = [0u8; 10];
+        expected[6..10].copy_from_slice(b"Rust");
+        assert_eq!(&data[..], &expected[..]);
+    }
+
+    #[test]
+    fn test_cursor_write_overflow() {
+        let mut data = [0u8; 5];
+        let mut cursor = Cursor::new(&mut data[..]);
+        let write_data = b"Too long data";
+
+        let result = cursor.write_all(write_data);
+        assert!(result.is_err());
+
+        #[cfg(feature = "std")]
+        assert_eq!(result.unwrap_err().kind(), io::ErrorKind::WriteZero);
+        #[cfg(feature = "embedded_io")]
+        assert_eq!(
+            result.unwrap_err().kind(),
+            embedded_io_extras::ErrorKind::WriteZero
+        );
+    }
+
+    #[test]
+    fn test_cursor_write_from_empty_cursor() {
+        let data = Vec::new();
+        let mut cursor = Cursor::new(data);
+        let write_data = b"Initial Data";
+
+        assert!(cursor.write_all(write_data).is_ok());
+        assert_eq!(&cursor.get_ref()[..], write_data);
+        assert_eq!(cursor.position(), write_data.len() as u64);
+    }
+
+    #[test]
+    fn test_cursor_write_partial() {
+        let mut data = [0u8; 5];
+        let mut cursor = Cursor::new(&mut data[..]);
+        let write_data = b"Hello, Stellar!";
+
+        // Attempt to write data that exceeds the buffer size
+        // using `write` instead of `write_all`
+        let result = cursor.write(&write_data[..7]).unwrap();
+        assert_eq!(result, 5);
+        assert_eq!(&cursor.get_ref()[..], b"Hello");
+    }
+}
+
 /// Uint512 is an XDR Typedef defines as:
 ///
 /// ```text
@@ -2888,7 +3269,7 @@ impl AsRef<[u8; 64]> for Uint512 {
 }
 
 impl ReadXdr for Uint512 {
-    #[cfg(feature = "std")]
+    #[cfg(any(feature = "std", feature = "embedded_io"))]
     fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self> {
         r.with_limited_depth(|r| {
             let i = <[u8; 64]>::read_xdr(r)?;
@@ -2899,7 +3280,7 @@ impl ReadXdr for Uint512 {
 }
 
 impl WriteXdr for Uint512 {
-    #[cfg(feature = "std")]
+    #[cfg(any(feature = "std", feature = "embedded_io"))]
     fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
         w.with_limited_depth(|w|{ self.0.write_xdr(w) })
     }
@@ -2978,7 +3359,7 @@ impl AsRef<BytesM::<64>> for Uint513 {
 }
 
 impl ReadXdr for Uint513 {
-    #[cfg(feature = "std")]
+    #[cfg(any(feature = "std", feature = "embedded_io"))]
     fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self> {
         r.with_limited_depth(|r| {
             let i = BytesM::<64>::read_xdr(r)?;
@@ -2989,7 +3370,7 @@ impl ReadXdr for Uint513 {
 }
 
 impl WriteXdr for Uint513 {
-    #[cfg(feature = "std")]
+    #[cfg(any(feature = "std", feature = "embedded_io"))]
     fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
         w.with_limited_depth(|w|{ self.0.write_xdr(w) })
     }
@@ -3080,7 +3461,7 @@ impl AsRef<BytesM> for Uint514 {
 }
 
 impl ReadXdr for Uint514 {
-    #[cfg(feature = "std")]
+    #[cfg(any(feature = "std", feature = "embedded_io"))]
     fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self> {
         r.with_limited_depth(|r| {
             let i = BytesM::read_xdr(r)?;
@@ -3091,7 +3472,7 @@ impl ReadXdr for Uint514 {
 }
 
 impl WriteXdr for Uint514 {
-    #[cfg(feature = "std")]
+    #[cfg(any(feature = "std", feature = "embedded_io"))]
     fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
         w.with_limited_depth(|w|{ self.0.write_xdr(w) })
     }
@@ -3182,7 +3563,7 @@ impl AsRef<StringM::<64>> for Str {
 }
 
 impl ReadXdr for Str {
-    #[cfg(feature = "std")]
+    #[cfg(any(feature = "std", feature = "embedded_io"))]
     fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self> {
         r.with_limited_depth(|r| {
             let i = StringM::<64>::read_xdr(r)?;
@@ -3193,7 +3574,7 @@ impl ReadXdr for Str {
 }
 
 impl WriteXdr for Str {
-    #[cfg(feature = "std")]
+    #[cfg(any(feature = "std", feature = "embedded_io"))]
     fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
         w.with_limited_depth(|w|{ self.0.write_xdr(w) })
     }
@@ -3284,7 +3665,7 @@ impl AsRef<StringM> for Str2 {
 }
 
 impl ReadXdr for Str2 {
-    #[cfg(feature = "std")]
+    #[cfg(any(feature = "std", feature = "embedded_io"))]
     fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self> {
         r.with_limited_depth(|r| {
             let i = StringM::read_xdr(r)?;
@@ -3295,7 +3676,7 @@ impl ReadXdr for Str2 {
 }
 
 impl WriteXdr for Str2 {
-    #[cfg(feature = "std")]
+    #[cfg(any(feature = "std", feature = "embedded_io"))]
     fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
         w.with_limited_depth(|w|{ self.0.write_xdr(w) })
     }
@@ -3444,7 +3825,7 @@ impl AsRef<[u8; 32]> for Hash {
 }
 
 impl ReadXdr for Hash {
-    #[cfg(feature = "std")]
+    #[cfg(any(feature = "std", feature = "embedded_io"))]
     fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self> {
         r.with_limited_depth(|r| {
             let i = <[u8; 32]>::read_xdr(r)?;
@@ -3455,7 +3836,7 @@ impl ReadXdr for Hash {
 }
 
 impl WriteXdr for Hash {
-    #[cfg(feature = "std")]
+    #[cfg(any(feature = "std", feature = "embedded_io"))]
     fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
         w.with_limited_depth(|w|{ self.0.write_xdr(w) })
     }
@@ -3533,7 +3914,7 @@ impl AsRef<[Hash; 12]> for Hashes1 {
 }
 
 impl ReadXdr for Hashes1 {
-    #[cfg(feature = "std")]
+    #[cfg(any(feature = "std", feature = "embedded_io"))]
     fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self> {
         r.with_limited_depth(|r| {
             let i = <[Hash; 12]>::read_xdr(r)?;
@@ -3544,7 +3925,7 @@ impl ReadXdr for Hashes1 {
 }
 
 impl WriteXdr for Hashes1 {
-    #[cfg(feature = "std")]
+    #[cfg(any(feature = "std", feature = "embedded_io"))]
     fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
         w.with_limited_depth(|w|{ self.0.write_xdr(w) })
     }
@@ -3623,7 +4004,7 @@ impl AsRef<VecM::<Hash, 12>> for Hashes2 {
 }
 
 impl ReadXdr for Hashes2 {
-    #[cfg(feature = "std")]
+    #[cfg(any(feature = "std", feature = "embedded_io"))]
     fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self> {
         r.with_limited_depth(|r| {
             let i = VecM::<Hash, 12>::read_xdr(r)?;
@@ -3634,7 +4015,7 @@ impl ReadXdr for Hashes2 {
 }
 
 impl WriteXdr for Hashes2 {
-    #[cfg(feature = "std")]
+    #[cfg(any(feature = "std", feature = "embedded_io"))]
     fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
         w.with_limited_depth(|w|{ self.0.write_xdr(w) })
     }
@@ -3725,7 +4106,7 @@ impl AsRef<VecM::<Hash>> for Hashes3 {
 }
 
 impl ReadXdr for Hashes3 {
-    #[cfg(feature = "std")]
+    #[cfg(any(feature = "std", feature = "embedded_io"))]
     fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self> {
         r.with_limited_depth(|r| {
             let i = VecM::<Hash>::read_xdr(r)?;
@@ -3736,7 +4117,7 @@ impl ReadXdr for Hashes3 {
 }
 
 impl WriteXdr for Hashes3 {
-    #[cfg(feature = "std")]
+    #[cfg(any(feature = "std", feature = "embedded_io"))]
     fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
         w.with_limited_depth(|w|{ self.0.write_xdr(w) })
     }
@@ -3826,7 +4207,7 @@ impl AsRef<Option<Hash>> for OptHash1 {
 }
 
 impl ReadXdr for OptHash1 {
-    #[cfg(feature = "std")]
+    #[cfg(any(feature = "std", feature = "embedded_io"))]
     fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self> {
         r.with_limited_depth(|r| {
             let i = Option::<Hash>::read_xdr(r)?;
@@ -3837,7 +4218,7 @@ impl ReadXdr for OptHash1 {
 }
 
 impl WriteXdr for OptHash1 {
-    #[cfg(feature = "std")]
+    #[cfg(any(feature = "std", feature = "embedded_io"))]
     fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
         w.with_limited_depth(|w|{ self.0.write_xdr(w) })
     }
@@ -3878,7 +4259,7 @@ impl AsRef<Option<Hash>> for OptHash2 {
 }
 
 impl ReadXdr for OptHash2 {
-    #[cfg(feature = "std")]
+    #[cfg(any(feature = "std", feature = "embedded_io"))]
     fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self> {
         r.with_limited_depth(|r| {
             let i = Option::<Hash>::read_xdr(r)?;
@@ -3889,7 +4270,7 @@ impl ReadXdr for OptHash2 {
 }
 
 impl WriteXdr for OptHash2 {
-    #[cfg(feature = "std")]
+    #[cfg(any(feature = "std", feature = "embedded_io"))]
     fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
         w.with_limited_depth(|w|{ self.0.write_xdr(w) })
     }
@@ -3956,7 +4337,7 @@ pub struct MyStruct {
 }
 
         impl ReadXdr for MyStruct {
-            #[cfg(feature = "std")]
+            #[cfg(any(feature = "std", feature = "embedded_io"))]
             fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self> {
                 r.with_limited_depth(|r| {
                     Ok(Self{
@@ -3973,7 +4354,7 @@ field7: bool::read_xdr(r)?,
         }
 
         impl WriteXdr for MyStruct {
-            #[cfg(feature = "std")]
+            #[cfg(any(feature = "std", feature = "embedded_io"))]
             fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
                 w.with_limited_depth(|w| {
                     self.field1.write_xdr(w)?;
@@ -4005,7 +4386,7 @@ pub struct LotsOfMyStructs {
 }
 
 impl ReadXdr for LotsOfMyStructs {
-    #[cfg(feature = "std")]
+    #[cfg(any(feature = "std", feature = "embedded_io"))]
     fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self> {
         r.with_limited_depth(|r| {
             Ok(Self{
@@ -4016,7 +4397,7 @@ impl ReadXdr for LotsOfMyStructs {
 }
 
 impl WriteXdr for LotsOfMyStructs {
-    #[cfg(feature = "std")]
+    #[cfg(any(feature = "std", feature = "embedded_io"))]
     fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
         w.with_limited_depth(|w| {
             self.members.write_xdr(w)?;
@@ -4043,7 +4424,7 @@ pub struct HasStuff {
 }
 
 impl ReadXdr for HasStuff {
-    #[cfg(feature = "std")]
+    #[cfg(any(feature = "std", feature = "embedded_io"))]
     fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self> {
         r.with_limited_depth(|r| {
             Ok(Self{
@@ -4054,7 +4435,7 @@ impl ReadXdr for HasStuff {
 }
 
 impl WriteXdr for HasStuff {
-    #[cfg(feature = "std")]
+    #[cfg(any(feature = "std", feature = "embedded_io"))]
     fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
         w.with_limited_depth(|w| {
             self.data.write_xdr(w)?;
@@ -4152,7 +4533,7 @@ Self::Green => "Green",
         }
 
         impl ReadXdr for Color {
-            #[cfg(feature = "std")]
+            #[cfg(any(feature = "std", feature = "embedded_io"))]
             fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self> {
                 r.with_limited_depth(|r| {
                     let e = i32::read_xdr(r)?;
@@ -4163,7 +4544,7 @@ Self::Green => "Green",
         }
 
         impl WriteXdr for Color {
-            #[cfg(feature = "std")]
+            #[cfg(any(feature = "std", feature = "embedded_io"))]
             fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
                 w.with_limited_depth(|w| {
                     let i: i32 = (*self).into();
@@ -4271,7 +4652,7 @@ Self::B2 => "B2",
         }
 
         impl ReadXdr for NesterNestedEnum {
-            #[cfg(feature = "std")]
+            #[cfg(any(feature = "std", feature = "embedded_io"))]
             fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self> {
                 r.with_limited_depth(|r| {
                     let e = i32::read_xdr(r)?;
@@ -4282,7 +4663,7 @@ Self::B2 => "B2",
         }
 
         impl WriteXdr for NesterNestedEnum {
-            #[cfg(feature = "std")]
+            #[cfg(any(feature = "std", feature = "embedded_io"))]
             fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
                 w.with_limited_depth(|w| {
                     let i: i32 = (*self).into();
@@ -4308,7 +4689,7 @@ pub struct NesterNestedStruct {
 }
 
 impl ReadXdr for NesterNestedStruct {
-    #[cfg(feature = "std")]
+    #[cfg(any(feature = "std", feature = "embedded_io"))]
     fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self> {
         r.with_limited_depth(|r| {
             Ok(Self{
@@ -4319,7 +4700,7 @@ impl ReadXdr for NesterNestedStruct {
 }
 
 impl WriteXdr for NesterNestedStruct {
-    #[cfg(feature = "std")]
+    #[cfg(any(feature = "std", feature = "embedded_io"))]
     fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
         w.with_limited_depth(|w| {
             self.blah.write_xdr(w)?;
@@ -4401,7 +4782,7 @@ impl Variants<Color> for NesterNestedUnion {
 impl Union<Color> for NesterNestedUnion {}
 
 impl ReadXdr for NesterNestedUnion {
-    #[cfg(feature = "std")]
+    #[cfg(any(feature = "std", feature = "embedded_io"))]
     fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self> {
         r.with_limited_depth(|r| {
             let dv: Color = <Color as ReadXdr>::read_xdr(r)?;
@@ -4417,7 +4798,7 @@ impl ReadXdr for NesterNestedUnion {
 }
 
 impl WriteXdr for NesterNestedUnion {
-    #[cfg(feature = "std")]
+    #[cfg(any(feature = "std", feature = "embedded_io"))]
     fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
         w.with_limited_depth(|w| {
             self.discriminant().write_xdr(w)?;
@@ -4466,7 +4847,7 @@ pub struct Nester {
 }
 
         impl ReadXdr for Nester {
-            #[cfg(feature = "std")]
+            #[cfg(any(feature = "std", feature = "embedded_io"))]
             fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self> {
                 r.with_limited_depth(|r| {
                     Ok(Self{
@@ -4479,7 +4860,7 @@ nested_union: NesterNestedUnion::read_xdr(r)?,
         }
 
         impl WriteXdr for Nester {
-            #[cfg(feature = "std")]
+            #[cfg(any(feature = "std", feature = "embedded_io"))]
             fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
                 w.with_limited_depth(|w| {
                     self.nested_enum.write_xdr(w)?;
@@ -4767,7 +5148,7 @@ TypeVariant::NesterNestedUnion, ];
 "NesterNestedStruct",
 "NesterNestedUnion", ];
 
-            #[cfg(feature = "std")]
+            #[cfg(any(feature = "std", feature = "embedded_io"))]
             #[allow(clippy::too_many_lines)]
             pub fn read_xdr<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Result<Self> {
                 match v {
@@ -4804,7 +5185,7 @@ TypeVariant::NesterNestedUnion => r.with_limited_depth(|r| Ok(Self::NesterNested
                 Ok(t)
             }
 
-            #[cfg(feature = "std")]
+            #[cfg(any(feature = "std", feature = "embedded_io"))]
             pub fn read_xdr_to_end<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Result<Self> {
                 let s = Self::read_xdr(v, r)?;
                 // Check that any further reads, such as this read of one byte, read no
@@ -4914,7 +5295,7 @@ TypeVariant::NesterNestedUnion => Box::new(ReadXdrIter::<_, NesterNestedUnion>::
                 }
             }
 
-            #[cfg(feature = "std")]
+            #[cfg(any(feature = "std", feature = "embedded_io"))]
             pub fn from_xdr<B: AsRef<[u8]>>(v: TypeVariant, bytes: B, limits: Limits) -> Result<Self> {
                 let mut cursor = Limited::new(Cursor::new(bytes.as_ref()), limits);
                 let t = Self::read_xdr_to_end(v, &mut cursor)?;
@@ -5108,7 +5489,7 @@ Self::NesterNestedUnion(_) => TypeVariant::NesterNestedUnion,
         }
 
         impl WriteXdr for Type {
-            #[cfg(feature = "std")]
+            #[cfg(any(feature = "std", feature = "embedded_io"))]
             #[allow(clippy::too_many_lines)]
             fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
                 match self {
