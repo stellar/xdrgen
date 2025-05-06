@@ -5,7 +5,7 @@ module Xdrgen
     def self.run(args)
       puts "ARGS1"
       puts args.class
-      #args = args.dup
+      args2 = args.dup
       puts "ARGS1.5"
       puts args.inspect
       opts = Slop.parse! args do
@@ -18,7 +18,7 @@ module Xdrgen
       end
 
       puts "ARGS2"
-      puts args.inspect
+      puts args2.inspect
       puts "OPTS"
       puts opts[:output]
       puts opts[:language]
