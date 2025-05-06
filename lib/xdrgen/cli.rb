@@ -13,8 +13,11 @@ module Xdrgen
         on 'rust-types-custom-jsonschema-impl=', 'Rust types that should not have jsonschema implementations generated as they will be provided via custom implementations (rust-specific)'
       end
 
+      puts "ARGS"
       puts args
+      puts "OPTS"
       puts opts
+      puts "DONE"
       fail(opts) if args.blank?
       fail(opts) if opts[:output].blank?
 
