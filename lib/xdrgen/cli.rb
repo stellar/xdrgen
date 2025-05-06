@@ -4,7 +4,7 @@ module Xdrgen
   module CLI
     def self.run(args)
       puts "ARGS1"
-      puts args.inspect
+      puts args.class
       args = args.dup
       puts "ARGS1.5"
       puts args.inspect
