@@ -544,7 +544,7 @@ where
     ) -> ReadXdrIter<
         base64::read::DecoderReader<
             base64::engine::general_purpose::GeneralPurpose,
-            SkipWhitespace<R>,
+            SkipWhitespace<&mut R>,
         >,
         Self
     > {
