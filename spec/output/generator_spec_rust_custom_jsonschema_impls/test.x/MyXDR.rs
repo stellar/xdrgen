@@ -415,11 +415,10 @@ where
     /// deserialization.
     #[cfg(feature = "base64")]
     fn read_xdr_base64<R: Read>(r: &mut Limited<R>) -> Result<Self> {
-        let mut skip_whitespace = SkipWhitespace::new(r.inner);
         let mut dec = Limited::new(
             base64::read::DecoderReader::new(
-                &mut skip_whitespace,
-                base64::STANDARD,
+                SkipWhitespace::new(&mut r.inner),
+                &base64::engine::general_purpose::STANDARD,
             ),
             r.limits.clone(),
         );
@@ -463,11 +462,10 @@ where
     /// deserialization.
     #[cfg(feature = "base64")]
     fn read_xdr_base64_to_end<R: Read>(r: &mut Limited<R>) -> Result<Self> {
-        let mut skip_whitespace = SkipWhitespace::new(r.inner);
         let mut dec = Limited::new(
             base64::read::DecoderReader::new(
-                &mut skip_whitespace,
-                base64::STANDARD,
+                SkipWhitespace::new(&mut r.inner),
+                &base64::engine::general_purpose::STANDARD,
             ),
             r.limits.clone(),
         );
@@ -553,10 +551,16 @@ where
     #[cfg(feature = "base64")]
     fn read_xdr_base64_iter<R: Read>(
         r: &mut Limited<R>,
-    ) -> ReadXdrIter<base64::read::DecoderReader<R>, Self> {
+    ) -> ReadXdrIter<
+        base64::read::DecoderReader<
+            base64::engine::general_purpose::GeneralPurpose,
+            SkipWhitespace<&mut R>,
+        >,
+        Self
+    > {
         let dec = base64::read::DecoderReader::new(
-            &mut SkipWhitespace::new(r.inner),
-            base64::STANDARD,
+            SkipWhitespace::new(&mut r.inner),
+            &base64::engine::general_purpose::STANDARD,
         );
         ReadXdrIter::new(dec, r.limits.clone())
     }
@@ -578,12 +582,11 @@ where
     /// deserialization.
     #[cfg(feature = "base64")]
     fn from_xdr_base64(b64: impl AsRef<[u8]>, limits: Limits) -> Result<Self> {
-        let mut b64_reader = Cursor::new(b64);
-        let mut skip_whitespace = SkipWhitespace::new(b64_reader);
+        let b64_reader = Cursor::new(b64);
         let mut dec = Limited::new(
             base64::read::DecoderReader::new(
-                &mut skip_whitespace,
-                base64::STANDARD,
+                SkipWhitespace::new(b64_reader),
+                &base64::engine::general_purpose::STANDARD,
             ),
             limits,
         );
@@ -607,7 +610,7 @@ pub trait WriteXdr {
     #[cfg(feature = "base64")]
     fn to_xdr_base64(&self, limits: Limits) -> Result<String> {
         let mut enc = Limited::new(
-            base64::write::EncoderStringWriter::new(base64::STANDARD),
+            base64::write::EncoderStringWriter::new(&base64::engine::general_purpose::STANDARD),
             limits,
         );
         self.write_xdr(&mut enc)?;
@@ -4886,7 +4889,13 @@ TypeVariant::NesterNestedUnion => r.with_limited_depth(|r| Ok(Self::NesterNested
 
             #[cfg(feature = "base64")]
             pub fn read_xdr_base64<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Result<Self> {
-                let mut dec = Limited::new(base64::read::DecoderReader::new(&mut r.inner, base64::STANDARD), r.limits.clone());
+                let mut dec = Limited::new(
+                    base64::read::DecoderReader::new(
+                        SkipWhitespace::new(&mut r.inner),
+                        &base64::engine::general_purpose::STANDARD,
+                    ),
+                    r.limits.clone(),
+                );
                 let t = Self::read_xdr(v, &mut dec)?;
                 Ok(t)
             }
@@ -4905,7 +4914,13 @@ TypeVariant::NesterNestedUnion => r.with_limited_depth(|r| Ok(Self::NesterNested
 
             #[cfg(feature = "base64")]
             pub fn read_xdr_base64_to_end<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Result<Self> {
-                let mut dec = Limited::new(base64::read::DecoderReader::new(&mut r.inner, base64::STANDARD), r.limits.clone());
+                let mut dec = Limited::new(
+                    base64::read::DecoderReader::new(
+                        SkipWhitespace::new(&mut r.inner),
+                        &base64::engine::general_purpose::STANDARD,
+                    ),
+                    r.limits.clone(),
+                );
                 let t = Self::read_xdr_to_end(v, &mut dec)?;
                 Ok(t)
             }
@@ -4973,7 +4988,10 @@ TypeVariant::NesterNestedUnion => Box::new(ReadXdrIter::<_, Frame<NesterNestedUn
             #[cfg(feature = "base64")]
             #[allow(clippy::too_many_lines)]
             pub fn read_xdr_base64_iter<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Box<dyn Iterator<Item=Result<Self>> + '_> {
-                let dec = base64::read::DecoderReader::new(&mut r.inner, base64::STANDARD);
+                let dec = base64::read::DecoderReader::new(
+                    SkipWhitespace::new(&mut r.inner),
+                    &base64::engine::general_purpose::STANDARD,
+                );
                 match v {
                     TypeVariant::Uint512 => Box::new(ReadXdrIter::<_, Uint512>::new(dec, r.limits.clone()).map(|r| r.map(|t| Self::Uint512(Box::new(t))))),
 TypeVariant::Uint513 => Box::new(ReadXdrIter::<_, Uint513>::new(dec, r.limits.clone()).map(|r| r.map(|t| Self::Uint513(Box::new(t))))),
@@ -5010,8 +5028,13 @@ TypeVariant::NesterNestedUnion => Box::new(ReadXdrIter::<_, NesterNestedUnion>::
 
             #[cfg(feature = "base64")]
             pub fn from_xdr_base64(v: TypeVariant, b64: impl AsRef<[u8]>, limits: Limits) -> Result<Self> {
-                let mut b64_reader = Cursor::new(b64);
-                let mut dec = Limited::new(base64::read::DecoderReader::new(&mut b64_reader, base64::STANDARD), limits);
+                let mut dec = Limited::new(
+                    base64::read::DecoderReader::new(
+                        SkipWhitespace::new(Cursor::new(b64)),
+                        &base64::engine::general_purpose::STANDARD,
+                    ),
+                    limits,
+                );
                 let t = Self::read_xdr_to_end(v, &mut dec)?;
                 Ok(t)
             }
