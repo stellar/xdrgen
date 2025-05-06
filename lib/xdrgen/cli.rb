@@ -16,7 +16,7 @@ module Xdrgen
       end
 
       puts "ARGS2"
-      puts args
+      puts args.inspect
       puts "OPTS"
       puts opts[:output]
       puts opts[:language]
