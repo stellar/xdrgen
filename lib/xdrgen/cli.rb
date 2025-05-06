@@ -4,7 +4,7 @@ module Xdrgen
   module CLI
     def self.run(args)
       puts "ARGS1"
-      puts args
+      puts args.inspect
       args = args.dup
       opts = Slop.parse! args do
         banner 'Usage: xdrgen -o OUTPUT_DIR INPUT --language=ruby'
