@@ -545,7 +545,7 @@ where
         r: &mut Limited<R>,
     ) -> ReadXdrIter<base64::read::DecoderReader<impl Read>, Self> {
         let dec = base64::read::DecoderReader::new(
-            &mut SkipWhitespace::new(&mut r.inner),
+            SkipWhitespace::new(&mut r.inner),
             base64::STANDARD,
         );
         ReadXdrIter::new(dec, r.limits.clone())
