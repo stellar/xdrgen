@@ -6,6 +6,8 @@ module Xdrgen
       puts "ARGS1"
       puts args.inspect
       args = args.dup
+      puts "ARGS1.5"
+      puts args.inspect
       opts = Slop.parse! args do
         banner 'Usage: xdrgen -o OUTPUT_DIR INPUT --language=ruby'
         on 'o', 'output=', 'The output directory'
