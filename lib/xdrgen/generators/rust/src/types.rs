@@ -541,7 +541,7 @@ where
     #[cfg(feature = "base64")]
     fn read_xdr_base64_iter<R: Read>(
         r: &mut Limited<R>,
-    ) -> ReadXdrIter<base64::read::DecoderReader<impl Read>, Self> {
+    ) -> ReadXdrIter<base64::read::DecoderReader, Self> {
         let dec = base64::read::DecoderReader::new(
             SkipWhitespace::new(&mut r.inner),
             &base64::engine::general_purpose::STANDARD,
