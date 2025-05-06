@@ -185,7 +185,13 @@ module Xdrgen
 
             #[cfg(feature = "base64")]
             pub fn read_xdr_base64<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Result<Self> {
-                let mut dec = Limited::new(base64::read::DecoderReader::new(&mut r.inner, base64::STANDARD), r.limits.clone());
+                let mut dec = Limited::new(
+                    base64::read::DecoderReader::new(
+                        SkipWhitespace::new(&mut r.inner),
+                        &base64::engine::general_purpose::STANDARD,
+                    ),
+                    r.limits.clone(),
+                );
                 let t = Self::read_xdr(v, &mut dec)?;
                 Ok(t)
             }
@@ -204,7 +210,13 @@ module Xdrgen
 
             #[cfg(feature = "base64")]
             pub fn read_xdr_base64_to_end<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Result<Self> {
-                let mut dec = Limited::new(base64::read::DecoderReader::new(&mut r.inner, base64::STANDARD), r.limits.clone());
+                let mut dec = Limited::new(
+                    base64::read::DecoderReader::new(
+                        SkipWhitespace::new(&mut r.inner),
+                        &base64::engine::general_purpose::STANDARD,
+                    ),
+                    r.limits.clone(),
+                );
                 let t = Self::read_xdr_to_end(v, &mut dec)?;
                 Ok(t)
             }
@@ -228,7 +240,10 @@ module Xdrgen
             #[cfg(feature = "base64")]
             #[allow(clippy::too_many_lines)]
             pub fn read_xdr_base64_iter<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Box<dyn Iterator<Item=Result<Self>> + '_> {
-                let dec = base64::read::DecoderReader::new(&mut r.inner, base64::STANDARD);
+                let dec = base64::read::DecoderReader::new(
+                    SkipWhitespace::new(&mut r.inner),
+                    &base64::engine::general_purpose::STANDARD,
+                );
                 match v {
                     #{types.map { |t| "TypeVariant::#{t} => Box::new(ReadXdrIter::<_, #{t}>::new(dec, r.limits.clone()).map(|r| r.map(|t| Self::#{t}(Box::new(t)))))," }.join("\n")}
                 }
@@ -244,7 +259,13 @@ module Xdrgen
             #[cfg(feature = "base64")]
             pub fn from_xdr_base64(v: TypeVariant, b64: impl AsRef<[u8]>, limits: Limits) -> Result<Self> {
                 let mut b64_reader = Cursor::new(b64);
-                let mut dec = Limited::new(base64::read::DecoderReader::new(&mut b64_reader, base64::STANDARD), limits);
+                let mut dec = Limited::new(
+                    base64::read::DecoderReader::new(
+                        SkipWhitespace::new(b64_reader),
+                        &base64::engine::general_purpose::STANDARD,
+                    ),
+                    limits,
+                );
                 let t = Self::read_xdr_to_end(v, &mut dec)?;
                 Ok(t)
             }
