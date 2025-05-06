@@ -3,11 +3,6 @@ require 'slop'
 module Xdrgen
   module CLI
     def self.run(args)
-      puts "ARGS1"
-      puts args.class
-      args2 = args.dup
-      puts "ARGS1.5"
-      puts args.inspect
       opts = Slop.parse! args do
         banner 'Usage: xdrgen -o OUTPUT_DIR INPUT --language=ruby'
         on 'o', 'output=', 'The output directory'
@@ -17,16 +12,6 @@ module Xdrgen
         on 'rust-types-custom-jsonschema-impl=', 'Rust types that should not have jsonschema implementations generated as they will be provided via custom implementations (rust-specific)'
       end
 
-      puts "ARGS2"
-      puts args2.inspect
-      puts "OPTS"
-      puts opts[:output]
-      puts opts[:language]
-      puts opts[:namespace]
-      puts opts[:"rust-types-custom-str-impl"]
-      puts opts[:"rust-types-custom-jsonschema-impl"]
-      puts "DONE"
-      fail(opts) if args.blank?
       fail(opts) if opts[:output].blank?
 
       compilation = Compilation.new(
