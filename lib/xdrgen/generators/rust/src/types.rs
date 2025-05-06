@@ -408,7 +408,7 @@ where
         let mut dec = Limited::new(
             base64::read::DecoderReader::new(
                 SkipWhitespace::new(&mut r.inner),
-                base64::engine::general_purpose::STANDARD,
+                &base64::engine::general_purpose::STANDARD,
             ),
             r.limits.clone(),
         );
@@ -455,7 +455,7 @@ where
         let mut dec = Limited::new(
             base64::read::DecoderReader::new(
                 SkipWhitespace::new(&mut r.inner),
-                base64::engine::general_purpose::STANDARD,
+                &base64::engine::general_purpose::STANDARD,
             ),
             r.limits.clone(),
         );
@@ -544,7 +544,7 @@ where
     ) -> ReadXdrIter<base64::read::DecoderReader<impl Read>, Self> {
         let dec = base64::read::DecoderReader::new(
             SkipWhitespace::new(&mut r.inner),
-            base64::engine::general_purpose::STANDARD,
+            &base64::engine::general_purpose::STANDARD,
         );
         ReadXdrIter::new(dec, r.limits.clone())
     }
@@ -570,7 +570,7 @@ where
         let mut dec = Limited::new(
             base64::read::DecoderReader::new(
                 SkipWhitespace::new(b64_reader),
-                base64::engine::general_purpose::STANDARD,
+                &base64::engine::general_purpose::STANDARD,
             ),
             limits,
         );
@@ -594,7 +594,7 @@ pub trait WriteXdr {
     #[cfg(feature = "base64")]
     fn to_xdr_base64(&self, limits: Limits) -> Result<String> {
         let mut enc = Limited::new(
-            base64::write::EncoderStringWriter::new(base64::engine::general_purpose::STANDARD),
+            base64::write::EncoderStringWriter::new(&base64::engine::general_purpose::STANDARD),
             limits,
         );
         self.write_xdr(&mut enc)?;
