@@ -1026,7 +1026,7 @@ module Xdrgen
         base_ref = base_reference(type)
         if ['i64','u64'].include?(base_ref)
           ref = reference(parent, type, 'serde_with::DisplayFromStr')
-          "#[serde_as(as = \"${ref}\")]"
+          "#[serde_as(as = \"#{ref}\")]"
         else
           nil
         end
