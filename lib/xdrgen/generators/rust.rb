@@ -400,7 +400,6 @@ module Xdrgen
         out.puts "pub struct #{name struct} {"
         out.indent do
           struct.members.each do |m|
-            puts "struct #{name struct} has #{m.declaration.type} #{reference(struct, m.declaration.type)}"
             out.puts_if(field_attrs(m.declaration.type)) if !@options[:rust_types_custom_str_impl].include?(name struct)
             out.puts "pub #{field_name m}: #{reference(struct, m.declaration.type)},"
           end
@@ -575,7 +574,7 @@ module Xdrgen
         if @options[:rust_types_custom_str_impl].include?(name union)
           out.puts %{#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr))]}
         else
-          out.puts %{#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]}
+          out.puts %{#[cfg_attr(all(feature = "serde", feature = "alloc"), serde_with::serde_as, derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]}
         end
         if !@options[:rust_types_custom_jsonschema_impl].include?(name union)
           out.puts %{#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]}
@@ -719,7 +718,7 @@ module Xdrgen
           if is_fixed_array_opaque(typedef.type) || @options[:rust_types_custom_str_impl].include?(name typedef)
             out.puts %{#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr))]}
           else
-            out.puts %{#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]}
+            out.puts %{#[cfg_attr(all(feature = "serde", feature = "alloc"), serde_with::serde_as, derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]}
           end
           if !is_fixed_array_opaque(typedef.type) && !@options[:rust_types_custom_jsonschema_impl].include?(name typedef)
             out.puts %{#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]}
