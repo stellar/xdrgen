@@ -984,7 +984,7 @@ where
                     if (values.len() + 1) > MAX as usize {
                         panic!("over size");
                     }
-                    values.append(value);
+                    values.push(value);
                 }
 
                 Ok(values.try_into().unwrap())
