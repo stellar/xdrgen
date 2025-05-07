@@ -954,11 +954,12 @@ impl<'de, T, U, const MAX: u32> serde_with::DeserializeAs<'de, VecM<T, MAX>> for
 where
     U: serde_with::DeserializeAs<'de, T>,
 {
-    fn deserialize_as<D>(_deserializer: D) -> Result<VecM<T, MAX>, D::Error>
+    fn deserialize_as<D>(deserializer: D) -> Result<VecM<T, MAX>, D::Error>
     where
         D: serde::Deserializer<'de>,
     {
-        todo!()
+        let vec: Vec<T> = <Vec<U> as serde_with::DeserializeAs>::deserialize_as(deserializer)?;
+        Ok(vec.try_into().unwrap())
     }
 }
 
