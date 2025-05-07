@@ -960,7 +960,7 @@ where
     {
         // let vec = <Vec<U> as serde_with::DeserializeAs<Vec<T>>>::deserialize_as(deserializer)?;
         // Ok(vec.try_into().unwrap())
-        struct SeqVisitor<T, U, const MAX: u32>(PhantomData<(T, U, MAX)>);
+        struct SeqVisitor<T, U, const MAX: u32>(PhantomData<(T, U)>);
         impl<'de, T, U, const MAX: u32> serde::de::Visitor<'de> for SeqVisitor<T, U, MAX>
         where
             U: serde_with::DeserializeAs<'de, T>,
