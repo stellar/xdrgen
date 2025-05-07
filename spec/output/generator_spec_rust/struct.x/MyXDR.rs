@@ -2820,15 +2820,10 @@ pub type Int64 = i64;
 #[cfg_attr(all(feature = "serde", feature = "alloc"), serde_with::serde_as, derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 pub struct MyStruct {
-
   pub some_int: i32,
-
   pub a_big_int: i64,
-
   pub some_opaque: [u8; 10],
-
   pub some_string: StringM,
-
   pub max_string: StringM::<100>,
 }
 

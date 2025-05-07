@@ -2924,7 +2924,6 @@ pub type Foo = i32;
 #[cfg_attr(all(feature = "serde", feature = "alloc"), serde_with::serde_as, derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 pub struct MyUnionOne {
-
   pub some_int: i32,
 }
 
@@ -2963,9 +2962,7 @@ impl WriteXdr for MyUnionOne {
 #[cfg_attr(all(feature = "serde", feature = "alloc"), serde_with::serde_as, derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 pub struct MyUnionTwo {
-
   pub some_int: i32,
-
   pub foo: i32,
 }
 
@@ -3021,11 +3018,9 @@ self.foo.write_xdr(w)?;
 #[allow(clippy::large_enum_variant)]
 pub enum MyUnion {
   One(
-    
     MyUnionOne
   ),
   Two(
-    
     MyUnionTwo
   ),
   Offer,

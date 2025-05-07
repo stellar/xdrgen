@@ -2804,7 +2804,6 @@ mod test {
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr))]
 pub struct Uint512(
-  
   pub [u8; 64]
 );
 
@@ -2958,7 +2957,6 @@ impl AsRef<[u8]> for Uint512 {
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 #[derive(Debug)]
 pub struct Uint513(
-  
   pub BytesM::<64>
 );
 
@@ -3063,7 +3061,6 @@ impl AsRef<[u8]> for Uint513 {
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 #[derive(Debug)]
 pub struct Uint514(
-  
   pub BytesM
 );
 
@@ -3168,7 +3165,6 @@ impl AsRef<[u8]> for Uint514 {
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 #[derive(Debug)]
 pub struct Str(
-  
   pub StringM::<64>
 );
 
@@ -3273,7 +3269,6 @@ impl AsRef<[u8]> for Str {
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 #[derive(Debug)]
 pub struct Str2(
-  
   pub StringM
 );
 
@@ -3375,7 +3370,6 @@ impl AsRef<[u8]> for Str2 {
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr))]
 pub struct Hash(
-  
   pub [u8; 32]
 );
 
@@ -3528,7 +3522,6 @@ impl AsRef<[u8]> for Hash {
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 #[derive(Debug)]
 pub struct Hashes1(
-  
   pub [Hash; 12]
 );
 
@@ -3621,7 +3614,6 @@ impl AsRef<[Hash]> for Hashes1 {
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 #[derive(Debug)]
 pub struct Hashes2(
-  
   pub VecM::<Hash, 12>
 );
 
@@ -3726,7 +3718,6 @@ impl AsRef<[Hash]> for Hashes2 {
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 #[derive(Debug)]
 pub struct Hashes3(
-  
   pub VecM::<Hash>
 );
 
@@ -3830,7 +3821,6 @@ impl AsRef<[Hash]> for Hashes3 {
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 #[derive(Debug)]
 pub struct OptHash1(
-  
   pub Option<Hash>
 );
 
@@ -3885,7 +3875,6 @@ impl WriteXdr for OptHash1 {
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 #[derive(Debug)]
 pub struct OptHash2(
-  
   pub Option<Hash>
 );
 
@@ -4074,7 +4063,6 @@ impl WriteXdr for LotsOfMyStructs {
 #[cfg_attr(all(feature = "serde", feature = "alloc"), serde_with::serde_as, derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 pub struct HasStuff {
-
   pub data: LotsOfMyStructs,
 }
 
@@ -4340,7 +4328,6 @@ Self::B2 => "B2",
 #[cfg_attr(all(feature = "serde", feature = "alloc"), serde_with::serde_as, derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 pub struct NesterNestedStruct {
-
   pub blah: i32,
 }
 
@@ -4497,11 +4484,8 @@ impl WriteXdr for NesterNestedUnion {
 #[cfg_attr(all(feature = "serde", feature = "alloc"), serde_with::serde_as, derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 pub struct Nester {
-
   pub nested_enum: NesterNestedEnum,
-
   pub nested_struct: NesterNestedStruct,
-
   pub nested_union: NesterNestedUnion,
 }
 

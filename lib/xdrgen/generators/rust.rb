@@ -973,6 +973,7 @@ module Xdrgen
 
       def field_attrs(type)
         case type
+        when AST::Typespecs::Hyper
         when AST::Typespecs::UnsignedHyper
           '#[serde_as(as = "serde_with::DisplayFromStr")]'
         end

@@ -2933,11 +2933,9 @@ Self::Multi => "Multi",
 #[allow(clippy::large_enum_variant)]
 pub enum MyUnion {
   Error(
-    
     i32
   ),
   Multi(
-    
     VecM::<i32>
   ),
 }
@@ -3050,11 +3048,9 @@ Self::Multi(v) => v.write_xdr(w)?,
 #[allow(clippy::large_enum_variant)]
 pub enum IntUnion {
   V0(
-    
     i32
   ),
   V1(
-    
     VecM::<i32>
   ),
 }
@@ -3158,7 +3154,6 @@ Self::V1(v) => v.write_xdr(w)?,
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 #[derive(Debug)]
 pub struct IntUnion2(
-  
   pub IntUnion
 );
 

@@ -2818,11 +2818,8 @@ pub type Arr = [i32; 2];
 #[cfg_attr(all(feature = "serde", feature = "alloc"), serde_with::serde_as, derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 pub struct HasOptions {
-
   pub first_option: Option<i32>,
-
   pub second_option: Option<i32>,
-
   pub third_option: Option<i32>,
 }
 
