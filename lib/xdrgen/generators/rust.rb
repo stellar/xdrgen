@@ -400,7 +400,7 @@ module Xdrgen
         out.puts "pub struct #{name struct} {"
         out.indent do
           struct.members.each do |m|
-            out.puts_if(field_attrs(m.declaration.type)) if !@options[:rust_types_custom_str_impl].include?(name struct)
+            out.puts_if(field_attrs(struct, m.declaration.type)) if !@options[:rust_types_custom_str_impl].include?(name struct)
             out.puts "pub #{field_name m}: #{reference(struct, m.declaration.type)},"
           end
         end
@@ -589,7 +589,7 @@ module Xdrgen
               out.puts "#{case_name}#{"(())" unless arm.void?},"
             else
               out.puts "#{case_name}("
-              out.puts_if(field_attrs(arm.type)) if !@options[:rust_types_custom_str_impl].include?(name union)
+              out.puts_if(field_attrs(union, arm.type)) if !@options[:rust_types_custom_str_impl].include?(name union)
               out.puts "  #{reference(union, arm.type)}"
               out.puts "),"
             end
@@ -727,7 +727,7 @@ module Xdrgen
             out.puts "#[derive(Debug)]"
           end
           out.puts "pub struct #{name typedef}("
-          out.puts_if(field_attrs(typedef.type)) if !@options[:rust_types_custom_str_impl].include?(name typedef)
+          out.puts_if(field_attrs(typedef, typedef.type)) if !@options[:rust_types_custom_str_impl].include?(name typedef)
           out.puts "  pub #{reference(typedef, typedef.type)}"
           out.puts ");"
           out.puts ""
@@ -971,16 +971,6 @@ module Xdrgen
         (type.sub_type == :var_array)
       end
 
-      def field_attrs(type)
-        base_ref = base_reference(type)
-        case base_ref
-        when 'i64'
-          '#[serde_as(as = "serde_with::DisplayFromStr")]'
-        when 'u64'
-          '#[serde_as(as = "serde_with::DisplayFromStr")]'
-        end
-      end
-
       def base_reference(type)
         case type
         when AST::Typespecs::Bool
@@ -1032,8 +1022,18 @@ module Xdrgen
         size
       end
 
-      def reference(parent, type)
-        base_ref = base_reference type
+      def field_attrs(parent, type)
+        base_ref = base_reference(type)
+        if ['i64','u64'].include?(base_ref)
+          ref = reference(parent, type, 'serde_with::DisplayFromStr')
+          "#[serde_as(as = \"${ref}\")]"
+        else
+          nil
+        end
+      end
+
+      def reference(parent, type, base_ref = nil)
+        base_ref = base_reference(type) if base_ref.nil?
 
         parent_name = name(parent) if parent
         cyclic = is_type_in_type_field_types(base_ref, parent_name)
