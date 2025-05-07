@@ -1025,7 +1025,7 @@ module Xdrgen
       def field_attrs(parent, type)
         base_ref = base_reference(type)
         if ['i64','u64'].include?(base_ref)
-          ref = reference(parent, type, 'serde_with::DisplayFromStr')
+          ref = reference(parent, type, 'DisplayFromStr')
           "#[serde_as(as = \"#{ref}\")]"
         else
           nil
@@ -1057,9 +1057,9 @@ module Xdrgen
           "[#{base_ref}; #{size}]"
         when :var_array
           if !type.decl.resolved_size.nil?
-            "VecM::<#{base_ref}, #{type.decl.resolved_size}>"
+            "VecM<#{base_ref}, #{type.decl.resolved_size}>"
           else
-            "VecM::<#{base_ref}>"
+            "VecM<#{base_ref}>"
           end
         else
           raise "Unknown sub_type: #{type.sub_type}"

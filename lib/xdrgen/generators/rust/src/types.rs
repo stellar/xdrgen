@@ -33,6 +33,9 @@ use std::string::FromUtf8Error;
 #[cfg(feature = "arbitrary")]
 use arbitrary::Arbitrary;
 
+#[cfg(feature = "serde")]
+use serde_with::DisplayFromStr;
+
 // TODO: Add support for read/write xdr fns when std not available.
 
 #[cfg(feature = "std")]
