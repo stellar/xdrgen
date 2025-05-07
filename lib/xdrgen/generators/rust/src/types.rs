@@ -22,7 +22,7 @@ use noalloc::{boxed::Box, vec::Vec};
 extern crate alloc;
 #[cfg(all(not(feature = "std"), feature = "alloc"))]
 use alloc::{
-    borrow::ToOwned,
+    borrow::{ToOwned, Cow},
     boxed::Box,
     string::{FromUtf8Error, String},
     vec::Vec,
@@ -923,7 +923,7 @@ where
         <VecM<serde_with::Schema<T, TA>, MAX> as schemars::JsonSchema>::schema_name()
     }
 
-    fn schema_id() -> alloc::borrow::Cow<'static, str> {
+    fn schema_id() -> Cow<'static, str> {
         <VecM<serde_with::Schema<T, TA>, MAX> as schemars::JsonSchema>::schema_id()
     }
 
