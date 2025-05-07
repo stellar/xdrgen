@@ -914,6 +914,28 @@ impl<T: schemars::JsonSchema, const MAX: u32> schemars::JsonSchema for VecM<T, M
     }
 }
 
+#[cfg(feature = "schemars")]
+impl<T, TA, const MAX: u32> serde_with::JsonSchemaAs<VecM<T, MAX>> for VecM<TA, MAX>
+where
+    TA: serde_with::JsonSchemaAs<T>,
+{
+    fn schema_name() -> String {
+        <VecM<serde_with::Schema<T, TA>, MAX> as JsonSchema>::schema_name()
+    }
+
+    fn schema_id() -> Cow<'static, str> {
+        <VecM<serde_with::Schema<T, TA>, MAX> as JsonSchema>::schema_id()
+    }
+
+    fn json_schema(gen: &mut SchemaGenerator) -> Schema {
+        <VecM<serde_with::Schema<T, TA>, MAX> as JsonSchema>::json_schema(gen)
+    }
+
+    fn is_referenceable() -> bool {
+        <VecM<serde_with::Schema<T, TA>, MAX> as JsonSchema>::is_referenceable()
+    }
+}
+
 impl<T, const MAX: u32> VecM<T, MAX> {
     pub const MAX_LEN: usize = { MAX as usize };
 
