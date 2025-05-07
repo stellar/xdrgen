@@ -963,7 +963,7 @@ where
         struct SeqVisitor<T, U, const MAX: u32>(PhantomData<(T, U, MAX)>);
         impl<'de, T, U, const MAX: u32> serde::de::Visitor<'de> for SeqVisitor<T, U, MAX>
         where
-            U: DeserializeAs<'de, T>,
+            U: serde_with::DeserializeAs<'de, T>,
         {
             type Value = VecM<T, MAX>;
 
@@ -975,13 +975,15 @@ where
             where
                 A: serde::de::SeqAccess<'de>,
             {
-                #[allow(clippy::redundant_closure_call)]
                 let mut values = Vec::new();
 
                 while let Some(value) = seq
                     .next_element()?
                     .map(|v: DeserializeAsWrap<T, U>| v.into_inner())
                 {
+                    if (values.len() + 1) > MAX {
+                        panic!("over size");
+                    }
                     values.append(value);
                 }
 
