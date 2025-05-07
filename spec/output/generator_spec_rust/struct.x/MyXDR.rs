@@ -2821,6 +2821,7 @@ pub type Int64 = i64;
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 pub struct MyStruct {
   pub some_int: i32,
+  #[serde_as(as = "serde_with::DisplayFromStr")]
   pub a_big_int: i64,
   pub some_opaque: [u8; 10],
   pub some_string: StringM,

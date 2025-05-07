@@ -400,7 +400,8 @@ module Xdrgen
         out.puts "pub struct #{name struct} {"
         out.indent do
           struct.members.each do |m|
-            out.puts_if(field_attrs(m.declaration.type)) unless @options[:rust_types_custom_str_impl].include?(name struct)
+            puts "struct #{name struct} has #{m.declaration.type} #{reference(struct, m.declaration.type)}"
+            out.puts_if(field_attrs(m.declaration.type)) if !@options[:rust_types_custom_str_impl].include?(name struct)
             out.puts "pub #{field_name m}: #{reference(struct, m.declaration.type)},"
           end
         end
@@ -589,7 +590,7 @@ module Xdrgen
               out.puts "#{case_name}#{"(())" unless arm.void?},"
             else
               out.puts "#{case_name}("
-              out.puts_if(field_attrs(arm.type)) unless @options[:rust_types_custom_str_impl].include?(name union)
+              out.puts_if(field_attrs(arm.type)) if !@options[:rust_types_custom_str_impl].include?(name union)
               out.puts "  #{reference(union, arm.type)}"
               out.puts "),"
             end
@@ -727,7 +728,7 @@ module Xdrgen
             out.puts "#[derive(Debug)]"
           end
           out.puts "pub struct #{name typedef}("
-          out.puts_if(field_attrs(typedef.type)) unless @options[:rust_types_custom_str_impl].include?(name typedef)
+          out.puts_if(field_attrs(typedef.type)) if !@options[:rust_types_custom_str_impl].include?(name typedef)
           out.puts "  pub #{reference(typedef, typedef.type)}"
           out.puts ");"
           out.puts ""
@@ -972,9 +973,11 @@ module Xdrgen
       end
 
       def field_attrs(type)
-        case type
-        when AST::Typespecs::Hyper
-        when AST::Typespecs::UnsignedHyper
+        base_ref = base_reference(type)
+        case base_ref
+        when 'i64'
+          '#[serde_as(as = "serde_with::DisplayFromStr")]'
+        when 'u64'
           '#[serde_as(as = "serde_with::DisplayFromStr")]'
         end
       end

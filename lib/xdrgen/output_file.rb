@@ -21,7 +21,7 @@ module Xdrgen
     end
 
     def puts_if(s=nil)
-      self.puts if s
+      self.puts(s) if s
     end
 
     def indent(step=1)
