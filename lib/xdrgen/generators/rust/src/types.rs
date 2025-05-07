@@ -958,41 +958,8 @@ where
     where
         D: serde::Deserializer<'de>,
     {
-        // let vec = <Vec<U> as serde_with::DeserializeAs<Vec<T>>>::deserialize_as(deserializer)?;
-        // Ok(vec.try_into().unwrap())
-        struct SeqVisitor<T, U, const MAX: u32>(PhantomData<(T, U)>);
-        impl<'de, T, U, const MAX: u32> serde::de::Visitor<'de> for SeqVisitor<T, U, MAX>
-        where
-            U: serde_with::DeserializeAs<'de, T>,
-        {
-            type Value = VecM<T, MAX>;
-
-            fn expecting(&self, formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-                formatter.write_str("a sequence")
-            }
-
-            fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
-            where
-                A: serde::de::SeqAccess<'de>,
-            {
-                let mut values = Vec::new();
-
-                while let Some(value) = seq
-                    .next_element()?
-                    .map(|v: serde_with::de::DeserializeAsWrap<T, U>| v.into_inner())
-                {
-                    if (values.len() + 1) > MAX as usize {
-                        panic!("over size");
-                    }
-                    values.push(value);
-                }
-
-                Ok(values.try_into().unwrap())
-            }
-        }
-
-        let visitor = SeqVisitor::<T, U, MAX>(PhantomData);
-        deserializer.deserialize_seq(visitor)
+        let vec = <Vec<U> as serde_with::DeserializeAs<Vec<T>>>::deserialize_as(deserializer)?;
+        Ok(vec.try_into().map_err(|e| serde::de::Error::custom(e)))
     }
 }
 
