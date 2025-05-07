@@ -945,8 +945,20 @@ where
     where
         S: serde::Serializer,
     {
-        //SerializeAsWrap::<T, U>::new(source).serialize(serializer)
         serializer.collect_seq(source.iter().map(|item| serde_with::ser::SerializeAsWrap::<T, U>::new(item)))
+    }
+}
+
+#[cfg(feature = "schemars")]
+impl<'de, T, U, const MAX: u32> serde_with::DeserializeAs<'de, VecM<T, MAX>> for VecM<U, MAX>
+where
+    U: serde_with::DeserializeAs<'de, T>,
+{
+    fn deserialize_as<D>(deserializer: D) -> Result<VecM<T, MAX>, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        todo!()
     }
 }
 
