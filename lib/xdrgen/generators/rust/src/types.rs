@@ -958,8 +958,39 @@ where
     where
         D: serde::Deserializer<'de>,
     {
-        let vec = <Vec<U> as serde_with::DeserializeAs<Vec<T>>>::deserialize_as(deserializer)?;
-        Ok(vec.try_into().unwrap())
+        // let vec = <Vec<U> as serde_with::DeserializeAs<Vec<T>>>::deserialize_as(deserializer)?;
+        // Ok(vec.try_into().unwrap())
+        struct SeqVisitor<T, U, const MAX: u32>(PhantomData<(T, U, MAX)>);
+        impl<'de, T, U, const MAX: u32> serde::de::Visitor<'de> for SeqVisitor<T, U, MAX>
+        where
+            U: DeserializeAs<'de, T>,
+        {
+            type Value = VecM<T, MAX>;
+
+            fn expecting(&self, formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+                formatter.write_str("a sequence")
+            }
+
+            fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
+            where
+                A: serde::de::SeqAccess<'de>,
+            {
+                #[allow(clippy::redundant_closure_call)]
+                let mut values = Vec::new();
+
+                while let Some(value) = seq
+                    .next_element()?
+                    .map(|v: DeserializeAsWrap<T, U>| v.into_inner())
+                {
+                    values.append(value);
+                }
+
+                Ok(values.try_into().unwrap())
+            }
+        }
+
+        let visitor = SeqVisitor::<T, U, MAX>(PhantomData);
+        deserializer.deserialize_seq(visitor)
     }
 }
 
