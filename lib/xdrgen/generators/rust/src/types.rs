@@ -936,6 +936,20 @@ where
     }
 }
 
+#[cfg(feature = "schemars")]
+impl<T, U, const MAX: u32> serde_with::SerializeAs<VecM<T, MAX>> for VecM<U, MAX>
+where
+    U: serde_with::SerializeAs<T>,
+{
+    fn serialize_as<S>(source: &VecM<T, MAX>, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        //SerializeAsWrap::<T, U>::new(source).serialize(serializer)
+        serializer.collect_seq(source.iter().map(|item| serde_with::ser::SerializeAsWrap::<T, U>::new(item)))
+    }
+}
+
 impl<T, const MAX: u32> VecM<T, MAX> {
     pub const MAX_LEN: usize = { MAX as usize };
 
