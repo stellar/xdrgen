@@ -1023,14 +1023,13 @@ module Xdrgen
       end
 
       def field_attrs(parent, type)
-        nil
-        #base_ref = base_reference(type)
-        #if ['i64','u64'].include?(base_ref)
-        #  ref = reference(parent, type, 'serde_with::DisplayFromStr')
-        #  "#[serde_as(as = \"#{ref}\")]"
-        #else
-        #  nil
-        #end
+        base_ref = base_reference(type)
+        if ['i64','u64'].include?(base_ref)
+          ref = reference(parent, type, 'serde_with::DisplayFromStr')
+          "#[serde_as(as = \"#{ref}\")]"
+        else
+          nil
+        end
       end
 
       def reference(parent, type, base_ref = nil)
