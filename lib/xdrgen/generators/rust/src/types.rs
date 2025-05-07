@@ -959,7 +959,7 @@ where
         D: serde::Deserializer<'de>,
     {
         let vec = <Vec<U> as serde_with::DeserializeAs<Vec<T>>>::deserialize_as(deserializer)?;
-        Ok(vec.try_into().map_err(|e| serde::de::Error::custom(e)))
+        Ok(vec.try_into().map_err(|e| serde::de::Error::custom(e))?)
     }
 }
 
