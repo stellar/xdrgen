@@ -920,19 +920,19 @@ where
     TA: serde_with::JsonSchemaAs<T>,
 {
     fn schema_name() -> String {
-        <VecM<serde_with::Schema<T, TA>, MAX> as JsonSchema>::schema_name()
+        <VecM<serde_with::Schema<T, TA>, MAX> as schemars::JsonSchema>::schema_name()
     }
 
     fn schema_id() -> Cow<'static, str> {
-        <VecM<serde_with::Schema<T, TA>, MAX> as JsonSchema>::schema_id()
+        <VecM<serde_with::Schema<T, TA>, MAX> as schemars::JsonSchema>::schema_id()
     }
 
-    fn json_schema(gen: &mut SchemaGenerator) -> Schema {
-        <VecM<serde_with::Schema<T, TA>, MAX> as JsonSchema>::json_schema(gen)
+    fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
+        <VecM<serde_with::Schema<T, TA>, MAX> as schemars::JsonSchema>::json_schema(gen)
     }
 
     fn is_referenceable() -> bool {
-        <VecM<serde_with::Schema<T, TA>, MAX> as JsonSchema>::is_referenceable()
+        <VecM<serde_with::Schema<T, TA>, MAX> as schemars::JsonSchema>::is_referenceable()
     }
 }
 
