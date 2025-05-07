@@ -981,7 +981,7 @@ where
                     .next_element()?
                     .map(|v: DeserializeAsWrap<T, U>| v.into_inner())
                 {
-                    if (values.len() + 1) > MAX {
+                    if (values.len() + 1) > MAX as usize {
                         panic!("over size");
                     }
                     values.append(value);
