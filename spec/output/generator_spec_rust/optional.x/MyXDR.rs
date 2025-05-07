@@ -2815,11 +2815,14 @@ pub type Arr = [i32; 2];
 ///
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
-#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
+#[cfg_attr(all(feature = "serde", feature = "alloc"), serde_with::serde_as, derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 pub struct HasOptions {
+
   pub first_option: Option<i32>,
+
   pub second_option: Option<i32>,
+
   pub third_option: Option<i32>,
 }
 

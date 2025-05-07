@@ -2934,8 +2934,14 @@ Self::Multi => "Multi",
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 #[allow(clippy::large_enum_variant)]
 pub enum MyUnion {
-  Error(i32),
-  Multi(VecM::<i32>),
+  Error(
+    
+    i32
+  ),
+  Multi(
+    
+    VecM::<i32>
+  ),
 }
 
         impl MyUnion {
@@ -3045,8 +3051,14 @@ Self::Multi(v) => v.write_xdr(w)?,
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 #[allow(clippy::large_enum_variant)]
 pub enum IntUnion {
-  V0(i32),
-  V1(VecM::<i32>),
+  V0(
+    
+    i32
+  ),
+  V1(
+    
+    VecM::<i32>
+  ),
 }
 
         impl IntUnion {
@@ -3147,7 +3159,10 @@ Self::V1(v) => v.write_xdr(w)?,
 #[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 #[derive(Debug)]
-pub struct IntUnion2(pub IntUnion);
+pub struct IntUnion2(
+  
+  pub IntUnion
+);
 
 impl From<IntUnion2> for IntUnion {
     #[must_use]

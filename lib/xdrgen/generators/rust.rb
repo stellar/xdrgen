@@ -392,7 +392,7 @@ module Xdrgen
         if @options[:rust_types_custom_str_impl].include?(name struct)
           out.puts %{#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr))]}
         else
-          out.puts %{#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]}
+          out.puts %{#[cfg_attr(all(feature = "serde", feature = "alloc"), serde_with::serde_as, derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]}
         end
         if !@options[:rust_types_custom_jsonschema_impl].include?(name struct)
           out.puts %{#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]}
@@ -400,6 +400,7 @@ module Xdrgen
         out.puts "pub struct #{name struct} {"
         out.indent do
           struct.members.each do |m|
+            out.puts("#{field_attrs(m.declaration.type)}") unless @options[:rust_types_custom_str_impl].include?(name struct)
             out.puts "pub #{field_name m}: #{reference(struct, m.declaration.type)},"
           end
         end
@@ -584,7 +585,14 @@ module Xdrgen
         out.indent do
           union_cases(union) do |case_name, arm|
             union_case_count += 1
-            out.puts arm.void? ? "#{case_name}#{"(())" unless arm.void?}," : "#{case_name}(#{reference(union, arm.type)}),"
+            if arm.void?
+              out.puts "#{case_name}#{"(())" unless arm.void?},"
+            else
+              out.puts "#{case_name}("
+              out.puts("  #{field_attrs(arm.type)}") unless @options[:rust_types_custom_str_impl].include?(name union)
+              out.puts "  #{reference(union, arm.type)}"
+              out.puts "),"
+            end
           end
         end
         out.puts '}'
@@ -718,7 +726,10 @@ module Xdrgen
           if !is_fixed_array_opaque(typedef.type)
             out.puts "#[derive(Debug)]"
           end
-          out.puts "pub struct #{name typedef}(pub #{reference(typedef, typedef.type)});"
+          out.puts "pub struct #{name typedef}("
+          out.puts("  #{field_attrs(typedef.type)}") unless @options[:rust_types_custom_str_impl].include?(name typedef)
+          out.puts "  pub #{reference(typedef, typedef.type)}"
+          out.puts ");"
           out.puts ""
           if is_fixed_array_opaque(typedef.type)
           out.puts <<-EOS.strip_heredoc
@@ -958,6 +969,13 @@ module Xdrgen
         (AST::Typespecs::Opaque === type && !type.fixed?) ||
         (AST::Typespecs::String === type) ||
         (type.sub_type == :var_array)
+      end
+
+      def field_attrs(type)
+        case type
+        when AST::Typespecs::UnsignedHyper
+          '#[serde_as(as = "serde_with::DisplayFromStr")]'
+        end
       end
 
       def base_reference(type)
