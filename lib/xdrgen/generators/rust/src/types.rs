@@ -958,7 +958,7 @@ where
     where
         D: serde::Deserializer<'de>,
     {
-        let vec: Vec<T> = <Vec<U> as serde_with::DeserializeAs>::deserialize_as(deserializer)?;
+        let vec = <Vec<U> as serde_with::DeserializeAs<Vec<T>>>::deserialize_as(deserializer)?;
         Ok(vec.try_into().unwrap())
     }
 }
