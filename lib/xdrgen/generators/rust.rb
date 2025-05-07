@@ -151,7 +151,7 @@ module Xdrgen
         impl core::str::FromStr for TypeVariant {
             type Err = Error;
             #[allow(clippy::too_many_lines)]
-            fn from_str(s: &str) -> Result<Self> {
+            fn from_str(s: &str) -> Result<Self, Error> {
                 match s {
                     #{types.map { |t| "\"#{t}\" => Ok(Self::#{t})," }.join("\n")}
                     _ => Err(Error::Invalid),
@@ -177,21 +177,21 @@ module Xdrgen
 
             #[cfg(feature = "std")]
             #[allow(clippy::too_many_lines)]
-            pub fn read_xdr<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Result<Self> {
+            pub fn read_xdr<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Result<Self, Error> {
                 match v {
                     #{types.map { |t| "TypeVariant::#{t} => r.with_limited_depth(|r| Ok(Self::#{t}(Box::new(#{t}::read_xdr(r)?))))," }.join("\n")}
                 }
             }
 
             #[cfg(feature = "base64")]
-            pub fn read_xdr_base64<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Result<Self> {
+            pub fn read_xdr_base64<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Result<Self, Error> {
                 let mut dec = Limited::new(base64::read::DecoderReader::new(&mut r.inner, base64::STANDARD), r.limits.clone());
                 let t = Self::read_xdr(v, &mut dec)?;
                 Ok(t)
             }
 
             #[cfg(feature = "std")]
-            pub fn read_xdr_to_end<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Result<Self> {
+            pub fn read_xdr_to_end<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Result<Self, Error> {
                 let s = Self::read_xdr(v, r)?;
                 // Check that any further reads, such as this read of one byte, read no
                 // data, indicating EOF. If a byte is read the data is invalid.
@@ -203,7 +203,7 @@ module Xdrgen
             }
 
             #[cfg(feature = "base64")]
-            pub fn read_xdr_base64_to_end<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Result<Self> {
+            pub fn read_xdr_base64_to_end<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Result<Self, Error> {
                 let mut dec = Limited::new(base64::read::DecoderReader::new(&mut r.inner, base64::STANDARD), r.limits.clone());
                 let t = Self::read_xdr_to_end(v, &mut dec)?;
                 Ok(t)
@@ -211,7 +211,7 @@ module Xdrgen
 
             #[cfg(feature = "std")]
             #[allow(clippy::too_many_lines)]
-            pub fn read_xdr_iter<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Box<dyn Iterator<Item=Result<Self>> + '_> {
+            pub fn read_xdr_iter<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Box<dyn Iterator<Item=Result<Self, Error>> + '_> {
                 match v {
                     #{types.map { |t| "TypeVariant::#{t} => Box::new(ReadXdrIter::<_, #{t}>::new(&mut r.inner, r.limits.clone()).map(|r| r.map(|t| Self::#{t}(Box::new(t)))))," }.join("\n")}
                 }
@@ -219,7 +219,7 @@ module Xdrgen
 
             #[cfg(feature = "std")]
             #[allow(clippy::too_many_lines)]
-            pub fn read_xdr_framed_iter<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Box<dyn Iterator<Item=Result<Self>> + '_> {
+            pub fn read_xdr_framed_iter<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Box<dyn Iterator<Item=Result<Self, Error>> + '_> {
                 match v {
                     #{types.map { |t| "TypeVariant::#{t} => Box::new(ReadXdrIter::<_, Frame<#{t}>>::new(&mut r.inner, r.limits.clone()).map(|r| r.map(|t| Self::#{t}(Box::new(t.0)))))," }.join("\n")}
                 }
@@ -227,7 +227,7 @@ module Xdrgen
 
             #[cfg(feature = "base64")]
             #[allow(clippy::too_many_lines)]
-            pub fn read_xdr_base64_iter<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Box<dyn Iterator<Item=Result<Self>> + '_> {
+            pub fn read_xdr_base64_iter<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Box<dyn Iterator<Item=Result<Self, Error>> + '_> {
                 let dec = base64::read::DecoderReader::new(&mut r.inner, base64::STANDARD);
                 match v {
                     #{types.map { |t| "TypeVariant::#{t} => Box::new(ReadXdrIter::<_, #{t}>::new(dec, r.limits.clone()).map(|r| r.map(|t| Self::#{t}(Box::new(t)))))," }.join("\n")}
@@ -235,14 +235,14 @@ module Xdrgen
             }
 
             #[cfg(feature = "std")]
-            pub fn from_xdr<B: AsRef<[u8]>>(v: TypeVariant, bytes: B, limits: Limits) -> Result<Self> {
+            pub fn from_xdr<B: AsRef<[u8]>>(v: TypeVariant, bytes: B, limits: Limits) -> Result<Self, Error> {
                 let mut cursor = Limited::new(Cursor::new(bytes.as_ref()), limits);
                 let t = Self::read_xdr_to_end(v, &mut cursor)?;
                 Ok(t)
             }
 
             #[cfg(feature = "base64")]
-            pub fn from_xdr_base64(v: TypeVariant, b64: impl AsRef<[u8]>, limits: Limits) -> Result<Self> {
+            pub fn from_xdr_base64(v: TypeVariant, b64: impl AsRef<[u8]>, limits: Limits) -> Result<Self, Error> {
                 let mut b64_reader = Cursor::new(b64);
                 let mut dec = Limited::new(base64::read::DecoderReader::new(&mut b64_reader, base64::STANDARD), limits);
                 let t = Self::read_xdr_to_end(v, &mut dec)?;
@@ -251,13 +251,13 @@ module Xdrgen
 
             #[cfg(all(feature = "std", feature = "serde_json"))]
             #[deprecated(note = "use from_json")]
-            pub fn read_json(v: TypeVariant, r: impl Read) -> Result<Self> {
+            pub fn read_json(v: TypeVariant, r: impl Read) -> Result<Self, Error> {
                 Self::from_json(v, r)
             }
 
             #[cfg(all(feature = "std", feature = "serde_json"))]
             #[allow(clippy::too_many_lines)]
-            pub fn from_json(v: TypeVariant, r: impl Read) -> Result<Self> {
+            pub fn from_json(v: TypeVariant, r: impl Read) -> Result<Self, Error> {
                 match v {
                     #{types.map { |t| "TypeVariant::#{t} => Ok(Self::#{t}(Box::new(serde_json::from_reader(r)?)))," }.join("\n")}
                 }
@@ -265,7 +265,7 @@ module Xdrgen
 
             #[cfg(all(feature = "std", feature = "serde_json"))]
             #[allow(clippy::too_many_lines)]
-            pub fn deserialize_json<'r, R: serde_json::de::Read<'r>>(v: TypeVariant, r: &mut serde_json::de::Deserializer<R>) -> Result<Self> {
+            pub fn deserialize_json<'r, R: serde_json::de::Read<'r>>(v: TypeVariant, r: &mut serde_json::de::Deserializer<R>) -> Result<Self, Error> {
                 match v {
                     #{types.map { |t| "TypeVariant::#{t} => Ok(Self::#{t}(Box::new(serde::de::Deserialize::deserialize(r)?)))," }.join("\n")}
                 }
@@ -320,7 +320,7 @@ module Xdrgen
         impl WriteXdr for Type {
             #[cfg(feature = "std")]
             #[allow(clippy::too_many_lines)]
-            fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
+            fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<(), Error> {
                 match self {
                     #{types.map { |t| "Self::#{t}(v) => v.write_xdr(w)," }.join("\n")}
                 }
@@ -409,7 +409,7 @@ module Xdrgen
         out.puts <<-EOS.strip_heredoc
         impl ReadXdr for #{name struct} {
             #[cfg(feature = "std")]
-            fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self> {
+            fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self, Error> {
                 r.with_limited_depth(|r| {
                     Ok(Self{
                       #{struct.members.map do |m|
@@ -422,7 +422,7 @@ module Xdrgen
 
         impl WriteXdr for #{name struct} {
             #[cfg(feature = "std")]
-            fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
+            fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<(), Error> {
                 w.with_limited_depth(|w| {
                     #{struct.members.map do |m|
                       "self.#{field_name(m)}.write_xdr(w)?;"
@@ -500,7 +500,7 @@ module Xdrgen
         impl TryFrom<i32> for #{name enum} {
             type Error = Error;
 
-            fn try_from(i: i32) -> Result<Self> {
+            fn try_from(i: i32) -> Result<Self, Error> {
                 let e = match i {
                     #{enum.members.map do |m| "#{m.value} => #{name enum}::#{name m}," end.join("\n")}
                     #[allow(unreachable_patterns)]
@@ -519,7 +519,7 @@ module Xdrgen
 
         impl ReadXdr for #{name enum} {
             #[cfg(feature = "std")]
-            fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self> {
+            fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self, Error> {
                 r.with_limited_depth(|r| {
                     let e = i32::read_xdr(r)?;
                     let v: Self = e.try_into()?;
@@ -530,7 +530,7 @@ module Xdrgen
 
         impl WriteXdr for #{name enum} {
             #[cfg(feature = "std")]
-            fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
+            fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<(), Error> {
                 w.with_limited_depth(|w| {
                     let i: i32 = (*self).into();
                     i.write_xdr(w)
@@ -665,7 +665,7 @@ module Xdrgen
 
         impl ReadXdr for #{name union} {
             #[cfg(feature = "std")]
-            fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self> {
+            fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self, Error> {
                 r.with_limited_depth(|r| {
                     let dv: #{discriminant_type} = <#{discriminant_type} as ReadXdr>::read_xdr(r)?;
                     #[allow(clippy::match_same_arms, clippy::match_wildcard_for_single_variants)]
@@ -687,7 +687,7 @@ module Xdrgen
 
         impl WriteXdr for #{name union} {
             #[cfg(feature = "std")]
-            fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
+            fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<(), Error> {
                 w.with_limited_depth(|w| {
                     self.discriminant().write_xdr(w)?;
                     #[allow(clippy::match_same_arms)]
@@ -828,7 +828,7 @@ module Xdrgen
 
           impl ReadXdr for #{name typedef} {
               #[cfg(feature = "std")]
-              fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self> {
+              fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self, Error> {
                   r.with_limited_depth(|r| {
                       let i = #{reference_to_call(typedef, typedef.type)}::read_xdr(r)?;
                       let v = #{name typedef}(i);
@@ -839,7 +839,7 @@ module Xdrgen
 
           impl WriteXdr for #{name typedef} {
               #[cfg(feature = "std")]
-              fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
+              fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<(), Error> {
                   w.with_limited_depth(|w|{ self.0.write_xdr(w) })
               }
           }
@@ -857,7 +857,7 @@ module Xdrgen
             #[cfg(feature = "alloc")]
             impl TryFrom<Vec<#{element_type_for_vec(typedef.type)}>> for #{name typedef} {
                 type Error = Error;
-                fn try_from(x: Vec<#{element_type_for_vec(typedef.type)}>) -> Result<Self> {
+                fn try_from(x: Vec<#{element_type_for_vec(typedef.type)}>) -> Result<Self, Error> {
                     x.as_slice().try_into()
                 }
             }
@@ -865,14 +865,14 @@ module Xdrgen
             #[cfg(feature = "alloc")]
             impl TryFrom<&Vec<#{element_type_for_vec(typedef.type)}>> for #{name typedef} {
                 type Error = Error;
-                fn try_from(x: &Vec<#{element_type_for_vec(typedef.type)}>) -> Result<Self> {
+                fn try_from(x: &Vec<#{element_type_for_vec(typedef.type)}>) -> Result<Self, Error> {
                     x.as_slice().try_into()
                 }
             }
 
             impl TryFrom<&[#{element_type_for_vec(typedef.type)}]> for #{name typedef} {
                 type Error = Error;
-                fn try_from(x: &[#{element_type_for_vec(typedef.type)}]) -> Result<Self> {
+                fn try_from(x: &[#{element_type_for_vec(typedef.type)}]) -> Result<Self, Error> {
                     Ok(#{name typedef}(x.try_into()?))
                 }
             }
@@ -904,7 +904,7 @@ module Xdrgen
 
             impl TryFrom<Vec<#{element_type_for_vec(typedef.type)}>> for #{name typedef} {
                 type Error = Error;
-                fn try_from(x: Vec<#{element_type_for_vec(typedef.type)}>) -> Result<Self> {
+                fn try_from(x: Vec<#{element_type_for_vec(typedef.type)}>) -> Result<Self, Error> {
                     Ok(#{name typedef}(x.try_into()?))
                 }
             }
@@ -912,7 +912,7 @@ module Xdrgen
             #[cfg(feature = "alloc")]
             impl TryFrom<&Vec<#{element_type_for_vec(typedef.type)}>> for #{name typedef} {
                 type Error = Error;
-                fn try_from(x: &Vec<#{element_type_for_vec(typedef.type)}>) -> Result<Self> {
+                fn try_from(x: &Vec<#{element_type_for_vec(typedef.type)}>) -> Result<Self, Error> {
                     Ok(#{name typedef}(x.try_into()?))
                 }
             }

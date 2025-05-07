@@ -154,9 +154,6 @@ impl From<Error> for () {
     fn from(_: Error) {}
 }
 
-#[allow(dead_code)]
-type Result<T> = core::result::Result<T, Error>;
-
 /// Name defines types that assign a static name to their value, such as the
 /// name given to an identifier in an XDR enum, or the name given to the case in
 /// a union.
@@ -260,7 +257,7 @@ impl<L> Limited<L> {
     ///
     /// If the length would consume more length than the remaining length limit
     /// allows.
-    pub(crate) fn consume_len(&mut self, len: usize) -> Result<()> {
+    pub(crate) fn consume_len(&mut self, len: usize) -> Result<(), Error> {
         if let Some(len) = self.limits.len.checked_sub(len) {
             self.limits.len = len;
             Ok(())
@@ -274,9 +271,9 @@ impl<L> Limited<L> {
     /// ### Errors
     ///
     /// If the depth limit is already exhausted.
-    pub(crate) fn with_limited_depth<T, F>(&mut self, f: F) -> Result<T>
+    pub(crate) fn with_limited_depth<T, F>(&mut self, f: F) -> Result<T, Error>
     where
-        F: FnOnce(&mut Self) -> Result<T>,
+        F: FnOnce(&mut Self) -> Result<T, Error>,
     {
         if let Some(depth) = self.limits.depth.checked_sub(1) {
             self.limits.depth = depth;
@@ -344,7 +341,7 @@ impl<R: Read, S: ReadXdr> ReadXdrIter<R, S> {
 
 #[cfg(feature = "std")]
 impl<R: Read, S: ReadXdr> Iterator for ReadXdrIter<R, S> {
-    type Item = Result<S>;
+    type Item = Result<S, Error>;
 
     // Next reads the internal reader and XDR decodes it into the Self type. If
     // the EOF is reached without reading any new bytes `None` is returned. If
@@ -397,14 +394,14 @@ where
     /// Use [`ReadXdR: Read_xdr_to_end`] when the intent is for all bytes in the
     /// read implementation to be consumed by the read.
     #[cfg(feature = "std")]
-    fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self>;
+    fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self, Error>;
 
     /// Construct the type from the XDR bytes base64 encoded.
     ///
     /// An error is returned if the bytes are not completely consumed by the
     /// deserialization.
     #[cfg(feature = "base64")]
-    fn read_xdr_base64<R: Read>(r: &mut Limited<R>) -> Result<Self> {
+    fn read_xdr_base64<R: Read>(r: &mut Limited<R>) -> Result<Self, Error> {
         let mut dec = Limited::new(
             base64::read::DecoderReader::new(&mut r.inner, base64::STANDARD),
             r.limits.clone(),
@@ -432,7 +429,7 @@ where
     /// All implementations should continue if the read implementation returns
     /// [`ErrorKind::Interrupted`](std::io::ErrorKind::Interrupted).
     #[cfg(feature = "std")]
-    fn read_xdr_to_end<R: Read>(r: &mut Limited<R>) -> Result<Self> {
+    fn read_xdr_to_end<R: Read>(r: &mut Limited<R>) -> Result<Self, Error> {
         let s = Self::read_xdr(r)?;
         // Check that any further reads, such as this read of one byte, read no
         // data, indicating EOF. If a byte is read the data is invalid.
@@ -448,7 +445,7 @@ where
     /// An error is returned if the bytes are not completely consumed by the
     /// deserialization.
     #[cfg(feature = "base64")]
-    fn read_xdr_base64_to_end<R: Read>(r: &mut Limited<R>) -> Result<Self> {
+    fn read_xdr_base64_to_end<R: Read>(r: &mut Limited<R>) -> Result<Self, Error> {
         let mut dec = Limited::new(
             base64::read::DecoderReader::new(&mut r.inner, base64::STANDARD),
             r.limits.clone(),
@@ -472,7 +469,7 @@ where
     /// Use [`ReadXdR: Read_xdr_into_to_end`] when the intent is for all bytes
     /// in the read implementation to be consumed by the read.
     #[cfg(feature = "std")]
-    fn read_xdr_into<R: Read>(&mut self, r: &mut Limited<R>) -> Result<()> {
+    fn read_xdr_into<R: Read>(&mut self, r: &mut Limited<R>) -> Result<(), Error> {
         *self = Self::read_xdr(r)?;
         Ok(())
     }
@@ -496,7 +493,7 @@ where
     /// All implementations should continue if the read implementation returns
     /// [`ErrorKind::Interrupted`](std::io::ErrorKind::Interrupted).
     #[cfg(feature = "std")]
-    fn read_xdr_into_to_end<R: Read>(&mut self, r: &mut Limited<R>) -> Result<()> {
+    fn read_xdr_into_to_end<R: Read>(&mut self, r: &mut Limited<R>) -> Result<(), Error> {
         Self::read_xdr_into(self, r)?;
         // Check that any further reads, such as this read of one byte, read no
         // data, indicating EOF. If a byte is read the data is invalid.
@@ -545,7 +542,7 @@ where
     /// An error is returned if the bytes are not completely consumed by the
     /// deserialization.
     #[cfg(feature = "std")]
-    fn from_xdr(bytes: impl AsRef<[u8]>, limits: Limits) -> Result<Self> {
+    fn from_xdr(bytes: impl AsRef<[u8]>, limits: Limits) -> Result<Self, Error> {
         let mut cursor = Limited::new(Cursor::new(bytes.as_ref()), limits);
         let t = Self::read_xdr_to_end(&mut cursor)?;
         Ok(t)
@@ -556,7 +553,7 @@ where
     /// An error is returned if the bytes are not completely consumed by the
     /// deserialization.
     #[cfg(feature = "base64")]
-    fn from_xdr_base64(b64: impl AsRef<[u8]>, limits: Limits) -> Result<Self> {
+    fn from_xdr_base64(b64: impl AsRef<[u8]>, limits: Limits) -> Result<Self, Error> {
         let mut b64_reader = Cursor::new(b64);
         let mut dec = Limited::new(
             base64::read::DecoderReader::new(&mut b64_reader, base64::STANDARD),
@@ -569,10 +566,10 @@ where
 
 pub trait WriteXdr {
     #[cfg(feature = "std")]
-    fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()>;
+    fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<(), Error>;
 
     #[cfg(feature = "std")]
-    fn to_xdr(&self, limits: Limits) -> Result<Vec<u8>> {
+    fn to_xdr(&self, limits: Limits) -> Result<Vec<u8>, Error> {
         let mut cursor = Limited::new(Cursor::new(vec![]), limits);
         self.write_xdr(&mut cursor)?;
         let bytes = cursor.inner.into_inner();
@@ -580,7 +577,7 @@ pub trait WriteXdr {
     }
 
     #[cfg(feature = "base64")]
-    fn to_xdr_base64(&self, limits: Limits) -> Result<String> {
+    fn to_xdr_base64(&self, limits: Limits) -> Result<String, Error> {
         let mut enc = Limited::new(
             base64::write::EncoderStringWriter::new(base64::STANDARD),
             limits,
@@ -600,7 +597,7 @@ fn pad_len(len: usize) -> usize {
 
 impl ReadXdr for i32 {
     #[cfg(feature = "std")]
-    fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self> {
+    fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self, Error> {
         let mut b = [0u8; 4];
         r.with_limited_depth(|r| {
             r.consume_len(b.len())?;
@@ -612,7 +609,7 @@ impl ReadXdr for i32 {
 
 impl WriteXdr for i32 {
     #[cfg(feature = "std")]
-    fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
+    fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<(), Error> {
         let b: [u8; 4] = self.to_be_bytes();
         w.with_limited_depth(|w| {
             w.consume_len(b.len())?;
@@ -623,7 +620,7 @@ impl WriteXdr for i32 {
 
 impl ReadXdr for u32 {
     #[cfg(feature = "std")]
-    fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self> {
+    fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self, Error> {
         let mut b = [0u8; 4];
         r.with_limited_depth(|r| {
             r.consume_len(b.len())?;
@@ -635,7 +632,7 @@ impl ReadXdr for u32 {
 
 impl WriteXdr for u32 {
     #[cfg(feature = "std")]
-    fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
+    fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<(), Error> {
         let b: [u8; 4] = self.to_be_bytes();
         w.with_limited_depth(|w| {
             w.consume_len(b.len())?;
@@ -646,7 +643,7 @@ impl WriteXdr for u32 {
 
 impl ReadXdr for i64 {
     #[cfg(feature = "std")]
-    fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self> {
+    fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self, Error> {
         let mut b = [0u8; 8];
         r.with_limited_depth(|r| {
             r.consume_len(b.len())?;
@@ -658,7 +655,7 @@ impl ReadXdr for i64 {
 
 impl WriteXdr for i64 {
     #[cfg(feature = "std")]
-    fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
+    fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<(), Error> {
         let b: [u8; 8] = self.to_be_bytes();
         w.with_limited_depth(|w| {
             w.consume_len(b.len())?;
@@ -669,7 +666,7 @@ impl WriteXdr for i64 {
 
 impl ReadXdr for u64 {
     #[cfg(feature = "std")]
-    fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self> {
+    fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self, Error> {
         let mut b = [0u8; 8];
         r.with_limited_depth(|r| {
             r.consume_len(b.len())?;
@@ -681,7 +678,7 @@ impl ReadXdr for u64 {
 
 impl WriteXdr for u64 {
     #[cfg(feature = "std")]
-    fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
+    fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<(), Error> {
         let b: [u8; 8] = self.to_be_bytes();
         w.with_limited_depth(|w| {
             w.consume_len(b.len())?;
@@ -692,35 +689,35 @@ impl WriteXdr for u64 {
 
 impl ReadXdr for f32 {
     #[cfg(feature = "std")]
-    fn read_xdr<R: Read>(_r: &mut Limited<R>) -> Result<Self> {
+    fn read_xdr<R: Read>(_r: &mut Limited<R>) -> Result<Self, Error> {
         todo!()
     }
 }
 
 impl WriteXdr for f32 {
     #[cfg(feature = "std")]
-    fn write_xdr<W: Write>(&self, _w: &mut Limited<W>) -> Result<()> {
+    fn write_xdr<W: Write>(&self, _w: &mut Limited<W>) -> Result<(), Error> {
         todo!()
     }
 }
 
 impl ReadXdr for f64 {
     #[cfg(feature = "std")]
-    fn read_xdr<R: Read>(_r: &mut Limited<R>) -> Result<Self> {
+    fn read_xdr<R: Read>(_r: &mut Limited<R>) -> Result<Self, Error> {
         todo!()
     }
 }
 
 impl WriteXdr for f64 {
     #[cfg(feature = "std")]
-    fn write_xdr<W: Write>(&self, _w: &mut Limited<W>) -> Result<()> {
+    fn write_xdr<W: Write>(&self, _w: &mut Limited<W>) -> Result<(), Error> {
         todo!()
     }
 }
 
 impl ReadXdr for bool {
     #[cfg(feature = "std")]
-    fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self> {
+    fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self, Error> {
         r.with_limited_depth(|r| {
             let i = u32::read_xdr(r)?;
             let b = i == 1;
@@ -731,7 +728,7 @@ impl ReadXdr for bool {
 
 impl WriteXdr for bool {
     #[cfg(feature = "std")]
-    fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
+    fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<(), Error> {
         w.with_limited_depth(|w| {
             let i = u32::from(*self); // true = 1, false = 0
             i.write_xdr(w)
@@ -741,7 +738,7 @@ impl WriteXdr for bool {
 
 impl<T: ReadXdr> ReadXdr for Option<T> {
     #[cfg(feature = "std")]
-    fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self> {
+    fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self, Error> {
         r.with_limited_depth(|r| {
             let i = u32::read_xdr(r)?;
             match i {
@@ -758,7 +755,7 @@ impl<T: ReadXdr> ReadXdr for Option<T> {
 
 impl<T: WriteXdr> WriteXdr for Option<T> {
     #[cfg(feature = "std")]
-    fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
+    fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<(), Error> {
         w.with_limited_depth(|w| {
             if let Some(t) = self {
                 1u32.write_xdr(w)?;
@@ -773,35 +770,35 @@ impl<T: WriteXdr> WriteXdr for Option<T> {
 
 impl<T: ReadXdr> ReadXdr for Box<T> {
     #[cfg(feature = "std")]
-    fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self> {
+    fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self, Error> {
         r.with_limited_depth(|r| Ok(Box::new(T::read_xdr(r)?)))
     }
 }
 
 impl<T: WriteXdr> WriteXdr for Box<T> {
     #[cfg(feature = "std")]
-    fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
+    fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<(), Error> {
         w.with_limited_depth(|w| T::write_xdr(self, w))
     }
 }
 
 impl ReadXdr for () {
     #[cfg(feature = "std")]
-    fn read_xdr<R: Read>(_r: &mut Limited<R>) -> Result<Self> {
+    fn read_xdr<R: Read>(_r: &mut Limited<R>) -> Result<Self, Error> {
         Ok(())
     }
 }
 
 impl WriteXdr for () {
     #[cfg(feature = "std")]
-    fn write_xdr<W: Write>(&self, _w: &mut Limited<W>) -> Result<()> {
+    fn write_xdr<W: Write>(&self, _w: &mut Limited<W>) -> Result<(), Error> {
         Ok(())
     }
 }
 
 impl<const N: usize> ReadXdr for [u8; N] {
     #[cfg(feature = "std")]
-    fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self> {
+    fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self, Error> {
         r.with_limited_depth(|r| {
             r.consume_len(N)?;
             let padding = pad_len(N);
@@ -820,7 +817,7 @@ impl<const N: usize> ReadXdr for [u8; N] {
 
 impl<const N: usize> WriteXdr for [u8; N] {
     #[cfg(feature = "std")]
-    fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
+    fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<(), Error> {
         w.with_limited_depth(|w| {
             w.consume_len(N)?;
             let padding = pad_len(N);
@@ -834,7 +831,7 @@ impl<const N: usize> WriteXdr for [u8; N] {
 
 impl<T: ReadXdr, const N: usize> ReadXdr for [T; N] {
     #[cfg(feature = "std")]
-    fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self> {
+    fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self, Error> {
         r.with_limited_depth(|r| {
             let mut vec = Vec::with_capacity(N);
             for _ in 0..N {
@@ -849,7 +846,7 @@ impl<T: ReadXdr, const N: usize> ReadXdr for [T; N] {
 
 impl<T: WriteXdr, const N: usize> WriteXdr for [T; N] {
     #[cfg(feature = "std")]
-    fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
+    fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<(), Error> {
         w.with_limited_depth(|w| {
             for t in self {
                 t.write_xdr(w)?;
@@ -960,12 +957,12 @@ impl<T: Clone, const MAX: u32> VecM<T, MAX> {
 
 impl<const MAX: u32> VecM<u8, MAX> {
     #[cfg(feature = "alloc")]
-    pub fn to_string(&self) -> Result<String> {
+    pub fn to_string(&self) -> Result<String, Error> {
         self.try_into()
     }
 
     #[cfg(feature = "alloc")]
-    pub fn into_string(self) -> Result<String> {
+    pub fn into_string(self) -> Result<String, Error> {
         self.try_into()
     }
 
@@ -1020,7 +1017,7 @@ impl<T> From<VecM<T, 1>> for Option<T> {
 impl<T, const MAX: u32> TryFrom<Vec<T>> for VecM<T, MAX> {
     type Error = Error;
 
-    fn try_from(v: Vec<T>) -> Result<Self> {
+    fn try_from(v: Vec<T>) -> Result<Self, Error> {
         let len: u32 = v.len().try_into().map_err(|_| Error::LengthExceedsMax)?;
         if len <= MAX {
             Ok(VecM(v))
@@ -1056,7 +1053,7 @@ impl<T, const MAX: u32> AsRef<Vec<T>> for VecM<T, MAX> {
 impl<T: Clone, const MAX: u32> TryFrom<&Vec<T>> for VecM<T, MAX> {
     type Error = Error;
 
-    fn try_from(v: &Vec<T>) -> Result<Self> {
+    fn try_from(v: &Vec<T>) -> Result<Self, Error> {
         v.as_slice().try_into()
     }
 }
@@ -1065,7 +1062,7 @@ impl<T: Clone, const MAX: u32> TryFrom<&Vec<T>> for VecM<T, MAX> {
 impl<T: Clone, const MAX: u32> TryFrom<&[T]> for VecM<T, MAX> {
     type Error = Error;
 
-    fn try_from(v: &[T]) -> Result<Self> {
+    fn try_from(v: &[T]) -> Result<Self, Error> {
         let len: u32 = v.len().try_into().map_err(|_| Error::LengthExceedsMax)?;
         if len <= MAX {
             Ok(VecM(v.to_vec()))
@@ -1092,7 +1089,7 @@ impl<T, const MAX: u32> AsRef<[T]> for VecM<T, MAX> {
 impl<T: Clone, const N: usize, const MAX: u32> TryFrom<[T; N]> for VecM<T, MAX> {
     type Error = Error;
 
-    fn try_from(v: [T; N]) -> Result<Self> {
+    fn try_from(v: [T; N]) -> Result<Self, Error> {
         let len: u32 = v.len().try_into().map_err(|_| Error::LengthExceedsMax)?;
         if len <= MAX {
             Ok(VecM(v.to_vec()))
@@ -1116,7 +1113,7 @@ impl<T: Clone, const N: usize, const MAX: u32> TryFrom<VecM<T, MAX>> for [T; N] 
 impl<T: Clone, const N: usize, const MAX: u32> TryFrom<&[T; N]> for VecM<T, MAX> {
     type Error = Error;
 
-    fn try_from(v: &[T; N]) -> Result<Self> {
+    fn try_from(v: &[T; N]) -> Result<Self, Error> {
         let len: u32 = v.len().try_into().map_err(|_| Error::LengthExceedsMax)?;
         if len <= MAX {
             Ok(VecM(v.to_vec()))
@@ -1130,7 +1127,7 @@ impl<T: Clone, const N: usize, const MAX: u32> TryFrom<&[T; N]> for VecM<T, MAX>
 impl<T: Clone, const N: usize, const MAX: u32> TryFrom<&'static [T; N]> for VecM<T, MAX> {
     type Error = Error;
 
-    fn try_from(v: &'static [T; N]) -> Result<Self> {
+    fn try_from(v: &'static [T; N]) -> Result<Self, Error> {
         let len: u32 = v.len().try_into().map_err(|_| Error::LengthExceedsMax)?;
         if len <= MAX {
             Ok(VecM(v))
@@ -1144,7 +1141,7 @@ impl<T: Clone, const N: usize, const MAX: u32> TryFrom<&'static [T; N]> for VecM
 impl<const MAX: u32> TryFrom<&String> for VecM<u8, MAX> {
     type Error = Error;
 
-    fn try_from(v: &String) -> Result<Self> {
+    fn try_from(v: &String) -> Result<Self, Error> {
         let len: u32 = v.len().try_into().map_err(|_| Error::LengthExceedsMax)?;
         if len <= MAX {
             Ok(VecM(v.as_bytes().to_vec()))
@@ -1158,7 +1155,7 @@ impl<const MAX: u32> TryFrom<&String> for VecM<u8, MAX> {
 impl<const MAX: u32> TryFrom<String> for VecM<u8, MAX> {
     type Error = Error;
 
-    fn try_from(v: String) -> Result<Self> {
+    fn try_from(v: String) -> Result<Self, Error> {
         let len: u32 = v.len().try_into().map_err(|_| Error::LengthExceedsMax)?;
         if len <= MAX {
             Ok(VecM(v.into()))
@@ -1172,7 +1169,7 @@ impl<const MAX: u32> TryFrom<String> for VecM<u8, MAX> {
 impl<const MAX: u32> TryFrom<VecM<u8, MAX>> for String {
     type Error = Error;
 
-    fn try_from(v: VecM<u8, MAX>) -> Result<Self> {
+    fn try_from(v: VecM<u8, MAX>) -> Result<Self, Error> {
         Ok(String::from_utf8(v.0)?)
     }
 }
@@ -1181,7 +1178,7 @@ impl<const MAX: u32> TryFrom<VecM<u8, MAX>> for String {
 impl<const MAX: u32> TryFrom<&VecM<u8, MAX>> for String {
     type Error = Error;
 
-    fn try_from(v: &VecM<u8, MAX>) -> Result<Self> {
+    fn try_from(v: &VecM<u8, MAX>) -> Result<Self, Error> {
         Ok(core::str::from_utf8(v.as_ref())?.to_owned())
     }
 }
@@ -1190,7 +1187,7 @@ impl<const MAX: u32> TryFrom<&VecM<u8, MAX>> for String {
 impl<const MAX: u32> TryFrom<&str> for VecM<u8, MAX> {
     type Error = Error;
 
-    fn try_from(v: &str) -> Result<Self> {
+    fn try_from(v: &str) -> Result<Self, Error> {
         let len: u32 = v.len().try_into().map_err(|_| Error::LengthExceedsMax)?;
         if len <= MAX {
             Ok(VecM(v.into()))
@@ -1204,7 +1201,7 @@ impl<const MAX: u32> TryFrom<&str> for VecM<u8, MAX> {
 impl<const MAX: u32> TryFrom<&'static str> for VecM<u8, MAX> {
     type Error = Error;
 
-    fn try_from(v: &'static str) -> Result<Self> {
+    fn try_from(v: &'static str) -> Result<Self, Error> {
         let len: u32 = v.len().try_into().map_err(|_| Error::LengthExceedsMax)?;
         if len <= MAX {
             Ok(VecM(v.as_bytes()))
@@ -1217,14 +1214,14 @@ impl<const MAX: u32> TryFrom<&'static str> for VecM<u8, MAX> {
 impl<'a, const MAX: u32> TryFrom<&'a VecM<u8, MAX>> for &'a str {
     type Error = Error;
 
-    fn try_from(v: &'a VecM<u8, MAX>) -> Result<Self> {
+    fn try_from(v: &'a VecM<u8, MAX>) -> Result<Self, Error> {
         Ok(core::str::from_utf8(v.as_ref())?)
     }
 }
 
 impl<const MAX: u32> ReadXdr for VecM<u8, MAX> {
     #[cfg(feature = "std")]
-    fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self> {
+    fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self, Error> {
         r.with_limited_depth(|r| {
             let len: u32 = u32::read_xdr(r)?;
             if len > MAX {
@@ -1251,7 +1248,7 @@ impl<const MAX: u32> ReadXdr for VecM<u8, MAX> {
 
 impl<const MAX: u32> WriteXdr for VecM<u8, MAX> {
     #[cfg(feature = "std")]
-    fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
+    fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<(), Error> {
         w.with_limited_depth(|w| {
             let len: u32 = self.len().try_into().map_err(|_| Error::LengthExceedsMax)?;
             len.write_xdr(w)?;
@@ -1271,7 +1268,7 @@ impl<const MAX: u32> WriteXdr for VecM<u8, MAX> {
 
 impl<T: ReadXdr, const MAX: u32> ReadXdr for VecM<T, MAX> {
     #[cfg(feature = "std")]
-    fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self> {
+    fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self, Error> {
         r.with_limited_depth(|r| {
             let len = u32::read_xdr(r)?;
             if len > MAX {
@@ -1291,7 +1288,7 @@ impl<T: ReadXdr, const MAX: u32> ReadXdr for VecM<T, MAX> {
 
 impl<T: WriteXdr, const MAX: u32> WriteXdr for VecM<T, MAX> {
     #[cfg(feature = "std")]
-    fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
+    fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<(), Error> {
         w.with_limited_depth(|w| {
             let len: u32 = self.len().try_into().map_err(|_| Error::LengthExceedsMax)?;
             len.write_xdr(w)?;
@@ -1435,12 +1432,12 @@ impl<const MAX: u32> BytesM<MAX> {
 
 impl<const MAX: u32> BytesM<MAX> {
     #[cfg(feature = "alloc")]
-    pub fn to_string(&self) -> Result<String> {
+    pub fn to_string(&self) -> Result<String, Error> {
         self.try_into()
     }
 
     #[cfg(feature = "alloc")]
-    pub fn into_string(self) -> Result<String> {
+    pub fn into_string(self) -> Result<String, Error> {
         self.try_into()
     }
 
@@ -1460,7 +1457,7 @@ impl<const MAX: u32> BytesM<MAX> {
 impl<const MAX: u32> TryFrom<Vec<u8>> for BytesM<MAX> {
     type Error = Error;
 
-    fn try_from(v: Vec<u8>) -> Result<Self> {
+    fn try_from(v: Vec<u8>) -> Result<Self, Error> {
         let len: u32 = v.len().try_into().map_err(|_| Error::LengthExceedsMax)?;
         if len <= MAX {
             Ok(BytesM(v))
@@ -1496,7 +1493,7 @@ impl<const MAX: u32> AsRef<Vec<u8>> for BytesM<MAX> {
 impl<const MAX: u32> TryFrom<&Vec<u8>> for BytesM<MAX> {
     type Error = Error;
 
-    fn try_from(v: &Vec<u8>) -> Result<Self> {
+    fn try_from(v: &Vec<u8>) -> Result<Self, Error> {
         v.as_slice().try_into()
     }
 }
@@ -1505,7 +1502,7 @@ impl<const MAX: u32> TryFrom<&Vec<u8>> for BytesM<MAX> {
 impl<const MAX: u32> TryFrom<&[u8]> for BytesM<MAX> {
     type Error = Error;
 
-    fn try_from(v: &[u8]) -> Result<Self> {
+    fn try_from(v: &[u8]) -> Result<Self, Error> {
         let len: u32 = v.len().try_into().map_err(|_| Error::LengthExceedsMax)?;
         if len <= MAX {
             Ok(BytesM(v.to_vec()))
@@ -1532,7 +1529,7 @@ impl<const MAX: u32> AsRef<[u8]> for BytesM<MAX> {
 impl<const N: usize, const MAX: u32> TryFrom<[u8; N]> for BytesM<MAX> {
     type Error = Error;
 
-    fn try_from(v: [u8; N]) -> Result<Self> {
+    fn try_from(v: [u8; N]) -> Result<Self, Error> {
         let len: u32 = v.len().try_into().map_err(|_| Error::LengthExceedsMax)?;
         if len <= MAX {
             Ok(BytesM(v.to_vec()))
@@ -1556,7 +1553,7 @@ impl<const N: usize, const MAX: u32> TryFrom<BytesM<MAX>> for [u8; N] {
 impl<const N: usize, const MAX: u32> TryFrom<&[u8; N]> for BytesM<MAX> {
     type Error = Error;
 
-    fn try_from(v: &[u8; N]) -> Result<Self> {
+    fn try_from(v: &[u8; N]) -> Result<Self, Error> {
         let len: u32 = v.len().try_into().map_err(|_| Error::LengthExceedsMax)?;
         if len <= MAX {
             Ok(BytesM(v.to_vec()))
@@ -1570,7 +1567,7 @@ impl<const N: usize, const MAX: u32> TryFrom<&[u8; N]> for BytesM<MAX> {
 impl<const N: usize, const MAX: u32> TryFrom<&'static [u8; N]> for BytesM<MAX> {
     type Error = Error;
 
-    fn try_from(v: &'static [u8; N]) -> Result<Self> {
+    fn try_from(v: &'static [u8; N]) -> Result<Self, Error> {
         let len: u32 = v.len().try_into().map_err(|_| Error::LengthExceedsMax)?;
         if len <= MAX {
             Ok(BytesM(v))
@@ -1584,7 +1581,7 @@ impl<const N: usize, const MAX: u32> TryFrom<&'static [u8; N]> for BytesM<MAX> {
 impl<const MAX: u32> TryFrom<&String> for BytesM<MAX> {
     type Error = Error;
 
-    fn try_from(v: &String) -> Result<Self> {
+    fn try_from(v: &String) -> Result<Self, Error> {
         let len: u32 = v.len().try_into().map_err(|_| Error::LengthExceedsMax)?;
         if len <= MAX {
             Ok(BytesM(v.as_bytes().to_vec()))
@@ -1598,7 +1595,7 @@ impl<const MAX: u32> TryFrom<&String> for BytesM<MAX> {
 impl<const MAX: u32> TryFrom<String> for BytesM<MAX> {
     type Error = Error;
 
-    fn try_from(v: String) -> Result<Self> {
+    fn try_from(v: String) -> Result<Self, Error> {
         let len: u32 = v.len().try_into().map_err(|_| Error::LengthExceedsMax)?;
         if len <= MAX {
             Ok(BytesM(v.into()))
@@ -1612,7 +1609,7 @@ impl<const MAX: u32> TryFrom<String> for BytesM<MAX> {
 impl<const MAX: u32> TryFrom<BytesM<MAX>> for String {
     type Error = Error;
 
-    fn try_from(v: BytesM<MAX>) -> Result<Self> {
+    fn try_from(v: BytesM<MAX>) -> Result<Self, Error> {
         Ok(String::from_utf8(v.0)?)
     }
 }
@@ -1621,7 +1618,7 @@ impl<const MAX: u32> TryFrom<BytesM<MAX>> for String {
 impl<const MAX: u32> TryFrom<&BytesM<MAX>> for String {
     type Error = Error;
 
-    fn try_from(v: &BytesM<MAX>) -> Result<Self> {
+    fn try_from(v: &BytesM<MAX>) -> Result<Self, Error> {
         Ok(core::str::from_utf8(v.as_ref())?.to_owned())
     }
 }
@@ -1630,7 +1627,7 @@ impl<const MAX: u32> TryFrom<&BytesM<MAX>> for String {
 impl<const MAX: u32> TryFrom<&str> for BytesM<MAX> {
     type Error = Error;
 
-    fn try_from(v: &str) -> Result<Self> {
+    fn try_from(v: &str) -> Result<Self, Error> {
         let len: u32 = v.len().try_into().map_err(|_| Error::LengthExceedsMax)?;
         if len <= MAX {
             Ok(BytesM(v.into()))
@@ -1644,7 +1641,7 @@ impl<const MAX: u32> TryFrom<&str> for BytesM<MAX> {
 impl<const MAX: u32> TryFrom<&'static str> for BytesM<MAX> {
     type Error = Error;
 
-    fn try_from(v: &'static str) -> Result<Self> {
+    fn try_from(v: &'static str) -> Result<Self, Error> {
         let len: u32 = v.len().try_into().map_err(|_| Error::LengthExceedsMax)?;
         if len <= MAX {
             Ok(BytesM(v.as_bytes()))
@@ -1657,14 +1654,14 @@ impl<const MAX: u32> TryFrom<&'static str> for BytesM<MAX> {
 impl<'a, const MAX: u32> TryFrom<&'a BytesM<MAX>> for &'a str {
     type Error = Error;
 
-    fn try_from(v: &'a BytesM<MAX>) -> Result<Self> {
+    fn try_from(v: &'a BytesM<MAX>) -> Result<Self, Error> {
         Ok(core::str::from_utf8(v.as_ref())?)
     }
 }
 
 impl<const MAX: u32> ReadXdr for BytesM<MAX> {
     #[cfg(feature = "std")]
-    fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self> {
+    fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self, Error> {
         r.with_limited_depth(|r| {
             let len: u32 = u32::read_xdr(r)?;
             if len > MAX {
@@ -1691,7 +1688,7 @@ impl<const MAX: u32> ReadXdr for BytesM<MAX> {
 
 impl<const MAX: u32> WriteXdr for BytesM<MAX> {
     #[cfg(feature = "std")]
-    fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
+    fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<(), Error> {
         w.with_limited_depth(|w| {
             let len: u32 = self.len().try_into().map_err(|_| Error::LengthExceedsMax)?;
             len.write_xdr(w)?;
@@ -1838,12 +1835,12 @@ impl<const MAX: u32> StringM<MAX> {
 
 impl<const MAX: u32> StringM<MAX> {
     #[cfg(feature = "alloc")]
-    pub fn to_utf8_string(&self) -> Result<String> {
+    pub fn to_utf8_string(&self) -> Result<String, Error> {
         self.try_into()
     }
 
     #[cfg(feature = "alloc")]
-    pub fn into_utf8_string(self) -> Result<String> {
+    pub fn into_utf8_string(self) -> Result<String, Error> {
         self.try_into()
     }
 
@@ -1863,7 +1860,7 @@ impl<const MAX: u32> StringM<MAX> {
 impl<const MAX: u32> TryFrom<Vec<u8>> for StringM<MAX> {
     type Error = Error;
 
-    fn try_from(v: Vec<u8>) -> Result<Self> {
+    fn try_from(v: Vec<u8>) -> Result<Self, Error> {
         let len: u32 = v.len().try_into().map_err(|_| Error::LengthExceedsMax)?;
         if len <= MAX {
             Ok(StringM(v))
@@ -1899,7 +1896,7 @@ impl<const MAX: u32> AsRef<Vec<u8>> for StringM<MAX> {
 impl<const MAX: u32> TryFrom<&Vec<u8>> for StringM<MAX> {
     type Error = Error;
 
-    fn try_from(v: &Vec<u8>) -> Result<Self> {
+    fn try_from(v: &Vec<u8>) -> Result<Self, Error> {
         v.as_slice().try_into()
     }
 }
@@ -1908,7 +1905,7 @@ impl<const MAX: u32> TryFrom<&Vec<u8>> for StringM<MAX> {
 impl<const MAX: u32> TryFrom<&[u8]> for StringM<MAX> {
     type Error = Error;
 
-    fn try_from(v: &[u8]) -> Result<Self> {
+    fn try_from(v: &[u8]) -> Result<Self, Error> {
         let len: u32 = v.len().try_into().map_err(|_| Error::LengthExceedsMax)?;
         if len <= MAX {
             Ok(StringM(v.to_vec()))
@@ -1935,7 +1932,7 @@ impl<const MAX: u32> AsRef<[u8]> for StringM<MAX> {
 impl<const N: usize, const MAX: u32> TryFrom<[u8; N]> for StringM<MAX> {
     type Error = Error;
 
-    fn try_from(v: [u8; N]) -> Result<Self> {
+    fn try_from(v: [u8; N]) -> Result<Self, Error> {
         let len: u32 = v.len().try_into().map_err(|_| Error::LengthExceedsMax)?;
         if len <= MAX {
             Ok(StringM(v.to_vec()))
@@ -1959,7 +1956,7 @@ impl<const N: usize, const MAX: u32> TryFrom<StringM<MAX>> for [u8; N] {
 impl<const N: usize, const MAX: u32> TryFrom<&[u8; N]> for StringM<MAX> {
     type Error = Error;
 
-    fn try_from(v: &[u8; N]) -> Result<Self> {
+    fn try_from(v: &[u8; N]) -> Result<Self, Error> {
         let len: u32 = v.len().try_into().map_err(|_| Error::LengthExceedsMax)?;
         if len <= MAX {
             Ok(StringM(v.to_vec()))
@@ -1973,7 +1970,7 @@ impl<const N: usize, const MAX: u32> TryFrom<&[u8; N]> for StringM<MAX> {
 impl<const N: usize, const MAX: u32> TryFrom<&'static [u8; N]> for StringM<MAX> {
     type Error = Error;
 
-    fn try_from(v: &'static [u8; N]) -> Result<Self> {
+    fn try_from(v: &'static [u8; N]) -> Result<Self, Error> {
         let len: u32 = v.len().try_into().map_err(|_| Error::LengthExceedsMax)?;
         if len <= MAX {
             Ok(StringM(v))
@@ -1987,7 +1984,7 @@ impl<const N: usize, const MAX: u32> TryFrom<&'static [u8; N]> for StringM<MAX> 
 impl<const MAX: u32> TryFrom<&String> for StringM<MAX> {
     type Error = Error;
 
-    fn try_from(v: &String) -> Result<Self> {
+    fn try_from(v: &String) -> Result<Self, Error> {
         let len: u32 = v.len().try_into().map_err(|_| Error::LengthExceedsMax)?;
         if len <= MAX {
             Ok(StringM(v.as_bytes().to_vec()))
@@ -2001,7 +1998,7 @@ impl<const MAX: u32> TryFrom<&String> for StringM<MAX> {
 impl<const MAX: u32> TryFrom<String> for StringM<MAX> {
     type Error = Error;
 
-    fn try_from(v: String) -> Result<Self> {
+    fn try_from(v: String) -> Result<Self, Error> {
         let len: u32 = v.len().try_into().map_err(|_| Error::LengthExceedsMax)?;
         if len <= MAX {
             Ok(StringM(v.into()))
@@ -2015,7 +2012,7 @@ impl<const MAX: u32> TryFrom<String> for StringM<MAX> {
 impl<const MAX: u32> TryFrom<StringM<MAX>> for String {
     type Error = Error;
 
-    fn try_from(v: StringM<MAX>) -> Result<Self> {
+    fn try_from(v: StringM<MAX>) -> Result<Self, Error> {
         Ok(String::from_utf8(v.0)?)
     }
 }
@@ -2024,7 +2021,7 @@ impl<const MAX: u32> TryFrom<StringM<MAX>> for String {
 impl<const MAX: u32> TryFrom<&StringM<MAX>> for String {
     type Error = Error;
 
-    fn try_from(v: &StringM<MAX>) -> Result<Self> {
+    fn try_from(v: &StringM<MAX>) -> Result<Self, Error> {
         Ok(core::str::from_utf8(v.as_ref())?.to_owned())
     }
 }
@@ -2033,7 +2030,7 @@ impl<const MAX: u32> TryFrom<&StringM<MAX>> for String {
 impl<const MAX: u32> TryFrom<&str> for StringM<MAX> {
     type Error = Error;
 
-    fn try_from(v: &str) -> Result<Self> {
+    fn try_from(v: &str) -> Result<Self, Error> {
         let len: u32 = v.len().try_into().map_err(|_| Error::LengthExceedsMax)?;
         if len <= MAX {
             Ok(StringM(v.into()))
@@ -2047,7 +2044,7 @@ impl<const MAX: u32> TryFrom<&str> for StringM<MAX> {
 impl<const MAX: u32> TryFrom<&'static str> for StringM<MAX> {
     type Error = Error;
 
-    fn try_from(v: &'static str) -> Result<Self> {
+    fn try_from(v: &'static str) -> Result<Self, Error> {
         let len: u32 = v.len().try_into().map_err(|_| Error::LengthExceedsMax)?;
         if len <= MAX {
             Ok(StringM(v.as_bytes()))
@@ -2060,14 +2057,14 @@ impl<const MAX: u32> TryFrom<&'static str> for StringM<MAX> {
 impl<'a, const MAX: u32> TryFrom<&'a StringM<MAX>> for &'a str {
     type Error = Error;
 
-    fn try_from(v: &'a StringM<MAX>) -> Result<Self> {
+    fn try_from(v: &'a StringM<MAX>) -> Result<Self, Error> {
         Ok(core::str::from_utf8(v.as_ref())?)
     }
 }
 
 impl<const MAX: u32> ReadXdr for StringM<MAX> {
     #[cfg(feature = "std")]
-    fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self> {
+    fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self, Error> {
         r.with_limited_depth(|r| {
             let len: u32 = u32::read_xdr(r)?;
             if len > MAX {
@@ -2094,7 +2091,7 @@ impl<const MAX: u32> ReadXdr for StringM<MAX> {
 
 impl<const MAX: u32> WriteXdr for StringM<MAX> {
     #[cfg(feature = "std")]
-    fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
+    fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<(), Error> {
         w.with_limited_depth(|w| {
             let len: u32 = self.len().try_into().map_err(|_| Error::LengthExceedsMax)?;
             len.write_xdr(w)?;
@@ -2140,7 +2137,7 @@ where
     T: ReadXdr,
 {
     #[cfg(feature = "std")]
-    fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self> {
+    fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self, Error> {
         // Read the frame header value that contains 1 flag-bit and a 33-bit length.
         //  - The 1 flag bit is 0 when there are more frames for the same record.
         //  - The 31-bit length is the length of the bytes within the frame that
@@ -2330,7 +2327,7 @@ mod test {
         a.write_xdr(&mut buf).unwrap();
 
         let mut dlr = Limited::new(Cursor::new(buf.inner.as_slice()), read_limits);
-        let res: Result<Option<Option<Option<u32>>>> = ReadXdr::read_xdr(&mut dlr);
+        let res: Result<Option<Option<Option<u32>>>, _> = ReadXdr::read_xdr(&mut dlr);
         match res {
             Err(Error::DepthLimitExceeded) => (),
             _ => panic!("expected DepthLimitExceeded got {res:?}"),
