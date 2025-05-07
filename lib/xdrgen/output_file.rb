@@ -20,6 +20,10 @@ module Xdrgen
       @io.puts indented(s)
     end
 
+    def puts_if(s=nil)
+      self.puts if s
+    end
+
     def indent(step=1)
       @current_indent += step
       yield
