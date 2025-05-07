@@ -917,7 +917,7 @@ impl<T: schemars::JsonSchema, const MAX: u32> schemars::JsonSchema for VecM<T, M
 #[cfg(feature = "schemars")]
 impl<T, TA, const MAX: u32> serde_with::schemars_0_8::JsonSchemaAs<VecM<T, MAX>> for VecM<TA, MAX>
 where
-    TA: serde_with::JsonSchemaAs<T>,
+    TA: serde_with::schemars_0_8::JsonSchemaAs<T>,
 {
     fn schema_name() -> String {
         <VecM<serde_with::Schema<T, TA>, MAX> as schemars::JsonSchema>::schema_name()
