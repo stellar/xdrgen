@@ -971,7 +971,7 @@ where
         D: serde::Deserializer<'de>,
     {
         let vec = <Vec<U> as serde_with::DeserializeAs<Vec<T>>>::deserialize_as(deserializer)?;
-        Ok(vec.try_into().map_err(serde::de::Error::custom)?)
+        vec.try_into().map_err(serde::de::Error::custom)
     }
 }
 
@@ -2308,7 +2308,7 @@ impl<'de> serde_with::DeserializeAs<'de, u64> for NumberOrString {
         D: serde::Deserializer<'de>,
     {
         struct Vis;
-        impl<'de> serde::de::Visitor<'de> for Vis {
+        impl serde::de::Visitor<'_> for Vis {
             type Value = u64;
 
             fn expecting(&self, formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
@@ -3252,15 +3252,15 @@ mod tests_for_number_or_string {
 
     #[test]
     fn deserialize_i64_error_from_string_overflow() {
-        let overflow_val = (i64::MAX as i128) + 1;
-        let json = format!(r#"{{"val": "{}"}}"#, overflow_val);
+        let overflow_val = i128::from(i64::MAX) + 1;
+        let json = format!(r#"{{"val": "{overflow_val}"}}"#);
         assert!(serde_json::from_str::<TestI64>(&json).is_err());
     }
     
     #[test]
     fn deserialize_i64_error_from_string_underflow() {
-        let underflow_val = (i64::MIN as i128) - 1;
-        let json = format!(r#"{{"val": "{}"}}"#, underflow_val);
+        let underflow_val = i128::from(i64::MIN) - 1;
+        let json = format!(r#"{{"val": "{underflow_val}"}}"#);
         assert!(serde_json::from_str::<TestI64>(&json).is_err());
     }
 
@@ -3480,8 +3480,8 @@ mod tests_for_number_or_string {
 
     #[test]
     fn deserialize_u64_error_from_string_overflow() {
-        let overflow_val = (u64::MAX as u128) + 1;
-        let json = format!(r#"{{"val": "{}"}}"#, overflow_val);
+        let overflow_val = u128::from(u64::MAX) + 1;
+        let json = format!(r#"{{"val": "{overflow_val}"}}"#);
         assert!(serde_json::from_str::<TestU64>(&json).is_err());
     }
 
