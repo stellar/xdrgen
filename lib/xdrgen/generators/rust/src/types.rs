@@ -3010,7 +3010,7 @@ mod test {
 }
 
 #[cfg(all(test, feature = "serde"))]
-mod tests {
+mod tests_for_number_or_string {
     use super::*;
     use serde::{Deserialize, Serialize};
     use serde_json;
