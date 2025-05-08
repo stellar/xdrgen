@@ -36,6 +36,11 @@ use arbitrary::Arbitrary;
 #[cfg(feature = "serde")]
 use serde_with::DisplayFromStr;
 
+#[cfg(all(feature = "schemars", feature = "alloc", feature = "std")]
+use std::borrow::Cow;
+#[cfg(all(feature = "schemars", feature = "alloc", not(feature = "std"))]
+use alloc::borrow::Cow;
+
 // TODO: Add support for read/write xdr fns when std not available.
 
 #[cfg(feature = "std")]
@@ -936,7 +941,7 @@ where
     }
 }
 
-#[cfg(feature = "schemars")]
+#[cfg(feature = "serde")]
 impl<T, U, const MAX: u32> serde_with::SerializeAs<VecM<T, MAX>> for VecM<U, MAX>
 where
     U: serde_with::SerializeAs<T>,
@@ -949,7 +954,7 @@ where
     }
 }
 
-#[cfg(feature = "schemars")]
+#[cfg(feature = "serde")]
 impl<'de, T, U, const MAX: u32> serde_with::DeserializeAs<'de, VecM<T, MAX>> for VecM<U, MAX>
 where
     U: serde_with::DeserializeAs<'de, T>,
