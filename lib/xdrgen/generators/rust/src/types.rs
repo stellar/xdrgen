@@ -2240,27 +2240,27 @@ impl<'de> serde_with::DeserializeAs<'de, i64> for NumberOrString {
             }
 
             fn visit_i8<E>(self, v: i8) -> Result<Self::Value, E> where E: serde::de::Error {
-                v.into()
+                Ok(v.into())
             }
 
             fn visit_u8<E>(self, v: u8) -> Result<Self::Value, E> where E: serde::de::Error {
-                v.into()
+                Ok(v.into())
             }
 
             fn visit_i16<E>(self, v: i16) -> Result<Self::Value, E> where E: serde::de::Error {
-                v.into()
+                Ok(v.into())
             }
 
             fn visit_u16<E>(self, v: u16) -> Result<Self::Value, E> where E: serde::de::Error {
-                v.into()
+                Ok(v.into())
             }
 
             fn visit_i32<E>(self, v: i32) -> Result<Self::Value, E> where E: serde::de::Error {
-                v.into()
+                Ok(v.into())
             }
 
             fn visit_u32<E>(self, v: u32) -> Result<Self::Value, E> where E: serde::de::Error {
-                v.into()
+                Ok(v.into())
             }
 
             fn visit_i64<E>(self, v: i64) -> Result<Self::Value, E> where E: serde::de::Error {
@@ -2310,7 +2310,7 @@ impl<'de> serde_with::DeserializeAs<'de, u64> for NumberOrString {
             }
 
             fn visit_u8<E>(self, v: u8) -> Result<Self::Value, E> where E: serde::de::Error {
-                v.into()
+                Ok(v.into())
             }
 
             fn visit_i16<E>(self, v: i16) -> Result<Self::Value, E> where E: serde::de::Error {
@@ -2318,7 +2318,7 @@ impl<'de> serde_with::DeserializeAs<'de, u64> for NumberOrString {
             }
 
             fn visit_u16<E>(self, v: u16) -> Result<Self::Value, E> where E: serde::de::Error {
-                v.into()
+                Ok(v.into())
             }
 
             fn visit_i32<E>(self, v: i32) -> Result<Self::Value, E> where E: serde::de::Error {
@@ -2326,7 +2326,7 @@ impl<'de> serde_with::DeserializeAs<'de, u64> for NumberOrString {
             }
 
             fn visit_u32<E>(self, v: u32) -> Result<Self::Value, E> where E: serde::de::Error {
-                v.into()
+                Ok(v.into())
             }
 
             fn visit_i64<E>(self, v: i64) -> Result<Self::Value, E> where E: serde::de::Error {
