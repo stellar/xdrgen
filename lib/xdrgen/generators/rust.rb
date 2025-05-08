@@ -1029,7 +1029,7 @@ module Xdrgen
         base_ref = base_reference(type)
         if ['i64','u64'].include?(base_ref)
           ref = reference(parent, type, 'DisplayFromStr')
-          "#[serde_as(as = \"#{ref}\")]"
+          "#[cfg_attr(all(feature = \"serde\", feature = \"alloc\"), serde_as(as = \"#{ref}\"))]"
         else
           nil
         end
