@@ -2222,8 +2222,10 @@ where
 /// It has a JsonSchema implementation that only advertises that the allowed format is a String.
 /// This is because the type is intended to soften the changing of fields from JSON Number to JSON
 /// String by permitting deserialization, but discourage new uses of JSON Number.
+#[cfg(feature = "serde")]
 struct NumberOrString;
 
+#[cfg(feature = "serde")]
 impl<'de> serde_with::DeserializeAs<'de, i64> for NumberOrString {
     fn deserialize_as<D>(deserializer: D) -> Result<i64, D::Error>
     where
@@ -2281,6 +2283,7 @@ impl<'de> serde_with::DeserializeAs<'de, i64> for NumberOrString {
     }
 }
 
+#[cfg(feature = "serde")]
 impl<'de> serde_with::DeserializeAs<'de, u64> for NumberOrString {
     fn deserialize_as<D>(deserializer: D) -> Result<u64, D::Error>
     where
@@ -2338,6 +2341,7 @@ impl<'de> serde_with::DeserializeAs<'de, u64> for NumberOrString {
     }
 }
 
+#[cfg(feature = "serde")]
 impl serde_with::SerializeAs<i64> for NumberOrString {
     fn serialize_as<S>(source: &i64, serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -2348,6 +2352,7 @@ impl serde_with::SerializeAs<i64> for NumberOrString {
     }
 }
 
+#[cfg(feature = "serde")]
 impl serde_with::SerializeAs<u64> for NumberOrString {
     fn serialize_as<S>(source: &u64, serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -2358,6 +2363,7 @@ impl serde_with::SerializeAs<u64> for NumberOrString {
     }
 }
 
+#[cfg(feature = "schemars")]
 impl<T> serde_with::schemars_0_8::JsonSchemaAs<T> for NumberOrString {
     fn schema_name() -> String {
         <String as schemars::JsonSchema>::schema_name()
