@@ -28,7 +28,7 @@ use alloc::{
     vec::Vec,
 };
 #[cfg(feature = "std")]
-use std::string::FromUtf8Error};
+use std::string::FromUtf8Error;
 
 #[cfg(feature = "arbitrary")]
 use arbitrary::Arbitrary;
