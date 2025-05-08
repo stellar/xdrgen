@@ -3009,7 +3009,7 @@ mod test {
     }
 }
 
-#[cfg(all(test, not(feature = "alloc")))]
+#[cfg(all(test, feature = "serde"))]
 mod tests {
     use super::*;
     use serde::{Deserialize, Serialize};
