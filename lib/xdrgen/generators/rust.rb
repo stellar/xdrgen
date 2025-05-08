@@ -1028,7 +1028,7 @@ module Xdrgen
       def field_attrs(parent, type)
         base_ref = base_reference(type)
         if ['i64','u64'].include?(base_ref)
-          ref = reference(parent, type, 'DisplayFromStr')
+          ref = reference(parent, type, 'NumberOrString')
           "#[cfg_attr(all(feature = \"serde\", feature = \"alloc\"), serde_as(as = \"#{ref}\"))]"
         else
           nil

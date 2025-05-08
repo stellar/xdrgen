@@ -33,9 +33,6 @@ use std::string::FromUtf8Error;
 #[cfg(feature = "arbitrary")]
 use arbitrary::Arbitrary;
 
-#[cfg(feature = "serde")]
-use serde_with::DisplayFromStr;
-
 #[cfg(all(feature = "schemars", feature = "alloc", feature = "std"))]
 use std::borrow::Cow;
 #[cfg(all(feature = "schemars", feature = "alloc", not(feature = "std")))]
@@ -2212,6 +2209,172 @@ where
         }
     }
 }
+
+// NumberOrString ---------------------------------------------------------------
+
+/// NumberOrString is a serde_as serializer/deserializer.
+///
+/// It deserializers any integer that fits into a 64-bit value into an i64 or u64 field from either
+/// a JSON Number or JSON String value.
+///
+/// It serializes always to a string.
+///
+/// It has a JsonSchema implementation that only advertises that the allowed format is a String.
+/// This is because the type is intended to soften the changing of fields from JSON Number to JSON
+/// String by permitting deserialization, but discourage new uses of JSON Number.
+struct NumberOrString;
+
+impl<'de> serde_with::DeserializeAs<'de, i64> for NumberOrString {
+    fn deserialize_as<D>(deserializer: D) -> Result<i64, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        struct Vis;
+        impl<'de> serde::de::Visitor<'de> for Vis {
+            type Value = i64;
+
+            fn expecting(&self, formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+                formatter.write_str("a number or number string")
+            }
+
+            fn visit_i8<E>(self, v: i8) -> Result<Self::Value, E> where E: serde::de::Error {
+                Ok(v.try_into().map_err(|e|serde::de::Error::custom(e))?)
+            }
+
+            fn visit_u8<E>(self, v: u8) -> Result<Self::Value, E> where E: serde::de::Error {
+                Ok(v.try_into().map_err(|e|serde::de::Error::custom(e))?)
+            }
+
+            fn visit_i16<E>(self, v: i16) -> Result<Self::Value, E> where E: serde::de::Error {
+                Ok(v.try_into().map_err(|e|serde::de::Error::custom(e))?)
+            }
+
+            fn visit_u16<E>(self, v: u16) -> Result<Self::Value, E> where E: serde::de::Error {
+                Ok(v.try_into().map_err(|e|serde::de::Error::custom(e))?)
+            }
+
+            fn visit_i32<E>(self, v: i32) -> Result<Self::Value, E> where E: serde::de::Error {
+                Ok(v.try_into().map_err(|e|serde::de::Error::custom(e))?)
+            }
+
+            fn visit_u32<E>(self, v: u32) -> Result<Self::Value, E> where E: serde::de::Error {
+                Ok(v.try_into().map_err(|e|serde::de::Error::custom(e))?)
+            }
+
+            fn visit_i64<E>(self, v: i64) -> Result<Self::Value, E> where E: serde::de::Error {
+                Ok(v)
+            }
+
+            fn visit_u64<E>(self, v: u64) -> Result<Self::Value, E> where E: serde::de::Error {
+                Ok(v.try_into().map_err(|e|serde::de::Error::custom(e))?)
+            }
+
+            fn visit_str<E>(self, v: &str) -> Result<Self::Value, E> where E: serde::de::Error {
+                Ok(v.parse().map_err(|e| serde::de::Error::custom(e))?)
+            }
+
+            fn visit_string<E>(self, v: String) -> Result<Self::Value, E> where E: serde::de::Error {
+                Ok(v.parse().map_err(|e| serde::de::Error::custom(e))?)
+            }
+        }
+        deserializer.deserialize_any(Vis)
+    }
+}
+
+impl<'de> serde_with::DeserializeAs<'de, u64> for NumberOrString {
+    fn deserialize_as<D>(deserializer: D) -> Result<u64, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        struct Vis;
+        impl<'de> serde::de::Visitor<'de> for Vis {
+            type Value = u64;
+
+            fn expecting(&self, formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+                formatter.write_str("a number or number string")
+            }
+
+            fn visit_i8<E>(self, v: i8) -> Result<Self::Value, E> where E: serde::de::Error {
+                Ok(v.try_into().map_err(|e|serde::de::Error::custom(e))?)
+            }
+
+            fn visit_u8<E>(self, v: u8) -> Result<Self::Value, E> where E: serde::de::Error {
+                Ok(v.try_into().map_err(|e|serde::de::Error::custom(e))?)
+            }
+
+            fn visit_i16<E>(self, v: i16) -> Result<Self::Value, E> where E: serde::de::Error {
+                Ok(v.try_into().map_err(|e|serde::de::Error::custom(e))?)
+            }
+
+            fn visit_u16<E>(self, v: u16) -> Result<Self::Value, E> where E: serde::de::Error {
+                Ok(v.try_into().map_err(|e|serde::de::Error::custom(e))?)
+            }
+
+            fn visit_i32<E>(self, v: i32) -> Result<Self::Value, E> where E: serde::de::Error {
+                Ok(v.try_into().map_err(|e|serde::de::Error::custom(e))?)
+            }
+
+            fn visit_u32<E>(self, v: u32) -> Result<Self::Value, E> where E: serde::de::Error {
+                Ok(v.try_into().map_err(|e|serde::de::Error::custom(e))?)
+            }
+
+            fn visit_i64<E>(self, v: i64) -> Result<Self::Value, E> where E: serde::de::Error {
+                Ok(v.try_into().map_err(|e|serde::de::Error::custom(e))?)
+            }
+
+            fn visit_u64<E>(self, v: u64) -> Result<Self::Value, E> where E: serde::de::Error {
+                Ok(v)
+            }
+
+            fn visit_str<E>(self, v: &str) -> Result<Self::Value, E> where E: serde::de::Error {
+                Ok(v.parse().map_err(|e| serde::de::Error::custom(e))?)
+            }
+
+            fn visit_string<E>(self, v: String) -> Result<Self::Value, E> where E: serde::de::Error {
+                Ok(v.parse().map_err(|e| serde::de::Error::custom(e))?)
+            }
+        }
+        deserializer.deserialize_any(Vis)
+    }
+}
+
+impl serde_with::SerializeAs<i64> for NumberOrString {
+    fn serialize_as<S>(source: &i64, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        source.to_string().serialize(serializer)
+    }
+}
+
+impl serde_with::SerializeAs<u64> for NumberOrString {
+    fn serialize_as<S>(source: &u64, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        source.to_string().serialize(serializer)
+    }
+}
+
+impl<T> serde_with::schemars_0_8::JsonSchemaAs<T> for NumberOrString {
+    fn schema_name() -> String {
+        <String as schemars::JsonSchema>::schema_name()
+    }
+
+    fn schema_id() -> std::borrow::Cow<'static, str> {
+        <String as schemars::JsonSchema>::schema_id()
+    }
+
+    fn json_schema(gen: &mut schemars::SchemaGenerator) -> schemars::schema::Schema {
+        <String as schemars::JsonSchema>::json_schema(gen)
+    }
+
+    fn is_referenceable() -> bool {
+        <String as schemars::JsonSchema>::is_referenceable()
+    }
+}
+
+// Tests ------------------------------------------------------------------------
 
 #[cfg(all(test, feature = "std"))]
 mod tests {
