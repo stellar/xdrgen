@@ -43,9 +43,6 @@ use std::string::FromUtf8Error;
 #[cfg(feature = "arbitrary")]
 use arbitrary::Arbitrary;
 
-#[cfg(feature = "serde")]
-use serde_with::DisplayFromStr;
-
 #[cfg(all(feature = "schemars", feature = "alloc", feature = "std"))]
 use std::borrow::Cow;
 #[cfg(all(feature = "schemars", feature = "alloc", not(feature = "std")))]
@@ -2223,6 +2220,180 @@ where
     }
 }
 
+// NumberOrString ---------------------------------------------------------------
+
+/// NumberOrString is a serde_as serializer/deserializer.
+///
+/// It deserializers any integer that fits into a 64-bit value into an i64 or u64 field from either
+/// a JSON Number or JSON String value.
+///
+/// It serializes always to a string.
+///
+/// It has a JsonSchema implementation that only advertises that the allowed format is a String.
+/// This is because the type is intended to soften the changing of fields from JSON Number to JSON
+/// String by permitting deserialization, but discourage new uses of JSON Number.
+#[cfg(feature = "serde")]
+struct NumberOrString;
+
+#[cfg(feature = "serde")]
+impl<'de> serde_with::DeserializeAs<'de, i64> for NumberOrString {
+    fn deserialize_as<D>(deserializer: D) -> Result<i64, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        struct Vis;
+        impl<'de> serde::de::Visitor<'de> for Vis {
+            type Value = i64;
+
+            fn expecting(&self, formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+                formatter.write_str("a number or number string")
+            }
+
+            fn visit_i8<E>(self, v: i8) -> Result<Self::Value, E> where E: serde::de::Error {
+                Ok(v.try_into().map_err(|e|serde::de::Error::custom(e))?)
+            }
+
+            fn visit_u8<E>(self, v: u8) -> Result<Self::Value, E> where E: serde::de::Error {
+                Ok(v.try_into().map_err(|e|serde::de::Error::custom(e))?)
+            }
+
+            fn visit_i16<E>(self, v: i16) -> Result<Self::Value, E> where E: serde::de::Error {
+                Ok(v.try_into().map_err(|e|serde::de::Error::custom(e))?)
+            }
+
+            fn visit_u16<E>(self, v: u16) -> Result<Self::Value, E> where E: serde::de::Error {
+                Ok(v.try_into().map_err(|e|serde::de::Error::custom(e))?)
+            }
+
+            fn visit_i32<E>(self, v: i32) -> Result<Self::Value, E> where E: serde::de::Error {
+                Ok(v.try_into().map_err(|e|serde::de::Error::custom(e))?)
+            }
+
+            fn visit_u32<E>(self, v: u32) -> Result<Self::Value, E> where E: serde::de::Error {
+                Ok(v.try_into().map_err(|e|serde::de::Error::custom(e))?)
+            }
+
+            fn visit_i64<E>(self, v: i64) -> Result<Self::Value, E> where E: serde::de::Error {
+                Ok(v)
+            }
+
+            fn visit_u64<E>(self, v: u64) -> Result<Self::Value, E> where E: serde::de::Error {
+                Ok(v.try_into().map_err(|e|serde::de::Error::custom(e))?)
+            }
+
+            fn visit_str<E>(self, v: &str) -> Result<Self::Value, E> where E: serde::de::Error {
+                Ok(v.parse().map_err(|e| serde::de::Error::custom(e))?)
+            }
+
+            fn visit_string<E>(self, v: String) -> Result<Self::Value, E> where E: serde::de::Error {
+                Ok(v.parse().map_err(|e| serde::de::Error::custom(e))?)
+            }
+        }
+        deserializer.deserialize_any(Vis)
+    }
+}
+
+#[cfg(feature = "serde")]
+impl<'de> serde_with::DeserializeAs<'de, u64> for NumberOrString {
+    fn deserialize_as<D>(deserializer: D) -> Result<u64, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        struct Vis;
+        impl<'de> serde::de::Visitor<'de> for Vis {
+            type Value = u64;
+
+            fn expecting(&self, formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+                formatter.write_str("a number or number string")
+            }
+
+            fn visit_i8<E>(self, v: i8) -> Result<Self::Value, E> where E: serde::de::Error {
+                Ok(v.try_into().map_err(|e|serde::de::Error::custom(e))?)
+            }
+
+            fn visit_u8<E>(self, v: u8) -> Result<Self::Value, E> where E: serde::de::Error {
+                Ok(v.try_into().map_err(|e|serde::de::Error::custom(e))?)
+            }
+
+            fn visit_i16<E>(self, v: i16) -> Result<Self::Value, E> where E: serde::de::Error {
+                Ok(v.try_into().map_err(|e|serde::de::Error::custom(e))?)
+            }
+
+            fn visit_u16<E>(self, v: u16) -> Result<Self::Value, E> where E: serde::de::Error {
+                Ok(v.try_into().map_err(|e|serde::de::Error::custom(e))?)
+            }
+
+            fn visit_i32<E>(self, v: i32) -> Result<Self::Value, E> where E: serde::de::Error {
+                Ok(v.try_into().map_err(|e|serde::de::Error::custom(e))?)
+            }
+
+            fn visit_u32<E>(self, v: u32) -> Result<Self::Value, E> where E: serde::de::Error {
+                Ok(v.try_into().map_err(|e|serde::de::Error::custom(e))?)
+            }
+
+            fn visit_i64<E>(self, v: i64) -> Result<Self::Value, E> where E: serde::de::Error {
+                Ok(v.try_into().map_err(|e|serde::de::Error::custom(e))?)
+            }
+
+            fn visit_u64<E>(self, v: u64) -> Result<Self::Value, E> where E: serde::de::Error {
+                Ok(v)
+            }
+
+            fn visit_str<E>(self, v: &str) -> Result<Self::Value, E> where E: serde::de::Error {
+                Ok(v.parse().map_err(|e| serde::de::Error::custom(e))?)
+            }
+
+            fn visit_string<E>(self, v: String) -> Result<Self::Value, E> where E: serde::de::Error {
+                Ok(v.parse().map_err(|e| serde::de::Error::custom(e))?)
+            }
+        }
+        deserializer.deserialize_any(Vis)
+    }
+}
+
+#[cfg(feature = "serde")]
+impl serde_with::SerializeAs<i64> for NumberOrString {
+    fn serialize_as<S>(source: &i64, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::Serialize;
+        source.to_string().serialize(serializer)
+    }
+}
+
+#[cfg(feature = "serde")]
+impl serde_with::SerializeAs<u64> for NumberOrString {
+    fn serialize_as<S>(source: &u64, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::Serialize;
+        source.to_string().serialize(serializer)
+    }
+}
+
+#[cfg(feature = "schemars")]
+impl<T> serde_with::schemars_0_8::JsonSchemaAs<T> for NumberOrString {
+    fn schema_name() -> String {
+        <String as schemars::JsonSchema>::schema_name()
+    }
+
+    fn schema_id() -> std::borrow::Cow<'static, str> {
+        <String as schemars::JsonSchema>::schema_id()
+    }
+
+    fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
+        <String as schemars::JsonSchema>::json_schema(gen)
+    }
+
+    fn is_referenceable() -> bool {
+        <String as schemars::JsonSchema>::is_referenceable()
+    }
+}
+
+// Tests ------------------------------------------------------------------------
+
 #[cfg(all(test, feature = "std"))]
 mod tests {
     use std::io::Cursor;
@@ -2848,6 +3019,839 @@ mod test {
     }
 }
 
+#[cfg(all(test, feature = "serde"))]
+mod tests_for_number_or_string {
+    use super::*;
+    use serde::{Deserialize, Serialize};
+    use serde_json;
+    use serde_with::serde_as;
+
+    // --- Helper Structs ---
+    #[serde_as]
+    #[derive(Debug, PartialEq, Deserialize, Serialize)]
+    struct TestI64 {
+        #[serde_as(as = "NumberOrString")]
+        val: i64,
+    }
+
+    #[serde_as]
+    #[derive(Debug, PartialEq, Deserialize, Serialize)]
+    struct TestU64 {
+        #[serde_as(as = "NumberOrString")]
+        val: u64,
+    }
+
+    #[serde_as]
+    #[derive(Debug, PartialEq, Deserialize, Serialize)]
+    struct TestOptionI64 {
+        #[serde_as(as = "Option<NumberOrString>")]
+        val: Option<i64>,
+    }
+
+    #[serde_as]
+    #[derive(Debug, PartialEq, Deserialize, Serialize)]
+    struct TestOptionU64 {
+        #[serde_as(as = "Option<NumberOrString>")]
+        val: Option<u64>,
+    }
+
+    #[serde_as]
+    #[derive(Debug, PartialEq, Deserialize, Serialize)]
+    struct TestVecI64 {
+        #[serde_as(as = "Vec<NumberOrString>")]
+        val: Vec<i64>,
+    }
+
+    #[serde_as]
+    #[derive(Debug, PartialEq, Deserialize, Serialize)]
+    struct TestVecU64 {
+        #[serde_as(as = "Vec<NumberOrString>")]
+        val: Vec<u64>,
+    }
+
+    // Helper Enum for testing field access within variants
+    #[serde_as]
+    #[derive(Debug, PartialEq, Deserialize, Serialize)]
+    #[serde(rename_all = "camelCase")] // Added to make JSON keys distinct for variants
+    enum TestEnum {
+        VariantA {
+            #[serde(rename = "numVal")]
+            #[serde_as(as = "NumberOrString")]
+            num_val: i64,
+            #[serde(rename = "otherData")]
+            other_data: String,
+        },
+        VariantB {
+            #[serde_as(as = "NumberOrString")]
+            count: u64,
+        },
+        SimpleVariant,
+    }
+
+    // --- i64 Deserialization Tests ---
+    #[test]
+    fn deserialize_i64_from_json_number_positive() {
+        let json = r#"{"val": 123}"#;
+        let expected = TestI64 { val: 123 };
+        assert_eq!(serde_json::from_str::<TestI64>(json).unwrap(), expected);
+    }
+
+    #[test]
+    fn deserialize_i64_from_json_number_negative() {
+        let json = r#"{"val": -456}"#;
+        let expected = TestI64 { val: -456 };
+        assert_eq!(serde_json::from_str::<TestI64>(json).unwrap(), expected);
+    }
+
+    #[test]
+    fn deserialize_i64_from_json_number_zero() {
+        let json = r#"{"val": 0}"#;
+        let expected = TestI64 { val: 0 };
+        assert_eq!(serde_json::from_str::<TestI64>(json).unwrap(), expected);
+    }
+    
+    #[test]
+    fn deserialize_i64_from_json_number_max() {
+        let json = format!(r#"{{"val": {}}}"#, i64::MAX);
+        let expected = TestI64 { val: i64::MAX };
+        assert_eq!(serde_json::from_str::<TestI64>(&json).unwrap(), expected);
+    }
+
+    #[test]
+    fn deserialize_i64_from_json_number_min() {
+        let json = format!(r#"{{"val": {}}}"#, i64::MIN);
+        let expected = TestI64 { val: i64::MIN };
+        assert_eq!(serde_json::from_str::<TestI64>(&json).unwrap(), expected);
+    }
+
+    #[test]
+    fn deserialize_i64_from_json_string_positive() {
+        let json = r#"{"val": "789"}"#;
+        let expected = TestI64 { val: 789 };
+        assert_eq!(serde_json::from_str::<TestI64>(json).unwrap(), expected);
+    }
+
+    #[test]
+    fn deserialize_i64_from_json_string_negative() {
+        let json = r#"{"val": "-101"}"#;
+        let expected = TestI64 { val: -101 };
+        assert_eq!(serde_json::from_str::<TestI64>(json).unwrap(), expected);
+    }
+    
+    #[test]
+    fn deserialize_i64_from_json_string_zero() {
+        let json = r#"{"val": "0"}"#;
+        let expected = TestI64 { val: 0 };
+        assert_eq!(serde_json::from_str::<TestI64>(json).unwrap(), expected);
+    }
+
+    #[test]
+    fn deserialize_i64_from_json_string_max() {
+        let json = format!(r#"{{"val": "{}"}}"#, i64::MAX);
+        let expected = TestI64 { val: i64::MAX };
+        assert_eq!(serde_json::from_str::<TestI64>(&json).unwrap(), expected);
+    }
+
+    #[test]
+    fn deserialize_i64_from_json_string_min() {
+        let json = format!(r#"{{"val": "{}"}}"#, i64::MIN);
+        let expected = TestI64 { val: i64::MIN };
+        assert_eq!(serde_json::from_str::<TestI64>(&json).unwrap(), expected);
+    }
+
+    #[test]
+    fn deserialize_i64_from_json_string_with_plus_prefix() {
+        let json = r#"{"val": "+123"}"#;
+        let expected = TestI64 { val: 123 };
+        assert_eq!(serde_json::from_str::<TestI64>(json).unwrap(), expected);
+    }
+
+    #[test]
+    fn deserialize_i64_from_json_string_with_plus_zero() {
+        let json = r#"{"val": "+0"}"#;
+        let expected = TestI64 { val: 0 };
+        assert_eq!(serde_json::from_str::<TestI64>(json).unwrap(), expected);
+    }
+
+    #[test]
+    fn deserialize_i64_from_json_string_with_minus_zero() {
+        let json = r#"{"val": "-0"}"#;
+        let expected = TestI64 { val: 0 };
+        assert_eq!(serde_json::from_str::<TestI64>(json).unwrap(), expected);
+    }
+
+    #[test]
+    fn deserialize_i64_error_from_json_string_with_leading_whitespace() {
+        let json = r#"{"val": " 123"}"#;
+        assert!(serde_json::from_str::<TestI64>(json).is_err());
+    }
+
+    #[test]
+    fn deserialize_i64_error_from_json_string_with_trailing_whitespace() {
+        let json = r#"{"val": "123 "}"#;
+        assert!(serde_json::from_str::<TestI64>(json).is_err());
+    }
+    
+    #[test]
+    fn deserialize_i64_error_from_json_string_with_both_whitespace() {
+        let json = r#"{"val": " 123 "}"#;
+        assert!(serde_json::from_str::<TestI64>(json).is_err());
+    }
+
+    #[test]
+    fn deserialize_i64_error_from_json_string_with_invalid_plus_prefix() {
+        let json = r#"{"val": "++123"}"#;
+        assert!(serde_json::from_str::<TestI64>(json).is_err());
+    }
+    
+    #[test]
+    fn deserialize_i64_error_from_json_string_with_invalid_minus_prefix() {
+        let json = r#"{"val": "--123"}"#;
+        assert!(serde_json::from_str::<TestI64>(json).is_err());
+    }
+
+    #[test]
+    fn deserialize_i64_error_from_json_string_with_invalid_mixed_prefix() {
+        let json = r#"{"val": "+-123"}"#;
+        assert!(serde_json::from_str::<TestI64>(json).is_err());
+    }
+
+    #[test]
+    fn deserialize_i64_error_from_string_not_a_number() {
+        let json = r#"{"val": "abc"}"#;
+        assert!(serde_json::from_str::<TestI64>(json).is_err());
+    }
+
+    #[test]
+    fn deserialize_i64_error_from_string_float() {
+        let json = r#"{"val": "123.45"}"#; // Not an integer
+        assert!(serde_json::from_str::<TestI64>(json).is_err());
+    }
+
+    #[test]
+    fn deserialize_i64_error_from_string_empty() {
+        let json = r#"{"val": ""}"#;
+        assert!(serde_json::from_str::<TestI64>(json).is_err());
+    }
+
+    #[test]
+    fn deserialize_i64_error_from_string_overflow() {
+        let overflow_val = (i64::MAX as i128) + 1;
+        let json = format!(r#"{{"val": "{}"}}"#, overflow_val);
+        assert!(serde_json::from_str::<TestI64>(&json).is_err());
+    }
+    
+    #[test]
+    fn deserialize_i64_error_from_string_underflow() {
+        let underflow_val = (i64::MIN as i128) - 1;
+        let json = format!(r#"{{"val": "{}"}}"#, underflow_val);
+        assert!(serde_json::from_str::<TestI64>(&json).is_err());
+    }
+
+    #[test]
+    fn deserialize_i64_error_from_json_float_number() {
+        let json = r#"{"val": 123.45}"#;
+        let err = serde_json::from_str::<TestI64>(json).unwrap_err();
+        assert!(err.to_string().contains("invalid type: floating point"));
+    }
+
+    #[test]
+    fn deserialize_i64_error_from_json_bool_true() {
+        let json = r#"{"val": true}"#;
+        let err = serde_json::from_str::<TestI64>(json).unwrap_err();
+        assert!(err.to_string().contains("invalid type: boolean `true`"));
+    }
+
+    #[test]
+    fn deserialize_i64_error_from_json_array() {
+        let json = r#"{"val": []}"#;
+        let err = serde_json::from_str::<TestI64>(json).unwrap_err();
+        assert!(err.to_string().contains("invalid type: sequence"));
+    }
+
+    #[test]
+    fn deserialize_i64_error_from_json_object() {
+        let json = r#"{"val": {}}"#;
+        let err = serde_json::from_str::<TestI64>(json).unwrap_err();
+        assert!(err.to_string().contains("invalid type: map"));
+    }
+
+    #[test]
+    fn deserialize_i64_error_from_json_null() {
+        let json = r#"{"val": null}"#;
+        let err = serde_json::from_str::<TestI64>(json).unwrap_err();
+        assert!(err.to_string().contains("invalid type: null"));
+    }
+
+    // -- Additional i64 String Format Tests --
+    #[test]
+    fn deserialize_i64_error_from_hex_string() {
+        let json = r#"{"val": "0x1A"}"#; // Hex "26"
+        // std::primitive::i64.from_str() does not support "0x"
+        assert!(serde_json::from_str::<TestI64>(json).is_err(), "Hex string should fail parsing to i64");
+    }
+
+    #[test]
+    fn deserialize_i64_error_from_octal_string() {
+        let json = r#"{"val": "0o77"}"#; // Octal "63"
+        // std::primitive::i64.from_str() does not support "0o"
+        assert!(serde_json::from_str::<TestI64>(json).is_err(), "Octal string should fail parsing to i64");
+    }
+
+    #[test]
+    fn deserialize_i64_error_from_scientific_notation_string() {
+        let json = r#"{"val": "1e3"}"#; // "1000" in scientific
+        // std::primitive::i64.from_str() does not support scientific notation
+        assert!(serde_json::from_str::<TestI64>(json).is_err(), "Scientific notation string should fail parsing to i64");
+    }
+
+    #[test]
+    fn deserialize_i64_error_from_invalid_scientific_notation_string() {
+        let json = r#"{"val": "1e"}"#;
+        assert!(serde_json::from_str::<TestI64>(json).is_err(), "Invalid scientific notation string should fail");
+    }
+
+    #[test]
+    fn deserialize_i64_error_from_string_with_underscores() {
+        let json = r#"{"val": "1_000_000"}"#;
+        // std::primitive::i64.from_str() does not support underscores
+        assert!(serde_json::from_str::<TestI64>(json).is_err(), "String with underscores should fail parsing to i64");
+    }
+
+    #[test]
+    fn deserialize_i64_from_string_with_leading_zeros() {
+        let json = r#"{"val": "000123"}"#;
+        let expected = TestI64 { val: 123 };
+        // std::primitive::i64.from_str() supports leading zeros
+        assert_eq!(serde_json::from_str::<TestI64>(json).unwrap(), expected, "String with leading zeros should parse");
+    }
+
+    #[test]
+    fn deserialize_i64_from_string_with_leading_zeros_negative() {
+        let json = r#"{"val": "-000123"}"#;
+        let expected = TestI64 { val: -123 };
+        assert_eq!(serde_json::from_str::<TestI64>(json).unwrap(), expected, "Negative string with leading zeros should parse");
+    }
+    
+    #[test]
+    fn deserialize_i64_error_from_string_with_decimal_zeros() {
+        let json = r#"{"val": "123.000"}"#;
+        // std::primitive::i64.from_str() does not support decimals
+        assert!(serde_json::from_str::<TestI64>(json).is_err(), "String with decimal part should fail parsing to i64");
+    }
+
+    #[test]
+    fn deserialize_i64_error_from_string_with_internal_decimal() {
+        let json = r#"{"val": "12.345"}"#;
+        assert!(serde_json::from_str::<TestI64>(json).is_err(), "String with internal decimal point should fail");
+    }
+
+    #[test]
+    fn deserialize_i64_error_from_localized_string_commas() {
+        let json = r#"{"val": "1,234"}"#;
+        // std::primitive::i64.from_str() does not support commas
+        assert!(serde_json::from_str::<TestI64>(json).is_err(), "Localized string with commas should fail parsing to i64");
+    }
+
+    // --- u64 Deserialization Tests ---
+    #[test]
+    fn deserialize_u64_from_json_number() {
+        let json = r#"{"val": 123}"#;
+        let expected = TestU64 { val: 123 };
+        assert_eq!(serde_json::from_str::<TestU64>(json).unwrap(), expected);
+    }
+    
+    #[test]
+    fn deserialize_u64_from_json_number_zero() {
+        let json = r#"{"val": 0}"#;
+        let expected = TestU64 { val: 0 };
+        assert_eq!(serde_json::from_str::<TestU64>(json).unwrap(), expected);
+    }
+
+    #[test]
+    fn deserialize_u64_from_json_number_max() {
+        let json = format!(r#"{{"val": {}}}"#, u64::MAX);
+        let expected = TestU64 { val: u64::MAX };
+        assert_eq!(serde_json::from_str::<TestU64>(&json).unwrap(), expected);
+    }
+
+    #[test]
+    fn deserialize_u64_from_json_string() {
+        let json = r#"{"val": "789"}"#;
+        let expected = TestU64 { val: 789 };
+        assert_eq!(serde_json::from_str::<TestU64>(json).unwrap(), expected);
+    }
+    
+    #[test]
+    fn deserialize_u64_from_json_string_zero() {
+        let json = r#"{"val": "0"}"#;
+        let expected = TestU64 { val: 0 };
+        assert_eq!(serde_json::from_str::<TestU64>(json).unwrap(), expected);
+    }
+
+    #[test]
+    fn deserialize_u64_from_json_string_max() {
+        let json = format!(r#"{{"val": "{}"}}"#, u64::MAX);
+        let expected = TestU64 { val: u64::MAX };
+        assert_eq!(serde_json::from_str::<TestU64>(&json).unwrap(), expected);
+    }
+
+    #[test]
+    fn deserialize_u64_from_json_string_with_plus_prefix() {
+        let json = r#"{"val": "+123"}"#;
+        let expected = TestU64 { val: 123 };
+        assert_eq!(serde_json::from_str::<TestU64>(json).unwrap(), expected);
+    }
+
+    #[test]
+    fn deserialize_u64_from_json_string_with_plus_zero() {
+        let json = r#"{"val": "+0"}"#;
+        let expected = TestU64 { val: 0 };
+        assert_eq!(serde_json::from_str::<TestU64>(json).unwrap(), expected);
+    }
+
+    #[test]
+    fn deserialize_u64_error_from_json_string_with_leading_whitespace() {
+        let json = r#"{"val": " 123"}"#;
+        assert!(serde_json::from_str::<TestU64>(json).is_err());
+    }
+
+    #[test]
+    fn deserialize_u64_error_from_json_string_with_trailing_whitespace() {
+        let json = r#"{"val": "123 "}"#;
+        assert!(serde_json::from_str::<TestU64>(json).is_err());
+    }
+
+    #[test]
+    fn deserialize_u64_error_from_json_string_with_invalid_plus_prefix() {
+        let json = r#"{"val": "++123"}"#;
+        assert!(serde_json::from_str::<TestU64>(json).is_err());
+    }
+
+    #[test]
+    fn deserialize_u64_error_from_string_negative() {
+        let json = r#"{"val": "-123"}"#; // Negative not allowed for u64 string parse
+        assert!(serde_json::from_str::<TestU64>(json).is_err());
+    }
+
+    #[test]
+    fn deserialize_u64_error_from_json_number_negative() {
+        let json = r#"{"val": -1}"#; // Negative not allowed for u64
+        let err = serde_json::from_str::<TestU64>(json).unwrap_err();
+        // Check for TryFrom conversion error, the exact message may vary by serde version
+        assert!(err.to_string().contains("out of range") || 
+                err.to_string().contains("negative integer") ||
+                err.to_string().contains("invalid value"));
+    }
+    
+    #[test]
+    fn deserialize_u64_error_from_string_not_a_number() {
+        let json = r#"{"val": "abc"}"#;
+        assert!(serde_json::from_str::<TestU64>(json).is_err());
+    }
+
+    #[test]
+    fn deserialize_u64_error_from_string_float() {
+        let json = r#"{"val": "123.45"}"#;
+        assert!(serde_json::from_str::<TestU64>(json).is_err());
+    }
+
+    #[test]
+    fn deserialize_u64_error_from_string_empty() {
+        let json = r#"{"val": ""}"#;
+        assert!(serde_json::from_str::<TestU64>(json).is_err());
+    }
+
+    #[test]
+    fn deserialize_u64_error_from_string_overflow() {
+        let overflow_val = (u64::MAX as u128) + 1;
+        let json = format!(r#"{{"val": "{}"}}"#, overflow_val);
+        assert!(serde_json::from_str::<TestU64>(&json).is_err());
+    }
+
+    #[test]
+    fn deserialize_u64_error_from_json_float_number() {
+        let json = r#"{"val": 123.45}"#;
+        let err = serde_json::from_str::<TestU64>(json).unwrap_err();
+        assert!(err.to_string().contains("invalid type: floating point"));
+    }
+
+    #[test]
+    fn deserialize_u64_error_from_json_bool_true() {
+        let json = r#"{"val": true}"#;
+        let err = serde_json::from_str::<TestU64>(json).unwrap_err();
+        assert!(err.to_string().contains("invalid type: boolean `true`"));
+    }
+
+    #[test]
+    fn deserialize_u64_error_from_json_array() {
+        let json = r#"{"val": []}"#;
+        let err = serde_json::from_str::<TestU64>(json).unwrap_err();
+        assert!(err.to_string().contains("invalid type: sequence"));
+    }
+
+    #[test]
+    fn deserialize_u64_error_from_json_object() {
+        let json = r#"{"val": {}}"#;
+        let err = serde_json::from_str::<TestU64>(json).unwrap_err();
+        assert!(err.to_string().contains("invalid type: map"));
+    }
+
+    #[test]
+    fn deserialize_u64_error_from_json_null() {
+        let json = r#"{"val": null}"#;
+        let err = serde_json::from_str::<TestU64>(json).unwrap_err();
+        assert!(err.to_string().contains("invalid type: null"));
+    }
+
+    // -- Additional u64 String Format Tests --
+    #[test]
+    fn deserialize_u64_error_from_hex_string() {
+        let json = r#"{"val": "0x1A"}"#; // Hex "26"
+        assert!(serde_json::from_str::<TestU64>(json).is_err(), "Hex string should fail parsing to u64");
+    }
+
+    #[test]
+    fn deserialize_u64_error_from_octal_string() {
+        let json = r#"{"val": "0o77"}"#; // Octal "63"
+        assert!(serde_json::from_str::<TestU64>(json).is_err(), "Octal string should fail parsing to u64");
+    }
+
+    #[test]
+    fn deserialize_u64_error_from_scientific_notation_string() {
+        let json = r#"{"val": "1e3"}"#;
+        assert!(serde_json::from_str::<TestU64>(json).is_err(), "Scientific notation string should fail parsing to u64");
+    }
+
+    #[test]
+    fn deserialize_u64_error_from_string_with_underscores() {
+        let json = r#"{"val": "1_000_000"}"#;
+        assert!(serde_json::from_str::<TestU64>(json).is_err(), "String with underscores should fail parsing to u64");
+    }
+
+    #[test]
+    fn deserialize_u64_from_string_with_leading_zeros() {
+        let json = r#"{"val": "000123"}"#;
+        let expected = TestU64 { val: 123 };
+        assert_eq!(serde_json::from_str::<TestU64>(json).unwrap(), expected, "String with leading zeros should parse to u64");
+    }
+
+    #[test]
+    fn deserialize_u64_error_from_string_with_decimal_zeros() {
+        let json = r#"{"val": "123.000"}"#;
+        assert!(serde_json::from_str::<TestU64>(json).is_err(), "String with decimal part should fail parsing to u64");
+    }
+
+    #[test]
+    fn deserialize_u64_error_from_localized_string_commas() {
+        let json = r#"{"val": "1,234"}"#;
+        assert!(serde_json::from_str::<TestU64>(json).is_err(), "Localized string with commas should fail parsing to u64");
+    }
+
+    // --- i64 Serialization Tests ---
+    #[test]
+    fn serialize_i64_positive() {
+        let data = TestI64 { val: 123 };
+        let expected_json = r#"{"val":"123"}"#;
+        assert_eq!(serde_json::to_string(&data).unwrap(), expected_json);
+    }
+
+    #[test]
+    fn serialize_i64_negative() {
+        let data = TestI64 { val: -456 };
+        let expected_json = r#"{"val":"-456"}"#;
+        assert_eq!(serde_json::to_string(&data).unwrap(), expected_json);
+    }
+
+    #[test]
+    fn serialize_i64_zero() {
+        let data = TestI64 { val: 0 };
+        let expected_json = r#"{"val":"0"}"#;
+        assert_eq!(serde_json::to_string(&data).unwrap(), expected_json);
+    }
+    
+    #[test]
+    fn serialize_i64_max() {
+        let data = TestI64 { val: i64::MAX };
+        let expected_json = format!(r#"{{"val":"{}"}}"#, i64::MAX);
+        assert_eq!(serde_json::to_string(&data).unwrap(), expected_json);
+    }
+
+    #[test]
+    fn serialize_i64_min() {
+        let data = TestI64 { val: i64::MIN };
+        let expected_json = format!(r#"{{"val":"{}"}}"#, i64::MIN);
+        assert_eq!(serde_json::to_string(&data).unwrap(), expected_json);
+    }
+
+
+    // --- u64 Serialization Tests ---
+    #[test]
+    fn serialize_u64_positive() {
+        let data = TestU64 { val: 789 };
+        let expected_json = r#"{"val":"789"}"#;
+        assert_eq!(serde_json::to_string(&data).unwrap(), expected_json);
+    }
+
+    #[test]
+    fn serialize_u64_zero() {
+        let data = TestU64 { val: 0 };
+        let expected_json = r#"{"val":"0"}"#;
+        assert_eq!(serde_json::to_string(&data).unwrap(), expected_json);
+    }
+    
+    #[test]
+    fn serialize_u64_max() {
+        let data = TestU64 { val: u64::MAX };
+        let expected_json = format!(r#"{{"val":"{}"}}"#, u64::MAX);
+        assert_eq!(serde_json::to_string(&data).unwrap(), expected_json);
+    }
+
+    // --- Option<i64> Tests ---
+    #[test]
+    fn deserialize_option_i64_some_from_json_number() {
+        let json = r#"{"val": 123}"#;
+        let expected = TestOptionI64 { val: Some(123) };
+        assert_eq!(serde_json::from_str::<TestOptionI64>(json).unwrap(), expected);
+    }
+
+    #[test]
+    fn deserialize_option_i64_some_from_json_string() {
+        let json = r#"{"val": "456"}"#;
+        let expected = TestOptionI64 { val: Some(456) };
+        assert_eq!(serde_json::from_str::<TestOptionI64>(json).unwrap(), expected);
+    }
+
+    #[test]
+    fn deserialize_option_i64_none_from_json_null() {
+        let json = r#"{"val": null}"#;
+        let expected = TestOptionI64 { val: None };
+        assert_eq!(serde_json::from_str::<TestOptionI64>(json).unwrap(), expected);
+    }
+
+    #[test]
+    fn deserialize_option_i64_error_from_invalid_string() {
+        let json = r#"{"val": "abc"}"#;
+        assert!(serde_json::from_str::<TestOptionI64>(json).is_err());
+    }
+
+    #[test]
+    fn deserialize_option_i64_error_from_invalid_type() {
+        let json = r#"{"val": true}"#;
+        let err = serde_json::from_str::<TestOptionI64>(json).unwrap_err();
+        assert!(err.to_string().contains("invalid type: boolean `true`"));
+    }
+    
+    #[test]
+    fn serialize_option_i64_some() {
+        let data = TestOptionI64 { val: Some(123) };
+        let expected_json = r#"{"val":"123"}"#;
+        assert_eq!(serde_json::to_string(&data).unwrap(), expected_json);
+    }
+
+    #[test]
+    fn serialize_option_i64_none() {
+        let data = TestOptionI64 { val: None };
+        let expected_json = r#"{"val":null}"#;
+        assert_eq!(serde_json::to_string(&data).unwrap(), expected_json);
+    }
+
+    // --- Option<u64> Tests ---
+    #[test]
+    fn deserialize_option_u64_some_from_json_number() {
+        let json = r#"{"val": 123}"#;
+        let expected = TestOptionU64 { val: Some(123) };
+        assert_eq!(serde_json::from_str::<TestOptionU64>(json).unwrap(), expected);
+    }
+
+    #[test]
+    fn deserialize_option_u64_some_from_json_string() {
+        let json = r#"{"val": "456"}"#;
+        let expected = TestOptionU64 { val: Some(456) };
+        assert_eq!(serde_json::from_str::<TestOptionU64>(json).unwrap(), expected);
+    }
+
+    #[test]
+    fn deserialize_option_u64_none_from_json_null() {
+        let json = r#"{"val": null}"#;
+        let expected = TestOptionU64 { val: None };
+        assert_eq!(serde_json::from_str::<TestOptionU64>(json).unwrap(), expected);
+    }
+
+    #[test]
+    fn deserialize_option_u64_error_from_invalid_string() {
+        let json = r#"{"val": "abc"}"#;
+        assert!(serde_json::from_str::<TestOptionU64>(json).is_err());
+    }
+    
+    #[test]
+    fn deserialize_option_u64_error_from_negative_string() {
+        let json = r#"{"val": "-1"}"#; // Invalid for u64
+        assert!(serde_json::from_str::<TestOptionU64>(json).is_err());
+    }
+
+    #[test]
+    fn serialize_option_u64_some() {
+        let data = TestOptionU64 { val: Some(123) };
+        let expected_json = r#"{"val":"123"}"#;
+        assert_eq!(serde_json::to_string(&data).unwrap(), expected_json);
+    }
+
+    #[test]
+    fn serialize_option_u64_none() {
+        let data = TestOptionU64 { val: None };
+        let expected_json = r#"{"val":null}"#;
+        assert_eq!(serde_json::to_string(&data).unwrap(), expected_json);
+    }
+
+    // --- Vec<i64> Tests ---
+    #[test]
+    fn deserialize_vec_i64_empty() {
+        let json = r#"{"val": []}"#;
+        let expected = TestVecI64 { val: vec![] };
+        assert_eq!(serde_json::from_str::<TestVecI64>(json).unwrap(), expected);
+    }
+
+    #[test]
+    fn deserialize_vec_i64_from_numbers_and_strings() {
+        let json = r#"{"val": [1, "2", -3, "-4"]}"#;
+        let expected = TestVecI64 { val: vec![1, 2, -3, -4] };
+        assert_eq!(serde_json::from_str::<TestVecI64>(json).unwrap(), expected);
+    }
+
+    #[test]
+    fn deserialize_vec_i64_error_if_item_is_invalid_string() {
+        let json = r#"{"val": [1, "abc", 3]}"#;
+        let err = serde_json::from_str::<TestVecI64>(json).unwrap_err();
+        // The error will point to the specific failing element
+        assert!(err.to_string().contains("invalid digit found in string")); // From parse error
+    }
+
+    #[test]
+    fn deserialize_vec_i64_error_if_item_is_invalid_type() {
+        let json = r#"{"val": [1, true, 3]}"#;
+        let err = serde_json::from_str::<TestVecI64>(json).unwrap_err();
+        assert!(err.to_string().contains("invalid type: boolean `true`"));
+    }
+
+    #[test]
+    fn serialize_vec_i64_empty() {
+        let data = TestVecI64 { val: vec![] };
+        let expected_json = r#"{"val":[]}"#;
+        assert_eq!(serde_json::to_string(&data).unwrap(), expected_json);
+    }
+
+    #[test]
+    fn serialize_vec_i64_with_values() {
+        let data = TestVecI64 { val: vec![1, -2, 0] };
+        let expected_json = r#"{"val":["1","-2","0"]}"#;
+        assert_eq!(serde_json::to_string(&data).unwrap(), expected_json);
+    }
+
+    // --- Vec<u64> Tests ---
+    #[test]
+    fn deserialize_vec_u64_empty() {
+        let json = r#"{"val": []}"#;
+        let expected = TestVecU64 { val: vec![] };
+        assert_eq!(serde_json::from_str::<TestVecU64>(json).unwrap(), expected);
+    }
+
+    #[test]
+    fn deserialize_vec_u64_from_numbers_and_strings() {
+        let json = r#"{"val": [1, "2", 3, "4"]}"#;
+        let expected = TestVecU64 { val: vec![1, 2, 3, 4] };
+        assert_eq!(serde_json::from_str::<TestVecU64>(json).unwrap(), expected);
+    }
+
+    #[test]
+    fn deserialize_vec_u64_error_if_item_is_invalid_string() {
+        let json = r#"{"val": [1, "abc", 3]}"#;
+        let err = serde_json::from_str::<TestVecU64>(json).unwrap_err();
+        assert!(err.to_string().contains("invalid digit found in string"));
+    }
+
+    #[test]
+    fn deserialize_vec_u64_error_if_item_is_negative_string() {
+        let json = r#"{"val": [1, "-2", 3]}"#;
+        let err = serde_json::from_str::<TestVecU64>(json).unwrap_err();
+        assert!(err.to_string().contains("invalid digit found in string")); // u64 parse error
+    }
+    
+    #[test]
+    fn deserialize_vec_u64_error_if_item_is_negative_number() {
+        let json = r#"{"val": [1, -2, 3]}"#;
+        let err = serde_json::from_str::<TestVecU64>(json).unwrap_err();
+        // Check for TryFrom conversion error, the exact message may vary by serde version
+        assert!(err.to_string().contains("out of range") || 
+                err.to_string().contains("negative integer") ||
+                err.to_string().contains("invalid value")); // try_into error
+    }
+
+    #[test]
+    fn serialize_vec_u64_empty() {
+        let data = TestVecU64 { val: vec![] };
+        let expected_json = r#"{"val":[]}"#;
+        assert_eq!(serde_json::to_string(&data).unwrap(), expected_json);
+    }
+
+    #[test]
+    fn serialize_vec_u64_with_values() {
+        let data = TestVecU64 { val: vec![1, 2, 0] };
+        let expected_json = r#"{"val":["1","2","0"]}"#;
+        assert_eq!(serde_json::to_string(&data).unwrap(), expected_json);
+    }
+
+    // --- Enum with NumberOrString field Tests ---
+    #[test]
+    fn deserialize_enum_variant_a_with_number() {
+        let json = r#"{"variantA": {"numVal": 123, "otherData": "test"}}"#;
+        let expected = TestEnum::VariantA { num_val: 123, other_data: "test".to_string() };
+        assert_eq!(serde_json::from_str::<TestEnum>(json).unwrap(), expected);
+    }
+
+    #[test]
+    fn deserialize_enum_variant_a_with_string_number() {
+        let json = r#"{"variantA": {"numVal": "-45", "otherData": "data"}}"#;
+        let expected = TestEnum::VariantA { num_val: -45, other_data: "data".to_string() };
+        assert_eq!(serde_json::from_str::<TestEnum>(json).unwrap(), expected);
+    }
+
+    #[test]
+    fn deserialize_enum_variant_b_with_number() {
+        let json = r#"{"variantB": {"count": 7890}}"#;
+        let expected = TestEnum::VariantB { count: 7890 };
+        assert_eq!(serde_json::from_str::<TestEnum>(json).unwrap(), expected);
+    }
+
+    #[test]
+    fn deserialize_enum_variant_b_with_string_number() {
+        let json = r#"{"variantB": {"count": "1234567890"}}"#;
+        let expected = TestEnum::VariantB { count: 1234567890 };
+        assert_eq!(serde_json::from_str::<TestEnum>(json).unwrap(), expected);
+    }
+    
+    #[test]
+    fn deserialize_enum_variant_a_error_invalid_num_string() {
+        let json = r#"{"variantA": {"numVal": "abc", "otherData": "test"}}"#;
+        assert!(serde_json::from_str::<TestEnum>(json).is_err());
+    }
+
+    #[test]
+    fn serialize_enum_variant_a() {
+        let data = TestEnum::VariantA { num_val: 123, other_data: "test".to_string() };
+        // Note: num_val will be serialized as a string by NumberOrString
+        let expected_json = r#"{"variantA":{"numVal":"123","otherData":"test"}}"#;
+        assert_eq!(serde_json::to_string(&data).unwrap(), expected_json);
+    }
+
+    #[test]
+    fn serialize_enum_variant_b() {
+        let data = TestEnum::VariantB { count: 7890 };
+        let expected_json = r#"{"variantB":{"count":"7890"}}"#;
+        assert_eq!(serde_json::to_string(&data).unwrap(), expected_json);
+    }
+}
+
 /// Int64 is an XDR Typedef defines as:
 ///
 /// ```text
@@ -2876,7 +3880,7 @@ pub type Int64 = i64;
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 pub struct MyStruct {
   pub some_int: i32,
-  #[cfg_attr(all(feature = "serde", feature = "alloc"), serde_as(as = "DisplayFromStr"))]
+  #[cfg_attr(all(feature = "serde", feature = "alloc"), serde_as(as = "NumberOrString"))]
   pub a_big_int: i64,
   pub some_opaque: [u8; 10],
   pub some_string: StringM,
