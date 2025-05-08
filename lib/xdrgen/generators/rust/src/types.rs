@@ -22,13 +22,13 @@ use noalloc::{boxed::Box, vec::Vec};
 extern crate alloc;
 #[cfg(all(not(feature = "std"), feature = "alloc"))]
 use alloc::{
-    borrow::{ToOwned, Cow},
+    borrow::ToOwned,
     boxed::Box,
     string::{FromUtf8Error, String},
     vec::Vec,
 };
 #[cfg(feature = "std")]
-use std::{string::FromUtf8Error, borrow::Cow};
+use std::string::FromUtf8Error};
 
 #[cfg(feature = "arbitrary")]
 use arbitrary::Arbitrary;
