@@ -2343,6 +2343,7 @@ impl serde_with::SerializeAs<i64> for NumberOrString {
     where
         S: serde::Serializer,
     {
+        use serde::Serialize;
         source.to_string().serialize(serializer)
     }
 }
@@ -2352,6 +2353,7 @@ impl serde_with::SerializeAs<u64> for NumberOrString {
     where
         S: serde::Serializer,
     {
+        use serde::Serialize;
         source.to_string().serialize(serializer)
     }
 }
@@ -2365,7 +2367,7 @@ impl<T> serde_with::schemars_0_8::JsonSchemaAs<T> for NumberOrString {
         <String as schemars::JsonSchema>::schema_id()
     }
 
-    fn json_schema(gen: &mut schemars::SchemaGenerator) -> schemars::schema::Schema {
+    fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
         <String as schemars::JsonSchema>::json_schema(gen)
     }
 
