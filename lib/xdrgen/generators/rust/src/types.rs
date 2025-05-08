@@ -36,9 +36,9 @@ use arbitrary::Arbitrary;
 #[cfg(feature = "serde")]
 use serde_with::DisplayFromStr;
 
-#[cfg(all(feature = "schemars", feature = "alloc", feature = "std")]
+#[cfg(all(feature = "schemars", feature = "alloc", feature = "std"))]
 use std::borrow::Cow;
-#[cfg(all(feature = "schemars", feature = "alloc", not(feature = "std"))]
+#[cfg(all(feature = "schemars", feature = "alloc", not(feature = "std")))]
 use alloc::borrow::Cow;
 
 // TODO: Add support for read/write xdr fns when std not available.
