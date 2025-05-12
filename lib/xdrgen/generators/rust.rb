@@ -391,7 +391,7 @@ module Xdrgen
         out.puts %{#[cfg_eval::cfg_eval]}
         out.puts %{#[cfg_attr(feature = "arbitrary", derive(Arbitrary))]}
         if @options[:rust_types_custom_str_impl].include?(name struct)
-          out.puts %{#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr))]}
+          out.puts %{#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde_with::SerializeDisplay))]}
         else
           out.puts %{#[cfg_attr(all(feature = "serde", feature = "alloc"), serde_with::serde_as, derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]}
         end
@@ -430,6 +430,45 @@ module Xdrgen
                     end.join("\n")}
                     Ok(())
                 })
+            }
+        }
+        EOS
+        # Include a deserializer that will deserialize via the FromStr
+        # implementation, but also deserialize the original struct, present in
+        # the JSON as a map. The reason for the second option for
+        # deserialization is that types that we're adding string
+        # representations for were previously deserializable via a map to their
+        # struct, and so this improves the backwards compatibility.
+        # Note that this is only done for structs and not other types (typedef,
+        # enum, union), because struct is the only type that maps to JSON in a
+        # way that is unambiguous with a secondary form in string type.
+        out.puts <<-EOS.strip_heredoc if @options[:rust_types_custom_str_impl].include?(name struct)
+        #[cfg(all(feature = "serde", feature = "alloc"))]
+        impl<'de> serde::Deserialize<'de> for #{name struct} {
+            fn deserialize<D>(deserializer: D) -> core::result::Result<Self, D::Error> where D: serde::Deserializer<'de> {
+                use serde::Deserialize;
+                #[derive(Deserialize)]
+                struct #{name struct} {
+                    #{struct.members.map do |m|
+                      "#{field_name(m)}: #{reference(struct, m.declaration.type)},"
+                    end.join("\n")}
+                }
+                #[derive(Deserialize)]
+                #[serde(untagged)]
+                enum #{name struct}OrString<'a> {
+                    Str(&'a str),
+                    String(String),
+                    #{name struct}(#{name struct}),
+                }
+                match #{name struct}OrString::deserialize(deserializer)? {
+                    #{name struct}OrString::Str(s) => s.parse().map_err(serde::de::Error::custom),
+                    #{name struct}OrString::String(s) => s.parse().map_err(serde::de::Error::custom),
+                    #{name struct}OrString::#{name struct}(#{name struct} {
+                        #{struct.members.map do |m| "#{field_name(m)}," end.join(" ")}
+                    }) => Ok(self::#{name struct} {
+                        #{struct.members.map do |m| "#{field_name(m)}," end.join(" ")}
+                    }),
+                }
             }
         }
         EOS
