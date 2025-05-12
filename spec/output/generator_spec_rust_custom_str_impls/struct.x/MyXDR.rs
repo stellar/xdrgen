@@ -2870,10 +2870,12 @@ max_string: StringM::<100>,
                 #[derive(Deserialize)]
                 #[serde(untagged)]
                 enum MyStructOrString<'a> {
-                    String(&'a str),
+                    Str(&'a str),
+                    String(String),
                     MyStruct(MyStruct),
                 }
                 match MyStructOrString::deserialize(deserializer)? {
+                    MyStructOrString::Str(s) => s.parse().map_err(serde::de::Error::custom),
                     MyStructOrString::String(s) => s.parse().map_err(serde::de::Error::custom),
                     MyStructOrString::MyStruct(MyStruct {
                         some_int, a_big_int, some_opaque, some_string, max_string,

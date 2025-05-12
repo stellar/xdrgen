@@ -2860,10 +2860,12 @@ third_option: Option<i32>,
                 #[derive(Deserialize)]
                 #[serde(untagged)]
                 enum HasOptionsOrString<'a> {
-                    String(&'a str),
+                    Str(&'a str),
+                    String(String),
                     HasOptions(HasOptions),
                 }
                 match HasOptionsOrString::deserialize(deserializer)? {
+                    HasOptionsOrString::Str(s) => s.parse().map_err(serde::de::Error::custom),
                     HasOptionsOrString::String(s) => s.parse().map_err(serde::de::Error::custom),
                     HasOptionsOrString::HasOptions(HasOptions {
                         first_option, second_option, third_option,

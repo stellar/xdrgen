@@ -4005,10 +4005,12 @@ field7: bool,
                 #[derive(Deserialize)]
                 #[serde(untagged)]
                 enum MyStructOrString<'a> {
-                    String(&'a str),
+                    Str(&'a str),
+                    String(String),
                     MyStruct(MyStruct),
                 }
                 match MyStructOrString::deserialize(deserializer)? {
+                    MyStructOrString::Str(s) => s.parse().map_err(serde::de::Error::custom),
                     MyStructOrString::String(s) => s.parse().map_err(serde::de::Error::custom),
                     MyStructOrString::MyStruct(MyStruct {
                         field1, field2, field3, field4, field5, field6, field7,
@@ -4067,10 +4069,12 @@ impl<'de> serde::Deserialize<'de> for LotsOfMyStructs {
         #[derive(Deserialize)]
         #[serde(untagged)]
         enum LotsOfMyStructsOrString<'a> {
-            String(&'a str),
+            Str(&'a str),
+            String(String),
             LotsOfMyStructs(LotsOfMyStructs),
         }
         match LotsOfMyStructsOrString::deserialize(deserializer)? {
+            LotsOfMyStructsOrString::Str(s) => s.parse().map_err(serde::de::Error::custom),
             LotsOfMyStructsOrString::String(s) => s.parse().map_err(serde::de::Error::custom),
             LotsOfMyStructsOrString::LotsOfMyStructs(LotsOfMyStructs {
                 members,
