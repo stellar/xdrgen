@@ -457,6 +457,7 @@ module Xdrgen
                 }
             }
         }
+        EOS
         out.break
       end
 
