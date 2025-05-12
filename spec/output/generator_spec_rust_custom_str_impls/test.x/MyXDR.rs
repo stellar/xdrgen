@@ -6033,8 +6033,7 @@ TypeVariant::NesterNestedUnion => r.with_limited_depth(|r| Ok(Self::NesterNested
             }
 
             #[cfg(feature = "base64")]
-<<<<<<< HEAD
-            pub fn read_xdr_base64<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Result<Self> {
+            pub fn read_xdr_base64<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Result<Self, Error> {
                 let mut dec = Limited::new(
                     base64::read::DecoderReader::new(
                         SkipWhitespace::new(&mut r.inner),
@@ -6042,13 +6041,6 @@ TypeVariant::NesterNestedUnion => r.with_limited_depth(|r| Ok(Self::NesterNested
                     ),
                     r.limits.clone(),
                 );
-||||||| db6306e
-            pub fn read_xdr_base64<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Result<Self> {
-                let mut dec = Limited::new(base64::read::DecoderReader::new(&mut r.inner, base64::STANDARD), r.limits.clone());
-=======
-            pub fn read_xdr_base64<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Result<Self, Error> {
-                let mut dec = Limited::new(base64::read::DecoderReader::new(&mut r.inner, base64::STANDARD), r.limits.clone());
->>>>>>> @{-1}
                 let t = Self::read_xdr(v, &mut dec)?;
                 Ok(t)
             }
@@ -6066,8 +6058,7 @@ TypeVariant::NesterNestedUnion => r.with_limited_depth(|r| Ok(Self::NesterNested
             }
 
             #[cfg(feature = "base64")]
-<<<<<<< HEAD
-            pub fn read_xdr_base64_to_end<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Result<Self> {
+            pub fn read_xdr_base64_to_end<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Result<Self, Error> {
                 let mut dec = Limited::new(
                     base64::read::DecoderReader::new(
                         SkipWhitespace::new(&mut r.inner),
@@ -6075,13 +6066,6 @@ TypeVariant::NesterNestedUnion => r.with_limited_depth(|r| Ok(Self::NesterNested
                     ),
                     r.limits.clone(),
                 );
-||||||| db6306e
-            pub fn read_xdr_base64_to_end<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Result<Self> {
-                let mut dec = Limited::new(base64::read::DecoderReader::new(&mut r.inner, base64::STANDARD), r.limits.clone());
-=======
-            pub fn read_xdr_base64_to_end<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Result<Self, Error> {
-                let mut dec = Limited::new(base64::read::DecoderReader::new(&mut r.inner, base64::STANDARD), r.limits.clone());
->>>>>>> @{-1}
                 let t = Self::read_xdr_to_end(v, &mut dec)?;
                 Ok(t)
             }
@@ -6148,19 +6132,11 @@ TypeVariant::NesterNestedUnion => Box::new(ReadXdrIter::<_, Frame<NesterNestedUn
 
             #[cfg(feature = "base64")]
             #[allow(clippy::too_many_lines)]
-<<<<<<< HEAD
-            pub fn read_xdr_base64_iter<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Box<dyn Iterator<Item=Result<Self>> + '_> {
+            pub fn read_xdr_base64_iter<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Box<dyn Iterator<Item=Result<Self, Error>> + '_> {
                 let dec = base64::read::DecoderReader::new(
                     SkipWhitespace::new(&mut r.inner),
                     &base64::engine::general_purpose::STANDARD,
                 );
-||||||| db6306e
-            pub fn read_xdr_base64_iter<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Box<dyn Iterator<Item=Result<Self>> + '_> {
-                let dec = base64::read::DecoderReader::new(&mut r.inner, base64::STANDARD);
-=======
-            pub fn read_xdr_base64_iter<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Box<dyn Iterator<Item=Result<Self, Error>> + '_> {
-                let dec = base64::read::DecoderReader::new(&mut r.inner, base64::STANDARD);
->>>>>>> @{-1}
                 match v {
                     TypeVariant::Uint512 => Box::new(ReadXdrIter::<_, Uint512>::new(dec, r.limits.clone()).map(|r| r.map(|t| Self::Uint512(Box::new(t))))),
 TypeVariant::Uint513 => Box::new(ReadXdrIter::<_, Uint513>::new(dec, r.limits.clone()).map(|r| r.map(|t| Self::Uint513(Box::new(t))))),
@@ -6196,8 +6172,7 @@ TypeVariant::NesterNestedUnion => Box::new(ReadXdrIter::<_, NesterNestedUnion>::
             }
 
             #[cfg(feature = "base64")]
-<<<<<<< HEAD
-            pub fn from_xdr_base64(v: TypeVariant, b64: impl AsRef<[u8]>, limits: Limits) -> Result<Self> {
+            pub fn from_xdr_base64(v: TypeVariant, b64: impl AsRef<[u8]>, limits: Limits) -> Result<Self, Error> {
                 let mut dec = Limited::new(
                     base64::read::DecoderReader::new(
                         SkipWhitespace::new(Cursor::new(b64)),
@@ -6205,15 +6180,6 @@ TypeVariant::NesterNestedUnion => Box::new(ReadXdrIter::<_, NesterNestedUnion>::
                     ),
                     limits,
                 );
-||||||| db6306e
-            pub fn from_xdr_base64(v: TypeVariant, b64: impl AsRef<[u8]>, limits: Limits) -> Result<Self> {
-                let mut b64_reader = Cursor::new(b64);
-                let mut dec = Limited::new(base64::read::DecoderReader::new(&mut b64_reader, base64::STANDARD), limits);
-=======
-            pub fn from_xdr_base64(v: TypeVariant, b64: impl AsRef<[u8]>, limits: Limits) -> Result<Self, Error> {
-                let mut b64_reader = Cursor::new(b64);
-                let mut dec = Limited::new(base64::read::DecoderReader::new(&mut b64_reader, base64::STANDARD), limits);
->>>>>>> @{-1}
                 let t = Self::read_xdr_to_end(v, &mut dec)?;
                 Ok(t)
             }

@@ -4052,8 +4052,7 @@ TypeVariant::TestArray2 => r.with_limited_depth(|r| Ok(Self::TestArray2(Box::new
             }
 
             #[cfg(feature = "base64")]
-<<<<<<< HEAD
-            pub fn read_xdr_base64<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Result<Self> {
+            pub fn read_xdr_base64<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Result<Self, Error> {
                 let mut dec = Limited::new(
                     base64::read::DecoderReader::new(
                         SkipWhitespace::new(&mut r.inner),
@@ -4061,13 +4060,6 @@ TypeVariant::TestArray2 => r.with_limited_depth(|r| Ok(Self::TestArray2(Box::new
                     ),
                     r.limits.clone(),
                 );
-||||||| db6306e
-            pub fn read_xdr_base64<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Result<Self> {
-                let mut dec = Limited::new(base64::read::DecoderReader::new(&mut r.inner, base64::STANDARD), r.limits.clone());
-=======
-            pub fn read_xdr_base64<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Result<Self, Error> {
-                let mut dec = Limited::new(base64::read::DecoderReader::new(&mut r.inner, base64::STANDARD), r.limits.clone());
->>>>>>> @{-1}
                 let t = Self::read_xdr(v, &mut dec)?;
                 Ok(t)
             }
@@ -4085,8 +4077,7 @@ TypeVariant::TestArray2 => r.with_limited_depth(|r| Ok(Self::TestArray2(Box::new
             }
 
             #[cfg(feature = "base64")]
-<<<<<<< HEAD
-            pub fn read_xdr_base64_to_end<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Result<Self> {
+            pub fn read_xdr_base64_to_end<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Result<Self, Error> {
                 let mut dec = Limited::new(
                     base64::read::DecoderReader::new(
                         SkipWhitespace::new(&mut r.inner),
@@ -4094,13 +4085,6 @@ TypeVariant::TestArray2 => r.with_limited_depth(|r| Ok(Self::TestArray2(Box::new
                     ),
                     r.limits.clone(),
                 );
-||||||| db6306e
-            pub fn read_xdr_base64_to_end<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Result<Self> {
-                let mut dec = Limited::new(base64::read::DecoderReader::new(&mut r.inner, base64::STANDARD), r.limits.clone());
-=======
-            pub fn read_xdr_base64_to_end<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Result<Self, Error> {
-                let mut dec = Limited::new(base64::read::DecoderReader::new(&mut r.inner, base64::STANDARD), r.limits.clone());
->>>>>>> @{-1}
                 let t = Self::read_xdr_to_end(v, &mut dec)?;
                 Ok(t)
             }
@@ -4125,19 +4109,11 @@ TypeVariant::TestArray2 => Box::new(ReadXdrIter::<_, Frame<TestArray2>>::new(&mu
 
             #[cfg(feature = "base64")]
             #[allow(clippy::too_many_lines)]
-<<<<<<< HEAD
-            pub fn read_xdr_base64_iter<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Box<dyn Iterator<Item=Result<Self>> + '_> {
+            pub fn read_xdr_base64_iter<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Box<dyn Iterator<Item=Result<Self, Error>> + '_> {
                 let dec = base64::read::DecoderReader::new(
                     SkipWhitespace::new(&mut r.inner),
                     &base64::engine::general_purpose::STANDARD,
                 );
-||||||| db6306e
-            pub fn read_xdr_base64_iter<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Box<dyn Iterator<Item=Result<Self>> + '_> {
-                let dec = base64::read::DecoderReader::new(&mut r.inner, base64::STANDARD);
-=======
-            pub fn read_xdr_base64_iter<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Box<dyn Iterator<Item=Result<Self, Error>> + '_> {
-                let dec = base64::read::DecoderReader::new(&mut r.inner, base64::STANDARD);
->>>>>>> @{-1}
                 match v {
                     TypeVariant::TestArray => Box::new(ReadXdrIter::<_, TestArray>::new(dec, r.limits.clone()).map(|r| r.map(|t| Self::TestArray(Box::new(t))))),
 TypeVariant::TestArray2 => Box::new(ReadXdrIter::<_, TestArray2>::new(dec, r.limits.clone()).map(|r| r.map(|t| Self::TestArray2(Box::new(t))))),
@@ -4152,8 +4128,7 @@ TypeVariant::TestArray2 => Box::new(ReadXdrIter::<_, TestArray2>::new(dec, r.lim
             }
 
             #[cfg(feature = "base64")]
-<<<<<<< HEAD
-            pub fn from_xdr_base64(v: TypeVariant, b64: impl AsRef<[u8]>, limits: Limits) -> Result<Self> {
+            pub fn from_xdr_base64(v: TypeVariant, b64: impl AsRef<[u8]>, limits: Limits) -> Result<Self, Error> {
                 let mut dec = Limited::new(
                     base64::read::DecoderReader::new(
                         SkipWhitespace::new(Cursor::new(b64)),
@@ -4161,15 +4136,6 @@ TypeVariant::TestArray2 => Box::new(ReadXdrIter::<_, TestArray2>::new(dec, r.lim
                     ),
                     limits,
                 );
-||||||| db6306e
-            pub fn from_xdr_base64(v: TypeVariant, b64: impl AsRef<[u8]>, limits: Limits) -> Result<Self> {
-                let mut b64_reader = Cursor::new(b64);
-                let mut dec = Limited::new(base64::read::DecoderReader::new(&mut b64_reader, base64::STANDARD), limits);
-=======
-            pub fn from_xdr_base64(v: TypeVariant, b64: impl AsRef<[u8]>, limits: Limits) -> Result<Self, Error> {
-                let mut b64_reader = Cursor::new(b64);
-                let mut dec = Limited::new(base64::read::DecoderReader::new(&mut b64_reader, base64::STANDARD), limits);
->>>>>>> @{-1}
                 let t = Self::read_xdr_to_end(v, &mut dec)?;
                 Ok(t)
             }
