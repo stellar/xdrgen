@@ -2817,7 +2817,7 @@ pub type Int64 = i64;
 ///
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
-#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr))]
+#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde_with::SerializeDisplay))]
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 pub struct MyStruct {
   pub some_int: i32,
@@ -2853,6 +2853,34 @@ self.some_string.write_xdr(w)?;
 self.max_string.write_xdr(w)?;
                     Ok(())
                 })
+            }
+        }
+        #[cfg(all(feature = "serde", feature = "alloc"))]
+        impl<'de> serde::Deserialize<'de> for MyStruct {
+            fn deserialize<D>(deserializer: D) -> core::result::Result<Self, D::Error> where D: serde::Deserializer<'de> {
+                use serde::Deserialize;
+                #[derive(Deserialize)]
+                struct MyStruct {
+                    some_int: i32,
+a_big_int: i64,
+some_opaque: [u8; 10],
+some_string: StringM,
+max_string: StringM::<100>,
+                }
+                #[derive(Deserialize)]
+                #[serde(untagged)]
+                enum MyStructOrString<'a> {
+                    String(&'a str),
+                    MyStruct(MyStruct),
+                }
+                match MyStructOrString::deserialize(deserializer)? {
+                    MyStructOrString::String(s) => s.parse().map_err(serde::de::Error::custom),
+                    MyStructOrString::MyStruct(MyStruct {
+                        some_int, a_big_int, some_opaque, some_string, max_string,
+                    }) => Ok(self::MyStruct {
+                        some_int, a_big_int, some_opaque, some_string, max_string,
+                    }),
+                }
             }
         }
 

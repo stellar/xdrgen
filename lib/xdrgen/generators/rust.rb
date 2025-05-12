@@ -431,6 +431,15 @@ module Xdrgen
             }
         }
         EOS
+        # Include a deserializer that will deserialize via the FromStr
+        # implementation, but also deserialize the original struct, present in
+        # the JSON as a map. The reason for the second option for
+        # deserialization is that types that we're adding string
+        # representations for were previously deserializable via a map to their
+        # struct, and so this improves the backwards compatibility.
+        # Note that this is only done for structs and not other types (typedef,
+        # enum, union), because struct is the only type that maps to JSON in a
+        # way that is unambiguous with a secondary form in string type.
         out.puts <<-EOS.strip_heredoc if @options[:rust_types_custom_str_impl].include?(name struct)
         #[cfg(all(feature = "serde", feature = "alloc"))]
         impl<'de> serde::Deserialize<'de> for #{name struct} {
