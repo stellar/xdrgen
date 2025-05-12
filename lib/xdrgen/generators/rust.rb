@@ -432,6 +432,7 @@ module Xdrgen
         }
         EOS
         out.puts <<-EOS.strip_heredoc if @options[:rust_types_custom_str_impl].include?(name struct)
+        #[cfg(all(feature = "serde", feature = "alloc"))]
         impl<'de> serde::Deserialize<'de> for #{name struct} {
             fn deserialize<D>(deserializer: D) -> Result<Self, D::Error> where D: serde::Deserializer<'de> {
                 use serde::Deserialize;
@@ -448,7 +449,7 @@ module Xdrgen
                     #{name struct}(#{name struct}),
                 }
                 match #{name struct}OrString::deserialize(deserializer)? {
-                    #{name struct}OrString::String(s) => s.parse().map_err(serde::de::Error::custom),
+                    #{name struct}OrString::String(s) => s.parse().map_err(|e| serde::de::Error::custom()),
                     #{name struct}OrString::#{name struct}(#{name struct} {
                         #{struct.members.map do |m| "#{field_name(m)}," end.join(" ")}
                     }) => Ok(self::#{name struct} {
