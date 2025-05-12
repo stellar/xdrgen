@@ -448,7 +448,7 @@ module Xdrgen
                     String(&'a str),
                     #{name struct}(#{name struct}),
                 }
-                match #{name struct}OrString::deserialize(deserializer) {
+                match #{name struct}OrString::deserialize(deserializer)? {
                     #{name struct}OrString::String(s) => s.parse(),
                     #{name struct}OrString::#{name struct}(#{name struct} {
                         #{struct.members.map do |m| "#{field_name(m)}," end.join(" ")}
