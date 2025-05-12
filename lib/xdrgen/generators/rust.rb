@@ -431,7 +431,7 @@ module Xdrgen
             }
         }
 
-        impl<'de> Deserialize<'de> for #{name struct} {
+        impl<'de> serde::Deserialize<'de> for #{name struct} {
             fn deserialize<D>(deserializer: D) -> Result<Self, D::Error> where D: serde::Deserializer<'de> {
                 use serde::Deserialize;
                 #[derive(Deserialize)]
