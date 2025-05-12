@@ -43,6 +43,11 @@ use std::string::FromUtf8Error;
 #[cfg(feature = "arbitrary")]
 use arbitrary::Arbitrary;
 
+#[cfg(all(feature = "schemars", feature = "alloc", feature = "std"))]
+use std::borrow::Cow;
+#[cfg(all(feature = "schemars", feature = "alloc", not(feature = "std")))]
+use alloc::borrow::Cow;
+
 // TODO: Add support for read/write xdr fns when std not available.
 
 #[cfg(feature = "std")]
@@ -164,9 +169,6 @@ impl From<Error> for () {
     fn from(_: Error) {}
 }
 
-#[allow(dead_code)]
-type Result<T> = core::result::Result<T, Error>;
-
 /// Name defines types that assign a static name to their value, such as the
 /// name given to an identifier in an XDR enum, or the name given to the case in
 /// a union.
@@ -270,7 +272,7 @@ impl<L> Limited<L> {
     ///
     /// If the length would consume more length than the remaining length limit
     /// allows.
-    pub(crate) fn consume_len(&mut self, len: usize) -> Result<()> {
+    pub(crate) fn consume_len(&mut self, len: usize) -> Result<(), Error> {
         if let Some(len) = self.limits.len.checked_sub(len) {
             self.limits.len = len;
             Ok(())
@@ -284,9 +286,9 @@ impl<L> Limited<L> {
     /// ### Errors
     ///
     /// If the depth limit is already exhausted.
-    pub(crate) fn with_limited_depth<T, F>(&mut self, f: F) -> Result<T>
+    pub(crate) fn with_limited_depth<T, F>(&mut self, f: F) -> Result<T, Error>
     where
-        F: FnOnce(&mut Self) -> Result<T>,
+        F: FnOnce(&mut Self) -> Result<T, Error>,
     {
         if let Some(depth) = self.limits.depth.checked_sub(1) {
             self.limits.depth = depth;
@@ -354,7 +356,7 @@ impl<R: Read, S: ReadXdr> ReadXdrIter<R, S> {
 
 #[cfg(feature = "std")]
 impl<R: Read, S: ReadXdr> Iterator for ReadXdrIter<R, S> {
-    type Item = Result<S>;
+    type Item = Result<S, Error>;
 
     // Next reads the internal reader and XDR decodes it into the Self type. If
     // the EOF is reached without reading any new bytes `None` is returned. If
@@ -407,14 +409,14 @@ where
     /// Use [`ReadXdR: Read_xdr_to_end`] when the intent is for all bytes in the
     /// read implementation to be consumed by the read.
     #[cfg(feature = "std")]
-    fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self>;
+    fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self, Error>;
 
     /// Construct the type from the XDR bytes base64 encoded.
     ///
     /// An error is returned if the bytes are not completely consumed by the
     /// deserialization.
     #[cfg(feature = "base64")]
-    fn read_xdr_base64<R: Read>(r: &mut Limited<R>) -> Result<Self> {
+    fn read_xdr_base64<R: Read>(r: &mut Limited<R>) -> Result<Self, Error> {
         let mut dec = Limited::new(
             base64::read::DecoderReader::new(&mut r.inner, base64::STANDARD),
             r.limits.clone(),
@@ -442,7 +444,7 @@ where
     /// All implementations should continue if the read implementation returns
     /// [`ErrorKind::Interrupted`](std::io::ErrorKind::Interrupted).
     #[cfg(feature = "std")]
-    fn read_xdr_to_end<R: Read>(r: &mut Limited<R>) -> Result<Self> {
+    fn read_xdr_to_end<R: Read>(r: &mut Limited<R>) -> Result<Self, Error> {
         let s = Self::read_xdr(r)?;
         // Check that any further reads, such as this read of one byte, read no
         // data, indicating EOF. If a byte is read the data is invalid.
@@ -458,7 +460,7 @@ where
     /// An error is returned if the bytes are not completely consumed by the
     /// deserialization.
     #[cfg(feature = "base64")]
-    fn read_xdr_base64_to_end<R: Read>(r: &mut Limited<R>) -> Result<Self> {
+    fn read_xdr_base64_to_end<R: Read>(r: &mut Limited<R>) -> Result<Self, Error> {
         let mut dec = Limited::new(
             base64::read::DecoderReader::new(&mut r.inner, base64::STANDARD),
             r.limits.clone(),
@@ -482,7 +484,7 @@ where
     /// Use [`ReadXdR: Read_xdr_into_to_end`] when the intent is for all bytes
     /// in the read implementation to be consumed by the read.
     #[cfg(feature = "std")]
-    fn read_xdr_into<R: Read>(&mut self, r: &mut Limited<R>) -> Result<()> {
+    fn read_xdr_into<R: Read>(&mut self, r: &mut Limited<R>) -> Result<(), Error> {
         *self = Self::read_xdr(r)?;
         Ok(())
     }
@@ -506,7 +508,7 @@ where
     /// All implementations should continue if the read implementation returns
     /// [`ErrorKind::Interrupted`](std::io::ErrorKind::Interrupted).
     #[cfg(feature = "std")]
-    fn read_xdr_into_to_end<R: Read>(&mut self, r: &mut Limited<R>) -> Result<()> {
+    fn read_xdr_into_to_end<R: Read>(&mut self, r: &mut Limited<R>) -> Result<(), Error> {
         Self::read_xdr_into(self, r)?;
         // Check that any further reads, such as this read of one byte, read no
         // data, indicating EOF. If a byte is read the data is invalid.
@@ -555,7 +557,7 @@ where
     /// An error is returned if the bytes are not completely consumed by the
     /// deserialization.
     #[cfg(feature = "std")]
-    fn from_xdr(bytes: impl AsRef<[u8]>, limits: Limits) -> Result<Self> {
+    fn from_xdr(bytes: impl AsRef<[u8]>, limits: Limits) -> Result<Self, Error> {
         let mut cursor = Limited::new(Cursor::new(bytes.as_ref()), limits);
         let t = Self::read_xdr_to_end(&mut cursor)?;
         Ok(t)
@@ -566,7 +568,7 @@ where
     /// An error is returned if the bytes are not completely consumed by the
     /// deserialization.
     #[cfg(feature = "base64")]
-    fn from_xdr_base64(b64: impl AsRef<[u8]>, limits: Limits) -> Result<Self> {
+    fn from_xdr_base64(b64: impl AsRef<[u8]>, limits: Limits) -> Result<Self, Error> {
         let mut b64_reader = Cursor::new(b64);
         let mut dec = Limited::new(
             base64::read::DecoderReader::new(&mut b64_reader, base64::STANDARD),
@@ -579,10 +581,10 @@ where
 
 pub trait WriteXdr {
     #[cfg(feature = "std")]
-    fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()>;
+    fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<(), Error>;
 
     #[cfg(feature = "std")]
-    fn to_xdr(&self, limits: Limits) -> Result<Vec<u8>> {
+    fn to_xdr(&self, limits: Limits) -> Result<Vec<u8>, Error> {
         let mut cursor = Limited::new(Cursor::new(vec![]), limits);
         self.write_xdr(&mut cursor)?;
         let bytes = cursor.inner.into_inner();
@@ -590,7 +592,7 @@ pub trait WriteXdr {
     }
 
     #[cfg(feature = "base64")]
-    fn to_xdr_base64(&self, limits: Limits) -> Result<String> {
+    fn to_xdr_base64(&self, limits: Limits) -> Result<String, Error> {
         let mut enc = Limited::new(
             base64::write::EncoderStringWriter::new(base64::STANDARD),
             limits,
@@ -610,7 +612,7 @@ fn pad_len(len: usize) -> usize {
 
 impl ReadXdr for i32 {
     #[cfg(feature = "std")]
-    fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self> {
+    fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self, Error> {
         let mut b = [0u8; 4];
         r.with_limited_depth(|r| {
             r.consume_len(b.len())?;
@@ -622,7 +624,7 @@ impl ReadXdr for i32 {
 
 impl WriteXdr for i32 {
     #[cfg(feature = "std")]
-    fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
+    fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<(), Error> {
         let b: [u8; 4] = self.to_be_bytes();
         w.with_limited_depth(|w| {
             w.consume_len(b.len())?;
@@ -633,7 +635,7 @@ impl WriteXdr for i32 {
 
 impl ReadXdr for u32 {
     #[cfg(feature = "std")]
-    fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self> {
+    fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self, Error> {
         let mut b = [0u8; 4];
         r.with_limited_depth(|r| {
             r.consume_len(b.len())?;
@@ -645,7 +647,7 @@ impl ReadXdr for u32 {
 
 impl WriteXdr for u32 {
     #[cfg(feature = "std")]
-    fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
+    fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<(), Error> {
         let b: [u8; 4] = self.to_be_bytes();
         w.with_limited_depth(|w| {
             w.consume_len(b.len())?;
@@ -656,7 +658,7 @@ impl WriteXdr for u32 {
 
 impl ReadXdr for i64 {
     #[cfg(feature = "std")]
-    fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self> {
+    fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self, Error> {
         let mut b = [0u8; 8];
         r.with_limited_depth(|r| {
             r.consume_len(b.len())?;
@@ -668,7 +670,7 @@ impl ReadXdr for i64 {
 
 impl WriteXdr for i64 {
     #[cfg(feature = "std")]
-    fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
+    fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<(), Error> {
         let b: [u8; 8] = self.to_be_bytes();
         w.with_limited_depth(|w| {
             w.consume_len(b.len())?;
@@ -679,7 +681,7 @@ impl WriteXdr for i64 {
 
 impl ReadXdr for u64 {
     #[cfg(feature = "std")]
-    fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self> {
+    fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self, Error> {
         let mut b = [0u8; 8];
         r.with_limited_depth(|r| {
             r.consume_len(b.len())?;
@@ -691,7 +693,7 @@ impl ReadXdr for u64 {
 
 impl WriteXdr for u64 {
     #[cfg(feature = "std")]
-    fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
+    fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<(), Error> {
         let b: [u8; 8] = self.to_be_bytes();
         w.with_limited_depth(|w| {
             w.consume_len(b.len())?;
@@ -702,35 +704,35 @@ impl WriteXdr for u64 {
 
 impl ReadXdr for f32 {
     #[cfg(feature = "std")]
-    fn read_xdr<R: Read>(_r: &mut Limited<R>) -> Result<Self> {
+    fn read_xdr<R: Read>(_r: &mut Limited<R>) -> Result<Self, Error> {
         todo!()
     }
 }
 
 impl WriteXdr for f32 {
     #[cfg(feature = "std")]
-    fn write_xdr<W: Write>(&self, _w: &mut Limited<W>) -> Result<()> {
+    fn write_xdr<W: Write>(&self, _w: &mut Limited<W>) -> Result<(), Error> {
         todo!()
     }
 }
 
 impl ReadXdr for f64 {
     #[cfg(feature = "std")]
-    fn read_xdr<R: Read>(_r: &mut Limited<R>) -> Result<Self> {
+    fn read_xdr<R: Read>(_r: &mut Limited<R>) -> Result<Self, Error> {
         todo!()
     }
 }
 
 impl WriteXdr for f64 {
     #[cfg(feature = "std")]
-    fn write_xdr<W: Write>(&self, _w: &mut Limited<W>) -> Result<()> {
+    fn write_xdr<W: Write>(&self, _w: &mut Limited<W>) -> Result<(), Error> {
         todo!()
     }
 }
 
 impl ReadXdr for bool {
     #[cfg(feature = "std")]
-    fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self> {
+    fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self, Error> {
         r.with_limited_depth(|r| {
             let i = u32::read_xdr(r)?;
             let b = i == 1;
@@ -741,7 +743,7 @@ impl ReadXdr for bool {
 
 impl WriteXdr for bool {
     #[cfg(feature = "std")]
-    fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
+    fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<(), Error> {
         w.with_limited_depth(|w| {
             let i = u32::from(*self); // true = 1, false = 0
             i.write_xdr(w)
@@ -751,7 +753,7 @@ impl WriteXdr for bool {
 
 impl<T: ReadXdr> ReadXdr for Option<T> {
     #[cfg(feature = "std")]
-    fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self> {
+    fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self, Error> {
         r.with_limited_depth(|r| {
             let i = u32::read_xdr(r)?;
             match i {
@@ -768,7 +770,7 @@ impl<T: ReadXdr> ReadXdr for Option<T> {
 
 impl<T: WriteXdr> WriteXdr for Option<T> {
     #[cfg(feature = "std")]
-    fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
+    fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<(), Error> {
         w.with_limited_depth(|w| {
             if let Some(t) = self {
                 1u32.write_xdr(w)?;
@@ -783,35 +785,35 @@ impl<T: WriteXdr> WriteXdr for Option<T> {
 
 impl<T: ReadXdr> ReadXdr for Box<T> {
     #[cfg(feature = "std")]
-    fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self> {
+    fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self, Error> {
         r.with_limited_depth(|r| Ok(Box::new(T::read_xdr(r)?)))
     }
 }
 
 impl<T: WriteXdr> WriteXdr for Box<T> {
     #[cfg(feature = "std")]
-    fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
+    fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<(), Error> {
         w.with_limited_depth(|w| T::write_xdr(self, w))
     }
 }
 
 impl ReadXdr for () {
     #[cfg(feature = "std")]
-    fn read_xdr<R: Read>(_r: &mut Limited<R>) -> Result<Self> {
+    fn read_xdr<R: Read>(_r: &mut Limited<R>) -> Result<Self, Error> {
         Ok(())
     }
 }
 
 impl WriteXdr for () {
     #[cfg(feature = "std")]
-    fn write_xdr<W: Write>(&self, _w: &mut Limited<W>) -> Result<()> {
+    fn write_xdr<W: Write>(&self, _w: &mut Limited<W>) -> Result<(), Error> {
         Ok(())
     }
 }
 
 impl<const N: usize> ReadXdr for [u8; N] {
     #[cfg(feature = "std")]
-    fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self> {
+    fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self, Error> {
         r.with_limited_depth(|r| {
             r.consume_len(N)?;
             let padding = pad_len(N);
@@ -830,7 +832,7 @@ impl<const N: usize> ReadXdr for [u8; N] {
 
 impl<const N: usize> WriteXdr for [u8; N] {
     #[cfg(feature = "std")]
-    fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
+    fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<(), Error> {
         w.with_limited_depth(|w| {
             w.consume_len(N)?;
             let padding = pad_len(N);
@@ -844,7 +846,7 @@ impl<const N: usize> WriteXdr for [u8; N] {
 
 impl<T: ReadXdr, const N: usize> ReadXdr for [T; N] {
     #[cfg(feature = "std")]
-    fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self> {
+    fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self, Error> {
         r.with_limited_depth(|r| {
             let mut vec = Vec::with_capacity(N);
             for _ in 0..N {
@@ -859,7 +861,7 @@ impl<T: ReadXdr, const N: usize> ReadXdr for [T; N] {
 
 impl<T: WriteXdr, const N: usize> WriteXdr for [T; N] {
     #[cfg(feature = "std")]
-    fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
+    fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<(), Error> {
         w.with_limited_depth(|w| {
             for t in self {
                 t.write_xdr(w)?;
@@ -873,7 +875,7 @@ impl<T: WriteXdr, const N: usize> WriteXdr for [T; N] {
 
 #[cfg(feature = "alloc")]
 #[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde_with::serde_as, derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 pub struct VecM<T, const MAX: u32 = { u32::MAX }>(Vec<T>);
 
@@ -924,6 +926,55 @@ impl<T: schemars::JsonSchema, const MAX: u32> schemars::JsonSchema for VecM<T, M
     }
 }
 
+#[cfg(feature = "schemars")]
+impl<T, TA, const MAX: u32> serde_with::schemars_0_8::JsonSchemaAs<VecM<T, MAX>> for VecM<TA, MAX>
+where
+    TA: serde_with::schemars_0_8::JsonSchemaAs<T>,
+{
+    fn schema_name() -> String {
+        <VecM<serde_with::Schema<T, TA>, MAX> as schemars::JsonSchema>::schema_name()
+    }
+
+    fn schema_id() -> Cow<'static, str> {
+        <VecM<serde_with::Schema<T, TA>, MAX> as schemars::JsonSchema>::schema_id()
+    }
+
+    fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
+        <VecM<serde_with::Schema<T, TA>, MAX> as schemars::JsonSchema>::json_schema(gen)
+    }
+
+    fn is_referenceable() -> bool {
+        <VecM<serde_with::Schema<T, TA>, MAX> as schemars::JsonSchema>::is_referenceable()
+    }
+}
+
+#[cfg(feature = "serde")]
+impl<T, U, const MAX: u32> serde_with::SerializeAs<VecM<T, MAX>> for VecM<U, MAX>
+where
+    U: serde_with::SerializeAs<T>,
+{
+    fn serialize_as<S>(source: &VecM<T, MAX>, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serializer.collect_seq(source.iter().map(|item| serde_with::ser::SerializeAsWrap::<T, U>::new(item)))
+    }
+}
+
+#[cfg(feature = "serde")]
+impl<'de, T, U, const MAX: u32> serde_with::DeserializeAs<'de, VecM<T, MAX>> for VecM<U, MAX>
+where
+    U: serde_with::DeserializeAs<'de, T>,
+{
+    fn deserialize_as<D>(deserializer: D) -> Result<VecM<T, MAX>, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let vec = <Vec<U> as serde_with::DeserializeAs<Vec<T>>>::deserialize_as(deserializer)?;
+        vec.try_into().map_err(serde::de::Error::custom)
+    }
+}
+
 impl<T, const MAX: u32> VecM<T, MAX> {
     pub const MAX_LEN: usize = { MAX as usize };
 
@@ -970,12 +1021,12 @@ impl<T: Clone, const MAX: u32> VecM<T, MAX> {
 
 impl<const MAX: u32> VecM<u8, MAX> {
     #[cfg(feature = "alloc")]
-    pub fn to_string(&self) -> Result<String> {
+    pub fn to_string(&self) -> Result<String, Error> {
         self.try_into()
     }
 
     #[cfg(feature = "alloc")]
-    pub fn into_string(self) -> Result<String> {
+    pub fn into_string(self) -> Result<String, Error> {
         self.try_into()
     }
 
@@ -1030,7 +1081,7 @@ impl<T> From<VecM<T, 1>> for Option<T> {
 impl<T, const MAX: u32> TryFrom<Vec<T>> for VecM<T, MAX> {
     type Error = Error;
 
-    fn try_from(v: Vec<T>) -> Result<Self> {
+    fn try_from(v: Vec<T>) -> Result<Self, Error> {
         let len: u32 = v.len().try_into().map_err(|_| Error::LengthExceedsMax)?;
         if len <= MAX {
             Ok(VecM(v))
@@ -1066,7 +1117,7 @@ impl<T, const MAX: u32> AsRef<Vec<T>> for VecM<T, MAX> {
 impl<T: Clone, const MAX: u32> TryFrom<&Vec<T>> for VecM<T, MAX> {
     type Error = Error;
 
-    fn try_from(v: &Vec<T>) -> Result<Self> {
+    fn try_from(v: &Vec<T>) -> Result<Self, Error> {
         v.as_slice().try_into()
     }
 }
@@ -1075,7 +1126,7 @@ impl<T: Clone, const MAX: u32> TryFrom<&Vec<T>> for VecM<T, MAX> {
 impl<T: Clone, const MAX: u32> TryFrom<&[T]> for VecM<T, MAX> {
     type Error = Error;
 
-    fn try_from(v: &[T]) -> Result<Self> {
+    fn try_from(v: &[T]) -> Result<Self, Error> {
         let len: u32 = v.len().try_into().map_err(|_| Error::LengthExceedsMax)?;
         if len <= MAX {
             Ok(VecM(v.to_vec()))
@@ -1102,7 +1153,7 @@ impl<T, const MAX: u32> AsRef<[T]> for VecM<T, MAX> {
 impl<T: Clone, const N: usize, const MAX: u32> TryFrom<[T; N]> for VecM<T, MAX> {
     type Error = Error;
 
-    fn try_from(v: [T; N]) -> Result<Self> {
+    fn try_from(v: [T; N]) -> Result<Self, Error> {
         let len: u32 = v.len().try_into().map_err(|_| Error::LengthExceedsMax)?;
         if len <= MAX {
             Ok(VecM(v.to_vec()))
@@ -1126,7 +1177,7 @@ impl<T: Clone, const N: usize, const MAX: u32> TryFrom<VecM<T, MAX>> for [T; N] 
 impl<T: Clone, const N: usize, const MAX: u32> TryFrom<&[T; N]> for VecM<T, MAX> {
     type Error = Error;
 
-    fn try_from(v: &[T; N]) -> Result<Self> {
+    fn try_from(v: &[T; N]) -> Result<Self, Error> {
         let len: u32 = v.len().try_into().map_err(|_| Error::LengthExceedsMax)?;
         if len <= MAX {
             Ok(VecM(v.to_vec()))
@@ -1140,7 +1191,7 @@ impl<T: Clone, const N: usize, const MAX: u32> TryFrom<&[T; N]> for VecM<T, MAX>
 impl<T: Clone, const N: usize, const MAX: u32> TryFrom<&'static [T; N]> for VecM<T, MAX> {
     type Error = Error;
 
-    fn try_from(v: &'static [T; N]) -> Result<Self> {
+    fn try_from(v: &'static [T; N]) -> Result<Self, Error> {
         let len: u32 = v.len().try_into().map_err(|_| Error::LengthExceedsMax)?;
         if len <= MAX {
             Ok(VecM(v))
@@ -1154,7 +1205,7 @@ impl<T: Clone, const N: usize, const MAX: u32> TryFrom<&'static [T; N]> for VecM
 impl<const MAX: u32> TryFrom<&String> for VecM<u8, MAX> {
     type Error = Error;
 
-    fn try_from(v: &String) -> Result<Self> {
+    fn try_from(v: &String) -> Result<Self, Error> {
         let len: u32 = v.len().try_into().map_err(|_| Error::LengthExceedsMax)?;
         if len <= MAX {
             Ok(VecM(v.as_bytes().to_vec()))
@@ -1168,7 +1219,7 @@ impl<const MAX: u32> TryFrom<&String> for VecM<u8, MAX> {
 impl<const MAX: u32> TryFrom<String> for VecM<u8, MAX> {
     type Error = Error;
 
-    fn try_from(v: String) -> Result<Self> {
+    fn try_from(v: String) -> Result<Self, Error> {
         let len: u32 = v.len().try_into().map_err(|_| Error::LengthExceedsMax)?;
         if len <= MAX {
             Ok(VecM(v.into()))
@@ -1182,7 +1233,7 @@ impl<const MAX: u32> TryFrom<String> for VecM<u8, MAX> {
 impl<const MAX: u32> TryFrom<VecM<u8, MAX>> for String {
     type Error = Error;
 
-    fn try_from(v: VecM<u8, MAX>) -> Result<Self> {
+    fn try_from(v: VecM<u8, MAX>) -> Result<Self, Error> {
         Ok(String::from_utf8(v.0)?)
     }
 }
@@ -1191,7 +1242,7 @@ impl<const MAX: u32> TryFrom<VecM<u8, MAX>> for String {
 impl<const MAX: u32> TryFrom<&VecM<u8, MAX>> for String {
     type Error = Error;
 
-    fn try_from(v: &VecM<u8, MAX>) -> Result<Self> {
+    fn try_from(v: &VecM<u8, MAX>) -> Result<Self, Error> {
         Ok(core::str::from_utf8(v.as_ref())?.to_owned())
     }
 }
@@ -1200,7 +1251,7 @@ impl<const MAX: u32> TryFrom<&VecM<u8, MAX>> for String {
 impl<const MAX: u32> TryFrom<&str> for VecM<u8, MAX> {
     type Error = Error;
 
-    fn try_from(v: &str) -> Result<Self> {
+    fn try_from(v: &str) -> Result<Self, Error> {
         let len: u32 = v.len().try_into().map_err(|_| Error::LengthExceedsMax)?;
         if len <= MAX {
             Ok(VecM(v.into()))
@@ -1214,7 +1265,7 @@ impl<const MAX: u32> TryFrom<&str> for VecM<u8, MAX> {
 impl<const MAX: u32> TryFrom<&'static str> for VecM<u8, MAX> {
     type Error = Error;
 
-    fn try_from(v: &'static str) -> Result<Self> {
+    fn try_from(v: &'static str) -> Result<Self, Error> {
         let len: u32 = v.len().try_into().map_err(|_| Error::LengthExceedsMax)?;
         if len <= MAX {
             Ok(VecM(v.as_bytes()))
@@ -1227,14 +1278,14 @@ impl<const MAX: u32> TryFrom<&'static str> for VecM<u8, MAX> {
 impl<'a, const MAX: u32> TryFrom<&'a VecM<u8, MAX>> for &'a str {
     type Error = Error;
 
-    fn try_from(v: &'a VecM<u8, MAX>) -> Result<Self> {
+    fn try_from(v: &'a VecM<u8, MAX>) -> Result<Self, Error> {
         Ok(core::str::from_utf8(v.as_ref())?)
     }
 }
 
 impl<const MAX: u32> ReadXdr for VecM<u8, MAX> {
     #[cfg(feature = "std")]
-    fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self> {
+    fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self, Error> {
         r.with_limited_depth(|r| {
             let len: u32 = u32::read_xdr(r)?;
             if len > MAX {
@@ -1261,7 +1312,7 @@ impl<const MAX: u32> ReadXdr for VecM<u8, MAX> {
 
 impl<const MAX: u32> WriteXdr for VecM<u8, MAX> {
     #[cfg(feature = "std")]
-    fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
+    fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<(), Error> {
         w.with_limited_depth(|w| {
             let len: u32 = self.len().try_into().map_err(|_| Error::LengthExceedsMax)?;
             len.write_xdr(w)?;
@@ -1281,7 +1332,7 @@ impl<const MAX: u32> WriteXdr for VecM<u8, MAX> {
 
 impl<T: ReadXdr, const MAX: u32> ReadXdr for VecM<T, MAX> {
     #[cfg(feature = "std")]
-    fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self> {
+    fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self, Error> {
         r.with_limited_depth(|r| {
             let len = u32::read_xdr(r)?;
             if len > MAX {
@@ -1301,7 +1352,7 @@ impl<T: ReadXdr, const MAX: u32> ReadXdr for VecM<T, MAX> {
 
 impl<T: WriteXdr, const MAX: u32> WriteXdr for VecM<T, MAX> {
     #[cfg(feature = "std")]
-    fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
+    fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<(), Error> {
         w.with_limited_depth(|w| {
             let len: u32 = self.len().try_into().map_err(|_| Error::LengthExceedsMax)?;
             len.write_xdr(w)?;
@@ -1445,12 +1496,12 @@ impl<const MAX: u32> BytesM<MAX> {
 
 impl<const MAX: u32> BytesM<MAX> {
     #[cfg(feature = "alloc")]
-    pub fn to_string(&self) -> Result<String> {
+    pub fn to_string(&self) -> Result<String, Error> {
         self.try_into()
     }
 
     #[cfg(feature = "alloc")]
-    pub fn into_string(self) -> Result<String> {
+    pub fn into_string(self) -> Result<String, Error> {
         self.try_into()
     }
 
@@ -1470,7 +1521,7 @@ impl<const MAX: u32> BytesM<MAX> {
 impl<const MAX: u32> TryFrom<Vec<u8>> for BytesM<MAX> {
     type Error = Error;
 
-    fn try_from(v: Vec<u8>) -> Result<Self> {
+    fn try_from(v: Vec<u8>) -> Result<Self, Error> {
         let len: u32 = v.len().try_into().map_err(|_| Error::LengthExceedsMax)?;
         if len <= MAX {
             Ok(BytesM(v))
@@ -1506,7 +1557,7 @@ impl<const MAX: u32> AsRef<Vec<u8>> for BytesM<MAX> {
 impl<const MAX: u32> TryFrom<&Vec<u8>> for BytesM<MAX> {
     type Error = Error;
 
-    fn try_from(v: &Vec<u8>) -> Result<Self> {
+    fn try_from(v: &Vec<u8>) -> Result<Self, Error> {
         v.as_slice().try_into()
     }
 }
@@ -1515,7 +1566,7 @@ impl<const MAX: u32> TryFrom<&Vec<u8>> for BytesM<MAX> {
 impl<const MAX: u32> TryFrom<&[u8]> for BytesM<MAX> {
     type Error = Error;
 
-    fn try_from(v: &[u8]) -> Result<Self> {
+    fn try_from(v: &[u8]) -> Result<Self, Error> {
         let len: u32 = v.len().try_into().map_err(|_| Error::LengthExceedsMax)?;
         if len <= MAX {
             Ok(BytesM(v.to_vec()))
@@ -1542,7 +1593,7 @@ impl<const MAX: u32> AsRef<[u8]> for BytesM<MAX> {
 impl<const N: usize, const MAX: u32> TryFrom<[u8; N]> for BytesM<MAX> {
     type Error = Error;
 
-    fn try_from(v: [u8; N]) -> Result<Self> {
+    fn try_from(v: [u8; N]) -> Result<Self, Error> {
         let len: u32 = v.len().try_into().map_err(|_| Error::LengthExceedsMax)?;
         if len <= MAX {
             Ok(BytesM(v.to_vec()))
@@ -1566,7 +1617,7 @@ impl<const N: usize, const MAX: u32> TryFrom<BytesM<MAX>> for [u8; N] {
 impl<const N: usize, const MAX: u32> TryFrom<&[u8; N]> for BytesM<MAX> {
     type Error = Error;
 
-    fn try_from(v: &[u8; N]) -> Result<Self> {
+    fn try_from(v: &[u8; N]) -> Result<Self, Error> {
         let len: u32 = v.len().try_into().map_err(|_| Error::LengthExceedsMax)?;
         if len <= MAX {
             Ok(BytesM(v.to_vec()))
@@ -1580,7 +1631,7 @@ impl<const N: usize, const MAX: u32> TryFrom<&[u8; N]> for BytesM<MAX> {
 impl<const N: usize, const MAX: u32> TryFrom<&'static [u8; N]> for BytesM<MAX> {
     type Error = Error;
 
-    fn try_from(v: &'static [u8; N]) -> Result<Self> {
+    fn try_from(v: &'static [u8; N]) -> Result<Self, Error> {
         let len: u32 = v.len().try_into().map_err(|_| Error::LengthExceedsMax)?;
         if len <= MAX {
             Ok(BytesM(v))
@@ -1594,7 +1645,7 @@ impl<const N: usize, const MAX: u32> TryFrom<&'static [u8; N]> for BytesM<MAX> {
 impl<const MAX: u32> TryFrom<&String> for BytesM<MAX> {
     type Error = Error;
 
-    fn try_from(v: &String) -> Result<Self> {
+    fn try_from(v: &String) -> Result<Self, Error> {
         let len: u32 = v.len().try_into().map_err(|_| Error::LengthExceedsMax)?;
         if len <= MAX {
             Ok(BytesM(v.as_bytes().to_vec()))
@@ -1608,7 +1659,7 @@ impl<const MAX: u32> TryFrom<&String> for BytesM<MAX> {
 impl<const MAX: u32> TryFrom<String> for BytesM<MAX> {
     type Error = Error;
 
-    fn try_from(v: String) -> Result<Self> {
+    fn try_from(v: String) -> Result<Self, Error> {
         let len: u32 = v.len().try_into().map_err(|_| Error::LengthExceedsMax)?;
         if len <= MAX {
             Ok(BytesM(v.into()))
@@ -1622,7 +1673,7 @@ impl<const MAX: u32> TryFrom<String> for BytesM<MAX> {
 impl<const MAX: u32> TryFrom<BytesM<MAX>> for String {
     type Error = Error;
 
-    fn try_from(v: BytesM<MAX>) -> Result<Self> {
+    fn try_from(v: BytesM<MAX>) -> Result<Self, Error> {
         Ok(String::from_utf8(v.0)?)
     }
 }
@@ -1631,7 +1682,7 @@ impl<const MAX: u32> TryFrom<BytesM<MAX>> for String {
 impl<const MAX: u32> TryFrom<&BytesM<MAX>> for String {
     type Error = Error;
 
-    fn try_from(v: &BytesM<MAX>) -> Result<Self> {
+    fn try_from(v: &BytesM<MAX>) -> Result<Self, Error> {
         Ok(core::str::from_utf8(v.as_ref())?.to_owned())
     }
 }
@@ -1640,7 +1691,7 @@ impl<const MAX: u32> TryFrom<&BytesM<MAX>> for String {
 impl<const MAX: u32> TryFrom<&str> for BytesM<MAX> {
     type Error = Error;
 
-    fn try_from(v: &str) -> Result<Self> {
+    fn try_from(v: &str) -> Result<Self, Error> {
         let len: u32 = v.len().try_into().map_err(|_| Error::LengthExceedsMax)?;
         if len <= MAX {
             Ok(BytesM(v.into()))
@@ -1654,7 +1705,7 @@ impl<const MAX: u32> TryFrom<&str> for BytesM<MAX> {
 impl<const MAX: u32> TryFrom<&'static str> for BytesM<MAX> {
     type Error = Error;
 
-    fn try_from(v: &'static str) -> Result<Self> {
+    fn try_from(v: &'static str) -> Result<Self, Error> {
         let len: u32 = v.len().try_into().map_err(|_| Error::LengthExceedsMax)?;
         if len <= MAX {
             Ok(BytesM(v.as_bytes()))
@@ -1667,14 +1718,14 @@ impl<const MAX: u32> TryFrom<&'static str> for BytesM<MAX> {
 impl<'a, const MAX: u32> TryFrom<&'a BytesM<MAX>> for &'a str {
     type Error = Error;
 
-    fn try_from(v: &'a BytesM<MAX>) -> Result<Self> {
+    fn try_from(v: &'a BytesM<MAX>) -> Result<Self, Error> {
         Ok(core::str::from_utf8(v.as_ref())?)
     }
 }
 
 impl<const MAX: u32> ReadXdr for BytesM<MAX> {
     #[cfg(feature = "std")]
-    fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self> {
+    fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self, Error> {
         r.with_limited_depth(|r| {
             let len: u32 = u32::read_xdr(r)?;
             if len > MAX {
@@ -1701,7 +1752,7 @@ impl<const MAX: u32> ReadXdr for BytesM<MAX> {
 
 impl<const MAX: u32> WriteXdr for BytesM<MAX> {
     #[cfg(feature = "std")]
-    fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
+    fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<(), Error> {
         w.with_limited_depth(|w| {
             let len: u32 = self.len().try_into().map_err(|_| Error::LengthExceedsMax)?;
             len.write_xdr(w)?;
@@ -1848,12 +1899,12 @@ impl<const MAX: u32> StringM<MAX> {
 
 impl<const MAX: u32> StringM<MAX> {
     #[cfg(feature = "alloc")]
-    pub fn to_utf8_string(&self) -> Result<String> {
+    pub fn to_utf8_string(&self) -> Result<String, Error> {
         self.try_into()
     }
 
     #[cfg(feature = "alloc")]
-    pub fn into_utf8_string(self) -> Result<String> {
+    pub fn into_utf8_string(self) -> Result<String, Error> {
         self.try_into()
     }
 
@@ -1873,7 +1924,7 @@ impl<const MAX: u32> StringM<MAX> {
 impl<const MAX: u32> TryFrom<Vec<u8>> for StringM<MAX> {
     type Error = Error;
 
-    fn try_from(v: Vec<u8>) -> Result<Self> {
+    fn try_from(v: Vec<u8>) -> Result<Self, Error> {
         let len: u32 = v.len().try_into().map_err(|_| Error::LengthExceedsMax)?;
         if len <= MAX {
             Ok(StringM(v))
@@ -1909,7 +1960,7 @@ impl<const MAX: u32> AsRef<Vec<u8>> for StringM<MAX> {
 impl<const MAX: u32> TryFrom<&Vec<u8>> for StringM<MAX> {
     type Error = Error;
 
-    fn try_from(v: &Vec<u8>) -> Result<Self> {
+    fn try_from(v: &Vec<u8>) -> Result<Self, Error> {
         v.as_slice().try_into()
     }
 }
@@ -1918,7 +1969,7 @@ impl<const MAX: u32> TryFrom<&Vec<u8>> for StringM<MAX> {
 impl<const MAX: u32> TryFrom<&[u8]> for StringM<MAX> {
     type Error = Error;
 
-    fn try_from(v: &[u8]) -> Result<Self> {
+    fn try_from(v: &[u8]) -> Result<Self, Error> {
         let len: u32 = v.len().try_into().map_err(|_| Error::LengthExceedsMax)?;
         if len <= MAX {
             Ok(StringM(v.to_vec()))
@@ -1945,7 +1996,7 @@ impl<const MAX: u32> AsRef<[u8]> for StringM<MAX> {
 impl<const N: usize, const MAX: u32> TryFrom<[u8; N]> for StringM<MAX> {
     type Error = Error;
 
-    fn try_from(v: [u8; N]) -> Result<Self> {
+    fn try_from(v: [u8; N]) -> Result<Self, Error> {
         let len: u32 = v.len().try_into().map_err(|_| Error::LengthExceedsMax)?;
         if len <= MAX {
             Ok(StringM(v.to_vec()))
@@ -1969,7 +2020,7 @@ impl<const N: usize, const MAX: u32> TryFrom<StringM<MAX>> for [u8; N] {
 impl<const N: usize, const MAX: u32> TryFrom<&[u8; N]> for StringM<MAX> {
     type Error = Error;
 
-    fn try_from(v: &[u8; N]) -> Result<Self> {
+    fn try_from(v: &[u8; N]) -> Result<Self, Error> {
         let len: u32 = v.len().try_into().map_err(|_| Error::LengthExceedsMax)?;
         if len <= MAX {
             Ok(StringM(v.to_vec()))
@@ -1983,7 +2034,7 @@ impl<const N: usize, const MAX: u32> TryFrom<&[u8; N]> for StringM<MAX> {
 impl<const N: usize, const MAX: u32> TryFrom<&'static [u8; N]> for StringM<MAX> {
     type Error = Error;
 
-    fn try_from(v: &'static [u8; N]) -> Result<Self> {
+    fn try_from(v: &'static [u8; N]) -> Result<Self, Error> {
         let len: u32 = v.len().try_into().map_err(|_| Error::LengthExceedsMax)?;
         if len <= MAX {
             Ok(StringM(v))
@@ -1997,7 +2048,7 @@ impl<const N: usize, const MAX: u32> TryFrom<&'static [u8; N]> for StringM<MAX> 
 impl<const MAX: u32> TryFrom<&String> for StringM<MAX> {
     type Error = Error;
 
-    fn try_from(v: &String) -> Result<Self> {
+    fn try_from(v: &String) -> Result<Self, Error> {
         let len: u32 = v.len().try_into().map_err(|_| Error::LengthExceedsMax)?;
         if len <= MAX {
             Ok(StringM(v.as_bytes().to_vec()))
@@ -2011,7 +2062,7 @@ impl<const MAX: u32> TryFrom<&String> for StringM<MAX> {
 impl<const MAX: u32> TryFrom<String> for StringM<MAX> {
     type Error = Error;
 
-    fn try_from(v: String) -> Result<Self> {
+    fn try_from(v: String) -> Result<Self, Error> {
         let len: u32 = v.len().try_into().map_err(|_| Error::LengthExceedsMax)?;
         if len <= MAX {
             Ok(StringM(v.into()))
@@ -2025,7 +2076,7 @@ impl<const MAX: u32> TryFrom<String> for StringM<MAX> {
 impl<const MAX: u32> TryFrom<StringM<MAX>> for String {
     type Error = Error;
 
-    fn try_from(v: StringM<MAX>) -> Result<Self> {
+    fn try_from(v: StringM<MAX>) -> Result<Self, Error> {
         Ok(String::from_utf8(v.0)?)
     }
 }
@@ -2034,7 +2085,7 @@ impl<const MAX: u32> TryFrom<StringM<MAX>> for String {
 impl<const MAX: u32> TryFrom<&StringM<MAX>> for String {
     type Error = Error;
 
-    fn try_from(v: &StringM<MAX>) -> Result<Self> {
+    fn try_from(v: &StringM<MAX>) -> Result<Self, Error> {
         Ok(core::str::from_utf8(v.as_ref())?.to_owned())
     }
 }
@@ -2043,7 +2094,7 @@ impl<const MAX: u32> TryFrom<&StringM<MAX>> for String {
 impl<const MAX: u32> TryFrom<&str> for StringM<MAX> {
     type Error = Error;
 
-    fn try_from(v: &str) -> Result<Self> {
+    fn try_from(v: &str) -> Result<Self, Error> {
         let len: u32 = v.len().try_into().map_err(|_| Error::LengthExceedsMax)?;
         if len <= MAX {
             Ok(StringM(v.into()))
@@ -2057,7 +2108,7 @@ impl<const MAX: u32> TryFrom<&str> for StringM<MAX> {
 impl<const MAX: u32> TryFrom<&'static str> for StringM<MAX> {
     type Error = Error;
 
-    fn try_from(v: &'static str) -> Result<Self> {
+    fn try_from(v: &'static str) -> Result<Self, Error> {
         let len: u32 = v.len().try_into().map_err(|_| Error::LengthExceedsMax)?;
         if len <= MAX {
             Ok(StringM(v.as_bytes()))
@@ -2070,14 +2121,14 @@ impl<const MAX: u32> TryFrom<&'static str> for StringM<MAX> {
 impl<'a, const MAX: u32> TryFrom<&'a StringM<MAX>> for &'a str {
     type Error = Error;
 
-    fn try_from(v: &'a StringM<MAX>) -> Result<Self> {
+    fn try_from(v: &'a StringM<MAX>) -> Result<Self, Error> {
         Ok(core::str::from_utf8(v.as_ref())?)
     }
 }
 
 impl<const MAX: u32> ReadXdr for StringM<MAX> {
     #[cfg(feature = "std")]
-    fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self> {
+    fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self, Error> {
         r.with_limited_depth(|r| {
             let len: u32 = u32::read_xdr(r)?;
             if len > MAX {
@@ -2104,7 +2155,7 @@ impl<const MAX: u32> ReadXdr for StringM<MAX> {
 
 impl<const MAX: u32> WriteXdr for StringM<MAX> {
     #[cfg(feature = "std")]
-    fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
+    fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<(), Error> {
         w.with_limited_depth(|w| {
             let len: u32 = self.len().try_into().map_err(|_| Error::LengthExceedsMax)?;
             len.write_xdr(w)?;
@@ -2150,7 +2201,7 @@ where
     T: ReadXdr,
 {
     #[cfg(feature = "std")]
-    fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self> {
+    fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self, Error> {
         // Read the frame header value that contains 1 flag-bit and a 33-bit length.
         //  - The 1 flag bit is 0 when there are more frames for the same record.
         //  - The 31-bit length is the length of the bytes within the frame that
@@ -2168,6 +2219,102 @@ where
         }
     }
 }
+
+// NumberOrString ---------------------------------------------------------------
+
+/// NumberOrString is a serde_as serializer/deserializer.
+///
+/// It deserializers any integer that fits into a 64-bit value into an i64 or u64 field from either
+/// a JSON Number or JSON String value.
+///
+/// It serializes always to a string.
+///
+/// It has a JsonSchema implementation that only advertises that the allowed format is a String.
+/// This is because the type is intended to soften the changing of fields from JSON Number to JSON
+/// String by permitting deserialization, but discourage new uses of JSON Number.
+#[cfg(feature = "serde")]
+struct NumberOrString;
+
+#[cfg(feature = "serde")]
+impl<'de> serde_with::DeserializeAs<'de, i64> for NumberOrString {
+    fn deserialize_as<D>(deserializer: D) -> Result<i64, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        use serde::Deserialize;
+        #[derive(Deserialize)]
+        #[serde(untagged)]
+        enum I64OrString<'a> {
+            String(&'a str),
+            I64(i64),
+        }
+        match I64OrString::deserialize(deserializer)? {
+            I64OrString::String(s) => s.parse().map_err(serde::de::Error::custom),
+            I64OrString::I64(v) => Ok(v),
+        }
+    }
+}
+
+#[cfg(feature = "serde")]
+impl<'de> serde_with::DeserializeAs<'de, u64> for NumberOrString {
+    fn deserialize_as<D>(deserializer: D) -> Result<u64, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        use serde::Deserialize;
+        #[derive(Deserialize)]
+        #[serde(untagged)]
+        enum U64OrString<'a> {
+            String(&'a str),
+            U64(u64),
+        }
+        match U64OrString::deserialize(deserializer)? {
+            U64OrString::String(s) => s.parse().map_err(serde::de::Error::custom),
+            U64OrString::U64(v) => Ok(v),
+        }
+    }
+}
+
+#[cfg(feature = "serde")]
+impl serde_with::SerializeAs<i64> for NumberOrString {
+    fn serialize_as<S>(source: &i64, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serializer.collect_str(source)
+    }
+}
+
+#[cfg(feature = "serde")]
+impl serde_with::SerializeAs<u64> for NumberOrString {
+    fn serialize_as<S>(source: &u64, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serializer.collect_str(source)
+    }
+}
+
+#[cfg(feature = "schemars")]
+impl<T> serde_with::schemars_0_8::JsonSchemaAs<T> for NumberOrString {
+    fn schema_name() -> String {
+        <String as schemars::JsonSchema>::schema_name()
+    }
+
+    fn schema_id() -> std::borrow::Cow<'static, str> {
+        <String as schemars::JsonSchema>::schema_id()
+    }
+
+    fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
+        <String as schemars::JsonSchema>::json_schema(gen)
+    }
+
+    fn is_referenceable() -> bool {
+        <String as schemars::JsonSchema>::is_referenceable()
+    }
+}
+
+// Tests ------------------------------------------------------------------------
 
 #[cfg(all(test, feature = "std"))]
 mod tests {
@@ -2340,7 +2487,7 @@ mod test {
         a.write_xdr(&mut buf).unwrap();
 
         let mut dlr = Limited::new(Cursor::new(buf.inner.as_slice()), read_limits);
-        let res: Result<Option<Option<Option<u32>>>> = ReadXdr::read_xdr(&mut dlr);
+        let res: Result<Option<Option<Option<u32>>>, _> = ReadXdr::read_xdr(&mut dlr);
         match res {
             Err(Error::DepthLimitExceeded) => (),
             _ => panic!("expected DepthLimitExceeded got {res:?}"),
@@ -2794,16 +2941,918 @@ mod test {
     }
 }
 
+#[cfg(all(test, feature = "serde"))]
+mod tests_for_number_or_string {
+    use super::*;
+    use serde::{Deserialize, Serialize};
+    use serde_json;
+    use serde_with::serde_as;
+
+    // --- Helper Structs ---
+    #[serde_as]
+    #[derive(Debug, PartialEq, Deserialize, Serialize)]
+    struct TestI64 {
+        #[serde_as(as = "NumberOrString")]
+        val: i64,
+    }
+
+    #[serde_as]
+    #[derive(Debug, PartialEq, Deserialize, Serialize)]
+    struct TestU64 {
+        #[serde_as(as = "NumberOrString")]
+        val: u64,
+    }
+
+    #[serde_as]
+    #[derive(Debug, PartialEq, Deserialize, Serialize)]
+    struct TestOptionI64 {
+        #[serde_as(as = "Option<NumberOrString>")]
+        val: Option<i64>,
+    }
+
+    #[serde_as]
+    #[derive(Debug, PartialEq, Deserialize, Serialize)]
+    struct TestOptionU64 {
+        #[serde_as(as = "Option<NumberOrString>")]
+        val: Option<u64>,
+    }
+
+    #[serde_as]
+    #[derive(Debug, PartialEq, Deserialize, Serialize)]
+    struct TestVecI64 {
+        #[serde_as(as = "Vec<NumberOrString>")]
+        val: Vec<i64>,
+    }
+
+    #[serde_as]
+    #[derive(Debug, PartialEq, Deserialize, Serialize)]
+    struct TestVecU64 {
+        #[serde_as(as = "Vec<NumberOrString>")]
+        val: Vec<u64>,
+    }
+
+    // Helper Enum for testing field access within variants
+    #[serde_as]
+    #[derive(Debug, PartialEq, Deserialize, Serialize)]
+    #[serde(rename_all = "camelCase")] // Added to make JSON keys distinct for variants
+    enum TestEnum {
+        VariantA {
+            #[serde(rename = "numVal")]
+            #[serde_as(as = "NumberOrString")]
+            num_val: i64,
+            #[serde(rename = "otherData")]
+            other_data: String,
+        },
+        VariantB {
+            #[serde_as(as = "NumberOrString")]
+            count: u64,
+        },
+        SimpleVariant,
+    }
+
+    // --- i64 Deserialization Tests ---
+    #[test]
+    fn deserialize_i64_from_json_number_positive() {
+        let json = r#"{"val": 123}"#;
+        let expected = TestI64 { val: 123 };
+        assert_eq!(serde_json::from_str::<TestI64>(json).unwrap(), expected);
+    }
+
+    #[test]
+    fn deserialize_i64_from_json_number_negative() {
+        let json = r#"{"val": -456}"#;
+        let expected = TestI64 { val: -456 };
+        assert_eq!(serde_json::from_str::<TestI64>(json).unwrap(), expected);
+    }
+
+    #[test]
+    fn deserialize_i64_from_json_number_zero() {
+        let json = r#"{"val": 0}"#;
+        let expected = TestI64 { val: 0 };
+        assert_eq!(serde_json::from_str::<TestI64>(json).unwrap(), expected);
+    }
+
+    #[test]
+    fn deserialize_i64_from_json_number_max() {
+        let json = format!(r#"{{"val": {}}}"#, i64::MAX);
+        let expected = TestI64 { val: i64::MAX };
+        assert_eq!(serde_json::from_str::<TestI64>(&json).unwrap(), expected);
+    }
+
+    #[test]
+    fn deserialize_i64_from_json_number_min() {
+        let json = format!(r#"{{"val": {}}}"#, i64::MIN);
+        let expected = TestI64 { val: i64::MIN };
+        assert_eq!(serde_json::from_str::<TestI64>(&json).unwrap(), expected);
+    }
+
+    #[test]
+    fn deserialize_i64_from_json_string_positive() {
+        let json = r#"{"val": "789"}"#;
+        let expected = TestI64 { val: 789 };
+        assert_eq!(serde_json::from_str::<TestI64>(json).unwrap(), expected);
+    }
+
+    #[test]
+    fn deserialize_i64_from_json_string_negative() {
+        let json = r#"{"val": "-101"}"#;
+        let expected = TestI64 { val: -101 };
+        assert_eq!(serde_json::from_str::<TestI64>(json).unwrap(), expected);
+    }
+
+    #[test]
+    fn deserialize_i64_from_json_string_zero() {
+        let json = r#"{"val": "0"}"#;
+        let expected = TestI64 { val: 0 };
+        assert_eq!(serde_json::from_str::<TestI64>(json).unwrap(), expected);
+    }
+
+    #[test]
+    fn deserialize_i64_from_json_string_max() {
+        let json = format!(r#"{{"val": "{}"}}"#, i64::MAX);
+        let expected = TestI64 { val: i64::MAX };
+        assert_eq!(serde_json::from_str::<TestI64>(&json).unwrap(), expected);
+    }
+
+    #[test]
+    fn deserialize_i64_from_json_string_min() {
+        let json = format!(r#"{{"val": "{}"}}"#, i64::MIN);
+        let expected = TestI64 { val: i64::MIN };
+        assert_eq!(serde_json::from_str::<TestI64>(&json).unwrap(), expected);
+    }
+
+    #[test]
+    fn deserialize_i64_from_json_string_with_plus_prefix() {
+        let json = r#"{"val": "+123"}"#;
+        let expected = TestI64 { val: 123 };
+        assert_eq!(serde_json::from_str::<TestI64>(json).unwrap(), expected);
+    }
+
+    #[test]
+    fn deserialize_i64_from_json_string_with_plus_zero() {
+        let json = r#"{"val": "+0"}"#;
+        let expected = TestI64 { val: 0 };
+        assert_eq!(serde_json::from_str::<TestI64>(json).unwrap(), expected);
+    }
+
+    #[test]
+    fn deserialize_i64_from_json_string_with_minus_zero() {
+        let json = r#"{"val": "-0"}"#;
+        let expected = TestI64 { val: 0 };
+        assert_eq!(serde_json::from_str::<TestI64>(json).unwrap(), expected);
+    }
+
+    #[test]
+    fn deserialize_i64_error_from_json_string_with_leading_whitespace() {
+        let json = r#"{"val": " 123"}"#;
+        assert!(serde_json::from_str::<TestI64>(json).is_err());
+    }
+
+    #[test]
+    fn deserialize_i64_error_from_json_string_with_trailing_whitespace() {
+        let json = r#"{"val": "123 "}"#;
+        assert!(serde_json::from_str::<TestI64>(json).is_err());
+    }
+
+    #[test]
+    fn deserialize_i64_error_from_json_string_with_both_whitespace() {
+        let json = r#"{"val": " 123 "}"#;
+        assert!(serde_json::from_str::<TestI64>(json).is_err());
+    }
+
+    #[test]
+    fn deserialize_i64_error_from_json_string_with_invalid_plus_prefix() {
+        let json = r#"{"val": "++123"}"#;
+        assert!(serde_json::from_str::<TestI64>(json).is_err());
+    }
+
+    #[test]
+    fn deserialize_i64_error_from_json_string_with_invalid_minus_prefix() {
+        let json = r#"{"val": "--123"}"#;
+        assert!(serde_json::from_str::<TestI64>(json).is_err());
+    }
+
+    #[test]
+    fn deserialize_i64_error_from_json_string_with_invalid_mixed_prefix() {
+        let json = r#"{"val": "+-123"}"#;
+        assert!(serde_json::from_str::<TestI64>(json).is_err());
+    }
+
+    #[test]
+    fn deserialize_i64_error_from_string_not_a_number() {
+        let json = r#"{"val": "abc"}"#;
+        assert!(serde_json::from_str::<TestI64>(json).is_err());
+    }
+
+    #[test]
+    fn deserialize_i64_error_from_string_float() {
+        let json = r#"{"val": "123.45"}"#; // Not an integer
+        assert!(serde_json::from_str::<TestI64>(json).is_err());
+    }
+
+    #[test]
+    fn deserialize_i64_error_from_string_empty() {
+        let json = r#"{"val": ""}"#;
+        assert!(serde_json::from_str::<TestI64>(json).is_err());
+    }
+
+    #[test]
+    fn deserialize_i64_error_from_string_overflow() {
+        let overflow_val = i128::from(i64::MAX) + 1;
+        let json = format!(r#"{{"val": "{overflow_val}"}}"#);
+        assert!(serde_json::from_str::<TestI64>(&json).is_err());
+    }
+
+    #[test]
+    fn deserialize_i64_error_from_string_underflow() {
+        let underflow_val = i128::from(i64::MIN) - 1;
+        let json = format!(r#"{{"val": "{underflow_val}"}}"#);
+        assert!(serde_json::from_str::<TestI64>(&json).is_err());
+    }
+
+    #[test]
+    fn deserialize_i64_error_from_json_float_number() {
+        let json = r#"{"val": 123.45}"#;
+        assert!(serde_json::from_str::<TestI64>(json).is_err());
+    }
+
+    #[test]
+    fn deserialize_i64_error_from_json_bool_true() {
+        let json = r#"{"val": true}"#;
+        assert!(serde_json::from_str::<TestI64>(json).is_err());
+    }
+
+    #[test]
+    fn deserialize_i64_error_from_json_array() {
+        let json = r#"{"val": []}"#;
+        assert!(serde_json::from_str::<TestI64>(json).is_err());
+    }
+
+    #[test]
+    fn deserialize_i64_error_from_json_object() {
+        let json = r#"{"val": {}}"#;
+        assert!(serde_json::from_str::<TestI64>(json).is_err());
+    }
+
+    #[test]
+    fn deserialize_i64_error_from_json_null() {
+        let json = r#"{"val": null}"#;
+        assert!(serde_json::from_str::<TestI64>(json).is_err());
+    }
+
+    // -- Additional i64 String Format Tests --
+    #[test]
+    fn deserialize_i64_error_from_hex_string() {
+        let json = r#"{"val": "0x1A"}"#; // Hex "26"
+                                         // std::primitive::i64.from_str() does not support "0x"
+        assert!(
+            serde_json::from_str::<TestI64>(json).is_err(),
+            "Hex string should fail parsing to i64"
+        );
+    }
+
+    #[test]
+    fn deserialize_i64_error_from_octal_string() {
+        let json = r#"{"val": "0o77"}"#; // Octal "63"
+                                         // std::primitive::i64.from_str() does not support "0o"
+        assert!(
+            serde_json::from_str::<TestI64>(json).is_err(),
+            "Octal string should fail parsing to i64"
+        );
+    }
+
+    #[test]
+    fn deserialize_i64_error_from_scientific_notation_string() {
+        let json = r#"{"val": "1e3"}"#; // "1000" in scientific
+                                        // std::primitive::i64.from_str() does not support scientific notation
+        assert!(
+            serde_json::from_str::<TestI64>(json).is_err(),
+            "Scientific notation string should fail parsing to i64"
+        );
+    }
+
+    #[test]
+    fn deserialize_i64_error_from_invalid_scientific_notation_string() {
+        let json = r#"{"val": "1e"}"#;
+        assert!(
+            serde_json::from_str::<TestI64>(json).is_err(),
+            "Invalid scientific notation string should fail"
+        );
+    }
+
+    #[test]
+    fn deserialize_i64_error_from_string_with_underscores() {
+        let json = r#"{"val": "1_000_000"}"#;
+        // std::primitive::i64.from_str() does not support underscores
+        assert!(
+            serde_json::from_str::<TestI64>(json).is_err(),
+            "String with underscores should fail parsing to i64"
+        );
+    }
+
+    #[test]
+    fn deserialize_i64_from_string_with_leading_zeros() {
+        let json = r#"{"val": "000123"}"#;
+        let expected = TestI64 { val: 123 };
+        // std::primitive::i64.from_str() supports leading zeros
+        assert_eq!(
+            serde_json::from_str::<TestI64>(json).unwrap(),
+            expected,
+            "String with leading zeros should parse"
+        );
+    }
+
+    #[test]
+    fn deserialize_i64_from_string_with_leading_zeros_negative() {
+        let json = r#"{"val": "-000123"}"#;
+        let expected = TestI64 { val: -123 };
+        assert_eq!(
+            serde_json::from_str::<TestI64>(json).unwrap(),
+            expected,
+            "Negative string with leading zeros should parse"
+        );
+    }
+
+    #[test]
+    fn deserialize_i64_error_from_string_with_decimal_zeros() {
+        let json = r#"{"val": "123.000"}"#;
+        // std::primitive::i64.from_str() does not support decimals
+        assert!(
+            serde_json::from_str::<TestI64>(json).is_err(),
+            "String with decimal part should fail parsing to i64"
+        );
+    }
+
+    #[test]
+    fn deserialize_i64_error_from_string_with_internal_decimal() {
+        let json = r#"{"val": "12.345"}"#;
+        assert!(
+            serde_json::from_str::<TestI64>(json).is_err(),
+            "String with internal decimal point should fail"
+        );
+    }
+
+    #[test]
+    fn deserialize_i64_error_from_localized_string_commas() {
+        let json = r#"{"val": "1,234"}"#;
+        // std::primitive::i64.from_str() does not support commas
+        assert!(
+            serde_json::from_str::<TestI64>(json).is_err(),
+            "Localized string with commas should fail parsing to i64"
+        );
+    }
+
+    // --- u64 Deserialization Tests ---
+    #[test]
+    fn deserialize_u64_from_json_number() {
+        let json = r#"{"val": 123}"#;
+        let expected = TestU64 { val: 123 };
+        assert_eq!(serde_json::from_str::<TestU64>(json).unwrap(), expected);
+    }
+
+    #[test]
+    fn deserialize_u64_from_json_number_zero() {
+        let json = r#"{"val": 0}"#;
+        let expected = TestU64 { val: 0 };
+        assert_eq!(serde_json::from_str::<TestU64>(json).unwrap(), expected);
+    }
+
+    #[test]
+    fn deserialize_u64_from_json_number_max() {
+        let json = format!(r#"{{"val": {}}}"#, u64::MAX);
+        let expected = TestU64 { val: u64::MAX };
+        assert_eq!(serde_json::from_str::<TestU64>(&json).unwrap(), expected);
+    }
+
+    #[test]
+    fn deserialize_u64_from_json_string() {
+        let json = r#"{"val": "789"}"#;
+        let expected = TestU64 { val: 789 };
+        assert_eq!(serde_json::from_str::<TestU64>(json).unwrap(), expected);
+    }
+
+    #[test]
+    fn deserialize_u64_from_json_string_zero() {
+        let json = r#"{"val": "0"}"#;
+        let expected = TestU64 { val: 0 };
+        assert_eq!(serde_json::from_str::<TestU64>(json).unwrap(), expected);
+    }
+
+    #[test]
+    fn deserialize_u64_from_json_string_max() {
+        let json = format!(r#"{{"val": "{}"}}"#, u64::MAX);
+        let expected = TestU64 { val: u64::MAX };
+        assert_eq!(serde_json::from_str::<TestU64>(&json).unwrap(), expected);
+    }
+
+    #[test]
+    fn deserialize_u64_from_json_string_with_plus_prefix() {
+        let json = r#"{"val": "+123"}"#;
+        let expected = TestU64 { val: 123 };
+        assert_eq!(serde_json::from_str::<TestU64>(json).unwrap(), expected);
+    }
+
+    #[test]
+    fn deserialize_u64_from_json_string_with_plus_zero() {
+        let json = r#"{"val": "+0"}"#;
+        let expected = TestU64 { val: 0 };
+        assert_eq!(serde_json::from_str::<TestU64>(json).unwrap(), expected);
+    }
+
+    #[test]
+    fn deserialize_u64_error_from_json_string_with_leading_whitespace() {
+        let json = r#"{"val": " 123"}"#;
+        assert!(serde_json::from_str::<TestU64>(json).is_err());
+    }
+
+    #[test]
+    fn deserialize_u64_error_from_json_string_with_trailing_whitespace() {
+        let json = r#"{"val": "123 "}"#;
+        assert!(serde_json::from_str::<TestU64>(json).is_err());
+    }
+
+    #[test]
+    fn deserialize_u64_error_from_json_string_with_invalid_plus_prefix() {
+        let json = r#"{"val": "++123"}"#;
+        assert!(serde_json::from_str::<TestU64>(json).is_err());
+    }
+
+    #[test]
+    fn deserialize_u64_error_from_string_negative() {
+        let json = r#"{"val": "-123"}"#; // Negative not allowed for u64 string parse
+        assert!(serde_json::from_str::<TestU64>(json).is_err());
+    }
+
+    #[test]
+    fn deserialize_u64_error_from_json_number_negative() {
+        let json = r#"{"val": -1}"#; // Negative not allowed for u64
+        assert!(serde_json::from_str::<TestU64>(json).is_err());
+    }
+
+    #[test]
+    fn deserialize_u64_error_from_string_not_a_number() {
+        let json = r#"{"val": "abc"}"#;
+        assert!(serde_json::from_str::<TestU64>(json).is_err());
+    }
+
+    #[test]
+    fn deserialize_u64_error_from_string_float() {
+        let json = r#"{"val": "123.45"}"#;
+        assert!(serde_json::from_str::<TestU64>(json).is_err());
+    }
+
+    #[test]
+    fn deserialize_u64_error_from_string_empty() {
+        let json = r#"{"val": ""}"#;
+        assert!(serde_json::from_str::<TestU64>(json).is_err());
+    }
+
+    #[test]
+    fn deserialize_u64_error_from_string_overflow() {
+        let overflow_val = u128::from(u64::MAX) + 1;
+        let json = format!(r#"{{"val": "{overflow_val}"}}"#);
+        assert!(serde_json::from_str::<TestU64>(&json).is_err());
+    }
+
+    #[test]
+    fn deserialize_u64_error_from_json_float_number() {
+        let json = r#"{"val": 123.45}"#;
+        assert!(serde_json::from_str::<TestU64>(json).is_err());
+    }
+
+    #[test]
+    fn deserialize_u64_error_from_json_bool_true() {
+        let json = r#"{"val": true}"#;
+        assert!(serde_json::from_str::<TestU64>(json).is_err());
+    }
+
+    #[test]
+    fn deserialize_u64_error_from_json_array() {
+        let json = r#"{"val": []}"#;
+        assert!(serde_json::from_str::<TestU64>(json).is_err());
+    }
+
+    #[test]
+    fn deserialize_u64_error_from_json_object() {
+        let json = r#"{"val": {}}"#;
+        assert!(serde_json::from_str::<TestU64>(json).is_err());
+    }
+
+    #[test]
+    fn deserialize_u64_error_from_json_null() {
+        let json = r#"{"val": null}"#;
+        assert!(serde_json::from_str::<TestU64>(json).is_err());
+    }
+
+    // -- Additional u64 String Format Tests --
+    #[test]
+    fn deserialize_u64_error_from_hex_string() {
+        let json = r#"{"val": "0x1A"}"#; // Hex "26"
+        assert!(
+            serde_json::from_str::<TestU64>(json).is_err(),
+            "Hex string should fail parsing to u64"
+        );
+    }
+
+    #[test]
+    fn deserialize_u64_error_from_octal_string() {
+        let json = r#"{"val": "0o77"}"#; // Octal "63"
+        assert!(
+            serde_json::from_str::<TestU64>(json).is_err(),
+            "Octal string should fail parsing to u64"
+        );
+    }
+
+    #[test]
+    fn deserialize_u64_error_from_scientific_notation_string() {
+        let json = r#"{"val": "1e3"}"#;
+        assert!(
+            serde_json::from_str::<TestU64>(json).is_err(),
+            "Scientific notation string should fail parsing to u64"
+        );
+    }
+
+    #[test]
+    fn deserialize_u64_error_from_string_with_underscores() {
+        let json = r#"{"val": "1_000_000"}"#;
+        assert!(
+            serde_json::from_str::<TestU64>(json).is_err(),
+            "String with underscores should fail parsing to u64"
+        );
+    }
+
+    #[test]
+    fn deserialize_u64_from_string_with_leading_zeros() {
+        let json = r#"{"val": "000123"}"#;
+        let expected = TestU64 { val: 123 };
+        assert_eq!(
+            serde_json::from_str::<TestU64>(json).unwrap(),
+            expected,
+            "String with leading zeros should parse to u64"
+        );
+    }
+
+    #[test]
+    fn deserialize_u64_error_from_string_with_decimal_zeros() {
+        let json = r#"{"val": "123.000"}"#;
+        assert!(
+            serde_json::from_str::<TestU64>(json).is_err(),
+            "String with decimal part should fail parsing to u64"
+        );
+    }
+
+    #[test]
+    fn deserialize_u64_error_from_localized_string_commas() {
+        let json = r#"{"val": "1,234"}"#;
+        assert!(
+            serde_json::from_str::<TestU64>(json).is_err(),
+            "Localized string with commas should fail parsing to u64"
+        );
+    }
+
+    // --- i64 Serialization Tests ---
+    #[test]
+    fn serialize_i64_positive() {
+        let data = TestI64 { val: 123 };
+        let expected_json = r#"{"val":"123"}"#;
+        assert_eq!(serde_json::to_string(&data).unwrap(), expected_json);
+    }
+
+    #[test]
+    fn serialize_i64_negative() {
+        let data = TestI64 { val: -456 };
+        let expected_json = r#"{"val":"-456"}"#;
+        assert_eq!(serde_json::to_string(&data).unwrap(), expected_json);
+    }
+
+    #[test]
+    fn serialize_i64_zero() {
+        let data = TestI64 { val: 0 };
+        let expected_json = r#"{"val":"0"}"#;
+        assert_eq!(serde_json::to_string(&data).unwrap(), expected_json);
+    }
+
+    #[test]
+    fn serialize_i64_max() {
+        let data = TestI64 { val: i64::MAX };
+        let expected_json = format!(r#"{{"val":"{}"}}"#, i64::MAX);
+        assert_eq!(serde_json::to_string(&data).unwrap(), expected_json);
+    }
+
+    #[test]
+    fn serialize_i64_min() {
+        let data = TestI64 { val: i64::MIN };
+        let expected_json = format!(r#"{{"val":"{}"}}"#, i64::MIN);
+        assert_eq!(serde_json::to_string(&data).unwrap(), expected_json);
+    }
+
+    // --- u64 Serialization Tests ---
+    #[test]
+    fn serialize_u64_positive() {
+        let data = TestU64 { val: 789 };
+        let expected_json = r#"{"val":"789"}"#;
+        assert_eq!(serde_json::to_string(&data).unwrap(), expected_json);
+    }
+
+    #[test]
+    fn serialize_u64_zero() {
+        let data = TestU64 { val: 0 };
+        let expected_json = r#"{"val":"0"}"#;
+        assert_eq!(serde_json::to_string(&data).unwrap(), expected_json);
+    }
+
+    #[test]
+    fn serialize_u64_max() {
+        let data = TestU64 { val: u64::MAX };
+        let expected_json = format!(r#"{{"val":"{}"}}"#, u64::MAX);
+        assert_eq!(serde_json::to_string(&data).unwrap(), expected_json);
+    }
+
+    // --- Option<i64> Tests ---
+    #[test]
+    fn deserialize_option_i64_some_from_json_number() {
+        let json = r#"{"val": 123}"#;
+        let expected = TestOptionI64 { val: Some(123) };
+        assert_eq!(
+            serde_json::from_str::<TestOptionI64>(json).unwrap(),
+            expected
+        );
+    }
+
+    #[test]
+    fn deserialize_option_i64_some_from_json_string() {
+        let json = r#"{"val": "456"}"#;
+        let expected = TestOptionI64 { val: Some(456) };
+        assert_eq!(
+            serde_json::from_str::<TestOptionI64>(json).unwrap(),
+            expected
+        );
+    }
+
+    #[test]
+    fn deserialize_option_i64_none_from_json_null() {
+        let json = r#"{"val": null}"#;
+        let expected = TestOptionI64 { val: None };
+        assert_eq!(
+            serde_json::from_str::<TestOptionI64>(json).unwrap(),
+            expected
+        );
+    }
+
+    #[test]
+    fn deserialize_option_i64_error_from_invalid_string() {
+        let json = r#"{"val": "abc"}"#;
+        assert!(serde_json::from_str::<TestOptionI64>(json).is_err());
+    }
+
+    #[test]
+    fn deserialize_option_i64_error_from_invalid_type() {
+        let json = r#"{"val": true}"#;
+        assert!(serde_json::from_str::<TestOptionI64>(json).is_err());
+    }
+
+    #[test]
+    fn serialize_option_i64_some() {
+        let data = TestOptionI64 { val: Some(123) };
+        let expected_json = r#"{"val":"123"}"#;
+        assert_eq!(serde_json::to_string(&data).unwrap(), expected_json);
+    }
+
+    #[test]
+    fn serialize_option_i64_none() {
+        let data = TestOptionI64 { val: None };
+        let expected_json = r#"{"val":null}"#;
+        assert_eq!(serde_json::to_string(&data).unwrap(), expected_json);
+    }
+
+    // --- Option<u64> Tests ---
+    #[test]
+    fn deserialize_option_u64_some_from_json_number() {
+        let json = r#"{"val": 123}"#;
+        let expected = TestOptionU64 { val: Some(123) };
+        assert_eq!(
+            serde_json::from_str::<TestOptionU64>(json).unwrap(),
+            expected
+        );
+    }
+
+    #[test]
+    fn deserialize_option_u64_some_from_json_string() {
+        let json = r#"{"val": "456"}"#;
+        let expected = TestOptionU64 { val: Some(456) };
+        assert_eq!(
+            serde_json::from_str::<TestOptionU64>(json).unwrap(),
+            expected
+        );
+    }
+
+    #[test]
+    fn deserialize_option_u64_none_from_json_null() {
+        let json = r#"{"val": null}"#;
+        let expected = TestOptionU64 { val: None };
+        assert_eq!(
+            serde_json::from_str::<TestOptionU64>(json).unwrap(),
+            expected
+        );
+    }
+
+    #[test]
+    fn deserialize_option_u64_error_from_invalid_string() {
+        let json = r#"{"val": "abc"}"#;
+        assert!(serde_json::from_str::<TestOptionU64>(json).is_err());
+    }
+
+    #[test]
+    fn deserialize_option_u64_error_from_negative_string() {
+        let json = r#"{"val": "-1"}"#; // Invalid for u64
+        assert!(serde_json::from_str::<TestOptionU64>(json).is_err());
+    }
+
+    #[test]
+    fn serialize_option_u64_some() {
+        let data = TestOptionU64 { val: Some(123) };
+        let expected_json = r#"{"val":"123"}"#;
+        assert_eq!(serde_json::to_string(&data).unwrap(), expected_json);
+    }
+
+    #[test]
+    fn serialize_option_u64_none() {
+        let data = TestOptionU64 { val: None };
+        let expected_json = r#"{"val":null}"#;
+        assert_eq!(serde_json::to_string(&data).unwrap(), expected_json);
+    }
+
+    // --- Vec<i64> Tests ---
+    #[test]
+    fn deserialize_vec_i64_empty() {
+        let json = r#"{"val": []}"#;
+        let expected = TestVecI64 { val: vec![] };
+        assert_eq!(serde_json::from_str::<TestVecI64>(json).unwrap(), expected);
+    }
+
+    #[test]
+    fn deserialize_vec_i64_from_numbers_and_strings() {
+        let json = r#"{"val": [1, "2", -3, "-4"]}"#;
+        let expected = TestVecI64 {
+            val: vec![1, 2, -3, -4],
+        };
+        assert_eq!(serde_json::from_str::<TestVecI64>(json).unwrap(), expected);
+    }
+
+    #[test]
+    fn deserialize_vec_i64_error_if_item_is_invalid_string() {
+        let json = r#"{"val": [1, "abc", 3]}"#;
+        let err = serde_json::from_str::<TestVecI64>(json).unwrap_err();
+        // The error will point to the specific failing element
+        assert!(err.to_string().contains("invalid digit found in string")); // From parse error
+    }
+
+    #[test]
+    fn deserialize_vec_i64_error_if_item_is_invalid_type() {
+        let json = r#"{"val": [1, true, 3]}"#;
+        assert!(serde_json::from_str::<TestVecI64>(json).is_err());
+    }
+
+    #[test]
+    fn serialize_vec_i64_empty() {
+        let data = TestVecI64 { val: vec![] };
+        let expected_json = r#"{"val":[]}"#;
+        assert_eq!(serde_json::to_string(&data).unwrap(), expected_json);
+    }
+
+    #[test]
+    fn serialize_vec_i64_with_values() {
+        let data = TestVecI64 {
+            val: vec![1, -2, 0],
+        };
+        let expected_json = r#"{"val":["1","-2","0"]}"#;
+        assert_eq!(serde_json::to_string(&data).unwrap(), expected_json);
+    }
+
+    // --- Vec<u64> Tests ---
+    #[test]
+    fn deserialize_vec_u64_empty() {
+        let json = r#"{"val": []}"#;
+        let expected = TestVecU64 { val: vec![] };
+        assert_eq!(serde_json::from_str::<TestVecU64>(json).unwrap(), expected);
+    }
+
+    #[test]
+    fn deserialize_vec_u64_from_numbers_and_strings() {
+        let json = r#"{"val": [1, "2", 3, "4"]}"#;
+        let expected = TestVecU64 {
+            val: vec![1, 2, 3, 4],
+        };
+        assert_eq!(serde_json::from_str::<TestVecU64>(json).unwrap(), expected);
+    }
+
+    #[test]
+    fn deserialize_vec_u64_error_if_item_is_invalid_string() {
+        let json = r#"{"val": [1, "abc", 3]}"#;
+        let err = serde_json::from_str::<TestVecU64>(json).unwrap_err();
+        assert!(err.to_string().contains("invalid digit found in string"));
+    }
+
+    #[test]
+    fn deserialize_vec_u64_error_if_item_is_negative_string() {
+        let json = r#"{"val": [1, "-2", 3]}"#;
+        let err = serde_json::from_str::<TestVecU64>(json).unwrap_err();
+        assert!(err.to_string().contains("invalid digit found in string")); // u64 parse error
+    }
+
+    #[test]
+    fn deserialize_vec_u64_error_if_item_is_negative_number() {
+        let json = r#"{"val": [1, -2, 3]}"#;
+        assert!(serde_json::from_str::<TestVecU64>(json).is_err());
+    }
+
+    #[test]
+    fn serialize_vec_u64_empty() {
+        let data = TestVecU64 { val: vec![] };
+        let expected_json = r#"{"val":[]}"#;
+        assert_eq!(serde_json::to_string(&data).unwrap(), expected_json);
+    }
+
+    #[test]
+    fn serialize_vec_u64_with_values() {
+        let data = TestVecU64 { val: vec![1, 2, 0] };
+        let expected_json = r#"{"val":["1","2","0"]}"#;
+        assert_eq!(serde_json::to_string(&data).unwrap(), expected_json);
+    }
+
+    // --- Enum with NumberOrString field Tests ---
+    #[test]
+    fn deserialize_enum_variant_a_with_number() {
+        let json = r#"{"variantA": {"numVal": 123, "otherData": "test"}}"#;
+        let expected = TestEnum::VariantA {
+            num_val: 123,
+            other_data: "test".to_string(),
+        };
+        assert_eq!(serde_json::from_str::<TestEnum>(json).unwrap(), expected);
+    }
+
+    #[test]
+    fn deserialize_enum_variant_a_with_string_number() {
+        let json = r#"{"variantA": {"numVal": "-45", "otherData": "data"}}"#;
+        let expected = TestEnum::VariantA {
+            num_val: -45,
+            other_data: "data".to_string(),
+        };
+        assert_eq!(serde_json::from_str::<TestEnum>(json).unwrap(), expected);
+    }
+
+    #[test]
+    fn deserialize_enum_variant_b_with_number() {
+        let json = r#"{"variantB": {"count": 7890}}"#;
+        let expected = TestEnum::VariantB { count: 7890 };
+        assert_eq!(serde_json::from_str::<TestEnum>(json).unwrap(), expected);
+    }
+
+    #[test]
+    fn deserialize_enum_variant_b_with_string_number() {
+        let json = r#"{"variantB": {"count": "1234567890"}}"#;
+        let expected = TestEnum::VariantB { count: 1234567890 };
+        assert_eq!(serde_json::from_str::<TestEnum>(json).unwrap(), expected);
+    }
+
+    #[test]
+    fn deserialize_enum_variant_a_error_invalid_num_string() {
+        let json = r#"{"variantA": {"numVal": "abc", "otherData": "test"}}"#;
+        assert!(serde_json::from_str::<TestEnum>(json).is_err());
+    }
+
+    #[test]
+    fn serialize_enum_variant_a() {
+        let data = TestEnum::VariantA {
+            num_val: 123,
+            other_data: "test".to_string(),
+        };
+        // Note: num_val will be serialized as a string by NumberOrString
+        let expected_json = r#"{"variantA":{"numVal":"123","otherData":"test"}}"#;
+        assert_eq!(serde_json::to_string(&data).unwrap(), expected_json);
+    }
+
+    #[test]
+    fn serialize_enum_variant_b() {
+        let data = TestEnum::VariantB { count: 7890 };
+        let expected_json = r#"{"variantB":{"count":"7890"}}"#;
+        assert_eq!(serde_json::to_string(&data).unwrap(), expected_json);
+    }
+}
+
 /// Uint512 is an XDR Typedef defines as:
 ///
 /// ```text
 /// typedef opaque uint512[64];
 /// ```
 ///
+#[cfg_eval::cfg_eval]
 #[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr))]
-pub struct Uint512(pub [u8; 64]);
+pub struct Uint512(
+  pub [u8; 64]
+);
 
 impl core::fmt::Debug for Uint512 {
   fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
@@ -2889,7 +3938,7 @@ impl AsRef<[u8; 64]> for Uint512 {
 
 impl ReadXdr for Uint512 {
     #[cfg(feature = "std")]
-    fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self> {
+    fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self, Error> {
         r.with_limited_depth(|r| {
             let i = <[u8; 64]>::read_xdr(r)?;
             let v = Uint512(i);
@@ -2900,7 +3949,7 @@ impl ReadXdr for Uint512 {
 
 impl WriteXdr for Uint512 {
     #[cfg(feature = "std")]
-    fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
+    fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<(), Error> {
         w.with_limited_depth(|w|{ self.0.write_xdr(w) })
     }
 }
@@ -2915,7 +3964,7 @@ impl Uint512 {
 #[cfg(feature = "alloc")]
 impl TryFrom<Vec<u8>> for Uint512 {
     type Error = Error;
-    fn try_from(x: Vec<u8>) -> Result<Self> {
+    fn try_from(x: Vec<u8>) -> Result<Self, Error> {
         x.as_slice().try_into()
     }
 }
@@ -2923,14 +3972,14 @@ impl TryFrom<Vec<u8>> for Uint512 {
 #[cfg(feature = "alloc")]
 impl TryFrom<&Vec<u8>> for Uint512 {
     type Error = Error;
-    fn try_from(x: &Vec<u8>) -> Result<Self> {
+    fn try_from(x: &Vec<u8>) -> Result<Self, Error> {
         x.as_slice().try_into()
     }
 }
 
 impl TryFrom<&[u8]> for Uint512 {
     type Error = Error;
-    fn try_from(x: &[u8]) -> Result<Self> {
+    fn try_from(x: &[u8]) -> Result<Self, Error> {
         Ok(Uint512(x.try_into()?))
     }
 }
@@ -2948,13 +3997,16 @@ impl AsRef<[u8]> for Uint512 {
 /// typedef opaque uint513<64>;
 /// ```
 ///
+#[cfg_eval::cfg_eval]
 #[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[derive(Default)]
-#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
+#[cfg_attr(all(feature = "serde", feature = "alloc"), serde_with::serde_as, derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 #[derive(Debug)]
-pub struct Uint513(pub BytesM::<64>);
+pub struct Uint513(
+  pub BytesM::<64>
+);
 
 impl From<Uint513> for BytesM::<64> {
     #[must_use]
@@ -2979,7 +4031,7 @@ impl AsRef<BytesM::<64>> for Uint513 {
 
 impl ReadXdr for Uint513 {
     #[cfg(feature = "std")]
-    fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self> {
+    fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self, Error> {
         r.with_limited_depth(|r| {
             let i = BytesM::<64>::read_xdr(r)?;
             let v = Uint513(i);
@@ -2990,7 +4042,7 @@ impl ReadXdr for Uint513 {
 
 impl WriteXdr for Uint513 {
     #[cfg(feature = "std")]
-    fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
+    fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<(), Error> {
         w.with_limited_depth(|w|{ self.0.write_xdr(w) })
     }
 }
@@ -3011,7 +4063,7 @@ impl From<Uint513> for Vec<u8> {
 
 impl TryFrom<Vec<u8>> for Uint513 {
     type Error = Error;
-    fn try_from(x: Vec<u8>) -> Result<Self> {
+    fn try_from(x: Vec<u8>) -> Result<Self, Error> {
         Ok(Uint513(x.try_into()?))
     }
 }
@@ -3019,7 +4071,7 @@ impl TryFrom<Vec<u8>> for Uint513 {
 #[cfg(feature = "alloc")]
 impl TryFrom<&Vec<u8>> for Uint513 {
     type Error = Error;
-    fn try_from(x: &Vec<u8>) -> Result<Self> {
+    fn try_from(x: &Vec<u8>) -> Result<Self, Error> {
         Ok(Uint513(x.try_into()?))
     }
 }
@@ -3050,13 +4102,16 @@ impl AsRef<[u8]> for Uint513 {
 /// typedef opaque uint514<>;
 /// ```
 ///
+#[cfg_eval::cfg_eval]
 #[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[derive(Default)]
-#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
+#[cfg_attr(all(feature = "serde", feature = "alloc"), serde_with::serde_as, derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 #[derive(Debug)]
-pub struct Uint514(pub BytesM);
+pub struct Uint514(
+  pub BytesM
+);
 
 impl From<Uint514> for BytesM {
     #[must_use]
@@ -3081,7 +4136,7 @@ impl AsRef<BytesM> for Uint514 {
 
 impl ReadXdr for Uint514 {
     #[cfg(feature = "std")]
-    fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self> {
+    fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self, Error> {
         r.with_limited_depth(|r| {
             let i = BytesM::read_xdr(r)?;
             let v = Uint514(i);
@@ -3092,7 +4147,7 @@ impl ReadXdr for Uint514 {
 
 impl WriteXdr for Uint514 {
     #[cfg(feature = "std")]
-    fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
+    fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<(), Error> {
         w.with_limited_depth(|w|{ self.0.write_xdr(w) })
     }
 }
@@ -3113,7 +4168,7 @@ impl From<Uint514> for Vec<u8> {
 
 impl TryFrom<Vec<u8>> for Uint514 {
     type Error = Error;
-    fn try_from(x: Vec<u8>) -> Result<Self> {
+    fn try_from(x: Vec<u8>) -> Result<Self, Error> {
         Ok(Uint514(x.try_into()?))
     }
 }
@@ -3121,7 +4176,7 @@ impl TryFrom<Vec<u8>> for Uint514 {
 #[cfg(feature = "alloc")]
 impl TryFrom<&Vec<u8>> for Uint514 {
     type Error = Error;
-    fn try_from(x: &Vec<u8>) -> Result<Self> {
+    fn try_from(x: &Vec<u8>) -> Result<Self, Error> {
         Ok(Uint514(x.try_into()?))
     }
 }
@@ -3152,13 +4207,16 @@ impl AsRef<[u8]> for Uint514 {
 /// typedef string str<64>;
 /// ```
 ///
+#[cfg_eval::cfg_eval]
 #[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[derive(Default)]
-#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
+#[cfg_attr(all(feature = "serde", feature = "alloc"), serde_with::serde_as, derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 #[derive(Debug)]
-pub struct Str(pub StringM::<64>);
+pub struct Str(
+  pub StringM::<64>
+);
 
 impl From<Str> for StringM::<64> {
     #[must_use]
@@ -3183,7 +4241,7 @@ impl AsRef<StringM::<64>> for Str {
 
 impl ReadXdr for Str {
     #[cfg(feature = "std")]
-    fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self> {
+    fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self, Error> {
         r.with_limited_depth(|r| {
             let i = StringM::<64>::read_xdr(r)?;
             let v = Str(i);
@@ -3194,7 +4252,7 @@ impl ReadXdr for Str {
 
 impl WriteXdr for Str {
     #[cfg(feature = "std")]
-    fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
+    fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<(), Error> {
         w.with_limited_depth(|w|{ self.0.write_xdr(w) })
     }
 }
@@ -3215,7 +4273,7 @@ impl From<Str> for Vec<u8> {
 
 impl TryFrom<Vec<u8>> for Str {
     type Error = Error;
-    fn try_from(x: Vec<u8>) -> Result<Self> {
+    fn try_from(x: Vec<u8>) -> Result<Self, Error> {
         Ok(Str(x.try_into()?))
     }
 }
@@ -3223,7 +4281,7 @@ impl TryFrom<Vec<u8>> for Str {
 #[cfg(feature = "alloc")]
 impl TryFrom<&Vec<u8>> for Str {
     type Error = Error;
-    fn try_from(x: &Vec<u8>) -> Result<Self> {
+    fn try_from(x: &Vec<u8>) -> Result<Self, Error> {
         Ok(Str(x.try_into()?))
     }
 }
@@ -3254,13 +4312,16 @@ impl AsRef<[u8]> for Str {
 /// typedef string str2<>;
 /// ```
 ///
+#[cfg_eval::cfg_eval]
 #[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[derive(Default)]
-#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
+#[cfg_attr(all(feature = "serde", feature = "alloc"), serde_with::serde_as, derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 #[derive(Debug)]
-pub struct Str2(pub StringM);
+pub struct Str2(
+  pub StringM
+);
 
 impl From<Str2> for StringM {
     #[must_use]
@@ -3285,7 +4346,7 @@ impl AsRef<StringM> for Str2 {
 
 impl ReadXdr for Str2 {
     #[cfg(feature = "std")]
-    fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self> {
+    fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self, Error> {
         r.with_limited_depth(|r| {
             let i = StringM::read_xdr(r)?;
             let v = Str2(i);
@@ -3296,7 +4357,7 @@ impl ReadXdr for Str2 {
 
 impl WriteXdr for Str2 {
     #[cfg(feature = "std")]
-    fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
+    fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<(), Error> {
         w.with_limited_depth(|w|{ self.0.write_xdr(w) })
     }
 }
@@ -3317,7 +4378,7 @@ impl From<Str2> for Vec<u8> {
 
 impl TryFrom<Vec<u8>> for Str2 {
     type Error = Error;
-    fn try_from(x: Vec<u8>) -> Result<Self> {
+    fn try_from(x: Vec<u8>) -> Result<Self, Error> {
         Ok(Str2(x.try_into()?))
     }
 }
@@ -3325,7 +4386,7 @@ impl TryFrom<Vec<u8>> for Str2 {
 #[cfg(feature = "alloc")]
 impl TryFrom<&Vec<u8>> for Str2 {
     type Error = Error;
-    fn try_from(x: &Vec<u8>) -> Result<Self> {
+    fn try_from(x: &Vec<u8>) -> Result<Self, Error> {
         Ok(Str2(x.try_into()?))
     }
 }
@@ -3356,10 +4417,13 @@ impl AsRef<[u8]> for Str2 {
 /// typedef opaque Hash[32];
 /// ```
 ///
+#[cfg_eval::cfg_eval]
 #[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr))]
-pub struct Hash(pub [u8; 32]);
+pub struct Hash(
+  pub [u8; 32]
+);
 
 impl core::fmt::Debug for Hash {
   fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
@@ -3445,7 +4509,7 @@ impl AsRef<[u8; 32]> for Hash {
 
 impl ReadXdr for Hash {
     #[cfg(feature = "std")]
-    fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self> {
+    fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self, Error> {
         r.with_limited_depth(|r| {
             let i = <[u8; 32]>::read_xdr(r)?;
             let v = Hash(i);
@@ -3456,7 +4520,7 @@ impl ReadXdr for Hash {
 
 impl WriteXdr for Hash {
     #[cfg(feature = "std")]
-    fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
+    fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<(), Error> {
         w.with_limited_depth(|w|{ self.0.write_xdr(w) })
     }
 }
@@ -3471,7 +4535,7 @@ impl Hash {
 #[cfg(feature = "alloc")]
 impl TryFrom<Vec<u8>> for Hash {
     type Error = Error;
-    fn try_from(x: Vec<u8>) -> Result<Self> {
+    fn try_from(x: Vec<u8>) -> Result<Self, Error> {
         x.as_slice().try_into()
     }
 }
@@ -3479,14 +4543,14 @@ impl TryFrom<Vec<u8>> for Hash {
 #[cfg(feature = "alloc")]
 impl TryFrom<&Vec<u8>> for Hash {
     type Error = Error;
-    fn try_from(x: &Vec<u8>) -> Result<Self> {
+    fn try_from(x: &Vec<u8>) -> Result<Self, Error> {
         x.as_slice().try_into()
     }
 }
 
 impl TryFrom<&[u8]> for Hash {
     type Error = Error;
-    fn try_from(x: &[u8]) -> Result<Self> {
+    fn try_from(x: &[u8]) -> Result<Self, Error> {
         Ok(Hash(x.try_into()?))
     }
 }
@@ -3504,12 +4568,15 @@ impl AsRef<[u8]> for Hash {
 /// typedef Hash Hashes1[12];
 /// ```
 ///
+#[cfg_eval::cfg_eval]
 #[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
-#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
+#[cfg_attr(all(feature = "serde", feature = "alloc"), serde_with::serde_as, derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 #[derive(Debug)]
-pub struct Hashes1(pub [Hash; 12]);
+pub struct Hashes1(
+  pub [Hash; 12]
+);
 
 impl From<Hashes1> for [Hash; 12] {
     #[must_use]
@@ -3534,7 +4601,7 @@ impl AsRef<[Hash; 12]> for Hashes1 {
 
 impl ReadXdr for Hashes1 {
     #[cfg(feature = "std")]
-    fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self> {
+    fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self, Error> {
         r.with_limited_depth(|r| {
             let i = <[Hash; 12]>::read_xdr(r)?;
             let v = Hashes1(i);
@@ -3545,7 +4612,7 @@ impl ReadXdr for Hashes1 {
 
 impl WriteXdr for Hashes1 {
     #[cfg(feature = "std")]
-    fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
+    fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<(), Error> {
         w.with_limited_depth(|w|{ self.0.write_xdr(w) })
     }
 }
@@ -3560,7 +4627,7 @@ impl Hashes1 {
 #[cfg(feature = "alloc")]
 impl TryFrom<Vec<Hash>> for Hashes1 {
     type Error = Error;
-    fn try_from(x: Vec<Hash>) -> Result<Self> {
+    fn try_from(x: Vec<Hash>) -> Result<Self, Error> {
         x.as_slice().try_into()
     }
 }
@@ -3568,14 +4635,14 @@ impl TryFrom<Vec<Hash>> for Hashes1 {
 #[cfg(feature = "alloc")]
 impl TryFrom<&Vec<Hash>> for Hashes1 {
     type Error = Error;
-    fn try_from(x: &Vec<Hash>) -> Result<Self> {
+    fn try_from(x: &Vec<Hash>) -> Result<Self, Error> {
         x.as_slice().try_into()
     }
 }
 
 impl TryFrom<&[Hash]> for Hashes1 {
     type Error = Error;
-    fn try_from(x: &[Hash]) -> Result<Self> {
+    fn try_from(x: &[Hash]) -> Result<Self, Error> {
         Ok(Hashes1(x.try_into()?))
     }
 }
@@ -3593,38 +4660,41 @@ impl AsRef<[Hash]> for Hashes1 {
 /// typedef Hash Hashes2<12>;
 /// ```
 ///
+#[cfg_eval::cfg_eval]
 #[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[derive(Default)]
-#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
+#[cfg_attr(all(feature = "serde", feature = "alloc"), serde_with::serde_as, derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 #[derive(Debug)]
-pub struct Hashes2(pub VecM::<Hash, 12>);
+pub struct Hashes2(
+  pub VecM<Hash, 12>
+);
 
-impl From<Hashes2> for VecM::<Hash, 12> {
+impl From<Hashes2> for VecM<Hash, 12> {
     #[must_use]
     fn from(x: Hashes2) -> Self {
         x.0
     }
 }
 
-impl From<VecM::<Hash, 12>> for Hashes2 {
+impl From<VecM<Hash, 12>> for Hashes2 {
     #[must_use]
-    fn from(x: VecM::<Hash, 12>) -> Self {
+    fn from(x: VecM<Hash, 12>) -> Self {
         Hashes2(x)
     }
 }
 
-impl AsRef<VecM::<Hash, 12>> for Hashes2 {
+impl AsRef<VecM<Hash, 12>> for Hashes2 {
     #[must_use]
-    fn as_ref(&self) -> &VecM::<Hash, 12> {
+    fn as_ref(&self) -> &VecM<Hash, 12> {
         &self.0
     }
 }
 
 impl ReadXdr for Hashes2 {
     #[cfg(feature = "std")]
-    fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self> {
+    fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self, Error> {
         r.with_limited_depth(|r| {
             let i = VecM::<Hash, 12>::read_xdr(r)?;
             let v = Hashes2(i);
@@ -3635,13 +4705,13 @@ impl ReadXdr for Hashes2 {
 
 impl WriteXdr for Hashes2 {
     #[cfg(feature = "std")]
-    fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
+    fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<(), Error> {
         w.with_limited_depth(|w|{ self.0.write_xdr(w) })
     }
 }
 
 impl Deref for Hashes2 {
-  type Target = VecM::<Hash, 12>;
+  type Target = VecM<Hash, 12>;
   fn deref(&self) -> &Self::Target {
       &self.0
   }
@@ -3656,7 +4726,7 @@ impl From<Hashes2> for Vec<Hash> {
 
 impl TryFrom<Vec<Hash>> for Hashes2 {
     type Error = Error;
-    fn try_from(x: Vec<Hash>) -> Result<Self> {
+    fn try_from(x: Vec<Hash>) -> Result<Self, Error> {
         Ok(Hashes2(x.try_into()?))
     }
 }
@@ -3664,7 +4734,7 @@ impl TryFrom<Vec<Hash>> for Hashes2 {
 #[cfg(feature = "alloc")]
 impl TryFrom<&Vec<Hash>> for Hashes2 {
     type Error = Error;
-    fn try_from(x: &Vec<Hash>) -> Result<Self> {
+    fn try_from(x: &Vec<Hash>) -> Result<Self, Error> {
         Ok(Hashes2(x.try_into()?))
     }
 }
@@ -3695,38 +4765,41 @@ impl AsRef<[Hash]> for Hashes2 {
 /// typedef Hash Hashes3<>;
 /// ```
 ///
+#[cfg_eval::cfg_eval]
 #[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[derive(Default)]
-#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
+#[cfg_attr(all(feature = "serde", feature = "alloc"), serde_with::serde_as, derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 #[derive(Debug)]
-pub struct Hashes3(pub VecM::<Hash>);
+pub struct Hashes3(
+  pub VecM<Hash>
+);
 
-impl From<Hashes3> for VecM::<Hash> {
+impl From<Hashes3> for VecM<Hash> {
     #[must_use]
     fn from(x: Hashes3) -> Self {
         x.0
     }
 }
 
-impl From<VecM::<Hash>> for Hashes3 {
+impl From<VecM<Hash>> for Hashes3 {
     #[must_use]
-    fn from(x: VecM::<Hash>) -> Self {
+    fn from(x: VecM<Hash>) -> Self {
         Hashes3(x)
     }
 }
 
-impl AsRef<VecM::<Hash>> for Hashes3 {
+impl AsRef<VecM<Hash>> for Hashes3 {
     #[must_use]
-    fn as_ref(&self) -> &VecM::<Hash> {
+    fn as_ref(&self) -> &VecM<Hash> {
         &self.0
     }
 }
 
 impl ReadXdr for Hashes3 {
     #[cfg(feature = "std")]
-    fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self> {
+    fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self, Error> {
         r.with_limited_depth(|r| {
             let i = VecM::<Hash>::read_xdr(r)?;
             let v = Hashes3(i);
@@ -3737,13 +4810,13 @@ impl ReadXdr for Hashes3 {
 
 impl WriteXdr for Hashes3 {
     #[cfg(feature = "std")]
-    fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
+    fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<(), Error> {
         w.with_limited_depth(|w|{ self.0.write_xdr(w) })
     }
 }
 
 impl Deref for Hashes3 {
-  type Target = VecM::<Hash>;
+  type Target = VecM<Hash>;
   fn deref(&self) -> &Self::Target {
       &self.0
   }
@@ -3758,7 +4831,7 @@ impl From<Hashes3> for Vec<Hash> {
 
 impl TryFrom<Vec<Hash>> for Hashes3 {
     type Error = Error;
-    fn try_from(x: Vec<Hash>) -> Result<Self> {
+    fn try_from(x: Vec<Hash>) -> Result<Self, Error> {
         Ok(Hashes3(x.try_into()?))
     }
 }
@@ -3766,7 +4839,7 @@ impl TryFrom<Vec<Hash>> for Hashes3 {
 #[cfg(feature = "alloc")]
 impl TryFrom<&Vec<Hash>> for Hashes3 {
     type Error = Error;
-    fn try_from(x: &Vec<Hash>) -> Result<Self> {
+    fn try_from(x: &Vec<Hash>) -> Result<Self, Error> {
         Ok(Hashes3(x.try_into()?))
     }
 }
@@ -3797,12 +4870,15 @@ impl AsRef<[Hash]> for Hashes3 {
 /// typedef Hash *optHash1;
 /// ```
 ///
+#[cfg_eval::cfg_eval]
 #[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
-#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
+#[cfg_attr(all(feature = "serde", feature = "alloc"), serde_with::serde_as, derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 #[derive(Debug)]
-pub struct OptHash1(pub Option<Hash>);
+pub struct OptHash1(
+  pub Option<Hash>
+);
 
 impl From<OptHash1> for Option<Hash> {
     #[must_use]
@@ -3827,7 +4903,7 @@ impl AsRef<Option<Hash>> for OptHash1 {
 
 impl ReadXdr for OptHash1 {
     #[cfg(feature = "std")]
-    fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self> {
+    fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self, Error> {
         r.with_limited_depth(|r| {
             let i = Option::<Hash>::read_xdr(r)?;
             let v = OptHash1(i);
@@ -3838,7 +4914,7 @@ impl ReadXdr for OptHash1 {
 
 impl WriteXdr for OptHash1 {
     #[cfg(feature = "std")]
-    fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
+    fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<(), Error> {
         w.with_limited_depth(|w|{ self.0.write_xdr(w) })
     }
 }
@@ -3849,12 +4925,15 @@ impl WriteXdr for OptHash1 {
 /// typedef Hash* optHash2;
 /// ```
 ///
+#[cfg_eval::cfg_eval]
 #[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
-#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
+#[cfg_attr(all(feature = "serde", feature = "alloc"), serde_with::serde_as, derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 #[derive(Debug)]
-pub struct OptHash2(pub Option<Hash>);
+pub struct OptHash2(
+  pub Option<Hash>
+);
 
 impl From<OptHash2> for Option<Hash> {
     #[must_use]
@@ -3879,7 +4958,7 @@ impl AsRef<Option<Hash>> for OptHash2 {
 
 impl ReadXdr for OptHash2 {
     #[cfg(feature = "std")]
-    fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self> {
+    fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self, Error> {
         r.with_limited_depth(|r| {
             let i = Option::<Hash>::read_xdr(r)?;
             let v = OptHash2(i);
@@ -3890,7 +4969,7 @@ impl ReadXdr for OptHash2 {
 
 impl WriteXdr for OptHash2 {
     #[cfg(feature = "std")]
-    fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
+    fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<(), Error> {
         w.with_limited_depth(|w|{ self.0.write_xdr(w) })
     }
 }
@@ -3943,6 +5022,7 @@ pub type Int4 = u64;
 /// ```
 ///
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[cfg_eval::cfg_eval]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde_with::SerializeDisplay))]
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
@@ -3958,7 +5038,7 @@ pub struct MyStruct {
 
         impl ReadXdr for MyStruct {
             #[cfg(feature = "std")]
-            fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self> {
+            fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self, Error> {
                 r.with_limited_depth(|r| {
                     Ok(Self{
                       field1: Uint512::read_xdr(r)?,
@@ -3975,7 +5055,7 @@ field7: bool::read_xdr(r)?,
 
         impl WriteXdr for MyStruct {
             #[cfg(feature = "std")]
-            fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
+            fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<(), Error> {
                 w.with_limited_depth(|w| {
                     self.field1.write_xdr(w)?;
 self.field2.write_xdr(w)?;
@@ -4031,16 +5111,17 @@ field7: bool,
 /// ```
 ///
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[cfg_eval::cfg_eval]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde_with::SerializeDisplay))]
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 pub struct LotsOfMyStructs {
-  pub members: VecM::<MyStruct>,
+  pub members: VecM<MyStruct>,
 }
 
 impl ReadXdr for LotsOfMyStructs {
     #[cfg(feature = "std")]
-    fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self> {
+    fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self, Error> {
         r.with_limited_depth(|r| {
             Ok(Self{
               members: VecM::<MyStruct>::read_xdr(r)?,
@@ -4051,7 +5132,7 @@ impl ReadXdr for LotsOfMyStructs {
 
 impl WriteXdr for LotsOfMyStructs {
     #[cfg(feature = "std")]
-    fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
+    fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<(), Error> {
         w.with_limited_depth(|w| {
             self.members.write_xdr(w)?;
             Ok(())
@@ -4064,7 +5145,7 @@ impl<'de> serde::Deserialize<'de> for LotsOfMyStructs {
         use serde::Deserialize;
         #[derive(Deserialize)]
         struct LotsOfMyStructs {
-            members: VecM::<MyStruct>,
+            members: VecM<MyStruct>,
         }
         #[derive(Deserialize)]
         #[serde(untagged)]
@@ -4095,8 +5176,9 @@ impl<'de> serde::Deserialize<'de> for LotsOfMyStructs {
 /// ```
 ///
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[cfg_eval::cfg_eval]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
-#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
+#[cfg_attr(all(feature = "serde", feature = "alloc"), serde_with::serde_as, derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 pub struct HasStuff {
   pub data: LotsOfMyStructs,
@@ -4104,7 +5186,7 @@ pub struct HasStuff {
 
 impl ReadXdr for HasStuff {
     #[cfg(feature = "std")]
-    fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self> {
+    fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self, Error> {
         r.with_limited_depth(|r| {
             Ok(Self{
               data: LotsOfMyStructs::read_xdr(r)?,
@@ -4115,7 +5197,7 @@ impl ReadXdr for HasStuff {
 
 impl WriteXdr for HasStuff {
     #[cfg(feature = "std")]
-    fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
+    fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<(), Error> {
         w.with_limited_depth(|w| {
             self.data.write_xdr(w)?;
             Ok(())
@@ -4192,7 +5274,7 @@ Self::Green => "Green",
         impl TryFrom<i32> for Color {
             type Error = Error;
 
-            fn try_from(i: i32) -> Result<Self> {
+            fn try_from(i: i32) -> Result<Self, Error> {
                 let e = match i {
                     0 => Color::Red,
 5 => Color::Blue,
@@ -4213,7 +5295,7 @@ Self::Green => "Green",
 
         impl ReadXdr for Color {
             #[cfg(feature = "std")]
-            fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self> {
+            fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self, Error> {
                 r.with_limited_depth(|r| {
                     let e = i32::read_xdr(r)?;
                     let v: Self = e.try_into()?;
@@ -4224,7 +5306,7 @@ Self::Green => "Green",
 
         impl WriteXdr for Color {
             #[cfg(feature = "std")]
-            fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
+            fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<(), Error> {
                 w.with_limited_depth(|w| {
                     let i: i32 = (*self).into();
                     i.write_xdr(w)
@@ -4312,7 +5394,7 @@ Self::B2 => "B2",
         impl TryFrom<i32> for NesterNestedEnum {
             type Error = Error;
 
-            fn try_from(i: i32) -> Result<Self> {
+            fn try_from(i: i32) -> Result<Self, Error> {
                 let e = match i {
                     0 => NesterNestedEnum::B1,
 1 => NesterNestedEnum::B2,
@@ -4332,7 +5414,7 @@ Self::B2 => "B2",
 
         impl ReadXdr for NesterNestedEnum {
             #[cfg(feature = "std")]
-            fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self> {
+            fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self, Error> {
                 r.with_limited_depth(|r| {
                     let e = i32::read_xdr(r)?;
                     let v: Self = e.try_into()?;
@@ -4343,7 +5425,7 @@ Self::B2 => "B2",
 
         impl WriteXdr for NesterNestedEnum {
             #[cfg(feature = "std")]
-            fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
+            fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<(), Error> {
                 w.with_limited_depth(|w| {
                     let i: i32 = (*self).into();
                     i.write_xdr(w)
@@ -4360,8 +5442,9 @@ Self::B2 => "B2",
 /// ```
 ///
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[cfg_eval::cfg_eval]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
-#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
+#[cfg_attr(all(feature = "serde", feature = "alloc"), serde_with::serde_as, derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 pub struct NesterNestedStruct {
   pub blah: i32,
@@ -4369,7 +5452,7 @@ pub struct NesterNestedStruct {
 
 impl ReadXdr for NesterNestedStruct {
     #[cfg(feature = "std")]
-    fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self> {
+    fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self, Error> {
         r.with_limited_depth(|r| {
             Ok(Self{
               blah: i32::read_xdr(r)?,
@@ -4380,7 +5463,7 @@ impl ReadXdr for NesterNestedStruct {
 
 impl WriteXdr for NesterNestedStruct {
     #[cfg(feature = "std")]
-    fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
+    fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<(), Error> {
         w.with_limited_depth(|w| {
             self.blah.write_xdr(w)?;
             Ok(())
@@ -4400,9 +5483,10 @@ impl WriteXdr for NesterNestedStruct {
 /// ```
 ///
 // union with discriminant Color
+#[cfg_eval::cfg_eval]
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
-#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
+#[cfg_attr(all(feature = "serde", feature = "alloc"), serde_with::serde_as, derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 #[allow(clippy::large_enum_variant)]
 pub enum NesterNestedUnion {
@@ -4462,7 +5546,7 @@ impl Union<Color> for NesterNestedUnion {}
 
 impl ReadXdr for NesterNestedUnion {
     #[cfg(feature = "std")]
-    fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self> {
+    fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self, Error> {
         r.with_limited_depth(|r| {
             let dv: Color = <Color as ReadXdr>::read_xdr(r)?;
             #[allow(clippy::match_same_arms, clippy::match_wildcard_for_single_variants)]
@@ -4478,7 +5562,7 @@ impl ReadXdr for NesterNestedUnion {
 
 impl WriteXdr for NesterNestedUnion {
     #[cfg(feature = "std")]
-    fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
+    fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<(), Error> {
         w.with_limited_depth(|w| {
             self.discriminant().write_xdr(w)?;
             #[allow(clippy::match_same_arms)]
@@ -4516,8 +5600,9 @@ impl WriteXdr for NesterNestedUnion {
 /// ```
 ///
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[cfg_eval::cfg_eval]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
-#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
+#[cfg_attr(all(feature = "serde", feature = "alloc"), serde_with::serde_as, derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 pub struct Nester {
   pub nested_enum: NesterNestedEnum,
@@ -4527,7 +5612,7 @@ pub struct Nester {
 
         impl ReadXdr for Nester {
             #[cfg(feature = "std")]
-            fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self> {
+            fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self, Error> {
                 r.with_limited_depth(|r| {
                     Ok(Self{
                       nested_enum: NesterNestedEnum::read_xdr(r)?,
@@ -4540,7 +5625,7 @@ nested_union: NesterNestedUnion::read_xdr(r)?,
 
         impl WriteXdr for Nester {
             #[cfg(feature = "std")]
-            fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
+            fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<(), Error> {
                 w.with_limited_depth(|w| {
                     self.nested_enum.write_xdr(w)?;
 self.nested_struct.write_xdr(w)?;
@@ -4715,7 +5800,7 @@ Self::NesterNestedUnion => gen.into_root_schema_for::<NesterNestedUnion>(),
         impl core::str::FromStr for TypeVariant {
             type Err = Error;
             #[allow(clippy::too_many_lines)]
-            fn from_str(s: &str) -> Result<Self> {
+            fn from_str(s: &str) -> Result<Self, Error> {
                 match s {
                     "Uint512" => Ok(Self::Uint512),
 "Uint513" => Ok(Self::Uint513),
@@ -4829,7 +5914,7 @@ TypeVariant::NesterNestedUnion, ];
 
             #[cfg(feature = "std")]
             #[allow(clippy::too_many_lines)]
-            pub fn read_xdr<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Result<Self> {
+            pub fn read_xdr<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Result<Self, Error> {
                 match v {
                     TypeVariant::Uint512 => r.with_limited_depth(|r| Ok(Self::Uint512(Box::new(Uint512::read_xdr(r)?)))),
 TypeVariant::Uint513 => r.with_limited_depth(|r| Ok(Self::Uint513(Box::new(Uint513::read_xdr(r)?)))),
@@ -4858,14 +5943,14 @@ TypeVariant::NesterNestedUnion => r.with_limited_depth(|r| Ok(Self::NesterNested
             }
 
             #[cfg(feature = "base64")]
-            pub fn read_xdr_base64<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Result<Self> {
+            pub fn read_xdr_base64<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Result<Self, Error> {
                 let mut dec = Limited::new(base64::read::DecoderReader::new(&mut r.inner, base64::STANDARD), r.limits.clone());
                 let t = Self::read_xdr(v, &mut dec)?;
                 Ok(t)
             }
 
             #[cfg(feature = "std")]
-            pub fn read_xdr_to_end<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Result<Self> {
+            pub fn read_xdr_to_end<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Result<Self, Error> {
                 let s = Self::read_xdr(v, r)?;
                 // Check that any further reads, such as this read of one byte, read no
                 // data, indicating EOF. If a byte is read the data is invalid.
@@ -4877,7 +5962,7 @@ TypeVariant::NesterNestedUnion => r.with_limited_depth(|r| Ok(Self::NesterNested
             }
 
             #[cfg(feature = "base64")]
-            pub fn read_xdr_base64_to_end<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Result<Self> {
+            pub fn read_xdr_base64_to_end<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Result<Self, Error> {
                 let mut dec = Limited::new(base64::read::DecoderReader::new(&mut r.inner, base64::STANDARD), r.limits.clone());
                 let t = Self::read_xdr_to_end(v, &mut dec)?;
                 Ok(t)
@@ -4885,7 +5970,7 @@ TypeVariant::NesterNestedUnion => r.with_limited_depth(|r| Ok(Self::NesterNested
 
             #[cfg(feature = "std")]
             #[allow(clippy::too_many_lines)]
-            pub fn read_xdr_iter<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Box<dyn Iterator<Item=Result<Self>> + '_> {
+            pub fn read_xdr_iter<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Box<dyn Iterator<Item=Result<Self, Error>> + '_> {
                 match v {
                     TypeVariant::Uint512 => Box::new(ReadXdrIter::<_, Uint512>::new(&mut r.inner, r.limits.clone()).map(|r| r.map(|t| Self::Uint512(Box::new(t))))),
 TypeVariant::Uint513 => Box::new(ReadXdrIter::<_, Uint513>::new(&mut r.inner, r.limits.clone()).map(|r| r.map(|t| Self::Uint513(Box::new(t))))),
@@ -4915,7 +6000,7 @@ TypeVariant::NesterNestedUnion => Box::new(ReadXdrIter::<_, NesterNestedUnion>::
 
             #[cfg(feature = "std")]
             #[allow(clippy::too_many_lines)]
-            pub fn read_xdr_framed_iter<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Box<dyn Iterator<Item=Result<Self>> + '_> {
+            pub fn read_xdr_framed_iter<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Box<dyn Iterator<Item=Result<Self, Error>> + '_> {
                 match v {
                     TypeVariant::Uint512 => Box::new(ReadXdrIter::<_, Frame<Uint512>>::new(&mut r.inner, r.limits.clone()).map(|r| r.map(|t| Self::Uint512(Box::new(t.0))))),
 TypeVariant::Uint513 => Box::new(ReadXdrIter::<_, Frame<Uint513>>::new(&mut r.inner, r.limits.clone()).map(|r| r.map(|t| Self::Uint513(Box::new(t.0))))),
@@ -4945,7 +6030,7 @@ TypeVariant::NesterNestedUnion => Box::new(ReadXdrIter::<_, Frame<NesterNestedUn
 
             #[cfg(feature = "base64")]
             #[allow(clippy::too_many_lines)]
-            pub fn read_xdr_base64_iter<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Box<dyn Iterator<Item=Result<Self>> + '_> {
+            pub fn read_xdr_base64_iter<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Box<dyn Iterator<Item=Result<Self, Error>> + '_> {
                 let dec = base64::read::DecoderReader::new(&mut r.inner, base64::STANDARD);
                 match v {
                     TypeVariant::Uint512 => Box::new(ReadXdrIter::<_, Uint512>::new(dec, r.limits.clone()).map(|r| r.map(|t| Self::Uint512(Box::new(t))))),
@@ -4975,14 +6060,14 @@ TypeVariant::NesterNestedUnion => Box::new(ReadXdrIter::<_, NesterNestedUnion>::
             }
 
             #[cfg(feature = "std")]
-            pub fn from_xdr<B: AsRef<[u8]>>(v: TypeVariant, bytes: B, limits: Limits) -> Result<Self> {
+            pub fn from_xdr<B: AsRef<[u8]>>(v: TypeVariant, bytes: B, limits: Limits) -> Result<Self, Error> {
                 let mut cursor = Limited::new(Cursor::new(bytes.as_ref()), limits);
                 let t = Self::read_xdr_to_end(v, &mut cursor)?;
                 Ok(t)
             }
 
             #[cfg(feature = "base64")]
-            pub fn from_xdr_base64(v: TypeVariant, b64: impl AsRef<[u8]>, limits: Limits) -> Result<Self> {
+            pub fn from_xdr_base64(v: TypeVariant, b64: impl AsRef<[u8]>, limits: Limits) -> Result<Self, Error> {
                 let mut b64_reader = Cursor::new(b64);
                 let mut dec = Limited::new(base64::read::DecoderReader::new(&mut b64_reader, base64::STANDARD), limits);
                 let t = Self::read_xdr_to_end(v, &mut dec)?;
@@ -4991,13 +6076,13 @@ TypeVariant::NesterNestedUnion => Box::new(ReadXdrIter::<_, NesterNestedUnion>::
 
             #[cfg(all(feature = "std", feature = "serde_json"))]
             #[deprecated(note = "use from_json")]
-            pub fn read_json(v: TypeVariant, r: impl Read) -> Result<Self> {
+            pub fn read_json(v: TypeVariant, r: impl Read) -> Result<Self, Error> {
                 Self::from_json(v, r)
             }
 
             #[cfg(all(feature = "std", feature = "serde_json"))]
             #[allow(clippy::too_many_lines)]
-            pub fn from_json(v: TypeVariant, r: impl Read) -> Result<Self> {
+            pub fn from_json(v: TypeVariant, r: impl Read) -> Result<Self, Error> {
                 match v {
                     TypeVariant::Uint512 => Ok(Self::Uint512(Box::new(serde_json::from_reader(r)?))),
 TypeVariant::Uint513 => Ok(Self::Uint513(Box::new(serde_json::from_reader(r)?))),
@@ -5027,7 +6112,7 @@ TypeVariant::NesterNestedUnion => Ok(Self::NesterNestedUnion(Box::new(serde_json
 
             #[cfg(all(feature = "std", feature = "serde_json"))]
             #[allow(clippy::too_many_lines)]
-            pub fn deserialize_json<'r, R: serde_json::de::Read<'r>>(v: TypeVariant, r: &mut serde_json::de::Deserializer<R>) -> Result<Self> {
+            pub fn deserialize_json<'r, R: serde_json::de::Read<'r>>(v: TypeVariant, r: &mut serde_json::de::Deserializer<R>) -> Result<Self, Error> {
                 match v {
                     TypeVariant::Uint512 => Ok(Self::Uint512(Box::new(serde::de::Deserialize::deserialize(r)?))),
 TypeVariant::Uint513 => Ok(Self::Uint513(Box::new(serde::de::Deserialize::deserialize(r)?))),
@@ -5170,7 +6255,7 @@ Self::NesterNestedUnion(_) => TypeVariant::NesterNestedUnion,
         impl WriteXdr for Type {
             #[cfg(feature = "std")]
             #[allow(clippy::too_many_lines)]
-            fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<()> {
+            fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<(), Error> {
                 match self {
                     Self::Uint512(v) => v.write_xdr(w),
 Self::Uint513(v) => v.write_xdr(w),
