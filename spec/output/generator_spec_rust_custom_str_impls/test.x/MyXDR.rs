@@ -5145,7 +5145,7 @@ impl<'de> serde::Deserialize<'de> for LotsOfMyStructs {
         use serde::Deserialize;
         #[derive(Deserialize)]
         struct LotsOfMyStructs {
-            members: VecM::<MyStruct>,
+            members: VecM<MyStruct>,
         }
         #[derive(Deserialize)]
         #[serde(untagged)]
