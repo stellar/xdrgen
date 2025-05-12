@@ -2815,7 +2815,7 @@ pub type Arr = [i32; 2];
 ///
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
-#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr))]
+#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde_with::SerializeDisplay))]
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 pub struct HasOptions {
   pub first_option: Option<i32>,
@@ -2845,6 +2845,34 @@ self.second_option.write_xdr(w)?;
 self.third_option.write_xdr(w)?;
                     Ok(())
                 })
+            }
+        }
+        #[cfg(all(feature = "serde", feature = "alloc"))]
+        impl<'de> serde::Deserialize<'de> for HasOptions {
+            fn deserialize<D>(deserializer: D) -> core::result::Result<Self, D::Error> where D: serde::Deserializer<'de> {
+                use serde::Deserialize;
+                #[derive(Deserialize)]
+                struct HasOptions {
+                    first_option: Option<i32>,
+second_option: Option<i32>,
+third_option: Option<i32>,
+                }
+                #[derive(Deserialize)]
+                #[serde(untagged)]
+                enum HasOptionsOrString<'a> {
+                    Str(&'a str),
+                    String(String),
+                    HasOptions(HasOptions),
+                }
+                match HasOptionsOrString::deserialize(deserializer)? {
+                    HasOptionsOrString::Str(s) => s.parse().map_err(serde::de::Error::custom),
+                    HasOptionsOrString::String(s) => s.parse().map_err(serde::de::Error::custom),
+                    HasOptionsOrString::HasOptions(HasOptions {
+                        first_option, second_option, third_option,
+                    }) => Ok(self::HasOptions {
+                        first_option, second_option, third_option,
+                    }),
+                }
             }
         }
 
