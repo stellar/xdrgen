@@ -390,7 +390,7 @@ module Xdrgen
         out.puts "#[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]"
         out.puts %{#[cfg_attr(feature = "arbitrary", derive(Arbitrary))]}
         if @options[:rust_types_custom_str_impl].include?(name struct)
-          out.puts %{#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr))]}
+          out.puts %{#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde_with::SerializeDisplay))]}
         else
           out.puts %{#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]}
         end
@@ -428,6 +428,32 @@ module Xdrgen
                     end.join("\n")}
                     Ok(())
                 })
+            }
+        }
+
+        impl<'de> Deserialize<'de> for #{name struct} {
+            fn deserialize<D>(deserializer: D) -> Result<Self, D::Error> where D: serde::Deserializer<'de> {
+                use serde::Deserialize;
+                #[derive(Deserialize)]
+                struct #{name struct} {
+                    #{struct.members.map do |m|
+                      "#{field_name(m)}: #{reference(struct, m.declaration.type)},"
+                    end.join("\n")}
+                }
+                #[derive(Deserialize)]
+                #[serde(untagged)]
+                enum #{name struct}OrString<'a> {
+                    String(&'a str),
+                    #{name struct}(#{name struct}),
+                }
+                match #{name struct}OrString::deserialize(deserializer)? {
+                    #{name struct}OrString::String(s) => s.parse().map_err(serde::de::Error::custom),
+                    #{name struct}OrString::#{name struct}(#{name struct} {
+                        #{struct.members.map do |m| "#{field_name(m)}," end.join(" ")}
+                    }) => Ok(self::#{name struct} {
+                        #{struct.members.map do |m| "#{field_name(m)}," end.join(" ")}
+                    }),
+                }
             }
         }
         EOS
