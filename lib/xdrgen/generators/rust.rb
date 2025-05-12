@@ -430,7 +430,8 @@ module Xdrgen
                 })
             }
         }
-
+        EOS
+        out.puts <<-EOS.strip_heredoc if @options[:rust_types_custom_str_impl].include?(name struct)
         impl<'de> serde::Deserialize<'de> for #{name struct} {
             fn deserialize<D>(deserializer: D) -> Result<Self, D::Error> where D: serde::Deserializer<'de> {
                 use serde::Deserialize;
@@ -456,7 +457,6 @@ module Xdrgen
                 }
             }
         }
-        EOS
         out.break
       end
 
