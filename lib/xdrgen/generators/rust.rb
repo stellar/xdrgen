@@ -434,7 +434,7 @@ module Xdrgen
         out.puts <<-EOS.strip_heredoc if @options[:rust_types_custom_str_impl].include?(name struct)
         #[cfg(all(feature = "serde", feature = "alloc"))]
         impl<'de> serde::Deserialize<'de> for #{name struct} {
-            fn deserialize<D>(deserializer: D) -> Result<Self, D::Error> where D: serde::Deserializer<'de> {
+            fn deserialize<D>(deserializer: D) -> core::result::Result<Self, D::Error> where D: serde::Deserializer<'de> {
                 use serde::Deserialize;
                 #[derive(Deserialize)]
                 struct #{name struct} {
