@@ -4108,7 +4108,7 @@ impl AsRef<[u8]> for Uint512 {
 /// ```
 ///
 #[cfg_eval::cfg_eval]
-#[cfg_attr(feature = "alloc", derive(Default))]
+#[derive(Default)]
 #[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), serde_with::serde_as, derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
@@ -4213,7 +4213,7 @@ impl AsRef<[u8]> for Uint513 {
 /// ```
 ///
 #[cfg_eval::cfg_eval]
-#[cfg_attr(feature = "alloc", derive(Default))]
+#[derive(Default)]
 #[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), serde_with::serde_as, derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
@@ -4318,7 +4318,7 @@ impl AsRef<[u8]> for Uint514 {
 /// ```
 ///
 #[cfg_eval::cfg_eval]
-#[cfg_attr(feature = "alloc", derive(Default))]
+#[derive(Default)]
 #[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), serde_with::serde_as, derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
@@ -4423,7 +4423,7 @@ impl AsRef<[u8]> for Str {
 /// ```
 ///
 #[cfg_eval::cfg_eval]
-#[cfg_attr(feature = "alloc", derive(Default))]
+#[derive(Default)]
 #[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), serde_with::serde_as, derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
@@ -4773,7 +4773,7 @@ impl AsRef<[Hash]> for Hashes1 {
 /// ```
 ///
 #[cfg_eval::cfg_eval]
-#[cfg_attr(feature = "alloc", derive(Default))]
+#[derive(Default)]
 #[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), serde_with::serde_as, derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
@@ -4878,7 +4878,7 @@ impl AsRef<[Hash]> for Hashes2 {
 /// ```
 ///
 #[cfg_eval::cfg_eval]
-#[cfg_attr(feature = "alloc", derive(Default))]
+#[derive(Default)]
 #[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), serde_with::serde_as, derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
