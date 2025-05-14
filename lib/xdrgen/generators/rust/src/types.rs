@@ -2325,10 +2325,12 @@ impl<'de> serde_with::DeserializeAs<'de, i64> for NumberOrString {
         #[derive(Deserialize)]
         #[serde(untagged)]
         enum I64OrString<'a> {
-            String(&'a str),
+            Str(&'a str),
+            String(String),
             I64(i64),
         }
         match I64OrString::deserialize(deserializer)? {
+            I64OrString::Str(s) => s.parse().map_err(serde::de::Error::custom),
             I64OrString::String(s) => s.parse().map_err(serde::de::Error::custom),
             I64OrString::I64(v) => Ok(v),
         }
