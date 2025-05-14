@@ -9,6 +9,7 @@ module Xdrgen
         on 'o', 'output=', 'The output directory'
         on 'l', 'language=', 'The output language', default: 'ruby'
         on 'n', 'namespace=', '"namespace" to generate code within (language-specific)'
+        on 'rust-types-custom-default-impl=', 'Rust types that should not have default implementation generated as they will be provided via custom implementations (rust-specific)'
         on 'rust-types-custom-str-impl=', 'Rust types that should not have str implementations generated as they will be provided via custom implementations (rust-specific)'
         on 'rust-types-custom-jsonschema-impl=', 'Rust types that should not have jsonschema implementations generated as they will be provided via custom implementations (rust-specific)'
       end

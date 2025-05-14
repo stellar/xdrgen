@@ -423,7 +423,8 @@ module Xdrgen
       end
 
       def render_struct(out, struct)
-        out.puts "#[derive(Default, Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]"
+        out.puts "#[derive(Default)]" if !@options[:rust_types_custom_default_impl].include?(name struct)
+        out.puts "#[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]"
         out.puts %{#[cfg_eval::cfg_eval]}
         out.puts %{#[cfg_attr(feature = "arbitrary", derive(Arbitrary))]}
         if @options[:rust_types_custom_str_impl].include?(name struct)
@@ -513,7 +514,8 @@ module Xdrgen
 
       def render_enum(out, enum)
         out.puts "// enum"
-        out.puts "#[derive(Default, Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]"
+        out.puts "#[derive(Default)]" if !@options[:rust_types_custom_default_impl].include?(name enum)
+        out.puts "#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]"
         out.puts %{#[cfg_attr(feature = "arbitrary", derive(Arbitrary))]}
         if @options[:rust_types_custom_str_impl].include?(name enum)
           out.puts %{#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr))]}
@@ -806,7 +808,8 @@ module Xdrgen
           out.puts "pub type #{name typedef} = #{reference(typedef, typedef.type)};"
         else
           out.puts %{#[cfg_eval::cfg_eval]}
-          out.puts "#[derive(Default, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]"
+          out.puts "#[derive(Default)]" if !@options[:rust_types_custom_default_impl].include?(name typedef)
+          out.puts "#[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]"
           out.puts %{#[cfg_attr(feature = "arbitrary", derive(Arbitrary))]}
           if is_fixed_array_opaque(typedef.type) || @options[:rust_types_custom_str_impl].include?(name typedef)
             out.puts %{#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr))]}
