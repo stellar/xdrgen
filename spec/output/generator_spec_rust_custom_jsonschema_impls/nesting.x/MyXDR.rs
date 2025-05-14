@@ -4188,7 +4188,7 @@ pub enum MyUnion {
 
 impl Default for MyUnion {
     fn default() -> Self {
-        Self::One(Default::default())
+        Self::One(MyUnionOne::default())
     }
 }
 
@@ -4556,11 +4556,11 @@ TypeVariant::MyUnionTwo => Ok(Self::MyUnionTwo(Box::new(MyUnionTwo::arbitrary(u)
             #[allow(clippy::too_many_lines)]
             pub fn default<'a>(v: TypeVariant) -> Self {
                 match v {
-                    TypeVariant::UnionKey => Self::UnionKey(Box::new(UnionKey::default())),
-TypeVariant::Foo => Self::Foo(Box::new(Foo::default())),
-TypeVariant::MyUnion => Self::MyUnion(Box::new(MyUnion::default())),
-TypeVariant::MyUnionOne => Self::MyUnionOne(Box::new(MyUnionOne::default())),
-TypeVariant::MyUnionTwo => Self::MyUnionTwo(Box::new(MyUnionTwo::default())),
+                    TypeVariant::UnionKey => Self::UnionKey(Box::default()),
+TypeVariant::Foo => Self::Foo(Box::default()),
+TypeVariant::MyUnion => Self::MyUnion(Box::default()),
+TypeVariant::MyUnionOne => Self::MyUnionOne(Box::default()),
+TypeVariant::MyUnionTwo => Self::MyUnionTwo(Box::default()),
                 }
             }
 

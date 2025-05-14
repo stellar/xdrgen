@@ -4196,8 +4196,8 @@ TypeVariant::TestArray2 => Ok(Self::TestArray2(Box::new(TestArray2::arbitrary(u)
             #[allow(clippy::too_many_lines)]
             pub fn default<'a>(v: TypeVariant) -> Self {
                 match v {
-                    TypeVariant::TestArray => Self::TestArray(Box::new(TestArray::default())),
-TypeVariant::TestArray2 => Self::TestArray2(Box::new(TestArray2::default())),
+                    TypeVariant::TestArray => Self::TestArray(Box::default()),
+TypeVariant::TestArray2 => Self::TestArray2(Box::default()),
                 }
             }
 

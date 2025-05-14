@@ -4228,8 +4228,8 @@ TypeVariant::HasOptions => Ok(Self::HasOptions(Box::new(HasOptions::arbitrary(u)
             #[allow(clippy::too_many_lines)]
             pub fn default<'a>(v: TypeVariant) -> Self {
                 match v {
-                    TypeVariant::Arr => Self::Arr(Box::new(Arr::default())),
-TypeVariant::HasOptions => Self::HasOptions(Box::new(HasOptions::default())),
+                    TypeVariant::Arr => Self::Arr(Box::default()),
+TypeVariant::HasOptions => Self::HasOptions(Box::default()),
                 }
             }
 

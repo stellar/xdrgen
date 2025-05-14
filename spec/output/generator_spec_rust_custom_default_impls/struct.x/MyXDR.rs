@@ -4236,8 +4236,8 @@ TypeVariant::MyStruct => Ok(Self::MyStruct(Box::new(MyStruct::arbitrary(u)?))),
             #[allow(clippy::too_many_lines)]
             pub fn default<'a>(v: TypeVariant) -> Self {
                 match v {
-                    TypeVariant::Int64 => Self::Int64(Box::new(Int64::default())),
-TypeVariant::MyStruct => Self::MyStruct(Box::new(MyStruct::default())),
+                    TypeVariant::Int64 => Self::Int64(Box::default()),
+TypeVariant::MyStruct => Self::MyStruct(Box::default()),
                 }
             }
 

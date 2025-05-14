@@ -4100,7 +4100,7 @@ pub enum MyUnion {
 
 impl Default for MyUnion {
     fn default() -> Self {
-        Self::Error(Default::default())
+        Self::Error(i32::default())
     }
 }
 
@@ -4222,7 +4222,7 @@ pub enum IntUnion {
 
 impl Default for IntUnion {
     fn default() -> Self {
-        Self::V0(Default::default())
+        Self::V0(i32::default())
     }
 }
 
@@ -4656,12 +4656,12 @@ TypeVariant::IntUnion2 => Ok(Self::IntUnion2(Box::new(IntUnion2::arbitrary(u)?))
             #[allow(clippy::too_many_lines)]
             pub fn default<'a>(v: TypeVariant) -> Self {
                 match v {
-                    TypeVariant::SError => Self::SError(Box::new(SError::default())),
-TypeVariant::Multi => Self::Multi(Box::new(Multi::default())),
-TypeVariant::UnionKey => Self::UnionKey(Box::new(UnionKey::default())),
-TypeVariant::MyUnion => Self::MyUnion(Box::new(MyUnion::default())),
-TypeVariant::IntUnion => Self::IntUnion(Box::new(IntUnion::default())),
-TypeVariant::IntUnion2 => Self::IntUnion2(Box::new(IntUnion2::default())),
+                    TypeVariant::SError => Self::SError(Box::default()),
+TypeVariant::Multi => Self::Multi(Box::default()),
+TypeVariant::UnionKey => Self::UnionKey(Box::default()),
+TypeVariant::MyUnion => Self::MyUnion(Box::default()),
+TypeVariant::IntUnion => Self::IntUnion(Box::default()),
+TypeVariant::IntUnion2 => Self::IntUnion2(Box::default()),
                 }
             }
 

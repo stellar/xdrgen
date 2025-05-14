@@ -4256,7 +4256,7 @@ impl Type {
     #[allow(clippy::too_many_lines)]
     pub fn default<'a>(v: TypeVariant) -> Self {
         match v {
-            TypeVariant::AccountFlags => Self::AccountFlags(Box::new(AccountFlags::default())),
+            TypeVariant::AccountFlags => Self::AccountFlags(Box::default()),
         }
     }
 

@@ -4721,10 +4721,10 @@ TypeVariant::Color3 => Ok(Self::Color3(Box::new(Color3::arbitrary(u)?))),
             #[allow(clippy::too_many_lines)]
             pub fn default<'a>(v: TypeVariant) -> Self {
                 match v {
-                    TypeVariant::MessageType => Self::MessageType(Box::new(MessageType::default())),
-TypeVariant::Color => Self::Color(Box::new(Color::default())),
-TypeVariant::Color2 => Self::Color2(Box::new(Color2::default())),
-TypeVariant::Color3 => Self::Color3(Box::new(Color3::default())),
+                    TypeVariant::MessageType => Self::MessageType(Box::default()),
+TypeVariant::Color => Self::Color(Box::default()),
+TypeVariant::Color2 => Self::Color2(Box::default()),
+TypeVariant::Color3 => Self::Color3(Box::default()),
                 }
             }
 
