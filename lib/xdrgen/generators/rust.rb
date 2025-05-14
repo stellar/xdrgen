@@ -526,7 +526,8 @@ module Xdrgen
         out.puts "#[repr(i32)]"
         out.puts "pub enum #{name enum} {"
         out.indent do
-          enum.members.each do |m|
+          enum.members.each_with_index do |m, i|
+            out.puts("#[default]") if i == 0
             out.puts "#{name m} = #{m.value},"
           end
         end
@@ -623,8 +624,10 @@ module Xdrgen
 
       def union_cases(union)
         results = []
+        index = 0
         union.normal_arms.each do |arm|
           arm.cases.each do |kase|
+              index += 1
               if kase.value.is_a?(AST::Identifier)
                 case_name = kase.name_short.underscore.camelize
                 value = nil
@@ -632,7 +635,7 @@ module Xdrgen
                 case_name = "V#{kase.value.value}"
                 value = kase.value.value
               end
-              results << yield(case_name, arm, value)
+              results << yield(case_name, arm, value, index)
           end
         end
         results
@@ -660,7 +663,8 @@ module Xdrgen
         out.puts "pub enum #{name union} {"
         union_case_count = 0
         out.indent do
-          union_cases(union) do |case_name, arm|
+          union_cases(union) do |case_name, arm, _, i|
+            out.puts("#[default]") if i == 0
             union_case_count += 1
             if arm.void?
               out.puts "#{case_name}#{"(())" unless arm.void?},"
