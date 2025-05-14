@@ -649,7 +649,7 @@ module Xdrgen
         discriminant_type_builtin = is_builtin_type(union.discriminant.type) || (is_builtin_type(union.discriminant.type.resolved_type.type) if union.discriminant.type.respond_to?(:resolved_type) && AST::Definitions::Typedef === union.discriminant.type.resolved_type)
         out.puts "// union with discriminant #{discriminant_type}"
         out.puts %{#[cfg_eval::cfg_eval]}
-        out.puts "#[derive(Default, Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]"
+        out.puts "#[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]"
         out.puts %{#[cfg_attr(feature = "arbitrary", derive(Arbitrary))]}
         if @options[:rust_types_custom_str_impl].include?(name union)
           out.puts %{#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr))]}
