@@ -2203,7 +2203,7 @@ impl<const MAX: u32> WriteXdr for StringM<MAX> {
 
 // Frame ------------------------------------------------------------------------
 
-#[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Default, Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(
     all(feature = "serde", feature = "alloc"),
     derive(serde::Serialize, serde::Deserialize),
