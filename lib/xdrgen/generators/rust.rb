@@ -626,7 +626,6 @@ module Xdrgen
 
       def union_cases(union)
         results = []
-        index = 0
         union.normal_arms.each do |arm|
           arm.cases.each do |kase|
               if kase.value.is_a?(AST::Identifier)
@@ -636,8 +635,7 @@ module Xdrgen
                 case_name = "V#{kase.value.value}"
                 value = kase.value.value
               end
-              results << yield(case_name, arm, value, index)
-              index += 1
+              results << yield(case_name, arm, value)
           end
         end
         results

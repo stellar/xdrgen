@@ -2213,7 +2213,7 @@ impl<const MAX: u32> WriteXdr for StringM<MAX> {
 
 // Frame ------------------------------------------------------------------------
 
-#[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Default, Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(
     all(feature = "serde", feature = "alloc"),
     derive(serde::Serialize, serde::Deserialize),
@@ -4190,6 +4190,15 @@ TypeVariant::TestArray2 => Ok(Self::TestArray2(Box::new(serde::de::Deserialize::
                 match v {
                     TypeVariant::TestArray => Ok(Self::TestArray(Box::new(TestArray::arbitrary(u)?))),
 TypeVariant::TestArray2 => Ok(Self::TestArray2(Box::new(TestArray2::arbitrary(u)?))),
+                }
+            }
+
+            #[must_use]
+            #[allow(clippy::too_many_lines)]
+            pub fn default<'a>(v: TypeVariant) -> Self {
+                match v {
+                    TypeVariant::TestArray => Self::TestArray(Box::new(TestArray::default())),
+TypeVariant::TestArray2 => Self::TestArray2(Box::new(TestArray2::default())),
                 }
             }
 
