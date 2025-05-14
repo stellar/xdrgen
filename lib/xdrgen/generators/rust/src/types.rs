@@ -2325,10 +2325,12 @@ impl<'de> serde_with::DeserializeAs<'de, i64> for NumberOrString {
         #[derive(Deserialize)]
         #[serde(untagged)]
         enum I64OrString<'a> {
-            String(&'a str),
+            Str(&'a str),
+            String(String),
             I64(i64),
         }
         match I64OrString::deserialize(deserializer)? {
+            I64OrString::Str(s) => s.parse().map_err(serde::de::Error::custom),
             I64OrString::String(s) => s.parse().map_err(serde::de::Error::custom),
             I64OrString::I64(v) => Ok(v),
         }
@@ -2345,10 +2347,12 @@ impl<'de> serde_with::DeserializeAs<'de, u64> for NumberOrString {
         #[derive(Deserialize)]
         #[serde(untagged)]
         enum U64OrString<'a> {
-            String(&'a str),
+            Str(&'a str),
+            String(String),
             U64(u64),
         }
         match U64OrString::deserialize(deserializer)? {
+            U64OrString::Str(s) => s.parse().map_err(serde::de::Error::custom),
             U64OrString::String(s) => s.parse().map_err(serde::de::Error::custom),
             U64OrString::U64(v) => Ok(v),
         }
@@ -3092,6 +3096,13 @@ mod tests_for_number_or_string {
 
     // --- i64 Deserialization Tests ---
     #[test]
+    fn deserialize_i64_from_json_reader() {
+        let json = r#"{"val": "123"}"#;
+        let expected = TestI64 { val: 123 };
+        assert_eq!(serde_json::from_reader::<_, TestI64>(Cursor::new(json)).unwrap(), expected);
+    }
+
+    #[test]
     fn deserialize_i64_from_json_number_positive() {
         let json = r#"{"val": 123}"#;
         let expected = TestI64 { val: 123 };
@@ -3383,6 +3394,13 @@ mod tests_for_number_or_string {
     }
 
     // --- u64 Deserialization Tests ---
+    #[test]
+    fn deserialize_u64_from_json_reader() {
+        let json = r#"{"val": "123"}"#;
+        let expected = TestU64 { val: 123 };
+        assert_eq!(serde_json::from_reader::<_, TestU64>(Cursor::new(json)).unwrap(), expected);
+    }
+
     #[test]
     fn deserialize_u64_from_json_number() {
         let json = r#"{"val": 123}"#;
