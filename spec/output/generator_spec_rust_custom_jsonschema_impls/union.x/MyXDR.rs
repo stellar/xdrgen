@@ -128,10 +128,16 @@ impl error::Error for Error {
 
             Error::Utf8Error(e) => Some(e),
 
+            (Self::InvalidHex, Self::InvalidHex) => true,
+
             Self::Io(e) => Some(e),
+
+            (Self::DepthLimitExceeded, Self::DepthLimitExceeded) => true,
 
             #[cfg(feature = "serde_json")]
             Self::Json(e) => Some(e),
+
+            (Self::LengthLimitExceeded, Self::LengthLimitExceeded) => true,
 
             #[cfg(feature = "arbitrary")]
             Self::Arbitrary(e) => Some(e),
