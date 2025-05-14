@@ -424,7 +424,7 @@ module Xdrgen
       end
 
       def render_struct(out, struct)
-        out.puts "#[cfg_attr(feature = "alloc", derive(Default))]" if !@options[:rust_types_custom_default_impl].include?(name struct)
+        out.puts %{#[cfg_attr(feature = "alloc", derive(Default))]} if !@options[:rust_types_custom_default_impl].include?(name struct)
         out.puts "#[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]"
         out.puts %{#[cfg_eval::cfg_eval]}
         out.puts %{#[cfg_attr(feature = "arbitrary", derive(Arbitrary))]}
@@ -515,7 +515,7 @@ module Xdrgen
 
       def render_enum(out, enum)
         out.puts "// enum"
-        out.puts "#[cfg_attr(feature = "alloc", derive(Default))]" if !@options[:rust_types_custom_default_impl].include?(name enum)
+        out.puts %{#[cfg_attr(feature = "alloc", derive(Default))]} if !@options[:rust_types_custom_default_impl].include?(name enum)
         out.puts "#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]"
         out.puts %{#[cfg_attr(feature = "arbitrary", derive(Arbitrary))]}
         if @options[:rust_types_custom_str_impl].include?(name enum)
@@ -530,7 +530,7 @@ module Xdrgen
         out.puts "pub enum #{name enum} {"
         out.indent do
           enum.members.each_with_index do |m, i|
-            out.puts("#[cfg_attr(feature = "alloc", default)]") if i == 0
+            out.puts(%{#[cfg_attr(feature = "alloc", default)]}) if i == 0
             out.puts "#{name m} = #{m.value},"
           end
         end
@@ -808,7 +808,7 @@ module Xdrgen
           out.puts "pub type #{name typedef} = #{reference(typedef, typedef.type)};"
         else
           out.puts %{#[cfg_eval::cfg_eval]}
-          out.puts "#[cfg_attr(feature = "alloc", derive(Default))]" if !@options[:rust_types_custom_default_impl].include?(name typedef)
+          out.puts %{#[cfg_attr(feature = "alloc", derive(Default))]} if !@options[:rust_types_custom_default_impl].include?(name typedef)
           out.puts "#[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]"
           out.puts %{#[cfg_attr(feature = "arbitrary", derive(Arbitrary))]}
           if is_fixed_array_opaque(typedef.type) || @options[:rust_types_custom_str_impl].include?(name typedef)
