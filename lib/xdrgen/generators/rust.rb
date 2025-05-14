@@ -627,7 +627,6 @@ module Xdrgen
         index = 0
         union.normal_arms.each do |arm|
           arm.cases.each do |kase|
-              index += 1
               if kase.value.is_a?(AST::Identifier)
                 case_name = kase.name_short.underscore.camelize
                 value = nil
@@ -636,6 +635,7 @@ module Xdrgen
                 value = kase.value.value
               end
               results << yield(case_name, arm, value, index)
+              index += 1
           end
         end
         results
