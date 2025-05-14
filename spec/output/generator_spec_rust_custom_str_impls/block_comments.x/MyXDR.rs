@@ -135,7 +135,6 @@ impl fmt::Display for Error {
             Error::LengthLimitExceeded => write!(f, "length limit exceeded"),
             #[cfg(feature = "arbitrary")]
             Error::Arbitrary(e) => write!(f, "{e}"),
-
         }
     }
 }
@@ -3960,3 +3959,359 @@ mod tests_for_number_or_string {
 /// ```
 ///
 // enum
+#[derive(Default)]
+#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
+#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
+#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
+#[repr(i32)]
+pub enum AccountFlags {
+  #[default]
+  AuthRequiredFlag = 1,
+}
+
+impl AccountFlags {
+    pub const VARIANTS: [AccountFlags; 1] = [ AccountFlags::AuthRequiredFlag, ];
+    pub const VARIANTS_STR: [&'static str; 1] = [ "AuthRequiredFlag", ];
+
+    #[must_use]
+    pub const fn name(&self) -> &'static str {
+        match self {
+            Self::AuthRequiredFlag => "AuthRequiredFlag",
+        }
+    }
+
+    #[must_use]
+    pub const fn variants() -> [AccountFlags; 1] {
+        Self::VARIANTS
+    }
+}
+
+impl Name for AccountFlags {
+    #[must_use]
+    fn name(&self) -> &'static str {
+        Self::name(self)
+    }
+}
+
+impl Variants<AccountFlags> for AccountFlags {
+    fn variants() -> slice::Iter<'static, AccountFlags> {
+        Self::VARIANTS.iter()
+    }
+}
+
+impl Enum for AccountFlags {}
+
+impl fmt::Display for AccountFlags {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.name())
+    }
+}
+
+impl TryFrom<i32> for AccountFlags {
+    type Error = Error;
+
+    fn try_from(i: i32) -> Result<Self, Error> {
+        let e = match i {
+            1 => AccountFlags::AuthRequiredFlag,
+            #[allow(unreachable_patterns)]
+            _ => return Err(Error::Invalid),
+        };
+        Ok(e)
+    }
+}
+
+impl From<AccountFlags> for i32 {
+    #[must_use]
+    fn from(e: AccountFlags) -> Self {
+        e as Self
+    }
+}
+
+impl ReadXdr for AccountFlags {
+    #[cfg(feature = "std")]
+    fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self, Error> {
+        r.with_limited_depth(|r| {
+            let e = i32::read_xdr(r)?;
+            let v: Self = e.try_into()?;
+            Ok(v)
+        })
+    }
+}
+
+impl WriteXdr for AccountFlags {
+    #[cfg(feature = "std")]
+    fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<(), Error> {
+        w.with_limited_depth(|w| {
+            let i: i32 = (*self).into();
+            i.write_xdr(w)
+        })
+    }
+}
+
+#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[cfg_attr(
+  all(feature = "serde", feature = "alloc"),
+  derive(serde::Serialize, serde::Deserialize),
+  serde(rename_all = "snake_case")
+)]
+#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
+pub enum TypeVariant {
+    AccountFlags,
+}
+
+impl TypeVariant {
+    pub const VARIANTS: [TypeVariant; 1] = [ TypeVariant::AccountFlags, ];
+    pub const VARIANTS_STR: [&'static str; 1] = [ "AccountFlags", ];
+
+    #[must_use]
+    #[allow(clippy::too_many_lines)]
+    pub const fn name(&self) -> &'static str {
+        match self {
+            Self::AccountFlags => "AccountFlags",
+        }
+    }
+
+    #[must_use]
+    #[allow(clippy::too_many_lines)]
+    pub const fn variants() -> [TypeVariant; 1] {
+        Self::VARIANTS
+    }
+
+    #[cfg(feature = "schemars")]
+    #[must_use]
+    #[allow(clippy::too_many_lines)]
+    pub fn json_schema(&self, gen: schemars::gen::SchemaGenerator) -> schemars::schema::RootSchema {
+        match self {
+            Self::AccountFlags => gen.into_root_schema_for::<AccountFlags>(),
+        }
+    }
+}
+
+impl Name for TypeVariant {
+    #[must_use]
+    fn name(&self) -> &'static str {
+        Self::name(self)
+    }
+}
+
+impl Variants<TypeVariant> for TypeVariant {
+    fn variants() -> slice::Iter<'static, TypeVariant> {
+        Self::VARIANTS.iter()
+    }
+}
+
+impl core::str::FromStr for TypeVariant {
+    type Err = Error;
+    #[allow(clippy::too_many_lines)]
+    fn from_str(s: &str) -> Result<Self, Error> {
+        match s {
+            "AccountFlags" => Ok(Self::AccountFlags),
+            _ => Err(Error::Invalid),
+        }
+    }
+}
+
+#[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[cfg_attr(
+  all(feature = "serde", feature = "alloc"),
+  derive(serde::Serialize, serde::Deserialize),
+  serde(rename_all = "snake_case"),
+  serde(untagged),
+)]
+#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
+pub enum Type {
+    AccountFlags(Box<AccountFlags>),
+}
+
+impl Type {
+    pub const VARIANTS: [TypeVariant; 1] = [ TypeVariant::AccountFlags, ];
+    pub const VARIANTS_STR: [&'static str; 1] = [ "AccountFlags", ];
+
+    #[cfg(feature = "std")]
+    #[allow(clippy::too_many_lines)]
+    pub fn read_xdr<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Result<Self, Error> {
+        match v {
+            TypeVariant::AccountFlags => r.with_limited_depth(|r| Ok(Self::AccountFlags(Box::new(AccountFlags::read_xdr(r)?)))),
+        }
+    }
+
+    #[cfg(feature = "base64")]
+    pub fn read_xdr_base64<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Result<Self, Error> {
+        let mut dec = Limited::new(
+            base64::read::DecoderReader::new(
+                SkipWhitespace::new(&mut r.inner),
+                &base64::engine::general_purpose::STANDARD,
+            ),
+            r.limits.clone(),
+        );
+        let t = Self::read_xdr(v, &mut dec)?;
+        Ok(t)
+    }
+
+    #[cfg(feature = "std")]
+    pub fn read_xdr_to_end<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Result<Self, Error> {
+        let s = Self::read_xdr(v, r)?;
+        // Check that any further reads, such as this read of one byte, read no
+        // data, indicating EOF. If a byte is read the data is invalid.
+        if r.read(&mut [0u8; 1])? == 0 {
+            Ok(s)
+        } else {
+            Err(Error::Invalid)
+        }
+    }
+
+    #[cfg(feature = "base64")]
+    pub fn read_xdr_base64_to_end<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Result<Self, Error> {
+        let mut dec = Limited::new(
+            base64::read::DecoderReader::new(
+                SkipWhitespace::new(&mut r.inner),
+                &base64::engine::general_purpose::STANDARD,
+            ),
+            r.limits.clone(),
+        );
+        let t = Self::read_xdr_to_end(v, &mut dec)?;
+        Ok(t)
+    }
+
+    #[cfg(feature = "std")]
+    #[allow(clippy::too_many_lines)]
+    pub fn read_xdr_iter<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Box<dyn Iterator<Item=Result<Self, Error>> + '_> {
+        match v {
+            TypeVariant::AccountFlags => Box::new(ReadXdrIter::<_, AccountFlags>::new(&mut r.inner, r.limits.clone()).map(|r| r.map(|t| Self::AccountFlags(Box::new(t))))),
+        }
+    }
+
+    #[cfg(feature = "std")]
+    #[allow(clippy::too_many_lines)]
+    pub fn read_xdr_framed_iter<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Box<dyn Iterator<Item=Result<Self, Error>> + '_> {
+        match v {
+            TypeVariant::AccountFlags => Box::new(ReadXdrIter::<_, Frame<AccountFlags>>::new(&mut r.inner, r.limits.clone()).map(|r| r.map(|t| Self::AccountFlags(Box::new(t.0))))),
+        }
+    }
+
+    #[cfg(feature = "base64")]
+    #[allow(clippy::too_many_lines)]
+    pub fn read_xdr_base64_iter<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Box<dyn Iterator<Item=Result<Self, Error>> + '_> {
+        let dec = base64::read::DecoderReader::new(
+            SkipWhitespace::new(&mut r.inner),
+            &base64::engine::general_purpose::STANDARD,
+        );
+        match v {
+            TypeVariant::AccountFlags => Box::new(ReadXdrIter::<_, AccountFlags>::new(dec, r.limits.clone()).map(|r| r.map(|t| Self::AccountFlags(Box::new(t))))),
+        }
+    }
+
+    #[cfg(feature = "std")]
+    pub fn from_xdr<B: AsRef<[u8]>>(v: TypeVariant, bytes: B, limits: Limits) -> Result<Self, Error> {
+        let mut cursor = Limited::new(Cursor::new(bytes.as_ref()), limits);
+        let t = Self::read_xdr_to_end(v, &mut cursor)?;
+        Ok(t)
+    }
+
+    #[cfg(feature = "base64")]
+    pub fn from_xdr_base64(v: TypeVariant, b64: impl AsRef<[u8]>, limits: Limits) -> Result<Self, Error> {
+        let mut dec = Limited::new(
+            base64::read::DecoderReader::new(
+                SkipWhitespace::new(Cursor::new(b64)),
+                &base64::engine::general_purpose::STANDARD,
+            ),
+            limits,
+        );
+        let t = Self::read_xdr_to_end(v, &mut dec)?;
+        Ok(t)
+    }
+
+    #[cfg(all(feature = "std", feature = "serde_json"))]
+    #[deprecated(note = "use from_json")]
+    pub fn read_json(v: TypeVariant, r: impl Read) -> Result<Self, Error> {
+        Self::from_json(v, r)
+    }
+
+    #[cfg(all(feature = "std", feature = "serde_json"))]
+    #[allow(clippy::too_many_lines)]
+    pub fn from_json(v: TypeVariant, r: impl Read) -> Result<Self, Error> {
+        match v {
+            TypeVariant::AccountFlags => Ok(Self::AccountFlags(Box::new(serde_json::from_reader(r)?))),
+        }
+    }
+
+    #[cfg(all(feature = "std", feature = "serde_json"))]
+    #[allow(clippy::too_many_lines)]
+    pub fn deserialize_json<'r, R: serde_json::de::Read<'r>>(v: TypeVariant, r: &mut serde_json::de::Deserializer<R>) -> Result<Self, Error> {
+        match v {
+            TypeVariant::AccountFlags => Ok(Self::AccountFlags(Box::new(serde::de::Deserialize::deserialize(r)?))),
+        }
+    }
+
+    #[cfg(feature = "arbitrary")]
+    #[allow(clippy::too_many_lines)]
+    pub fn arbitrary<'a>(v: TypeVariant, u: &mut arbitrary::Unstructured<'a>) -> Result<Self, Error> {
+        match v {
+            TypeVariant::AccountFlags => Ok(Self::AccountFlags(Box::new(AccountFlags::arbitrary(u)?))),
+        }
+    }
+
+    #[must_use]
+    #[allow(clippy::too_many_lines)]
+    pub fn default<'a>(v: TypeVariant) -> Self {
+        match v {
+            TypeVariant::AccountFlags => Self::AccountFlags(Box::new(AccountFlags::default())),
+        }
+    }
+
+    #[cfg(feature = "alloc")]
+    #[must_use]
+    #[allow(clippy::too_many_lines)]
+    pub fn value(&self) -> &dyn core::any::Any {
+        #[allow(clippy::match_same_arms)]
+        match self {
+            Self::AccountFlags(ref v) => v.as_ref(),
+        }
+    }
+
+    #[must_use]
+    #[allow(clippy::too_many_lines)]
+    pub const fn name(&self) -> &'static str {
+        match self {
+            Self::AccountFlags(_) => "AccountFlags",
+        }
+    }
+
+    #[must_use]
+    #[allow(clippy::too_many_lines)]
+    pub const fn variants() -> [TypeVariant; 1] {
+        Self::VARIANTS
+    }
+
+    #[must_use]
+    #[allow(clippy::too_many_lines)]
+    pub const fn variant(&self) -> TypeVariant {
+        match self {
+            Self::AccountFlags(_) => TypeVariant::AccountFlags,
+        }
+    }
+}
+
+impl Name for Type {
+    #[must_use]
+    fn name(&self) -> &'static str {
+        Self::name(self)
+    }
+}
+
+impl Variants<TypeVariant> for Type {
+    fn variants() -> slice::Iter<'static, TypeVariant> {
+        Self::VARIANTS.iter()
+    }
+}
+
+impl WriteXdr for Type {
+    #[cfg(feature = "std")]
+    #[allow(clippy::too_many_lines)]
+    fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<(), Error> {
+        match self {
+            Self::AccountFlags(v) => v.write_xdr(w),
+        }
+    }
+}

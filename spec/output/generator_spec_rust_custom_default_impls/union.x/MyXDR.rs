@@ -1,11 +1,11 @@
 // Module  is generated from:
-//  spec/fixtures/generator/nesting.x
+//  spec/fixtures/generator/union.x
 
 #![allow(clippy::missing_errors_doc, clippy::unreadable_literal)]
 
 /// `XDR_FILES_SHA256` is a list of pairs of source files and their SHA256 hashes.
 pub const XDR_FILES_SHA256: [(&str, &str); 1] = [
-  ("spec/fixtures/generator/nesting.x", "5537949272c11f1bd09cf613a3751668b5018d686a1c2aaa3baa91183ca18f6a")
+  ("spec/fixtures/generator/union.x", "c251258d967223b341ebcf2d5bb0718e9a039b46232cb743865d9acd0c4bbe41")
 ];
 
 use core::{array::TryFromSliceError, fmt, fmt::Debug, marker::Sized, ops::Deref, slice};
@@ -3949,48 +3949,59 @@ mod tests_for_number_or_string {
     }
 }
 
+/// SError is an XDR Typedef defines as:
+///
+/// ```text
+/// typedef int Error;
+/// ```
+///
+pub type SError = i32;
+
+/// Multi is an XDR Typedef defines as:
+///
+/// ```text
+/// typedef int Multi;
+/// ```
+///
+pub type Multi = i32;
+
 /// UnionKey is an XDR Enum defines as:
 ///
 /// ```text
 /// enum UnionKey {
-///   ONE = 1,
-///   TWO = 2,
-///   OFFER = 3
+///   ERROR,
+///   MULTI
 /// };
 /// ```
 ///
 // enum
-#[derive(Default)]
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
+#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 #[repr(i32)]
 pub enum UnionKey {
   #[default]
-  One = 1,
-  Two = 2,
-  Offer = 3,
+  Error = 0,
+  Multi = 1,
 }
 
         impl UnionKey {
-            pub const VARIANTS: [UnionKey; 3] = [ UnionKey::One,
-UnionKey::Two,
-UnionKey::Offer, ];
-            pub const VARIANTS_STR: [&'static str; 3] = [ "One",
-"Two",
-"Offer", ];
+            pub const VARIANTS: [UnionKey; 2] = [ UnionKey::Error,
+UnionKey::Multi, ];
+            pub const VARIANTS_STR: [&'static str; 2] = [ "Error",
+"Multi", ];
 
             #[must_use]
             pub const fn name(&self) -> &'static str {
                 match self {
-                    Self::One => "One",
-Self::Two => "Two",
-Self::Offer => "Offer",
+                    Self::Error => "Error",
+Self::Multi => "Multi",
                 }
             }
 
             #[must_use]
-            pub const fn variants() -> [UnionKey; 3] {
+            pub const fn variants() -> [UnionKey; 2] {
                 Self::VARIANTS
             }
         }
@@ -4021,9 +4032,8 @@ Self::Offer => "Offer",
 
             fn try_from(i: i32) -> Result<Self, Error> {
                 let e = match i {
-                    1 => UnionKey::One,
-2 => UnionKey::Two,
-3 => UnionKey::Offer,
+                    0 => UnionKey::Error,
+1 => UnionKey::Multi,
                     #[allow(unreachable_patterns)]
                     _ => return Err(Error::Invalid),
                 };
@@ -4059,114 +4069,17 @@ Self::Offer => "Offer",
             }
         }
 
-/// Foo is an XDR Typedef defines as:
-///
-/// ```text
-/// typedef int Foo;
-/// ```
-///
-pub type Foo = i32;
-
-/// MyUnionOne is an XDR NestedStruct defines as:
-///
-/// ```text
-/// struct {
-///             int someInt;
-///         }
-/// ```
-///
-#[derive(Default)]
-#[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
-#[cfg_eval::cfg_eval]
-#[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
-#[cfg_attr(all(feature = "serde", feature = "alloc"), serde_with::serde_as, derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
-#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
-pub struct MyUnionOne {
-  pub some_int: i32,
-}
-
-impl ReadXdr for MyUnionOne {
-    #[cfg(feature = "std")]
-    fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self, Error> {
-        r.with_limited_depth(|r| {
-            Ok(Self{
-              some_int: i32::read_xdr(r)?,
-            })
-        })
-    }
-}
-
-impl WriteXdr for MyUnionOne {
-    #[cfg(feature = "std")]
-    fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<(), Error> {
-        w.with_limited_depth(|w| {
-            self.some_int.write_xdr(w)?;
-            Ok(())
-        })
-    }
-}
-
-/// MyUnionTwo is an XDR NestedStruct defines as:
-///
-/// ```text
-/// struct {
-///             int someInt;
-///             Foo foo;
-///         }
-/// ```
-///
-#[derive(Default)]
-#[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
-#[cfg_eval::cfg_eval]
-#[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
-#[cfg_attr(all(feature = "serde", feature = "alloc"), serde_with::serde_as, derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
-#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
-pub struct MyUnionTwo {
-  pub some_int: i32,
-  pub foo: i32,
-}
-
-        impl ReadXdr for MyUnionTwo {
-            #[cfg(feature = "std")]
-            fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self, Error> {
-                r.with_limited_depth(|r| {
-                    Ok(Self{
-                      some_int: i32::read_xdr(r)?,
-foo: i32::read_xdr(r)?,
-                    })
-                })
-            }
-        }
-
-        impl WriteXdr for MyUnionTwo {
-            #[cfg(feature = "std")]
-            fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<(), Error> {
-                w.with_limited_depth(|w| {
-                    self.some_int.write_xdr(w)?;
-self.foo.write_xdr(w)?;
-                    Ok(())
-                })
-            }
-        }
-
 /// MyUnion is an XDR Union defines as:
 ///
 /// ```text
 /// union MyUnion switch (UnionKey type)
 /// {
-///     case ONE:
-///         struct {
-///             int someInt;
-///         } one;
+///     case ERROR:
+///         Error error;
+///     case MULTI:
+///         Multi things<>;
 /// 
-///     case TWO:
-///         struct {
-///             int someInt;
-///             Foo foo;
-///         } two;
 /// 
-///     case OFFER:
-///         void;
 /// };
 /// ```
 ///
@@ -4175,41 +4088,32 @@ self.foo.write_xdr(w)?;
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), serde_with::serde_as, derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
+#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 #[allow(clippy::large_enum_variant)]
 pub enum MyUnion {
-  One(
-    MyUnionOne
+  Error(
+    i32
   ),
-  Two(
-    MyUnionTwo
+  Multi(
+    VecM<i32>
   ),
-  Offer,
-}
-
-impl Default for MyUnion {
-    fn default() -> Self {
-        Self::One(Default::default())
-    }
 }
 
         impl MyUnion {
-            pub const VARIANTS: [UnionKey; 3] = [
-                UnionKey::One,
-UnionKey::Two,
-UnionKey::Offer,
+            pub const VARIANTS: [UnionKey; 2] = [
+                UnionKey::Error,
+UnionKey::Multi,
             ];
-            pub const VARIANTS_STR: [&'static str; 3] = [
-                "One",
-"Two",
-"Offer",
+            pub const VARIANTS_STR: [&'static str; 2] = [
+                "Error",
+"Multi",
             ];
 
             #[must_use]
             pub const fn name(&self) -> &'static str {
                 match self {
-                    Self::One(_) => "One",
-Self::Two(_) => "Two",
-Self::Offer => "Offer",
+                    Self::Error(_) => "Error",
+Self::Multi(_) => "Multi",
                 }
             }
 
@@ -4217,14 +4121,13 @@ Self::Offer => "Offer",
             pub const fn discriminant(&self) -> UnionKey {
                 #[allow(clippy::match_same_arms)]
                 match self {
-                    Self::One(_) => UnionKey::One,
-Self::Two(_) => UnionKey::Two,
-Self::Offer => UnionKey::Offer,
+                    Self::Error(_) => UnionKey::Error,
+Self::Multi(_) => UnionKey::Multi,
                 }
             }
 
             #[must_use]
-            pub const fn variants() -> [UnionKey; 3] {
+            pub const fn variants() -> [UnionKey; 2] {
                 Self::VARIANTS
             }
         }
@@ -4258,9 +4161,8 @@ Self::Offer => UnionKey::Offer,
                     let dv: UnionKey = <UnionKey as ReadXdr>::read_xdr(r)?;
                     #[allow(clippy::match_same_arms, clippy::match_wildcard_for_single_variants)]
                     let v = match dv {
-                        UnionKey::One => Self::One(MyUnionOne::read_xdr(r)?),
-UnionKey::Two => Self::Two(MyUnionTwo::read_xdr(r)?),
-UnionKey::Offer => Self::Offer,
+                        UnionKey::Error => Self::Error(i32::read_xdr(r)?),
+UnionKey::Multi => Self::Multi(VecM::<i32>::read_xdr(r)?),
                         #[allow(unreachable_patterns)]
                         _ => return Err(Error::Invalid),
                     };
@@ -4276,14 +4178,191 @@ UnionKey::Offer => Self::Offer,
                     self.discriminant().write_xdr(w)?;
                     #[allow(clippy::match_same_arms)]
                     match self {
-                        Self::One(v) => v.write_xdr(w)?,
-Self::Two(v) => v.write_xdr(w)?,
-Self::Offer => ().write_xdr(w)?,
+                        Self::Error(v) => v.write_xdr(w)?,
+Self::Multi(v) => v.write_xdr(w)?,
                     };
                     Ok(())
                 })
             }
         }
+
+/// IntUnion is an XDR Union defines as:
+///
+/// ```text
+/// union IntUnion switch (int type)
+/// {
+///     case 0:
+///         Error error;
+///     case 1:
+///         Multi things<>;
+/// 
+/// };
+/// ```
+///
+// union with discriminant i32
+#[cfg_eval::cfg_eval]
+#[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
+#[cfg_attr(all(feature = "serde", feature = "alloc"), serde_with::serde_as, derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
+#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
+#[allow(clippy::large_enum_variant)]
+pub enum IntUnion {
+  V0(
+    i32
+  ),
+  V1(
+    VecM<i32>
+  ),
+}
+
+impl Default for IntUnion {
+    fn default() -> Self {
+        Self::V0(Default::default())
+    }
+}
+
+        impl IntUnion {
+            pub const VARIANTS: [i32; 2] = [
+                0,
+1,
+            ];
+            pub const VARIANTS_STR: [&'static str; 2] = [
+                "V0",
+"V1",
+            ];
+
+            #[must_use]
+            pub const fn name(&self) -> &'static str {
+                match self {
+                    Self::V0(_) => "V0",
+Self::V1(_) => "V1",
+                }
+            }
+
+            #[must_use]
+            pub const fn discriminant(&self) -> i32 {
+                #[allow(clippy::match_same_arms)]
+                match self {
+                    Self::V0(_) => 0,
+Self::V1(_) => 1,
+                }
+            }
+
+            #[must_use]
+            pub const fn variants() -> [i32; 2] {
+                Self::VARIANTS
+            }
+        }
+
+        impl Name for IntUnion {
+            #[must_use]
+            fn name(&self) -> &'static str {
+                Self::name(self)
+            }
+        }
+
+        impl Discriminant<i32> for IntUnion {
+            #[must_use]
+            fn discriminant(&self) -> i32 {
+                Self::discriminant(self)
+            }
+        }
+
+        impl Variants<i32> for IntUnion {
+            fn variants() -> slice::Iter<'static, i32> {
+                Self::VARIANTS.iter()
+            }
+        }
+
+        impl Union<i32> for IntUnion {}
+
+        impl ReadXdr for IntUnion {
+            #[cfg(feature = "std")]
+            fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self, Error> {
+                r.with_limited_depth(|r| {
+                    let dv: i32 = <i32 as ReadXdr>::read_xdr(r)?;
+                    #[allow(clippy::match_same_arms, clippy::match_wildcard_for_single_variants)]
+                    let v = match dv {
+                        0 => Self::V0(i32::read_xdr(r)?),
+1 => Self::V1(VecM::<i32>::read_xdr(r)?),
+                        #[allow(unreachable_patterns)]
+                        _ => return Err(Error::Invalid),
+                    };
+                    Ok(v)
+                })
+            }
+        }
+
+        impl WriteXdr for IntUnion {
+            #[cfg(feature = "std")]
+            fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<(), Error> {
+                w.with_limited_depth(|w| {
+                    self.discriminant().write_xdr(w)?;
+                    #[allow(clippy::match_same_arms)]
+                    match self {
+                        Self::V0(v) => v.write_xdr(w)?,
+Self::V1(v) => v.write_xdr(w)?,
+                    };
+                    Ok(())
+                })
+            }
+        }
+
+/// IntUnion2 is an XDR Typedef defines as:
+///
+/// ```text
+/// typedef IntUnion IntUnion2;
+/// ```
+///
+#[cfg_eval::cfg_eval]
+#[derive(Default)]
+#[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
+#[cfg_attr(all(feature = "serde", feature = "alloc"), serde_with::serde_as, derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
+#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
+#[derive(Debug)]
+pub struct IntUnion2(
+  pub IntUnion
+);
+
+impl From<IntUnion2> for IntUnion {
+    #[must_use]
+    fn from(x: IntUnion2) -> Self {
+        x.0
+    }
+}
+
+impl From<IntUnion> for IntUnion2 {
+    #[must_use]
+    fn from(x: IntUnion) -> Self {
+        IntUnion2(x)
+    }
+}
+
+impl AsRef<IntUnion> for IntUnion2 {
+    #[must_use]
+    fn as_ref(&self) -> &IntUnion {
+        &self.0
+    }
+}
+
+impl ReadXdr for IntUnion2 {
+    #[cfg(feature = "std")]
+    fn read_xdr<R: Read>(r: &mut Limited<R>) -> Result<Self, Error> {
+        r.with_limited_depth(|r| {
+            let i = IntUnion::read_xdr(r)?;
+            let v = IntUnion2(i);
+            Ok(v)
+        })
+    }
+}
+
+impl WriteXdr for IntUnion2 {
+    #[cfg(feature = "std")]
+    fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<(), Error> {
+        w.with_limited_depth(|w|{ self.0.write_xdr(w) })
+    }
+}
 
         #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
         #[cfg_attr(
@@ -4293,40 +4372,44 @@ Self::Offer => ().write_xdr(w)?,
         )]
         #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
         pub enum TypeVariant {
-            UnionKey,
-Foo,
+            SError,
+Multi,
+UnionKey,
 MyUnion,
-MyUnionOne,
-MyUnionTwo,
+IntUnion,
+IntUnion2,
         }
 
         impl TypeVariant {
-            pub const VARIANTS: [TypeVariant; 5] = [ TypeVariant::UnionKey,
-TypeVariant::Foo,
+            pub const VARIANTS: [TypeVariant; 6] = [ TypeVariant::SError,
+TypeVariant::Multi,
+TypeVariant::UnionKey,
 TypeVariant::MyUnion,
-TypeVariant::MyUnionOne,
-TypeVariant::MyUnionTwo, ];
-            pub const VARIANTS_STR: [&'static str; 5] = [ "UnionKey",
-"Foo",
+TypeVariant::IntUnion,
+TypeVariant::IntUnion2, ];
+            pub const VARIANTS_STR: [&'static str; 6] = [ "SError",
+"Multi",
+"UnionKey",
 "MyUnion",
-"MyUnionOne",
-"MyUnionTwo", ];
+"IntUnion",
+"IntUnion2", ];
 
             #[must_use]
             #[allow(clippy::too_many_lines)]
             pub const fn name(&self) -> &'static str {
                 match self {
-                    Self::UnionKey => "UnionKey",
-Self::Foo => "Foo",
+                    Self::SError => "SError",
+Self::Multi => "Multi",
+Self::UnionKey => "UnionKey",
 Self::MyUnion => "MyUnion",
-Self::MyUnionOne => "MyUnionOne",
-Self::MyUnionTwo => "MyUnionTwo",
+Self::IntUnion => "IntUnion",
+Self::IntUnion2 => "IntUnion2",
                 }
             }
 
             #[must_use]
             #[allow(clippy::too_many_lines)]
-            pub const fn variants() -> [TypeVariant; 5] {
+            pub const fn variants() -> [TypeVariant; 6] {
                 Self::VARIANTS
             }
 
@@ -4335,11 +4418,12 @@ Self::MyUnionTwo => "MyUnionTwo",
             #[allow(clippy::too_many_lines)]
             pub fn json_schema(&self, gen: schemars::gen::SchemaGenerator) -> schemars::schema::RootSchema {
                 match self {
-                    Self::UnionKey => gen.into_root_schema_for::<UnionKey>(),
-Self::Foo => gen.into_root_schema_for::<Foo>(),
+                    Self::SError => gen.into_root_schema_for::<SError>(),
+Self::Multi => gen.into_root_schema_for::<Multi>(),
+Self::UnionKey => gen.into_root_schema_for::<UnionKey>(),
 Self::MyUnion => gen.into_root_schema_for::<MyUnion>(),
-Self::MyUnionOne => gen.into_root_schema_for::<MyUnionOne>(),
-Self::MyUnionTwo => gen.into_root_schema_for::<MyUnionTwo>(),
+Self::IntUnion => gen.into_root_schema_for::<IntUnion>(),
+Self::IntUnion2 => gen.into_root_schema_for::<IntUnion2>(),
                 }
             }
         }
@@ -4362,11 +4446,12 @@ Self::MyUnionTwo => gen.into_root_schema_for::<MyUnionTwo>(),
             #[allow(clippy::too_many_lines)]
             fn from_str(s: &str) -> Result<Self, Error> {
                 match s {
-                    "UnionKey" => Ok(Self::UnionKey),
-"Foo" => Ok(Self::Foo),
+                    "SError" => Ok(Self::SError),
+"Multi" => Ok(Self::Multi),
+"UnionKey" => Ok(Self::UnionKey),
 "MyUnion" => Ok(Self::MyUnion),
-"MyUnionOne" => Ok(Self::MyUnionOne),
-"MyUnionTwo" => Ok(Self::MyUnionTwo),
+"IntUnion" => Ok(Self::IntUnion),
+"IntUnion2" => Ok(Self::IntUnion2),
                     _ => Err(Error::Invalid),
                 }
             }
@@ -4381,34 +4466,38 @@ Self::MyUnionTwo => gen.into_root_schema_for::<MyUnionTwo>(),
         )]
         #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
         pub enum Type {
-            UnionKey(Box<UnionKey>),
-Foo(Box<Foo>),
+            SError(Box<SError>),
+Multi(Box<Multi>),
+UnionKey(Box<UnionKey>),
 MyUnion(Box<MyUnion>),
-MyUnionOne(Box<MyUnionOne>),
-MyUnionTwo(Box<MyUnionTwo>),
+IntUnion(Box<IntUnion>),
+IntUnion2(Box<IntUnion2>),
         }
 
         impl Type {
-            pub const VARIANTS: [TypeVariant; 5] = [ TypeVariant::UnionKey,
-TypeVariant::Foo,
+            pub const VARIANTS: [TypeVariant; 6] = [ TypeVariant::SError,
+TypeVariant::Multi,
+TypeVariant::UnionKey,
 TypeVariant::MyUnion,
-TypeVariant::MyUnionOne,
-TypeVariant::MyUnionTwo, ];
-            pub const VARIANTS_STR: [&'static str; 5] = [ "UnionKey",
-"Foo",
+TypeVariant::IntUnion,
+TypeVariant::IntUnion2, ];
+            pub const VARIANTS_STR: [&'static str; 6] = [ "SError",
+"Multi",
+"UnionKey",
 "MyUnion",
-"MyUnionOne",
-"MyUnionTwo", ];
+"IntUnion",
+"IntUnion2", ];
 
             #[cfg(feature = "std")]
             #[allow(clippy::too_many_lines)]
             pub fn read_xdr<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Result<Self, Error> {
                 match v {
-                    TypeVariant::UnionKey => r.with_limited_depth(|r| Ok(Self::UnionKey(Box::new(UnionKey::read_xdr(r)?)))),
-TypeVariant::Foo => r.with_limited_depth(|r| Ok(Self::Foo(Box::new(Foo::read_xdr(r)?)))),
+                    TypeVariant::SError => r.with_limited_depth(|r| Ok(Self::SError(Box::new(SError::read_xdr(r)?)))),
+TypeVariant::Multi => r.with_limited_depth(|r| Ok(Self::Multi(Box::new(Multi::read_xdr(r)?)))),
+TypeVariant::UnionKey => r.with_limited_depth(|r| Ok(Self::UnionKey(Box::new(UnionKey::read_xdr(r)?)))),
 TypeVariant::MyUnion => r.with_limited_depth(|r| Ok(Self::MyUnion(Box::new(MyUnion::read_xdr(r)?)))),
-TypeVariant::MyUnionOne => r.with_limited_depth(|r| Ok(Self::MyUnionOne(Box::new(MyUnionOne::read_xdr(r)?)))),
-TypeVariant::MyUnionTwo => r.with_limited_depth(|r| Ok(Self::MyUnionTwo(Box::new(MyUnionTwo::read_xdr(r)?)))),
+TypeVariant::IntUnion => r.with_limited_depth(|r| Ok(Self::IntUnion(Box::new(IntUnion::read_xdr(r)?)))),
+TypeVariant::IntUnion2 => r.with_limited_depth(|r| Ok(Self::IntUnion2(Box::new(IntUnion2::read_xdr(r)?)))),
                 }
             }
 
@@ -4454,11 +4543,12 @@ TypeVariant::MyUnionTwo => r.with_limited_depth(|r| Ok(Self::MyUnionTwo(Box::new
             #[allow(clippy::too_many_lines)]
             pub fn read_xdr_iter<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Box<dyn Iterator<Item=Result<Self, Error>> + '_> {
                 match v {
-                    TypeVariant::UnionKey => Box::new(ReadXdrIter::<_, UnionKey>::new(&mut r.inner, r.limits.clone()).map(|r| r.map(|t| Self::UnionKey(Box::new(t))))),
-TypeVariant::Foo => Box::new(ReadXdrIter::<_, Foo>::new(&mut r.inner, r.limits.clone()).map(|r| r.map(|t| Self::Foo(Box::new(t))))),
+                    TypeVariant::SError => Box::new(ReadXdrIter::<_, SError>::new(&mut r.inner, r.limits.clone()).map(|r| r.map(|t| Self::SError(Box::new(t))))),
+TypeVariant::Multi => Box::new(ReadXdrIter::<_, Multi>::new(&mut r.inner, r.limits.clone()).map(|r| r.map(|t| Self::Multi(Box::new(t))))),
+TypeVariant::UnionKey => Box::new(ReadXdrIter::<_, UnionKey>::new(&mut r.inner, r.limits.clone()).map(|r| r.map(|t| Self::UnionKey(Box::new(t))))),
 TypeVariant::MyUnion => Box::new(ReadXdrIter::<_, MyUnion>::new(&mut r.inner, r.limits.clone()).map(|r| r.map(|t| Self::MyUnion(Box::new(t))))),
-TypeVariant::MyUnionOne => Box::new(ReadXdrIter::<_, MyUnionOne>::new(&mut r.inner, r.limits.clone()).map(|r| r.map(|t| Self::MyUnionOne(Box::new(t))))),
-TypeVariant::MyUnionTwo => Box::new(ReadXdrIter::<_, MyUnionTwo>::new(&mut r.inner, r.limits.clone()).map(|r| r.map(|t| Self::MyUnionTwo(Box::new(t))))),
+TypeVariant::IntUnion => Box::new(ReadXdrIter::<_, IntUnion>::new(&mut r.inner, r.limits.clone()).map(|r| r.map(|t| Self::IntUnion(Box::new(t))))),
+TypeVariant::IntUnion2 => Box::new(ReadXdrIter::<_, IntUnion2>::new(&mut r.inner, r.limits.clone()).map(|r| r.map(|t| Self::IntUnion2(Box::new(t))))),
                 }
             }
 
@@ -4466,11 +4556,12 @@ TypeVariant::MyUnionTwo => Box::new(ReadXdrIter::<_, MyUnionTwo>::new(&mut r.inn
             #[allow(clippy::too_many_lines)]
             pub fn read_xdr_framed_iter<R: Read>(v: TypeVariant, r: &mut Limited<R>) -> Box<dyn Iterator<Item=Result<Self, Error>> + '_> {
                 match v {
-                    TypeVariant::UnionKey => Box::new(ReadXdrIter::<_, Frame<UnionKey>>::new(&mut r.inner, r.limits.clone()).map(|r| r.map(|t| Self::UnionKey(Box::new(t.0))))),
-TypeVariant::Foo => Box::new(ReadXdrIter::<_, Frame<Foo>>::new(&mut r.inner, r.limits.clone()).map(|r| r.map(|t| Self::Foo(Box::new(t.0))))),
+                    TypeVariant::SError => Box::new(ReadXdrIter::<_, Frame<SError>>::new(&mut r.inner, r.limits.clone()).map(|r| r.map(|t| Self::SError(Box::new(t.0))))),
+TypeVariant::Multi => Box::new(ReadXdrIter::<_, Frame<Multi>>::new(&mut r.inner, r.limits.clone()).map(|r| r.map(|t| Self::Multi(Box::new(t.0))))),
+TypeVariant::UnionKey => Box::new(ReadXdrIter::<_, Frame<UnionKey>>::new(&mut r.inner, r.limits.clone()).map(|r| r.map(|t| Self::UnionKey(Box::new(t.0))))),
 TypeVariant::MyUnion => Box::new(ReadXdrIter::<_, Frame<MyUnion>>::new(&mut r.inner, r.limits.clone()).map(|r| r.map(|t| Self::MyUnion(Box::new(t.0))))),
-TypeVariant::MyUnionOne => Box::new(ReadXdrIter::<_, Frame<MyUnionOne>>::new(&mut r.inner, r.limits.clone()).map(|r| r.map(|t| Self::MyUnionOne(Box::new(t.0))))),
-TypeVariant::MyUnionTwo => Box::new(ReadXdrIter::<_, Frame<MyUnionTwo>>::new(&mut r.inner, r.limits.clone()).map(|r| r.map(|t| Self::MyUnionTwo(Box::new(t.0))))),
+TypeVariant::IntUnion => Box::new(ReadXdrIter::<_, Frame<IntUnion>>::new(&mut r.inner, r.limits.clone()).map(|r| r.map(|t| Self::IntUnion(Box::new(t.0))))),
+TypeVariant::IntUnion2 => Box::new(ReadXdrIter::<_, Frame<IntUnion2>>::new(&mut r.inner, r.limits.clone()).map(|r| r.map(|t| Self::IntUnion2(Box::new(t.0))))),
                 }
             }
 
@@ -4482,11 +4573,12 @@ TypeVariant::MyUnionTwo => Box::new(ReadXdrIter::<_, Frame<MyUnionTwo>>::new(&mu
                     &base64::engine::general_purpose::STANDARD,
                 );
                 match v {
-                    TypeVariant::UnionKey => Box::new(ReadXdrIter::<_, UnionKey>::new(dec, r.limits.clone()).map(|r| r.map(|t| Self::UnionKey(Box::new(t))))),
-TypeVariant::Foo => Box::new(ReadXdrIter::<_, Foo>::new(dec, r.limits.clone()).map(|r| r.map(|t| Self::Foo(Box::new(t))))),
+                    TypeVariant::SError => Box::new(ReadXdrIter::<_, SError>::new(dec, r.limits.clone()).map(|r| r.map(|t| Self::SError(Box::new(t))))),
+TypeVariant::Multi => Box::new(ReadXdrIter::<_, Multi>::new(dec, r.limits.clone()).map(|r| r.map(|t| Self::Multi(Box::new(t))))),
+TypeVariant::UnionKey => Box::new(ReadXdrIter::<_, UnionKey>::new(dec, r.limits.clone()).map(|r| r.map(|t| Self::UnionKey(Box::new(t))))),
 TypeVariant::MyUnion => Box::new(ReadXdrIter::<_, MyUnion>::new(dec, r.limits.clone()).map(|r| r.map(|t| Self::MyUnion(Box::new(t))))),
-TypeVariant::MyUnionOne => Box::new(ReadXdrIter::<_, MyUnionOne>::new(dec, r.limits.clone()).map(|r| r.map(|t| Self::MyUnionOne(Box::new(t))))),
-TypeVariant::MyUnionTwo => Box::new(ReadXdrIter::<_, MyUnionTwo>::new(dec, r.limits.clone()).map(|r| r.map(|t| Self::MyUnionTwo(Box::new(t))))),
+TypeVariant::IntUnion => Box::new(ReadXdrIter::<_, IntUnion>::new(dec, r.limits.clone()).map(|r| r.map(|t| Self::IntUnion(Box::new(t))))),
+TypeVariant::IntUnion2 => Box::new(ReadXdrIter::<_, IntUnion2>::new(dec, r.limits.clone()).map(|r| r.map(|t| Self::IntUnion2(Box::new(t))))),
                 }
             }
 
@@ -4520,11 +4612,12 @@ TypeVariant::MyUnionTwo => Box::new(ReadXdrIter::<_, MyUnionTwo>::new(dec, r.lim
             #[allow(clippy::too_many_lines)]
             pub fn from_json(v: TypeVariant, r: impl Read) -> Result<Self, Error> {
                 match v {
-                    TypeVariant::UnionKey => Ok(Self::UnionKey(Box::new(serde_json::from_reader(r)?))),
-TypeVariant::Foo => Ok(Self::Foo(Box::new(serde_json::from_reader(r)?))),
+                    TypeVariant::SError => Ok(Self::SError(Box::new(serde_json::from_reader(r)?))),
+TypeVariant::Multi => Ok(Self::Multi(Box::new(serde_json::from_reader(r)?))),
+TypeVariant::UnionKey => Ok(Self::UnionKey(Box::new(serde_json::from_reader(r)?))),
 TypeVariant::MyUnion => Ok(Self::MyUnion(Box::new(serde_json::from_reader(r)?))),
-TypeVariant::MyUnionOne => Ok(Self::MyUnionOne(Box::new(serde_json::from_reader(r)?))),
-TypeVariant::MyUnionTwo => Ok(Self::MyUnionTwo(Box::new(serde_json::from_reader(r)?))),
+TypeVariant::IntUnion => Ok(Self::IntUnion(Box::new(serde_json::from_reader(r)?))),
+TypeVariant::IntUnion2 => Ok(Self::IntUnion2(Box::new(serde_json::from_reader(r)?))),
                 }
             }
 
@@ -4532,11 +4625,12 @@ TypeVariant::MyUnionTwo => Ok(Self::MyUnionTwo(Box::new(serde_json::from_reader(
             #[allow(clippy::too_many_lines)]
             pub fn deserialize_json<'r, R: serde_json::de::Read<'r>>(v: TypeVariant, r: &mut serde_json::de::Deserializer<R>) -> Result<Self, Error> {
                 match v {
-                    TypeVariant::UnionKey => Ok(Self::UnionKey(Box::new(serde::de::Deserialize::deserialize(r)?))),
-TypeVariant::Foo => Ok(Self::Foo(Box::new(serde::de::Deserialize::deserialize(r)?))),
+                    TypeVariant::SError => Ok(Self::SError(Box::new(serde::de::Deserialize::deserialize(r)?))),
+TypeVariant::Multi => Ok(Self::Multi(Box::new(serde::de::Deserialize::deserialize(r)?))),
+TypeVariant::UnionKey => Ok(Self::UnionKey(Box::new(serde::de::Deserialize::deserialize(r)?))),
 TypeVariant::MyUnion => Ok(Self::MyUnion(Box::new(serde::de::Deserialize::deserialize(r)?))),
-TypeVariant::MyUnionOne => Ok(Self::MyUnionOne(Box::new(serde::de::Deserialize::deserialize(r)?))),
-TypeVariant::MyUnionTwo => Ok(Self::MyUnionTwo(Box::new(serde::de::Deserialize::deserialize(r)?))),
+TypeVariant::IntUnion => Ok(Self::IntUnion(Box::new(serde::de::Deserialize::deserialize(r)?))),
+TypeVariant::IntUnion2 => Ok(Self::IntUnion2(Box::new(serde::de::Deserialize::deserialize(r)?))),
                 }
             }
 
@@ -4544,11 +4638,12 @@ TypeVariant::MyUnionTwo => Ok(Self::MyUnionTwo(Box::new(serde::de::Deserialize::
             #[allow(clippy::too_many_lines)]
             pub fn arbitrary<'a>(v: TypeVariant, u: &mut arbitrary::Unstructured<'a>) -> Result<Self, Error> {
                 match v {
-                    TypeVariant::UnionKey => Ok(Self::UnionKey(Box::new(UnionKey::arbitrary(u)?))),
-TypeVariant::Foo => Ok(Self::Foo(Box::new(Foo::arbitrary(u)?))),
+                    TypeVariant::SError => Ok(Self::SError(Box::new(SError::arbitrary(u)?))),
+TypeVariant::Multi => Ok(Self::Multi(Box::new(Multi::arbitrary(u)?))),
+TypeVariant::UnionKey => Ok(Self::UnionKey(Box::new(UnionKey::arbitrary(u)?))),
 TypeVariant::MyUnion => Ok(Self::MyUnion(Box::new(MyUnion::arbitrary(u)?))),
-TypeVariant::MyUnionOne => Ok(Self::MyUnionOne(Box::new(MyUnionOne::arbitrary(u)?))),
-TypeVariant::MyUnionTwo => Ok(Self::MyUnionTwo(Box::new(MyUnionTwo::arbitrary(u)?))),
+TypeVariant::IntUnion => Ok(Self::IntUnion(Box::new(IntUnion::arbitrary(u)?))),
+TypeVariant::IntUnion2 => Ok(Self::IntUnion2(Box::new(IntUnion2::arbitrary(u)?))),
                 }
             }
 
@@ -4556,11 +4651,12 @@ TypeVariant::MyUnionTwo => Ok(Self::MyUnionTwo(Box::new(MyUnionTwo::arbitrary(u)
             #[allow(clippy::too_many_lines)]
             pub fn default<'a>(v: TypeVariant) -> Self {
                 match v {
-                    TypeVariant::UnionKey => Self::UnionKey(Box::new(UnionKey::default())),
-TypeVariant::Foo => Self::Foo(Box::new(Foo::default())),
+                    TypeVariant::SError => Self::SError(Box::new(SError::default())),
+TypeVariant::Multi => Self::Multi(Box::new(Multi::default())),
+TypeVariant::UnionKey => Self::UnionKey(Box::new(UnionKey::default())),
 TypeVariant::MyUnion => Self::MyUnion(Box::new(MyUnion::default())),
-TypeVariant::MyUnionOne => Self::MyUnionOne(Box::new(MyUnionOne::default())),
-TypeVariant::MyUnionTwo => Self::MyUnionTwo(Box::new(MyUnionTwo::default())),
+TypeVariant::IntUnion => Self::IntUnion(Box::new(IntUnion::default())),
+TypeVariant::IntUnion2 => Self::IntUnion2(Box::new(IntUnion2::default())),
                 }
             }
 
@@ -4570,11 +4666,12 @@ TypeVariant::MyUnionTwo => Self::MyUnionTwo(Box::new(MyUnionTwo::default())),
             pub fn value(&self) -> &dyn core::any::Any {
                 #[allow(clippy::match_same_arms)]
                 match self {
-                    Self::UnionKey(ref v) => v.as_ref(),
-Self::Foo(ref v) => v.as_ref(),
+                    Self::SError(ref v) => v.as_ref(),
+Self::Multi(ref v) => v.as_ref(),
+Self::UnionKey(ref v) => v.as_ref(),
 Self::MyUnion(ref v) => v.as_ref(),
-Self::MyUnionOne(ref v) => v.as_ref(),
-Self::MyUnionTwo(ref v) => v.as_ref(),
+Self::IntUnion(ref v) => v.as_ref(),
+Self::IntUnion2(ref v) => v.as_ref(),
                 }
             }
 
@@ -4582,17 +4679,18 @@ Self::MyUnionTwo(ref v) => v.as_ref(),
             #[allow(clippy::too_many_lines)]
             pub const fn name(&self) -> &'static str {
                 match self {
-                    Self::UnionKey(_) => "UnionKey",
-Self::Foo(_) => "Foo",
+                    Self::SError(_) => "SError",
+Self::Multi(_) => "Multi",
+Self::UnionKey(_) => "UnionKey",
 Self::MyUnion(_) => "MyUnion",
-Self::MyUnionOne(_) => "MyUnionOne",
-Self::MyUnionTwo(_) => "MyUnionTwo",
+Self::IntUnion(_) => "IntUnion",
+Self::IntUnion2(_) => "IntUnion2",
                 }
             }
 
             #[must_use]
             #[allow(clippy::too_many_lines)]
-            pub const fn variants() -> [TypeVariant; 5] {
+            pub const fn variants() -> [TypeVariant; 6] {
                 Self::VARIANTS
             }
 
@@ -4600,11 +4698,12 @@ Self::MyUnionTwo(_) => "MyUnionTwo",
             #[allow(clippy::too_many_lines)]
             pub const fn variant(&self) -> TypeVariant {
                 match self {
-                    Self::UnionKey(_) => TypeVariant::UnionKey,
-Self::Foo(_) => TypeVariant::Foo,
+                    Self::SError(_) => TypeVariant::SError,
+Self::Multi(_) => TypeVariant::Multi,
+Self::UnionKey(_) => TypeVariant::UnionKey,
 Self::MyUnion(_) => TypeVariant::MyUnion,
-Self::MyUnionOne(_) => TypeVariant::MyUnionOne,
-Self::MyUnionTwo(_) => TypeVariant::MyUnionTwo,
+Self::IntUnion(_) => TypeVariant::IntUnion,
+Self::IntUnion2(_) => TypeVariant::IntUnion2,
                 }
             }
         }
@@ -4627,11 +4726,12 @@ Self::MyUnionTwo(_) => TypeVariant::MyUnionTwo,
             #[allow(clippy::too_many_lines)]
             fn write_xdr<W: Write>(&self, w: &mut Limited<W>) -> Result<(), Error> {
                 match self {
-                    Self::UnionKey(v) => v.write_xdr(w),
-Self::Foo(v) => v.write_xdr(w),
+                    Self::SError(v) => v.write_xdr(w),
+Self::Multi(v) => v.write_xdr(w),
+Self::UnionKey(v) => v.write_xdr(w),
 Self::MyUnion(v) => v.write_xdr(w),
-Self::MyUnionOne(v) => v.write_xdr(w),
-Self::MyUnionTwo(v) => v.write_xdr(w),
+Self::IntUnion(v) => v.write_xdr(w),
+Self::IntUnion2(v) => v.write_xdr(w),
                 }
             }
         }

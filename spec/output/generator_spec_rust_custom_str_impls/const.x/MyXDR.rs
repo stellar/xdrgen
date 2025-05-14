@@ -135,7 +135,6 @@ impl fmt::Display for Error {
             Error::LengthLimitExceeded => write!(f, "length limit exceeded"),
             #[cfg(feature = "arbitrary")]
             Error::Arbitrary(e) => write!(f, "{e}"),
-
         }
     }
 }

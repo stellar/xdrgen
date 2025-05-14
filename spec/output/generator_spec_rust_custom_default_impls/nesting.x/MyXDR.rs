@@ -3960,10 +3960,10 @@ mod tests_for_number_or_string {
 /// ```
 ///
 // enum
-#[derive(Default)]
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
+#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 #[repr(i32)]
 pub enum UnionKey {
   #[default]
@@ -4175,6 +4175,7 @@ self.foo.write_xdr(w)?;
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), serde_with::serde_as, derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
+#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 #[allow(clippy::large_enum_variant)]
 pub enum MyUnion {
   One(
@@ -4184,12 +4185,6 @@ pub enum MyUnion {
     MyUnionTwo
   ),
   Offer,
-}
-
-impl Default for MyUnion {
-    fn default() -> Self {
-        Self::One(Default::default())
-    }
 }
 
         impl MyUnion {
