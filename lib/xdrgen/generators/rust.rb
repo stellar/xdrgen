@@ -808,10 +808,12 @@ module Xdrgen
           out.puts "pub type #{name typedef} = #{reference(typedef, typedef.type)};"
         else
           out.puts %{#[cfg_eval::cfg_eval]}
-          if is_var_array_type(typedef.type)
-            out.puts "#[derive(Default)]"
-          elsif !@options[:rust_types_custom_default_impl].include?(name typedef)
-            out.puts %{#[cfg_attr(feature = "alloc", derive(Default))]}
+          if !@options[:rust_types_custom_default_impl].include?(name typedef)
+            if is_var_array_type(typedef.type)
+              out.puts "#[derive(Default)]"
+            else
+              out.puts %{#[cfg_attr(feature = "alloc", derive(Default))]}
+            end
           end
           out.puts "#[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]"
           out.puts %{#[cfg_attr(feature = "arbitrary", derive(Arbitrary))]}
