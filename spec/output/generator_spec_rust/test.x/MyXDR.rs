@@ -75,12 +75,15 @@ pub enum Error {
     #[cfg(feature = "serde_json")]
     Json(serde_json::Error),
     LengthLimitExceeded,
+    #[cfg(feature = "arbitrary")]
+    Arbitrary(arbitrary::Error),
 }
 
 impl PartialEq for Error {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
             (Self::Utf8Error(l), Self::Utf8Error(r)) => l == r,
+
             // IO errors cannot be compared, but in the absence of any more
             // meaningful way to compare the errors we compare the kind of error
             // and ignore the embedded source error or OS error. The main use
@@ -89,6 +92,10 @@ impl PartialEq for Error {
             // detrimental affect on failure testing, so this is a tradeoff.
             #[cfg(feature = "std")]
             (Self::Io(l), Self::Io(r)) => l.kind() == r.kind(),
+
+            #[cfg(feature = "arbitrary")]
+            (Self::Arbitrary(l), Self::Arbitrary(r)) => l == r,
+
             _ => core::mem::discriminant(self) == core::mem::discriminant(other),
         }
     }
@@ -102,6 +109,8 @@ impl error::Error for Error {
             Self::Io(e) => Some(e),
             #[cfg(feature = "serde_json")]
             Self::Json(e) => Some(e),
+            #[cfg(feature = "arbitrary")]
+            Self::Arbitrary(e) => Some(e),
             _ => None,
         }
     }
@@ -124,6 +133,8 @@ impl fmt::Display for Error {
             #[cfg(feature = "serde_json")]
             Error::Json(e) => write!(f, "{e}"),
             Error::LengthLimitExceeded => write!(f, "length limit exceeded"),
+            #[cfg(feature = "arbitrary")]
+            Error::Arbitrary(e) => write!(f, "{e}"),
         }
     }
 }
@@ -162,6 +173,14 @@ impl From<serde_json::Error> for Error {
     #[must_use]
     fn from(e: serde_json::Error) -> Self {
         Error::Json(e)
+    }
+}
+
+#[cfg(feature = "arbitrary")]
+impl From<arbitrary::Error> for Error {
+    #[must_use]
+    fn from(e: arbitrary::Error) -> Self {
+        Error::Arbitrary(e)
     }
 }
 
@@ -2193,7 +2212,7 @@ impl<const MAX: u32> WriteXdr for StringM<MAX> {
 
 // Frame ------------------------------------------------------------------------
 
-#[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Default, Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(
     all(feature = "serde", feature = "alloc"),
     derive(serde::Serialize, serde::Deserialize),
@@ -3955,6 +3974,7 @@ mod tests_for_number_or_string {
 /// ```
 ///
 #[cfg_eval::cfg_eval]
+#[cfg_attr(feature = "alloc", derive(Default))]
 #[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr))]
@@ -4106,9 +4126,9 @@ impl AsRef<[u8]> for Uint512 {
 /// ```
 ///
 #[cfg_eval::cfg_eval]
+#[derive(Default)]
 #[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
-#[derive(Default)]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), serde_with::serde_as, derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 #[derive(Debug)]
@@ -4211,9 +4231,9 @@ impl AsRef<[u8]> for Uint513 {
 /// ```
 ///
 #[cfg_eval::cfg_eval]
+#[derive(Default)]
 #[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
-#[derive(Default)]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), serde_with::serde_as, derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 #[derive(Debug)]
@@ -4316,9 +4336,9 @@ impl AsRef<[u8]> for Uint514 {
 /// ```
 ///
 #[cfg_eval::cfg_eval]
+#[derive(Default)]
 #[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
-#[derive(Default)]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), serde_with::serde_as, derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 #[derive(Debug)]
@@ -4421,9 +4441,9 @@ impl AsRef<[u8]> for Str {
 /// ```
 ///
 #[cfg_eval::cfg_eval]
+#[derive(Default)]
 #[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
-#[derive(Default)]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), serde_with::serde_as, derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 #[derive(Debug)]
@@ -4526,6 +4546,7 @@ impl AsRef<[u8]> for Str2 {
 /// ```
 ///
 #[cfg_eval::cfg_eval]
+#[cfg_attr(feature = "alloc", derive(Default))]
 #[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr))]
@@ -4677,6 +4698,7 @@ impl AsRef<[u8]> for Hash {
 /// ```
 ///
 #[cfg_eval::cfg_eval]
+#[cfg_attr(feature = "alloc", derive(Default))]
 #[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), serde_with::serde_as, derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
@@ -4769,9 +4791,9 @@ impl AsRef<[Hash]> for Hashes1 {
 /// ```
 ///
 #[cfg_eval::cfg_eval]
+#[derive(Default)]
 #[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
-#[derive(Default)]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), serde_with::serde_as, derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 #[derive(Debug)]
@@ -4874,9 +4896,9 @@ impl AsRef<[Hash]> for Hashes2 {
 /// ```
 ///
 #[cfg_eval::cfg_eval]
+#[derive(Default)]
 #[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
-#[derive(Default)]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), serde_with::serde_as, derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 #[derive(Debug)]
@@ -4979,6 +5001,7 @@ impl AsRef<[Hash]> for Hashes3 {
 /// ```
 ///
 #[cfg_eval::cfg_eval]
+#[cfg_attr(feature = "alloc", derive(Default))]
 #[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), serde_with::serde_as, derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
@@ -5034,6 +5057,7 @@ impl WriteXdr for OptHash1 {
 /// ```
 ///
 #[cfg_eval::cfg_eval]
+#[cfg_attr(feature = "alloc", derive(Default))]
 #[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), serde_with::serde_as, derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
@@ -5129,6 +5153,7 @@ pub type Int4 = u64;
 /// };
 /// ```
 ///
+#[cfg_attr(feature = "alloc", derive(Default))]
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_eval::cfg_eval]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
@@ -5186,6 +5211,7 @@ self.field7.write_xdr(w)?;
 /// };
 /// ```
 ///
+#[cfg_attr(feature = "alloc", derive(Default))]
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_eval::cfg_eval]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
@@ -5225,6 +5251,7 @@ impl WriteXdr for LotsOfMyStructs {
 /// };
 /// ```
 ///
+#[cfg_attr(feature = "alloc", derive(Default))]
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_eval::cfg_eval]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
@@ -5266,12 +5293,14 @@ impl WriteXdr for HasStuff {
 /// ```
 ///
 // enum
+#[cfg_attr(feature = "alloc", derive(Default))]
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 #[repr(i32)]
 pub enum Color {
+  #[cfg_attr(feature = "alloc", default)]
   Red = 0,
   Blue = 5,
   Green = 6,
@@ -5390,12 +5419,14 @@ pub const BAR: u64 = FOO;
 /// ```
 ///
 // enum
+#[cfg_attr(feature = "alloc", derive(Default))]
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 #[repr(i32)]
 pub enum NesterNestedEnum {
+  #[cfg_attr(feature = "alloc", default)]
   B1 = 0,
   B2 = 1,
 }
@@ -5491,6 +5522,7 @@ Self::B2 => "B2",
 ///   }
 /// ```
 ///
+#[cfg_attr(feature = "alloc", derive(Default))]
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_eval::cfg_eval]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
@@ -5541,6 +5573,13 @@ impl WriteXdr for NesterNestedStruct {
 #[allow(clippy::large_enum_variant)]
 pub enum NesterNestedUnion {
   Red,
+}
+
+#[cfg(feature = "alloc")]
+impl Default for NesterNestedUnion {
+    fn default() -> Self {
+        Self::Red
+    }
 }
 
 impl NesterNestedUnion {
@@ -5649,6 +5688,7 @@ impl WriteXdr for NesterNestedUnion {
 /// };
 /// ```
 ///
+#[cfg_attr(feature = "alloc", derive(Default))]
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_eval::cfg_eval]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
@@ -6207,6 +6247,67 @@ TypeVariant::Nester => Ok(Self::Nester(Box::new(serde::de::Deserialize::deserial
 TypeVariant::NesterNestedEnum => Ok(Self::NesterNestedEnum(Box::new(serde::de::Deserialize::deserialize(r)?))),
 TypeVariant::NesterNestedStruct => Ok(Self::NesterNestedStruct(Box::new(serde::de::Deserialize::deserialize(r)?))),
 TypeVariant::NesterNestedUnion => Ok(Self::NesterNestedUnion(Box::new(serde::de::Deserialize::deserialize(r)?))),
+                }
+            }
+
+            #[cfg(feature = "arbitrary")]
+            #[allow(clippy::too_many_lines)]
+            pub fn arbitrary(v: TypeVariant, u: &mut arbitrary::Unstructured<'_>) -> Result<Self, Error> {
+                match v {
+                    TypeVariant::Uint512 => Ok(Self::Uint512(Box::new(Uint512::arbitrary(u)?))),
+TypeVariant::Uint513 => Ok(Self::Uint513(Box::new(Uint513::arbitrary(u)?))),
+TypeVariant::Uint514 => Ok(Self::Uint514(Box::new(Uint514::arbitrary(u)?))),
+TypeVariant::Str => Ok(Self::Str(Box::new(Str::arbitrary(u)?))),
+TypeVariant::Str2 => Ok(Self::Str2(Box::new(Str2::arbitrary(u)?))),
+TypeVariant::Hash => Ok(Self::Hash(Box::new(Hash::arbitrary(u)?))),
+TypeVariant::Hashes1 => Ok(Self::Hashes1(Box::new(Hashes1::arbitrary(u)?))),
+TypeVariant::Hashes2 => Ok(Self::Hashes2(Box::new(Hashes2::arbitrary(u)?))),
+TypeVariant::Hashes3 => Ok(Self::Hashes3(Box::new(Hashes3::arbitrary(u)?))),
+TypeVariant::OptHash1 => Ok(Self::OptHash1(Box::new(OptHash1::arbitrary(u)?))),
+TypeVariant::OptHash2 => Ok(Self::OptHash2(Box::new(OptHash2::arbitrary(u)?))),
+TypeVariant::Int1 => Ok(Self::Int1(Box::new(Int1::arbitrary(u)?))),
+TypeVariant::Int2 => Ok(Self::Int2(Box::new(Int2::arbitrary(u)?))),
+TypeVariant::Int3 => Ok(Self::Int3(Box::new(Int3::arbitrary(u)?))),
+TypeVariant::Int4 => Ok(Self::Int4(Box::new(Int4::arbitrary(u)?))),
+TypeVariant::MyStruct => Ok(Self::MyStruct(Box::new(MyStruct::arbitrary(u)?))),
+TypeVariant::LotsOfMyStructs => Ok(Self::LotsOfMyStructs(Box::new(LotsOfMyStructs::arbitrary(u)?))),
+TypeVariant::HasStuff => Ok(Self::HasStuff(Box::new(HasStuff::arbitrary(u)?))),
+TypeVariant::Color => Ok(Self::Color(Box::new(Color::arbitrary(u)?))),
+TypeVariant::Nester => Ok(Self::Nester(Box::new(Nester::arbitrary(u)?))),
+TypeVariant::NesterNestedEnum => Ok(Self::NesterNestedEnum(Box::new(NesterNestedEnum::arbitrary(u)?))),
+TypeVariant::NesterNestedStruct => Ok(Self::NesterNestedStruct(Box::new(NesterNestedStruct::arbitrary(u)?))),
+TypeVariant::NesterNestedUnion => Ok(Self::NesterNestedUnion(Box::new(NesterNestedUnion::arbitrary(u)?))),
+                }
+            }
+
+            #[cfg(feature = "alloc")]
+            #[must_use]
+            #[allow(clippy::too_many_lines)]
+            pub fn default(v: TypeVariant) -> Self {
+                match v {
+                    TypeVariant::Uint512 => Self::Uint512(Box::default()),
+TypeVariant::Uint513 => Self::Uint513(Box::default()),
+TypeVariant::Uint514 => Self::Uint514(Box::default()),
+TypeVariant::Str => Self::Str(Box::default()),
+TypeVariant::Str2 => Self::Str2(Box::default()),
+TypeVariant::Hash => Self::Hash(Box::default()),
+TypeVariant::Hashes1 => Self::Hashes1(Box::default()),
+TypeVariant::Hashes2 => Self::Hashes2(Box::default()),
+TypeVariant::Hashes3 => Self::Hashes3(Box::default()),
+TypeVariant::OptHash1 => Self::OptHash1(Box::default()),
+TypeVariant::OptHash2 => Self::OptHash2(Box::default()),
+TypeVariant::Int1 => Self::Int1(Box::default()),
+TypeVariant::Int2 => Self::Int2(Box::default()),
+TypeVariant::Int3 => Self::Int3(Box::default()),
+TypeVariant::Int4 => Self::Int4(Box::default()),
+TypeVariant::MyStruct => Self::MyStruct(Box::default()),
+TypeVariant::LotsOfMyStructs => Self::LotsOfMyStructs(Box::default()),
+TypeVariant::HasStuff => Self::HasStuff(Box::default()),
+TypeVariant::Color => Self::Color(Box::default()),
+TypeVariant::Nester => Self::Nester(Box::default()),
+TypeVariant::NesterNestedEnum => Self::NesterNestedEnum(Box::default()),
+TypeVariant::NesterNestedStruct => Self::NesterNestedStruct(Box::default()),
+TypeVariant::NesterNestedUnion => Self::NesterNestedUnion(Box::default()),
                 }
             }
 

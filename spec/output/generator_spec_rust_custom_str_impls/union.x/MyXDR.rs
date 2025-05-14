@@ -75,12 +75,15 @@ pub enum Error {
     #[cfg(feature = "serde_json")]
     Json(serde_json::Error),
     LengthLimitExceeded,
+    #[cfg(feature = "arbitrary")]
+    Arbitrary(arbitrary::Error),
 }
 
 impl PartialEq for Error {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
             (Self::Utf8Error(l), Self::Utf8Error(r)) => l == r,
+
             // IO errors cannot be compared, but in the absence of any more
             // meaningful way to compare the errors we compare the kind of error
             // and ignore the embedded source error or OS error. The main use
@@ -89,6 +92,10 @@ impl PartialEq for Error {
             // detrimental affect on failure testing, so this is a tradeoff.
             #[cfg(feature = "std")]
             (Self::Io(l), Self::Io(r)) => l.kind() == r.kind(),
+
+            #[cfg(feature = "arbitrary")]
+            (Self::Arbitrary(l), Self::Arbitrary(r)) => l == r,
+
             _ => core::mem::discriminant(self) == core::mem::discriminant(other),
         }
     }
@@ -102,6 +109,8 @@ impl error::Error for Error {
             Self::Io(e) => Some(e),
             #[cfg(feature = "serde_json")]
             Self::Json(e) => Some(e),
+            #[cfg(feature = "arbitrary")]
+            Self::Arbitrary(e) => Some(e),
             _ => None,
         }
     }
@@ -124,6 +133,8 @@ impl fmt::Display for Error {
             #[cfg(feature = "serde_json")]
             Error::Json(e) => write!(f, "{e}"),
             Error::LengthLimitExceeded => write!(f, "length limit exceeded"),
+            #[cfg(feature = "arbitrary")]
+            Error::Arbitrary(e) => write!(f, "{e}"),
         }
     }
 }
@@ -162,6 +173,14 @@ impl From<serde_json::Error> for Error {
     #[must_use]
     fn from(e: serde_json::Error) -> Self {
         Error::Json(e)
+    }
+}
+
+#[cfg(feature = "arbitrary")]
+impl From<arbitrary::Error> for Error {
+    #[must_use]
+    fn from(e: arbitrary::Error) -> Self {
+        Error::Arbitrary(e)
     }
 }
 
@@ -2193,7 +2212,7 @@ impl<const MAX: u32> WriteXdr for StringM<MAX> {
 
 // Frame ------------------------------------------------------------------------
 
-#[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Default, Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(
     all(feature = "serde", feature = "alloc"),
     derive(serde::Serialize, serde::Deserialize),
@@ -3974,12 +3993,14 @@ pub type Multi = i32;
 /// ```
 ///
 // enum
+#[cfg_attr(feature = "alloc", derive(Default))]
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr))]
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 #[repr(i32)]
 pub enum UnionKey {
+  #[cfg_attr(feature = "alloc", default)]
   Error = 0,
   Multi = 1,
 }
@@ -4095,6 +4116,13 @@ pub enum MyUnion {
   Multi(
     VecM<i32>
   ),
+}
+
+#[cfg(feature = "alloc")]
+impl Default for MyUnion {
+    fn default() -> Self {
+        Self::Error(i32::default())
+    }
 }
 
         impl MyUnion {
@@ -4213,6 +4241,13 @@ pub enum IntUnion {
   ),
 }
 
+#[cfg(feature = "alloc")]
+impl Default for IntUnion {
+    fn default() -> Self {
+        Self::V0(i32::default())
+    }
+}
+
         impl IntUnion {
             pub const VARIANTS: [i32; 2] = [
                 0,
@@ -4307,6 +4342,7 @@ Self::V1(v) => v.write_xdr(w)?,
 /// ```
 ///
 #[cfg_eval::cfg_eval]
+#[cfg_attr(feature = "alloc", derive(Default))]
 #[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), serde_with::serde_as, derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
@@ -4622,6 +4658,33 @@ TypeVariant::UnionKey => Ok(Self::UnionKey(Box::new(serde::de::Deserialize::dese
 TypeVariant::MyUnion => Ok(Self::MyUnion(Box::new(serde::de::Deserialize::deserialize(r)?))),
 TypeVariant::IntUnion => Ok(Self::IntUnion(Box::new(serde::de::Deserialize::deserialize(r)?))),
 TypeVariant::IntUnion2 => Ok(Self::IntUnion2(Box::new(serde::de::Deserialize::deserialize(r)?))),
+                }
+            }
+
+            #[cfg(feature = "arbitrary")]
+            #[allow(clippy::too_many_lines)]
+            pub fn arbitrary(v: TypeVariant, u: &mut arbitrary::Unstructured<'_>) -> Result<Self, Error> {
+                match v {
+                    TypeVariant::SError => Ok(Self::SError(Box::new(SError::arbitrary(u)?))),
+TypeVariant::Multi => Ok(Self::Multi(Box::new(Multi::arbitrary(u)?))),
+TypeVariant::UnionKey => Ok(Self::UnionKey(Box::new(UnionKey::arbitrary(u)?))),
+TypeVariant::MyUnion => Ok(Self::MyUnion(Box::new(MyUnion::arbitrary(u)?))),
+TypeVariant::IntUnion => Ok(Self::IntUnion(Box::new(IntUnion::arbitrary(u)?))),
+TypeVariant::IntUnion2 => Ok(Self::IntUnion2(Box::new(IntUnion2::arbitrary(u)?))),
+                }
+            }
+
+            #[cfg(feature = "alloc")]
+            #[must_use]
+            #[allow(clippy::too_many_lines)]
+            pub fn default(v: TypeVariant) -> Self {
+                match v {
+                    TypeVariant::SError => Self::SError(Box::default()),
+TypeVariant::Multi => Self::Multi(Box::default()),
+TypeVariant::UnionKey => Self::UnionKey(Box::default()),
+TypeVariant::MyUnion => Self::MyUnion(Box::default()),
+TypeVariant::IntUnion => Self::IntUnion(Box::default()),
+TypeVariant::IntUnion2 => Self::IntUnion2(Box::default()),
                 }
             }
 

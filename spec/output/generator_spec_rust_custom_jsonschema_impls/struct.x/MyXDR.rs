@@ -75,12 +75,15 @@ pub enum Error {
     #[cfg(feature = "serde_json")]
     Json(serde_json::Error),
     LengthLimitExceeded,
+    #[cfg(feature = "arbitrary")]
+    Arbitrary(arbitrary::Error),
 }
 
 impl PartialEq for Error {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
             (Self::Utf8Error(l), Self::Utf8Error(r)) => l == r,
+
             // IO errors cannot be compared, but in the absence of any more
             // meaningful way to compare the errors we compare the kind of error
             // and ignore the embedded source error or OS error. The main use
@@ -89,6 +92,10 @@ impl PartialEq for Error {
             // detrimental affect on failure testing, so this is a tradeoff.
             #[cfg(feature = "std")]
             (Self::Io(l), Self::Io(r)) => l.kind() == r.kind(),
+
+            #[cfg(feature = "arbitrary")]
+            (Self::Arbitrary(l), Self::Arbitrary(r)) => l == r,
+
             _ => core::mem::discriminant(self) == core::mem::discriminant(other),
         }
     }
@@ -102,6 +109,8 @@ impl error::Error for Error {
             Self::Io(e) => Some(e),
             #[cfg(feature = "serde_json")]
             Self::Json(e) => Some(e),
+            #[cfg(feature = "arbitrary")]
+            Self::Arbitrary(e) => Some(e),
             _ => None,
         }
     }
@@ -124,6 +133,8 @@ impl fmt::Display for Error {
             #[cfg(feature = "serde_json")]
             Error::Json(e) => write!(f, "{e}"),
             Error::LengthLimitExceeded => write!(f, "length limit exceeded"),
+            #[cfg(feature = "arbitrary")]
+            Error::Arbitrary(e) => write!(f, "{e}"),
         }
     }
 }
@@ -162,6 +173,14 @@ impl From<serde_json::Error> for Error {
     #[must_use]
     fn from(e: serde_json::Error) -> Self {
         Error::Json(e)
+    }
+}
+
+#[cfg(feature = "arbitrary")]
+impl From<arbitrary::Error> for Error {
+    #[must_use]
+    fn from(e: arbitrary::Error) -> Self {
+        Error::Arbitrary(e)
     }
 }
 
@@ -2193,7 +2212,7 @@ impl<const MAX: u32> WriteXdr for StringM<MAX> {
 
 // Frame ------------------------------------------------------------------------
 
-#[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Default, Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(
     all(feature = "serde", feature = "alloc"),
     derive(serde::Serialize, serde::Deserialize),
@@ -3969,6 +3988,7 @@ pub type Int64 = i64;
 /// };
 /// ```
 ///
+#[cfg_attr(feature = "alloc", derive(Default))]
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_eval::cfg_eval]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
@@ -4218,6 +4238,25 @@ TypeVariant::MyStruct => Ok(Self::MyStruct(Box::new(serde_json::from_reader(r)?)
                 match v {
                     TypeVariant::Int64 => Ok(Self::Int64(Box::new(serde::de::Deserialize::deserialize(r)?))),
 TypeVariant::MyStruct => Ok(Self::MyStruct(Box::new(serde::de::Deserialize::deserialize(r)?))),
+                }
+            }
+
+            #[cfg(feature = "arbitrary")]
+            #[allow(clippy::too_many_lines)]
+            pub fn arbitrary(v: TypeVariant, u: &mut arbitrary::Unstructured<'_>) -> Result<Self, Error> {
+                match v {
+                    TypeVariant::Int64 => Ok(Self::Int64(Box::new(Int64::arbitrary(u)?))),
+TypeVariant::MyStruct => Ok(Self::MyStruct(Box::new(MyStruct::arbitrary(u)?))),
+                }
+            }
+
+            #[cfg(feature = "alloc")]
+            #[must_use]
+            #[allow(clippy::too_many_lines)]
+            pub fn default(v: TypeVariant) -> Self {
+                match v {
+                    TypeVariant::Int64 => Self::Int64(Box::default()),
+TypeVariant::MyStruct => Self::MyStruct(Box::default()),
                 }
             }
 

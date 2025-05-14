@@ -75,12 +75,15 @@ pub enum Error {
     #[cfg(feature = "serde_json")]
     Json(serde_json::Error),
     LengthLimitExceeded,
+    #[cfg(feature = "arbitrary")]
+    Arbitrary(arbitrary::Error),
 }
 
 impl PartialEq for Error {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
             (Self::Utf8Error(l), Self::Utf8Error(r)) => l == r,
+
             // IO errors cannot be compared, but in the absence of any more
             // meaningful way to compare the errors we compare the kind of error
             // and ignore the embedded source error or OS error. The main use
@@ -89,6 +92,10 @@ impl PartialEq for Error {
             // detrimental affect on failure testing, so this is a tradeoff.
             #[cfg(feature = "std")]
             (Self::Io(l), Self::Io(r)) => l.kind() == r.kind(),
+
+            #[cfg(feature = "arbitrary")]
+            (Self::Arbitrary(l), Self::Arbitrary(r)) => l == r,
+
             _ => core::mem::discriminant(self) == core::mem::discriminant(other),
         }
     }
@@ -102,6 +109,8 @@ impl error::Error for Error {
             Self::Io(e) => Some(e),
             #[cfg(feature = "serde_json")]
             Self::Json(e) => Some(e),
+            #[cfg(feature = "arbitrary")]
+            Self::Arbitrary(e) => Some(e),
             _ => None,
         }
     }
@@ -124,6 +133,8 @@ impl fmt::Display for Error {
             #[cfg(feature = "serde_json")]
             Error::Json(e) => write!(f, "{e}"),
             Error::LengthLimitExceeded => write!(f, "length limit exceeded"),
+            #[cfg(feature = "arbitrary")]
+            Error::Arbitrary(e) => write!(f, "{e}"),
         }
     }
 }
@@ -162,6 +173,14 @@ impl From<serde_json::Error> for Error {
     #[must_use]
     fn from(e: serde_json::Error) -> Self {
         Error::Json(e)
+    }
+}
+
+#[cfg(feature = "arbitrary")]
+impl From<arbitrary::Error> for Error {
+    #[must_use]
+    fn from(e: arbitrary::Error) -> Self {
+        Error::Arbitrary(e)
     }
 }
 
@@ -2193,7 +2212,7 @@ impl<const MAX: u32> WriteXdr for StringM<MAX> {
 
 // Frame ------------------------------------------------------------------------
 
-#[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Default, Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(
     all(feature = "serde", feature = "alloc"),
     derive(serde::Serialize, serde::Deserialize),
@@ -3977,12 +3996,14 @@ mod tests_for_number_or_string {
 /// ```
 ///
 // enum
+#[cfg_attr(feature = "alloc", derive(Default))]
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 #[repr(i32)]
 pub enum MessageType {
+  #[cfg_attr(feature = "alloc", default)]
   ErrorMsg = 0,
   Hello = 1,
   DontHave = 2,
@@ -4141,12 +4162,14 @@ Self::FbaMessage => "FbaMessage",
 /// ```
 ///
 // enum
+#[cfg_attr(feature = "alloc", derive(Default))]
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 #[repr(i32)]
 pub enum Color {
+  #[cfg_attr(feature = "alloc", default)]
   Red = 0,
   Green = 1,
   Blue = 2,
@@ -4250,12 +4273,14 @@ Self::Blue => "Blue",
 /// ```
 ///
 // enum
+#[cfg_attr(feature = "alloc", derive(Default))]
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 #[repr(i32)]
 pub enum Color2 {
+  #[cfg_attr(feature = "alloc", default)]
   Red2 = 0,
   Green2 = 1,
   Blue2 = 2,
@@ -4359,12 +4384,14 @@ Self::Blue2 => "Blue2",
 /// ```
 ///
 // enum
+#[cfg_attr(feature = "alloc", derive(Default))]
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 #[repr(i32)]
 pub enum Color3 {
+  #[cfg_attr(feature = "alloc", default)]
   R1 = 1,
   R2Two = 2,
   R3 = 3,
@@ -4694,6 +4721,29 @@ TypeVariant::Color3 => Ok(Self::Color3(Box::new(serde_json::from_reader(r)?))),
 TypeVariant::Color => Ok(Self::Color(Box::new(serde::de::Deserialize::deserialize(r)?))),
 TypeVariant::Color2 => Ok(Self::Color2(Box::new(serde::de::Deserialize::deserialize(r)?))),
 TypeVariant::Color3 => Ok(Self::Color3(Box::new(serde::de::Deserialize::deserialize(r)?))),
+                }
+            }
+
+            #[cfg(feature = "arbitrary")]
+            #[allow(clippy::too_many_lines)]
+            pub fn arbitrary(v: TypeVariant, u: &mut arbitrary::Unstructured<'_>) -> Result<Self, Error> {
+                match v {
+                    TypeVariant::MessageType => Ok(Self::MessageType(Box::new(MessageType::arbitrary(u)?))),
+TypeVariant::Color => Ok(Self::Color(Box::new(Color::arbitrary(u)?))),
+TypeVariant::Color2 => Ok(Self::Color2(Box::new(Color2::arbitrary(u)?))),
+TypeVariant::Color3 => Ok(Self::Color3(Box::new(Color3::arbitrary(u)?))),
+                }
+            }
+
+            #[cfg(feature = "alloc")]
+            #[must_use]
+            #[allow(clippy::too_many_lines)]
+            pub fn default(v: TypeVariant) -> Self {
+                match v {
+                    TypeVariant::MessageType => Self::MessageType(Box::default()),
+TypeVariant::Color => Self::Color(Box::default()),
+TypeVariant::Color2 => Self::Color2(Box::default()),
+TypeVariant::Color3 => Self::Color3(Box::default()),
                 }
             }
 

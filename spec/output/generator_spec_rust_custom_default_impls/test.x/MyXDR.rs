@@ -5153,11 +5153,10 @@ pub type Int4 = u64;
 /// };
 /// ```
 ///
-#[cfg_attr(feature = "alloc", derive(Default))]
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_eval::cfg_eval]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
-#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde_with::SerializeDisplay))]
+#[cfg_attr(all(feature = "serde", feature = "alloc"), serde_with::serde_as, derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 pub struct MyStruct {
   pub field1: Uint512,
@@ -5201,38 +5200,6 @@ self.field7.write_xdr(w)?;
                 })
             }
         }
-        #[cfg(all(feature = "serde", feature = "alloc"))]
-        impl<'de> serde::Deserialize<'de> for MyStruct {
-            fn deserialize<D>(deserializer: D) -> core::result::Result<Self, D::Error> where D: serde::Deserializer<'de> {
-                use serde::Deserialize;
-                #[derive(Deserialize)]
-                struct MyStruct {
-                    field1: Uint512,
-field2: OptHash1,
-field3: i32,
-field4: u32,
-field5: f32,
-field6: f64,
-field7: bool,
-                }
-                #[derive(Deserialize)]
-                #[serde(untagged)]
-                enum MyStructOrString<'a> {
-                    Str(&'a str),
-                    String(String),
-                    MyStruct(MyStruct),
-                }
-                match MyStructOrString::deserialize(deserializer)? {
-                    MyStructOrString::Str(s) => s.parse().map_err(serde::de::Error::custom),
-                    MyStructOrString::String(s) => s.parse().map_err(serde::de::Error::custom),
-                    MyStructOrString::MyStruct(MyStruct {
-                        field1, field2, field3, field4, field5, field6, field7,
-                    }) => Ok(self::MyStruct {
-                        field1, field2, field3, field4, field5, field6, field7,
-                    }),
-                }
-            }
-        }
 
 /// LotsOfMyStructs is an XDR Struct defines as:
 ///
@@ -5243,11 +5210,10 @@ field7: bool,
 /// };
 /// ```
 ///
-#[cfg_attr(feature = "alloc", derive(Default))]
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_eval::cfg_eval]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
-#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde_with::SerializeDisplay))]
+#[cfg_attr(all(feature = "serde", feature = "alloc"), serde_with::serde_as, derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 pub struct LotsOfMyStructs {
   pub members: VecM<MyStruct>,
@@ -5271,32 +5237,6 @@ impl WriteXdr for LotsOfMyStructs {
             self.members.write_xdr(w)?;
             Ok(())
         })
-    }
-}
-#[cfg(all(feature = "serde", feature = "alloc"))]
-impl<'de> serde::Deserialize<'de> for LotsOfMyStructs {
-    fn deserialize<D>(deserializer: D) -> core::result::Result<Self, D::Error> where D: serde::Deserializer<'de> {
-        use serde::Deserialize;
-        #[derive(Deserialize)]
-        struct LotsOfMyStructs {
-            members: VecM<MyStruct>,
-        }
-        #[derive(Deserialize)]
-        #[serde(untagged)]
-        enum LotsOfMyStructsOrString<'a> {
-            Str(&'a str),
-            String(String),
-            LotsOfMyStructs(LotsOfMyStructs),
-        }
-        match LotsOfMyStructsOrString::deserialize(deserializer)? {
-            LotsOfMyStructsOrString::Str(s) => s.parse().map_err(serde::de::Error::custom),
-            LotsOfMyStructsOrString::String(s) => s.parse().map_err(serde::de::Error::custom),
-            LotsOfMyStructsOrString::LotsOfMyStructs(LotsOfMyStructs {
-                members,
-            }) => Ok(self::LotsOfMyStructs {
-                members,
-            }),
-        }
     }
 }
 
