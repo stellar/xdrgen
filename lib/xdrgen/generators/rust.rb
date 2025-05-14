@@ -299,7 +299,7 @@ module Xdrgen
                 }
             }
 
-            #[cfg(all(feature = "alloc"))]
+            #[cfg(feature = "alloc")]
             #[must_use]
             #[allow(clippy::too_many_lines)]
             pub fn default<'a>(v: TypeVariant) -> Self {
