@@ -4537,7 +4537,7 @@ TypeVariant::MyUnionTwo => Ok(Self::MyUnionTwo(Box::new(serde::de::Deserialize::
 
             #[cfg(feature = "arbitrary")]
             #[allow(clippy::too_many_lines)]
-            pub fn arbitrary<'a>(v: TypeVariant, u: &mut arbitrary::Unstructured<'a>) -> Result<Self, Error> {
+            pub fn arbitrary(v: TypeVariant, u: &mut arbitrary::Unstructured<'_>) -> Result<Self, Error> {
                 match v {
                     TypeVariant::UnionKey => Ok(Self::UnionKey(Box::new(UnionKey::arbitrary(u)?))),
 TypeVariant::Foo => Ok(Self::Foo(Box::new(Foo::arbitrary(u)?))),
@@ -4550,7 +4550,7 @@ TypeVariant::MyUnionTwo => Ok(Self::MyUnionTwo(Box::new(MyUnionTwo::arbitrary(u)
             #[cfg(feature = "alloc")]
             #[must_use]
             #[allow(clippy::too_many_lines)]
-            pub fn default<'a>(v: TypeVariant) -> Self {
+            pub fn default(v: TypeVariant) -> Self {
                 match v {
                     TypeVariant::UnionKey => Self::UnionKey(Box::default()),
 TypeVariant::Foo => Self::Foo(Box::default()),

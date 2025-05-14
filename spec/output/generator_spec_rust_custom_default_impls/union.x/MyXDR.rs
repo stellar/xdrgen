@@ -4637,7 +4637,7 @@ TypeVariant::IntUnion2 => Ok(Self::IntUnion2(Box::new(serde::de::Deserialize::de
 
             #[cfg(feature = "arbitrary")]
             #[allow(clippy::too_many_lines)]
-            pub fn arbitrary<'a>(v: TypeVariant, u: &mut arbitrary::Unstructured<'a>) -> Result<Self, Error> {
+            pub fn arbitrary(v: TypeVariant, u: &mut arbitrary::Unstructured<'_>) -> Result<Self, Error> {
                 match v {
                     TypeVariant::SError => Ok(Self::SError(Box::new(SError::arbitrary(u)?))),
 TypeVariant::Multi => Ok(Self::Multi(Box::new(Multi::arbitrary(u)?))),
@@ -4651,7 +4651,7 @@ TypeVariant::IntUnion2 => Ok(Self::IntUnion2(Box::new(IntUnion2::arbitrary(u)?))
             #[cfg(feature = "alloc")]
             #[must_use]
             #[allow(clippy::too_many_lines)]
-            pub fn default<'a>(v: TypeVariant) -> Self {
+            pub fn default(v: TypeVariant) -> Self {
                 match v {
                     TypeVariant::SError => Self::SError(Box::default()),
 TypeVariant::Multi => Self::Multi(Box::default()),

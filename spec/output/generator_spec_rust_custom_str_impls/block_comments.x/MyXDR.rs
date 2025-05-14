@@ -4246,7 +4246,7 @@ impl Type {
 
     #[cfg(feature = "arbitrary")]
     #[allow(clippy::too_many_lines)]
-    pub fn arbitrary<'a>(v: TypeVariant, u: &mut arbitrary::Unstructured<'a>) -> Result<Self, Error> {
+    pub fn arbitrary(v: TypeVariant, u: &mut arbitrary::Unstructured<'_>) -> Result<Self, Error> {
         match v {
             TypeVariant::AccountFlags => Ok(Self::AccountFlags(Box::new(AccountFlags::arbitrary(u)?))),
         }
@@ -4255,7 +4255,7 @@ impl Type {
     #[cfg(feature = "alloc")]
     #[must_use]
     #[allow(clippy::too_many_lines)]
-    pub fn default<'a>(v: TypeVariant) -> Self {
+    pub fn default(v: TypeVariant) -> Self {
         match v {
             TypeVariant::AccountFlags => Self::AccountFlags(Box::default()),
         }

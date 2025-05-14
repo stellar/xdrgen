@@ -6234,7 +6234,7 @@ TypeVariant::NesterNestedUnion => Ok(Self::NesterNestedUnion(Box::new(serde::de:
 
             #[cfg(feature = "arbitrary")]
             #[allow(clippy::too_many_lines)]
-            pub fn arbitrary<'a>(v: TypeVariant, u: &mut arbitrary::Unstructured<'a>) -> Result<Self, Error> {
+            pub fn arbitrary(v: TypeVariant, u: &mut arbitrary::Unstructured<'_>) -> Result<Self, Error> {
                 match v {
                     TypeVariant::Uint512 => Ok(Self::Uint512(Box::new(Uint512::arbitrary(u)?))),
 TypeVariant::Uint513 => Ok(Self::Uint513(Box::new(Uint513::arbitrary(u)?))),
@@ -6265,7 +6265,7 @@ TypeVariant::NesterNestedUnion => Ok(Self::NesterNestedUnion(Box::new(NesterNest
             #[cfg(feature = "alloc")]
             #[must_use]
             #[allow(clippy::too_many_lines)]
-            pub fn default<'a>(v: TypeVariant) -> Self {
+            pub fn default(v: TypeVariant) -> Self {
                 match v {
                     TypeVariant::Uint512 => Self::Uint512(Box::default()),
 TypeVariant::Uint513 => Self::Uint513(Box::default()),

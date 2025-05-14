@@ -4226,7 +4226,7 @@ TypeVariant::MyStruct => Ok(Self::MyStruct(Box::new(serde::de::Deserialize::dese
 
             #[cfg(feature = "arbitrary")]
             #[allow(clippy::too_many_lines)]
-            pub fn arbitrary<'a>(v: TypeVariant, u: &mut arbitrary::Unstructured<'a>) -> Result<Self, Error> {
+            pub fn arbitrary(v: TypeVariant, u: &mut arbitrary::Unstructured<'_>) -> Result<Self, Error> {
                 match v {
                     TypeVariant::Int64 => Ok(Self::Int64(Box::new(Int64::arbitrary(u)?))),
 TypeVariant::MyStruct => Ok(Self::MyStruct(Box::new(MyStruct::arbitrary(u)?))),
@@ -4236,7 +4236,7 @@ TypeVariant::MyStruct => Ok(Self::MyStruct(Box::new(MyStruct::arbitrary(u)?))),
             #[cfg(feature = "alloc")]
             #[must_use]
             #[allow(clippy::too_many_lines)]
-            pub fn default<'a>(v: TypeVariant) -> Self {
+            pub fn default(v: TypeVariant) -> Self {
                 match v {
                     TypeVariant::Int64 => Self::Int64(Box::default()),
 TypeVariant::MyStruct => Self::MyStruct(Box::default()),

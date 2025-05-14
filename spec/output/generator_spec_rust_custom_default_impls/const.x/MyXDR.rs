@@ -4185,7 +4185,7 @@ TypeVariant::TestArray2 => Ok(Self::TestArray2(Box::new(serde::de::Deserialize::
 
             #[cfg(feature = "arbitrary")]
             #[allow(clippy::too_many_lines)]
-            pub fn arbitrary<'a>(v: TypeVariant, u: &mut arbitrary::Unstructured<'a>) -> Result<Self, Error> {
+            pub fn arbitrary(v: TypeVariant, u: &mut arbitrary::Unstructured<'_>) -> Result<Self, Error> {
                 match v {
                     TypeVariant::TestArray => Ok(Self::TestArray(Box::new(TestArray::arbitrary(u)?))),
 TypeVariant::TestArray2 => Ok(Self::TestArray2(Box::new(TestArray2::arbitrary(u)?))),
@@ -4195,7 +4195,7 @@ TypeVariant::TestArray2 => Ok(Self::TestArray2(Box::new(TestArray2::arbitrary(u)
             #[cfg(feature = "alloc")]
             #[must_use]
             #[allow(clippy::too_many_lines)]
-            pub fn default<'a>(v: TypeVariant) -> Self {
+            pub fn default(v: TypeVariant) -> Self {
                 match v {
                     TypeVariant::TestArray => Self::TestArray(Box::default()),
 TypeVariant::TestArray2 => Self::TestArray2(Box::default()),
