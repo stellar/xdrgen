@@ -299,6 +299,14 @@ module Xdrgen
                 }
             }
 
+            #[must_use]
+            #[allow(clippy::too_many_lines)]
+            pub fn default<'a>(v: TypeVariant) -> Self {
+                match v {
+                    #{types.map { |t| "TypeVariant::#{t} => Ok(Self::#{t}(Box::new(#{t}::default()?)))," }.join("\n")}
+                }
+            }
+
             #[cfg(feature = "alloc")]
             #[must_use]
             #[allow(clippy::too_many_lines)]
@@ -415,7 +423,7 @@ module Xdrgen
       end
 
       def render_struct(out, struct)
-        out.puts "#[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]"
+        out.puts "#[derive(Default, Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]"
         out.puts %{#[cfg_eval::cfg_eval]}
         out.puts %{#[cfg_attr(feature = "arbitrary", derive(Arbitrary))]}
         if @options[:rust_types_custom_str_impl].include?(name struct)
@@ -505,7 +513,7 @@ module Xdrgen
 
       def render_enum(out, enum)
         out.puts "// enum"
-        out.puts "#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]"
+        out.puts "#[derive(Default, Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]"
         out.puts %{#[cfg_attr(feature = "arbitrary", derive(Arbitrary))]}
         if @options[:rust_types_custom_str_impl].include?(name enum)
           out.puts %{#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr))]}
@@ -638,7 +646,7 @@ module Xdrgen
         discriminant_type_builtin = is_builtin_type(union.discriminant.type) || (is_builtin_type(union.discriminant.type.resolved_type.type) if union.discriminant.type.respond_to?(:resolved_type) && AST::Definitions::Typedef === union.discriminant.type.resolved_type)
         out.puts "// union with discriminant #{discriminant_type}"
         out.puts %{#[cfg_eval::cfg_eval]}
-        out.puts "#[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]"
+        out.puts "#[derive(Default, Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]"
         out.puts %{#[cfg_attr(feature = "arbitrary", derive(Arbitrary))]}
         if @options[:rust_types_custom_str_impl].include?(name union)
           out.puts %{#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr))]}
@@ -782,9 +790,8 @@ module Xdrgen
           out.puts "pub type #{name typedef} = #{reference(typedef, typedef.type)};"
         else
           out.puts %{#[cfg_eval::cfg_eval]}
-          out.puts "#[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]"
+          out.puts "#[derive(Default, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]"
           out.puts %{#[cfg_attr(feature = "arbitrary", derive(Arbitrary))]}
-          out.puts "#[derive(Default)]" if is_var_array_type(typedef.type)
           if is_fixed_array_opaque(typedef.type) || @options[:rust_types_custom_str_impl].include?(name typedef)
             out.puts %{#[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr))]}
           else
