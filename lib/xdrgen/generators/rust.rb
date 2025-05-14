@@ -291,6 +291,14 @@ module Xdrgen
                 }
             }
 
+            #[cfg(feature = "arbitrary")]
+            #[allow(clippy::too_many_lines)]
+            pub fn arbitrary<'a>(v: TypeVariant, u: &mut arbitrary::Unstructured<'a>) -> Result<Self> {
+                match v {
+                    #{types.map { |t| "TypeVariant::#{t} => Ok(Self::#{t}(Box::new(#{t}::arbitrary(u)?)))," }.join("\n")}
+                }
+            }
+
             #[cfg(feature = "alloc")]
             #[must_use]
             #[allow(clippy::too_many_lines)]
