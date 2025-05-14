@@ -303,7 +303,7 @@ module Xdrgen
             #[allow(clippy::too_many_lines)]
             pub fn default<'a>(v: TypeVariant) -> Self {
                 match v {
-                    #{types.map { |t| "TypeVariant::#{t} => Ok(Self::#{t}(Box::new(#{t}::default())))," }.join("\n")}
+                    #{types.map { |t| "TypeVariant::#{t} => Self::#{t}(Box::new(#{t}::default()))," }.join("\n")}
                 }
             }
 
