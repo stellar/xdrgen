@@ -82,7 +82,16 @@ pub enum Error {
 impl PartialEq for Error {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
+            (Self::Invalid,          Self::Invalid)
+            | (Self::Unsupported,      Self::Unsupported)
+            | (Self::LengthExceedsMax, Self::LengthExceedsMax)
+            | (Self::LengthMismatch,   Self::LengthMismatch)
+            | (Self::NonZeroPadding,   Self::NonZeroPadding) => true,
+
             (Self::Utf8Error(l), Self::Utf8Error(r)) => l == r,
+
+            #[cfg(feature = "alloc")]
+            (Self::InvalidHex, Self::InvalidHex) => true,
 
             // IO errors cannot be compared, but in the absence of any more
             // meaningful way to compare the errors we compare the kind of error
@@ -93,10 +102,15 @@ impl PartialEq for Error {
             #[cfg(feature = "std")]
             (Self::Io(l), Self::Io(r)) => l.kind() == r.kind(),
 
+            (Self::DepthLimitExceeded, Self::DepthLimitExceeded) => true,
+
+            #[cfg(feature = "serde_json")]
+            (Self::Json(l), Self::Json(r)) => l == r,
+
+            (Self::LengthLimitExceeded, Self::LengthLimitExceeded) => true,
+
             #[cfg(feature = "arbitrary")]
             (Self::Arbitrary(l), Self::Arbitrary(r)) => l == r,
-
-            _ => core::mem::discriminant(self) == core::mem::discriminant(other),
         }
     }
 }
@@ -106,12 +120,21 @@ impl error::Error for Error {
     #[must_use]
     fn source(&self) -> Option<&(dyn error::Error + 'static)> {
         match self {
+            Error::Invalid
+            | Error::Unsupported
+            | Error::LengthExceedsMax
+            | Error::LengthMismatch
+            | Error::NonZeroPadding => None,
+
+            Error::Utf8Error(e) => Some(e),
+
             Self::Io(e) => Some(e),
+
             #[cfg(feature = "serde_json")]
             Self::Json(e) => Some(e),
+
             #[cfg(feature = "arbitrary")]
             Self::Arbitrary(e) => Some(e),
-            _ => None,
         }
     }
 }
@@ -125,14 +148,20 @@ impl fmt::Display for Error {
             Error::LengthMismatch => write!(f, "xdr value length does not match"),
             Error::NonZeroPadding => write!(f, "xdr padding contains non-zero bytes"),
             Error::Utf8Error(e) => write!(f, "{e}"),
+
             #[cfg(feature = "alloc")]
             Error::InvalidHex => write!(f, "hex invalid"),
+
             #[cfg(feature = "std")]
             Error::Io(e) => write!(f, "{e}"),
+
             Error::DepthLimitExceeded => write!(f, "depth limit exceeded"),
+
             #[cfg(feature = "serde_json")]
             Error::Json(e) => write!(f, "{e}"),
+
             Error::LengthLimitExceeded => write!(f, "length limit exceeded"),
+
             #[cfg(feature = "arbitrary")]
             Error::Arbitrary(e) => write!(f, "{e}"),
         }
