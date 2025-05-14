@@ -4654,7 +4654,7 @@ TypeVariant::IntUnion2 => Ok(Self::IntUnion2(Box::new(IntUnion2::arbitrary(u)?))
                 }
             }
 
-            #[cfg(all(feature = "alloc"))]
+            #[cfg(feature = "alloc")]
             #[must_use]
             #[allow(clippy::too_many_lines)]
             pub fn default<'a>(v: TypeVariant) -> Self {

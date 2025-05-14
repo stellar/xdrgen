@@ -4192,7 +4192,7 @@ TypeVariant::TestArray2 => Ok(Self::TestArray2(Box::new(TestArray2::arbitrary(u)
                 }
             }
 
-            #[cfg(all(feature = "alloc"))]
+            #[cfg(feature = "alloc")]
             #[must_use]
             #[allow(clippy::too_many_lines)]
             pub fn default<'a>(v: TypeVariant) -> Self {
