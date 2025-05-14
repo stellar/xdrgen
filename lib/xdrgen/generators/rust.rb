@@ -677,17 +677,19 @@ module Xdrgen
         end
         out.puts '}'
         out.puts ""
-        union_cases(union) do |case_name, arm|
-          out.puts <<-EOS.strip_heredoc
-          impl Default for #{name union} {
-              fn default() -> Self {
-                  Self::#{case_name}#{"(Default::default())" if !arm.void?}
-              }
-          }
-          EOS
-          break # output the above for the first union case
+        if !@options[:rust_types_custom_default_impl].include?(name union)
+          union_cases(union) do |case_name, arm|
+            out.puts <<-EOS.strip_heredoc
+            impl Default for #{name union} {
+                fn default() -> Self {
+                    Self::#{case_name}#{"(Default::default())" if !arm.void?}
+                }
+            }
+            EOS
+            break # output the above for the first union case
+          end
+          out.puts ""
         end
-        out.puts ""
         out.puts <<-EOS.strip_heredoc
         impl #{name union} {
             pub const VARIANTS: [#{discriminant_type}; #{union_case_count}] = [
