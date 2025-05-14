@@ -2357,10 +2357,12 @@ impl<'de> serde_with::DeserializeAs<'de, u64> for NumberOrString {
         #[derive(Deserialize)]
         #[serde(untagged)]
         enum U64OrString<'a> {
-            String(&'a str),
+            Str(&'a str),
+            String(String),
             U64(u64),
         }
         match U64OrString::deserialize(deserializer)? {
+            U64OrString::Str(s) => s.parse().map_err(serde::de::Error::custom),
             U64OrString::String(s) => s.parse().map_err(serde::de::Error::custom),
             U64OrString::U64(v) => Ok(v),
         }
