@@ -3978,14 +3978,14 @@ mod tests_for_number_or_string {
 /// ```
 ///
 // enum
-#[derive(Default)]
+#[cfg_attr(feature = "alloc", derive(Default))]
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 #[repr(i32)]
 pub enum MessageType {
-  #[default]
+  #[cfg_attr(feature = "alloc", default)]
   ErrorMsg = 0,
   Hello = 1,
   DontHave = 2,
@@ -4144,14 +4144,14 @@ Self::FbaMessage => "FbaMessage",
 /// ```
 ///
 // enum
-#[derive(Default)]
+#[cfg_attr(feature = "alloc", derive(Default))]
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 #[repr(i32)]
 pub enum Color {
-  #[default]
+  #[cfg_attr(feature = "alloc", default)]
   Red = 0,
   Green = 1,
   Blue = 2,
@@ -4255,13 +4255,13 @@ Self::Blue => "Blue",
 /// ```
 ///
 // enum
-#[derive(Default)]
+#[cfg_attr(feature = "alloc", derive(Default))]
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
 #[repr(i32)]
 pub enum Color2 {
-  #[default]
+  #[cfg_attr(feature = "alloc", default)]
   Red2 = 0,
   Green2 = 1,
   Blue2 = 2,
@@ -4365,14 +4365,14 @@ Self::Blue2 => "Blue2",
 /// ```
 ///
 // enum
-#[derive(Default)]
+#[cfg_attr(feature = "alloc", derive(Default))]
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 #[repr(i32)]
 pub enum Color3 {
-  #[default]
+  #[cfg_attr(feature = "alloc", default)]
   R1 = 1,
   R2Two = 2,
   R3 = 3,
@@ -4716,6 +4716,7 @@ TypeVariant::Color3 => Ok(Self::Color3(Box::new(Color3::arbitrary(u)?))),
                 }
             }
 
+            #[cfg(all(feature = "alloc"))]
             #[must_use]
             #[allow(clippy::too_many_lines)]
             pub fn default<'a>(v: TypeVariant) -> Self {

@@ -3968,7 +3968,7 @@ pub type Arr = [i32; 2];
 /// };
 /// ```
 ///
-#[derive(Default)]
+#[cfg_attr(feature = "alloc", derive(Default))]
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_eval::cfg_eval]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
@@ -4223,6 +4223,7 @@ TypeVariant::HasOptions => Ok(Self::HasOptions(Box::new(HasOptions::arbitrary(u)
                 }
             }
 
+            #[cfg(all(feature = "alloc"))]
             #[must_use]
             #[allow(clippy::too_many_lines)]
             pub fn default<'a>(v: TypeVariant) -> Self {

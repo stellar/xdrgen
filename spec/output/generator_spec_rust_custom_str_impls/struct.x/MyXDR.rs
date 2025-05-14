@@ -3970,7 +3970,7 @@ pub type Int64 = i64;
 /// };
 /// ```
 ///
-#[derive(Default)]
+#[cfg_attr(feature = "alloc", derive(Default))]
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_eval::cfg_eval]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
@@ -4262,6 +4262,7 @@ TypeVariant::MyStruct => Ok(Self::MyStruct(Box::new(MyStruct::arbitrary(u)?))),
                 }
             }
 
+            #[cfg(all(feature = "alloc"))]
             #[must_use]
             #[allow(clippy::too_many_lines)]
             pub fn default<'a>(v: TypeVariant) -> Self {

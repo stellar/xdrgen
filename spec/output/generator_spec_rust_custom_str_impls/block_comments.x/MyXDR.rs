@@ -3959,14 +3959,14 @@ mod tests_for_number_or_string {
 /// ```
 ///
 // enum
-#[derive(Default)]
+#[cfg_attr(feature = "alloc", derive(Default))]
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 #[repr(i32)]
 pub enum AccountFlags {
-  #[default]
+  #[cfg_attr(feature = "alloc", default)]
   AuthRequiredFlag = 1,
 }
 
@@ -4252,6 +4252,7 @@ impl Type {
         }
     }
 
+    #[cfg(all(feature = "alloc"))]
     #[must_use]
     #[allow(clippy::too_many_lines)]
     pub fn default<'a>(v: TypeVariant) -> Self {

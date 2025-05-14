@@ -3960,14 +3960,14 @@ mod tests_for_number_or_string {
 /// ```
 ///
 // enum
-#[derive(Default)]
+#[cfg_attr(feature = "alloc", derive(Default))]
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr))]
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 #[repr(i32)]
 pub enum UnionKey {
-  #[default]
+  #[cfg_attr(feature = "alloc", default)]
   One = 1,
   Two = 2,
   Offer = 3,
@@ -4076,7 +4076,7 @@ pub type Foo = i32;
 ///         }
 /// ```
 ///
-#[derive(Default)]
+#[cfg_attr(feature = "alloc", derive(Default))]
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_eval::cfg_eval]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
@@ -4116,7 +4116,7 @@ impl WriteXdr for MyUnionOne {
 ///         }
 /// ```
 ///
-#[derive(Default)]
+#[cfg_attr(feature = "alloc", derive(Default))]
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_eval::cfg_eval]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
@@ -4188,6 +4188,7 @@ pub enum MyUnion {
   Offer,
 }
 
+#[cfg(feature = "alloc")]
 impl Default for MyUnion {
     fn default() -> Self {
         Self::One(MyUnionOne::default())
@@ -4554,6 +4555,7 @@ TypeVariant::MyUnionTwo => Ok(Self::MyUnionTwo(Box::new(MyUnionTwo::arbitrary(u)
                 }
             }
 
+            #[cfg(all(feature = "alloc"))]
             #[must_use]
             #[allow(clippy::too_many_lines)]
             pub fn default<'a>(v: TypeVariant) -> Self {

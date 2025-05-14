@@ -3956,7 +3956,7 @@ mod tests_for_number_or_string {
 /// ```
 ///
 #[cfg_eval::cfg_eval]
-#[derive(Default)]
+#[cfg_attr(feature = "alloc", derive(Default))]
 #[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr))]
@@ -4108,7 +4108,7 @@ impl AsRef<[u8]> for Uint512 {
 /// ```
 ///
 #[cfg_eval::cfg_eval]
-#[derive(Default)]
+#[cfg_attr(feature = "alloc", derive(Default))]
 #[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), serde_with::serde_as, derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
@@ -4213,7 +4213,7 @@ impl AsRef<[u8]> for Uint513 {
 /// ```
 ///
 #[cfg_eval::cfg_eval]
-#[derive(Default)]
+#[cfg_attr(feature = "alloc", derive(Default))]
 #[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), serde_with::serde_as, derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
@@ -4318,7 +4318,7 @@ impl AsRef<[u8]> for Uint514 {
 /// ```
 ///
 #[cfg_eval::cfg_eval]
-#[derive(Default)]
+#[cfg_attr(feature = "alloc", derive(Default))]
 #[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), serde_with::serde_as, derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
@@ -4423,7 +4423,7 @@ impl AsRef<[u8]> for Str {
 /// ```
 ///
 #[cfg_eval::cfg_eval]
-#[derive(Default)]
+#[cfg_attr(feature = "alloc", derive(Default))]
 #[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), serde_with::serde_as, derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
@@ -4528,7 +4528,7 @@ impl AsRef<[u8]> for Str2 {
 /// ```
 ///
 #[cfg_eval::cfg_eval]
-#[derive(Default)]
+#[cfg_attr(feature = "alloc", derive(Default))]
 #[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr))]
@@ -4680,7 +4680,7 @@ impl AsRef<[u8]> for Hash {
 /// ```
 ///
 #[cfg_eval::cfg_eval]
-#[derive(Default)]
+#[cfg_attr(feature = "alloc", derive(Default))]
 #[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), serde_with::serde_as, derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
@@ -4773,7 +4773,7 @@ impl AsRef<[Hash]> for Hashes1 {
 /// ```
 ///
 #[cfg_eval::cfg_eval]
-#[derive(Default)]
+#[cfg_attr(feature = "alloc", derive(Default))]
 #[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), serde_with::serde_as, derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
@@ -4878,7 +4878,7 @@ impl AsRef<[Hash]> for Hashes2 {
 /// ```
 ///
 #[cfg_eval::cfg_eval]
-#[derive(Default)]
+#[cfg_attr(feature = "alloc", derive(Default))]
 #[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), serde_with::serde_as, derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
@@ -4983,7 +4983,7 @@ impl AsRef<[Hash]> for Hashes3 {
 /// ```
 ///
 #[cfg_eval::cfg_eval]
-#[derive(Default)]
+#[cfg_attr(feature = "alloc", derive(Default))]
 #[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), serde_with::serde_as, derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
@@ -5039,7 +5039,7 @@ impl WriteXdr for OptHash1 {
 /// ```
 ///
 #[cfg_eval::cfg_eval]
-#[derive(Default)]
+#[cfg_attr(feature = "alloc", derive(Default))]
 #[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), serde_with::serde_as, derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
@@ -5135,7 +5135,7 @@ pub type Int4 = u64;
 /// };
 /// ```
 ///
-#[derive(Default)]
+#[cfg_attr(feature = "alloc", derive(Default))]
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_eval::cfg_eval]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
@@ -5192,7 +5192,7 @@ self.field7.write_xdr(w)?;
 /// };
 /// ```
 ///
-#[derive(Default)]
+#[cfg_attr(feature = "alloc", derive(Default))]
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_eval::cfg_eval]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
@@ -5231,7 +5231,7 @@ impl WriteXdr for LotsOfMyStructs {
 /// };
 /// ```
 ///
-#[derive(Default)]
+#[cfg_attr(feature = "alloc", derive(Default))]
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_eval::cfg_eval]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
@@ -5273,14 +5273,14 @@ impl WriteXdr for HasStuff {
 /// ```
 ///
 // enum
-#[derive(Default)]
+#[cfg_attr(feature = "alloc", derive(Default))]
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 #[repr(i32)]
 pub enum Color {
-  #[default]
+  #[cfg_attr(feature = "alloc", default)]
   Red = 0,
   Blue = 5,
   Green = 6,
@@ -5399,14 +5399,14 @@ pub const BAR: u64 = FOO;
 /// ```
 ///
 // enum
-#[derive(Default)]
+#[cfg_attr(feature = "alloc", derive(Default))]
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 #[repr(i32)]
 pub enum NesterNestedEnum {
-  #[default]
+  #[cfg_attr(feature = "alloc", default)]
   B1 = 0,
   B2 = 1,
 }
@@ -5502,7 +5502,7 @@ Self::B2 => "B2",
 ///   }
 /// ```
 ///
-#[derive(Default)]
+#[cfg_attr(feature = "alloc", derive(Default))]
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_eval::cfg_eval]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
@@ -5555,6 +5555,7 @@ pub enum NesterNestedUnion {
   Red,
 }
 
+#[cfg(feature = "alloc")]
 impl Default for NesterNestedUnion {
     fn default() -> Self {
         Self::Red
@@ -5667,7 +5668,7 @@ impl WriteXdr for NesterNestedUnion {
 /// };
 /// ```
 ///
-#[derive(Default)]
+#[cfg_attr(feature = "alloc", derive(Default))]
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_eval::cfg_eval]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
@@ -6259,6 +6260,7 @@ TypeVariant::NesterNestedUnion => Ok(Self::NesterNestedUnion(Box::new(NesterNest
                 }
             }
 
+            #[cfg(all(feature = "alloc"))]
             #[must_use]
             #[allow(clippy::too_many_lines)]
             pub fn default<'a>(v: TypeVariant) -> Self {

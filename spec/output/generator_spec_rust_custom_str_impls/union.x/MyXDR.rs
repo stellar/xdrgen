@@ -3975,14 +3975,14 @@ pub type Multi = i32;
 /// ```
 ///
 // enum
-#[derive(Default)]
+#[cfg_attr(feature = "alloc", derive(Default))]
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr))]
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 #[repr(i32)]
 pub enum UnionKey {
-  #[default]
+  #[cfg_attr(feature = "alloc", default)]
   Error = 0,
   Multi = 1,
 }
@@ -4100,6 +4100,7 @@ pub enum MyUnion {
   ),
 }
 
+#[cfg(feature = "alloc")]
 impl Default for MyUnion {
     fn default() -> Self {
         Self::Error(i32::default())
@@ -4222,6 +4223,7 @@ pub enum IntUnion {
   ),
 }
 
+#[cfg(feature = "alloc")]
 impl Default for IntUnion {
     fn default() -> Self {
         Self::V0(i32::default())
@@ -4322,7 +4324,7 @@ Self::V1(v) => v.write_xdr(w)?,
 /// ```
 ///
 #[cfg_eval::cfg_eval]
-#[derive(Default)]
+#[cfg_attr(feature = "alloc", derive(Default))]
 #[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[cfg_attr(all(feature = "serde", feature = "alloc"), serde_with::serde_as, derive(serde::Serialize, serde::Deserialize), serde(rename_all = "snake_case"))]
@@ -4654,6 +4656,7 @@ TypeVariant::IntUnion2 => Ok(Self::IntUnion2(Box::new(IntUnion2::arbitrary(u)?))
                 }
             }
 
+            #[cfg(all(feature = "alloc"))]
             #[must_use]
             #[allow(clippy::too_many_lines)]
             pub fn default<'a>(v: TypeVariant) -> Self {

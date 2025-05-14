@@ -4223,6 +4223,7 @@ TypeVariant::HasOptions => Ok(Self::HasOptions(Box::new(HasOptions::arbitrary(u)
                 }
             }
 
+            #[cfg(all(feature = "alloc"))]
             #[must_use]
             #[allow(clippy::too_many_lines)]
             pub fn default<'a>(v: TypeVariant) -> Self {
