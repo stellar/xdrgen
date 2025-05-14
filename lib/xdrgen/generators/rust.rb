@@ -663,8 +663,7 @@ module Xdrgen
         out.puts "pub enum #{name union} {"
         union_case_count = 0
         out.indent do
-          union_cases(union) do |case_name, arm, _, i|
-            out.puts("#[default]") if i == 0
+          union_cases(union) do |case_name, arm|
             union_case_count += 1
             if arm.void?
               out.puts "#{case_name}#{"(())" unless arm.void?},"
@@ -677,6 +676,17 @@ module Xdrgen
           end
         end
         out.puts '}'
+        out.puts ""
+        union_cases(union) do |case_name, arm|
+          out.puts <<-EOS.strip_heredoc
+          impl Default for #{name union} {
+              fn default() -> Self {
+                  Self::#{case_name}#{"(Default::default())" if !arm.void?}
+              }
+          }
+          EOS
+          break # output the above for the first union case
+        end
         out.puts ""
         out.puts <<-EOS.strip_heredoc
         impl #{name union} {
