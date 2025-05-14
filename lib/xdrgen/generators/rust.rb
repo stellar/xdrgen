@@ -682,7 +682,7 @@ module Xdrgen
             out.puts <<-EOS.strip_heredoc
             impl Default for #{name union} {
                 fn default() -> Self {
-                    Self::#{case_name}#{"(#{reference(union, arm.type)}::default())" if !arm.void?}
+                    Self::#{case_name}#{"(#{reference_to_call(union, arm.type)}::default())" if !arm.void?}
                 }
             }
             EOS
