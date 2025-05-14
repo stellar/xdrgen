@@ -303,7 +303,7 @@ module Xdrgen
             #[allow(clippy::too_many_lines)]
             pub fn default<'a>(v: TypeVariant) -> Self {
                 match v {
-                    #{types.map { |t| "TypeVariant::#{t} => Self::#{t}(Box::new(#{t}::default()))," }.join("\n")}
+                    #{types.map { |t| "TypeVariant::#{t} => Self::#{t}(Box::default())," }.join("\n")}
                 }
             }
 
@@ -682,7 +682,7 @@ module Xdrgen
             out.puts <<-EOS.strip_heredoc
             impl Default for #{name union} {
                 fn default() -> Self {
-                    Self::#{case_name}#{"(Default::default())" if !arm.void?}
+                    Self::#{case_name}#{"(#{reference(union, arm.type)}::default())" if !arm.void?}
                 }
             }
             EOS
