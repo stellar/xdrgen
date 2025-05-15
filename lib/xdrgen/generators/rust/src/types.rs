@@ -95,7 +95,7 @@ impl PartialEq for Error {
             (Self::DepthLimitExceeded, Self::DepthLimitExceeded) => true,
 
             #[cfg(feature = "serde_json")]
-            (Self::Json(l), Self::Json(r)) => l == r,
+            (Self::Json(l), Self::Json(r)) => l.classify() == r.classify(),
 
             (Self::LengthLimitExceeded, Self::LengthLimitExceeded) => true,
 
