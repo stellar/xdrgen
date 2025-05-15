@@ -101,6 +101,8 @@ impl PartialEq for Error {
 
             #[cfg(feature = "arbitrary")]
             (Self::Arbitrary(l), Self::Arbitrary(r)) => l == r,
+
+            _ => false,
         }
     }
 }
