@@ -8,7 +8,6 @@ module Xdrgen::Generators
   autoload :Java
   autoload :Elixir
   autoload :Csharp
-  autoload :Rust
   autoload :Python
 
   def self.for_language(language)
