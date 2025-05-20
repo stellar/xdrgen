@@ -1,51 +1,24 @@
 # Xdrgen
 
-[![Build Status](https://travis-ci.org/stellar/xdrgen.svg)](https://travis-ci.org/stellar/xdrgen)
-[![Code Climate](https://codeclimate.com/github/stellar/xdrgen/badges/gpa.svg)](https://codeclimate.com/github/stellar/xdrgen)
-
 `xdrgen` is a code generator that takes XDR IDL files (`.x` files) as specified
-in [RFC 4506](http://tools.ietf.org/html/rfc4506.html) and spits code out in
-various languages.
+in [RFC 4506](http://tools.ietf.org/html/rfc4506.html) and provides the AST to
+code generators. It can be used as a library with custom generators, or for
+legacy purposes as a CLI with any of the built-in legacy generators.
 
-`xdrgen` requires ruby 2.1 or later to run.
+`xdrgen` requires ruby 3.1 to 3.3 to run.
 
 ## Status
 
-Xdrgen is a very early project.  Aside from the test fixtures in
-[spec/fixtures](spec/fixtures), the only .x files that have been thrown at it
-are the .x files used for the
-[stellar-core project](https://github.com/stellar/stellar-core).
+Xdrgen is an early project but also relatively stable and major changes have
+not been made to the library for sometime.
 
-Xdrgen presently supports these output languages: ruby, javacript, java,
-golang, elixir and Python:
+Aside from the test fixtures in [spec/fixtures](spec/fixtures), the only .x
+files that have been tested with it are the .x files used for the [Stellar
+protocol](https://github.com/stellar/stellar-xdr).
 
-- ruby: complete support
-- javascript: complete support
-- java: complete support
-- golang: currently using a fork of go-xdr, but has complete support
-- rust: support is experimental. Default arms and floats are not supported.
-- elixir: support is experimental as the SDK is in early development. Generated
-  code requires [:exdr](https://github.com/revelrylabs/exdr) in your deps
-- C#: complete support
-- Python: complete support
-  
-Testing is _very_ sparse, but will improve over time.
-
-## Usage as a binary
-
-Xdrgen is a rubygem, compatible with ruby 2.1 or higher
-
-    $ gem install xdrgen
-
-The command line:
-
-`xdrgen [-o OUTPUT_DIR] [-l LANGUAGE] [-n NAMESPACE] [INPUT_FILES ...]`
-
-### Language Specific Options
-
-### Rust
-
-`--rust-types-custom-str-impl`: Used to specify a comma-separated list of type names that should not have string conversion code generated as it will be provided by custom implementations provided by the developer using the generated code.
+If you're building a new code generator, the preferred way to provide a code
+generator to xdrgen is to use it as a library. See below for examples for how
+to do so.
 
 ## Usage as a library
 
@@ -57,36 +30,57 @@ gem 'xdrgen'
 
 And then execute:
 
-    $ bundle
+```
+$ bundle
+```
 
 Example usage:
 
 ```ruby
 require 'xdrgen'
 
-# create a compilation object, specifying your options
+class Generator < Xdrgen::Generators::Base
+  def generate
+    out = @output.open("#{@namespace}.rs")
+    # Use @top to access the top of the AST.
+    # Use @options to access any options passed via the compile.
+    # Use out.puts to write code.
+  end
+end
 
-c = Xdrgen::Compilation.new(
+Xdrgen::Compilation.new(
   ["MyProgram.x"],
   output_dir:"src/generated",
-  language: :ruby,
+  generator: Generator,
   namespace: "MyProgram::XDR",
-  options: {
-    rust_types_custom_str_impl: [],
-    rust_types_custom_jsonschema_impl: [],
-  },
-)
-
-# then run compile
-
-c.compile
-
+  options: { }, # any option your generator needs
+).compile
 ```
 
-## Contributing
+## Usage as a binary (legacy)
 
-1. Fork it ( https://github.com/[my-github-username]/xdrgen/fork )
-2. Create your feature branch (`git checkout -b my-new-feature`)
-3. Commit your changes (`git commit -am 'Add some feature'`)
-4. Push to the branch (`git push origin my-new-feature`)
-5. Create a new Pull Request
+Xdrgen is a rubygem, compatible with ruby 2.1 or higher
+
+    $ gem install xdrgen
+
+The command line:
+
+`xdrgen [-o OUTPUT_DIR] [-l LANGUAGE] [-n NAMESPACE] [INPUT_FILES ...]`
+
+Xdrgen has support for built-in generators via the CLI's `-l` option, but they
+are not maintained, not tested, and are preserved for legacy usage.
+
+- ruby: complete support
+- javascript: complete support
+- java: complete support
+- golang: currently using a fork of go-xdr, but has complete support
+- elixir: support is experimental as the SDK is in early development. Generated
+  code requires [:exdr](https://github.com/revelrylabs/exdr) in your deps
+- C#: complete support
+- Python: complete support
+
+## Contributing new generators / languages
+
+Instead of contributing new generators to this repository, use xdrgen as a
+library and maintain the generator independently where you can test and
+maintain it.
