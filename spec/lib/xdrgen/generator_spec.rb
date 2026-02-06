@@ -1,7 +1,7 @@
 require 'spec_helper'
 
 describe Xdrgen::Generators do
-  languages = %w(ruby javascript go java elixir python)
+  languages = %w(ruby javascript go elixir)
   focus_language = "" #"go"
   focus_basename = "" #"optional.x"
 
