@@ -72,12 +72,10 @@ are not maintained, not tested, and are preserved for legacy usage.
 
 - ruby: complete support
 - javascript: complete support
-- java: complete support
 - golang: currently using a fork of go-xdr, but has complete support
 - elixir: support is experimental as the SDK is in early development. Generated
   code requires [:exdr](https://github.com/revelrylabs/exdr) in your deps
 - C#: complete support
-- Python: complete support
 
 ## Contributing new generators / languages
 
