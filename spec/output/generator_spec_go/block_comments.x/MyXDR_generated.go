@@ -23,29 +23,22 @@ var XdrFilesSHA256 = map[string]string{
   "spec/fixtures/generator/block_comments.x": "e13131bc4134f38da17b9d5e9f67d2695a69ef98e3ef272833f4c18d0cc88a30",
 }
 
-var ErrMaxDecodingDepthReached = errors.New("maximum decoding depth reached")
-
 type xdrType interface {
   xdrType()
 }
 
-type decoderFrom interface {
-  DecodeFrom(d *xdr.Decoder, maxDepth uint) (int, error)
-}
+// ErrMaxDecodingDepthReached is returned when the maximum decoding depth is
+// exceeded. This prevents stack overflow from deeply nested structures.
+var ErrMaxDecodingDepthReached = errors.New("maximum decoding depth reached")
 
-// Unmarshal reads an xdr element from `r` into `v`.
-func Unmarshal(r io.Reader, v interface{}) (int, error) {
-  return UnmarshalWithOptions(r, v, xdr.DefaultDecodeOptions)
-}
-
-// UnmarshalWithOptions works like Unmarshal but uses decoding options.
-func UnmarshalWithOptions(r io.Reader, v interface{}, options xdr.DecodeOptions) (int, error) {
-  if decodable, ok := v.(decoderFrom); ok {
-    d := xdr.NewDecoderWithOptions(r, options)
-    return decodable.DecodeFrom(d, options.MaxDepth)
+// Unmarshal reads an xdr element from `data` into `v`.
+func Unmarshal(data []byte, v interface{}) (int, error) {
+  if decodable, ok := v.(xdr.DecoderFrom); ok {
+    d := xdr.NewDecoder(data)
+    return decodable.DecodeFrom(d, d.MaxDepth())
   }
   // delegate to xdr package's Unmarshal
-	return xdr.UnmarshalWithOptions(r, v, options)
+  return xdr.Unmarshal(data, v)
 }
 
 // Marshal writes an xdr element `v` into `w`.
@@ -74,6 +67,10 @@ type AccountFlags int32
 const (
   AccountFlagsAuthRequiredFlag AccountFlags = 1
 )
+const (
+  _AccountFlags_Min int32 = 1
+  _AccountFlags_Max int32 = 1
+)
 var accountFlagsMap = map[int32]string{
   1: "AccountFlagsAuthRequiredFlag",
 }
@@ -81,8 +78,7 @@ var accountFlagsMap = map[int32]string{
 // ValidEnum validates a proposed value for this enum.  Implements
 // the Enum interface for AccountFlags
 func (e AccountFlags) ValidEnum(v int32) bool {
-  _, ok := accountFlagsMap[v]
-  return ok
+  return v >= _AccountFlags_Min && v <= _AccountFlags_Max
 }
 // String returns the name of `e`
 func (e AccountFlags) String() string {
@@ -92,24 +88,23 @@ func (e AccountFlags) String() string {
 
 // EncodeTo encodes this value using the Encoder.
 func (e AccountFlags) EncodeTo(enc *xdr.Encoder) error {
-  if _, ok := accountFlagsMap[int32(e)]; !ok {
+  if int32(e) < _AccountFlags_Min || int32(e) > _AccountFlags_Max {
     return fmt.Errorf("'%d' is not a valid AccountFlags enum value", e)
   }
   _, err := enc.EncodeInt(int32(e))
   return err
 }
-var _ decoderFrom = (*AccountFlags)(nil)
-// DecodeFrom decodes this value using the Decoder.
+var _ xdr.DecoderFrom = (*AccountFlags)(nil)
+// DecodeFrom decodes this value from the given decoder.
 func (e *AccountFlags) DecodeFrom(d *xdr.Decoder, maxDepth uint) (int, error) {
   if maxDepth == 0 {
     return 0, fmt.Errorf("decoding AccountFlags: %w", ErrMaxDecodingDepthReached)
   }
-  maxDepth -= 1
   v, n, err := d.DecodeInt()
   if err != nil {
     return n, fmt.Errorf("decoding AccountFlags: %w", err)
   }
-  if _, ok := accountFlagsMap[v]; !ok {
+  if v < _AccountFlags_Min || v > _AccountFlags_Max {
     return n, fmt.Errorf("'%d' is not a valid AccountFlags enum value", v)
   }
   *e = AccountFlags(v)
@@ -125,11 +120,8 @@ func (s AccountFlags) MarshalBinary() ([]byte, error) {
 
 // UnmarshalBinary implements encoding.BinaryUnmarshaler.
 func (s *AccountFlags) UnmarshalBinary(inp []byte) error {
-  r := bytes.NewReader(inp)
-  o := xdr.DefaultDecodeOptions
-  o.MaxInputLen = len(inp)
-  d := xdr.NewDecoderWithOptions(r, o)
-  _, err := s.DecodeFrom(d, o.MaxDepth)
+  d := xdr.NewDecoder(inp)
+  _, err := s.DecodeFrom(d, d.MaxDepth())
   return err
 }
 

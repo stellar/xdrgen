@@ -23,29 +23,22 @@ var XdrFilesSHA256 = map[string]string{
   "spec/fixtures/generator/enum.x": "f764c2a2d349765e611f686e9d416b7f576ea881154d069355a2e75c898daf58",
 }
 
-var ErrMaxDecodingDepthReached = errors.New("maximum decoding depth reached")
-
 type xdrType interface {
   xdrType()
 }
 
-type decoderFrom interface {
-  DecodeFrom(d *xdr.Decoder, maxDepth uint) (int, error)
-}
+// ErrMaxDecodingDepthReached is returned when the maximum decoding depth is
+// exceeded. This prevents stack overflow from deeply nested structures.
+var ErrMaxDecodingDepthReached = errors.New("maximum decoding depth reached")
 
-// Unmarshal reads an xdr element from `r` into `v`.
-func Unmarshal(r io.Reader, v interface{}) (int, error) {
-  return UnmarshalWithOptions(r, v, xdr.DefaultDecodeOptions)
-}
-
-// UnmarshalWithOptions works like Unmarshal but uses decoding options.
-func UnmarshalWithOptions(r io.Reader, v interface{}, options xdr.DecodeOptions) (int, error) {
-  if decodable, ok := v.(decoderFrom); ok {
-    d := xdr.NewDecoderWithOptions(r, options)
-    return decodable.DecodeFrom(d, options.MaxDepth)
+// Unmarshal reads an xdr element from `data` into `v`.
+func Unmarshal(data []byte, v interface{}) (int, error) {
+  if decodable, ok := v.(xdr.DecoderFrom); ok {
+    d := xdr.NewDecoder(data)
+    return decodable.DecodeFrom(d, d.MaxDepth())
   }
   // delegate to xdr package's Unmarshal
-	return xdr.UnmarshalWithOptions(r, v, options)
+  return xdr.Unmarshal(data, v)
 }
 
 // Marshal writes an xdr element `v` into `w`.
@@ -106,6 +99,10 @@ const (
   MessageTypeFbaQuorumset MessageType = 12
   MessageTypeFbaMessage MessageType = 13
 )
+const (
+  _MessageType_Min int32 = 0
+  _MessageType_Max int32 = 13
+)
 var messageTypeMap = map[int32]string{
   0: "MessageTypeErrorMsg",
   1: "MessageTypeHello",
@@ -126,8 +123,7 @@ var messageTypeMap = map[int32]string{
 // ValidEnum validates a proposed value for this enum.  Implements
 // the Enum interface for MessageType
 func (e MessageType) ValidEnum(v int32) bool {
-  _, ok := messageTypeMap[v]
-  return ok
+  return v >= _MessageType_Min && v <= _MessageType_Max
 }
 // String returns the name of `e`
 func (e MessageType) String() string {
@@ -137,24 +133,23 @@ func (e MessageType) String() string {
 
 // EncodeTo encodes this value using the Encoder.
 func (e MessageType) EncodeTo(enc *xdr.Encoder) error {
-  if _, ok := messageTypeMap[int32(e)]; !ok {
+  if int32(e) < _MessageType_Min || int32(e) > _MessageType_Max {
     return fmt.Errorf("'%d' is not a valid MessageType enum value", e)
   }
   _, err := enc.EncodeInt(int32(e))
   return err
 }
-var _ decoderFrom = (*MessageType)(nil)
-// DecodeFrom decodes this value using the Decoder.
+var _ xdr.DecoderFrom = (*MessageType)(nil)
+// DecodeFrom decodes this value from the given decoder.
 func (e *MessageType) DecodeFrom(d *xdr.Decoder, maxDepth uint) (int, error) {
   if maxDepth == 0 {
     return 0, fmt.Errorf("decoding MessageType: %w", ErrMaxDecodingDepthReached)
   }
-  maxDepth -= 1
   v, n, err := d.DecodeInt()
   if err != nil {
     return n, fmt.Errorf("decoding MessageType: %w", err)
   }
-  if _, ok := messageTypeMap[v]; !ok {
+  if v < _MessageType_Min || v > _MessageType_Max {
     return n, fmt.Errorf("'%d' is not a valid MessageType enum value", v)
   }
   *e = MessageType(v)
@@ -170,11 +165,8 @@ func (s MessageType) MarshalBinary() ([]byte, error) {
 
 // UnmarshalBinary implements encoding.BinaryUnmarshaler.
 func (s *MessageType) UnmarshalBinary(inp []byte) error {
-  r := bytes.NewReader(inp)
-  o := xdr.DefaultDecodeOptions
-  o.MaxInputLen = len(inp)
-  d := xdr.NewDecoderWithOptions(r, o)
-  _, err := s.DecodeFrom(d, o.MaxDepth)
+  d := xdr.NewDecoder(inp)
+  _, err := s.DecodeFrom(d, d.MaxDepth())
   return err
 }
 
@@ -202,6 +194,10 @@ const (
   ColorGreen Color = 1
   ColorBlue Color = 2
 )
+const (
+  _Color_Min int32 = 0
+  _Color_Max int32 = 2
+)
 var colorMap = map[int32]string{
   0: "ColorRed",
   1: "ColorGreen",
@@ -211,8 +207,7 @@ var colorMap = map[int32]string{
 // ValidEnum validates a proposed value for this enum.  Implements
 // the Enum interface for Color
 func (e Color) ValidEnum(v int32) bool {
-  _, ok := colorMap[v]
-  return ok
+  return v >= _Color_Min && v <= _Color_Max
 }
 // String returns the name of `e`
 func (e Color) String() string {
@@ -222,24 +217,23 @@ func (e Color) String() string {
 
 // EncodeTo encodes this value using the Encoder.
 func (e Color) EncodeTo(enc *xdr.Encoder) error {
-  if _, ok := colorMap[int32(e)]; !ok {
+  if int32(e) < _Color_Min || int32(e) > _Color_Max {
     return fmt.Errorf("'%d' is not a valid Color enum value", e)
   }
   _, err := enc.EncodeInt(int32(e))
   return err
 }
-var _ decoderFrom = (*Color)(nil)
-// DecodeFrom decodes this value using the Decoder.
+var _ xdr.DecoderFrom = (*Color)(nil)
+// DecodeFrom decodes this value from the given decoder.
 func (e *Color) DecodeFrom(d *xdr.Decoder, maxDepth uint) (int, error) {
   if maxDepth == 0 {
     return 0, fmt.Errorf("decoding Color: %w", ErrMaxDecodingDepthReached)
   }
-  maxDepth -= 1
   v, n, err := d.DecodeInt()
   if err != nil {
     return n, fmt.Errorf("decoding Color: %w", err)
   }
-  if _, ok := colorMap[v]; !ok {
+  if v < _Color_Min || v > _Color_Max {
     return n, fmt.Errorf("'%d' is not a valid Color enum value", v)
   }
   *e = Color(v)
@@ -255,11 +249,8 @@ func (s Color) MarshalBinary() ([]byte, error) {
 
 // UnmarshalBinary implements encoding.BinaryUnmarshaler.
 func (s *Color) UnmarshalBinary(inp []byte) error {
-  r := bytes.NewReader(inp)
-  o := xdr.DefaultDecodeOptions
-  o.MaxInputLen = len(inp)
-  d := xdr.NewDecoderWithOptions(r, o)
-  _, err := s.DecodeFrom(d, o.MaxDepth)
+  d := xdr.NewDecoder(inp)
+  _, err := s.DecodeFrom(d, d.MaxDepth())
   return err
 }
 
@@ -287,6 +278,10 @@ const (
   Color2Green2 Color2 = 1
   Color2Blue2 Color2 = 2
 )
+const (
+  _Color2_Min int32 = 0
+  _Color2_Max int32 = 2
+)
 var color2Map = map[int32]string{
   0: "Color2Red2",
   1: "Color2Green2",
@@ -296,8 +291,7 @@ var color2Map = map[int32]string{
 // ValidEnum validates a proposed value for this enum.  Implements
 // the Enum interface for Color2
 func (e Color2) ValidEnum(v int32) bool {
-  _, ok := color2Map[v]
-  return ok
+  return v >= _Color2_Min && v <= _Color2_Max
 }
 // String returns the name of `e`
 func (e Color2) String() string {
@@ -307,24 +301,23 @@ func (e Color2) String() string {
 
 // EncodeTo encodes this value using the Encoder.
 func (e Color2) EncodeTo(enc *xdr.Encoder) error {
-  if _, ok := color2Map[int32(e)]; !ok {
+  if int32(e) < _Color2_Min || int32(e) > _Color2_Max {
     return fmt.Errorf("'%d' is not a valid Color2 enum value", e)
   }
   _, err := enc.EncodeInt(int32(e))
   return err
 }
-var _ decoderFrom = (*Color2)(nil)
-// DecodeFrom decodes this value using the Decoder.
+var _ xdr.DecoderFrom = (*Color2)(nil)
+// DecodeFrom decodes this value from the given decoder.
 func (e *Color2) DecodeFrom(d *xdr.Decoder, maxDepth uint) (int, error) {
   if maxDepth == 0 {
     return 0, fmt.Errorf("decoding Color2: %w", ErrMaxDecodingDepthReached)
   }
-  maxDepth -= 1
   v, n, err := d.DecodeInt()
   if err != nil {
     return n, fmt.Errorf("decoding Color2: %w", err)
   }
-  if _, ok := color2Map[v]; !ok {
+  if v < _Color2_Min || v > _Color2_Max {
     return n, fmt.Errorf("'%d' is not a valid Color2 enum value", v)
   }
   *e = Color2(v)
@@ -340,11 +333,8 @@ func (s Color2) MarshalBinary() ([]byte, error) {
 
 // UnmarshalBinary implements encoding.BinaryUnmarshaler.
 func (s *Color2) UnmarshalBinary(inp []byte) error {
-  r := bytes.NewReader(inp)
-  o := xdr.DefaultDecodeOptions
-  o.MaxInputLen = len(inp)
-  d := xdr.NewDecoderWithOptions(r, o)
-  _, err := s.DecodeFrom(d, o.MaxDepth)
+  d := xdr.NewDecoder(inp)
+  _, err := s.DecodeFrom(d, d.MaxDepth())
   return err
 }
 
@@ -372,6 +362,10 @@ const (
   Color3Red2Two Color3 = 2
   Color3Red3 Color3 = 3
 )
+const (
+  _Color3_Min int32 = 1
+  _Color3_Max int32 = 3
+)
 var color3Map = map[int32]string{
   1: "Color3Red1",
   2: "Color3Red2Two",
@@ -381,8 +375,7 @@ var color3Map = map[int32]string{
 // ValidEnum validates a proposed value for this enum.  Implements
 // the Enum interface for Color3
 func (e Color3) ValidEnum(v int32) bool {
-  _, ok := color3Map[v]
-  return ok
+  return v >= _Color3_Min && v <= _Color3_Max
 }
 // String returns the name of `e`
 func (e Color3) String() string {
@@ -392,24 +385,23 @@ func (e Color3) String() string {
 
 // EncodeTo encodes this value using the Encoder.
 func (e Color3) EncodeTo(enc *xdr.Encoder) error {
-  if _, ok := color3Map[int32(e)]; !ok {
+  if int32(e) < _Color3_Min || int32(e) > _Color3_Max {
     return fmt.Errorf("'%d' is not a valid Color3 enum value", e)
   }
   _, err := enc.EncodeInt(int32(e))
   return err
 }
-var _ decoderFrom = (*Color3)(nil)
-// DecodeFrom decodes this value using the Decoder.
+var _ xdr.DecoderFrom = (*Color3)(nil)
+// DecodeFrom decodes this value from the given decoder.
 func (e *Color3) DecodeFrom(d *xdr.Decoder, maxDepth uint) (int, error) {
   if maxDepth == 0 {
     return 0, fmt.Errorf("decoding Color3: %w", ErrMaxDecodingDepthReached)
   }
-  maxDepth -= 1
   v, n, err := d.DecodeInt()
   if err != nil {
     return n, fmt.Errorf("decoding Color3: %w", err)
   }
-  if _, ok := color3Map[v]; !ok {
+  if v < _Color3_Min || v > _Color3_Max {
     return n, fmt.Errorf("'%d' is not a valid Color3 enum value", v)
   }
   *e = Color3(v)
@@ -425,11 +417,8 @@ func (s Color3) MarshalBinary() ([]byte, error) {
 
 // UnmarshalBinary implements encoding.BinaryUnmarshaler.
 func (s *Color3) UnmarshalBinary(inp []byte) error {
-  r := bytes.NewReader(inp)
-  o := xdr.DefaultDecodeOptions
-  o.MaxInputLen = len(inp)
-  d := xdr.NewDecoderWithOptions(r, o)
-  _, err := s.DecodeFrom(d, o.MaxDepth)
+  d := xdr.NewDecoder(inp)
+  _, err := s.DecodeFrom(d, d.MaxDepth())
   return err
 }
 
