@@ -5,33 +5,332 @@ module Xdrgen
 
       def generate
         @already_rendered = []
-        path = "#{@namespace}_generated.go"
-        out = @output.open(path)
 
-        render_top_matter out
-        render_definitions(out, @top)
-        render_bottom_matter out
+        # Collect all feature flags used across all definitions
+        features = collect_all_features(@top)
+
+        if features.empty?
+          # No ifdefs at all - generate as before (single file)
+          path = "#{@namespace}_generated.go"
+          out = @output.open(path)
+          render_top_matter out
+          render_definitions(out, @top)
+          render_bottom_matter out
+          return
+        end
+
+        # Multi-file generation with build tags
+        generate_with_ifdefs(features)
       end
 
       private
 
+      def generate_with_ifdefs(features)
+        # Categorize all definitions
+        main_defs = []
+        conditional_defs = {} # condition_key => [{defn:, member_filter:}]
+
+        collect_all_defs_flat(@top).each do |defn|
+          placement = compute_placement(defn)
+          case placement[:type]
+          when :main
+            main_defs << defn
+          when :feature
+            key = conditions_to_key(placement[:conditions])
+            conditional_defs[key] ||= []
+            conditional_defs[key] << { defn: defn, member_filter: nil }
+          when :split
+            placement[:variants].each do |variant|
+              key = conditions_to_key(variant[:conditions])
+              conditional_defs[key] ||= []
+              conditional_defs[key] << { defn: defn, member_filter: variant[:member_filter] }
+            end
+          end
+        end
+
+        # Generate main file
+        main_out = @output.open("#{@namespace}_generated.go")
+        has_main_types = main_defs.any? { |d| !d.is_a?(AST::Definitions::Const) }
+        if has_main_types
+          render_top_matter(main_out)
+        else
+          render_top_matter_main_ifdef(main_out)
+        end
+        @already_rendered = []
+        main_defs.each { |defn| render_definition(main_out, defn) }
+        render_bottom_matter(main_out)
+
+        # Generate conditional files
+        conditional_defs.each do |condition_key, entries|
+          build_tag = condition_key_to_build_tag(condition_key)
+          file_suffix = condition_key_to_file_suffix(condition_key)
+          file_path = "#{@namespace}_generated_#{file_suffix}.go"
+
+          has_unions = entries.any? { |e| e[:defn].is_a?(AST::Definitions::Union) }
+
+          out = @output.open(file_path)
+          render_build_tag(out, build_tag)
+          render_top_matter_conditional(out, include_errors: has_unions)
+
+          @already_rendered = []
+          entries.each do |entry|
+            if entry[:member_filter]
+              render_definition_with_filter(out, entry[:defn], entry[:member_filter])
+            else
+              render_definition(out, entry[:defn])
+            end
+          end
+          # No render_bottom_matter for conditional files (fmtTest only in main)
+        end
+      end
+
+      # Collect all feature names used in ifdefs across the AST
+      def collect_all_features(node)
+        features = Set.new
+        collect_features_recursive(node, features)
+        features.to_a.sort
+      end
+
+      def collect_features_recursive(node, features)
+        node.definitions.each do |defn|
+          defn.ifdefs.each { |c| features << c.name }
+          collect_member_features(defn, features)
+          if defn.respond_to?(:nested_definitions)
+            defn.nested_definitions.each do |ndefn|
+              ndefn.ifdefs.each { |c| features << c.name }
+              collect_member_features(ndefn, features)
+            end
+          end
+        end
+        node.namespaces.each { |ns| collect_features_recursive(ns, features) }
+      end
+
+      def collect_member_features(defn, features)
+        case defn
+        when AST::Definitions::Struct
+          defn.members.each { |m| m.ifdefs.each { |c| features << c.name } }
+        when AST::Definitions::Enum
+          defn.members.each { |m| m.ifdefs.each { |c| features << c.name } }
+        when AST::Definitions::Union
+          defn.normal_arms.each { |a| a.ifdefs.each { |c| features << c.name } }
+        end
+      end
+
+      # Collect top-level definitions in a flat list (nested definitions are
+      # rendered by their parent via render_nested_definitions)
+      def collect_all_defs_flat(node)
+        result = []
+        collect_defs_recursive(node, result)
+        result
+      end
+
+      def collect_defs_recursive(node, result)
+        node.definitions.each do |defn|
+          result << defn
+        end
+        node.namespaces.each { |ns| collect_defs_recursive(ns, result) }
+      end
+
+      # Determine where a definition should be placed
+      def compute_placement(defn)
+        top_conditions = defn.ifdefs
+        member_features = collect_defn_member_features(defn)
+
+        if top_conditions.empty? && member_features.empty?
+          { type: :main }
+        elsif member_features.empty?
+          { type: :feature, conditions: top_conditions }
+        else
+          # Need to split the type across files
+          variants = compute_variants(defn, top_conditions, member_features)
+          { type: :split, variants: variants }
+        end
+      end
+
+      def collect_defn_member_features(defn)
+        features = Set.new
+        case defn
+        when AST::Definitions::Struct
+          defn.members.each { |m| m.ifdefs.each { |c| features << c.name } }
+        when AST::Definitions::Enum
+          defn.members.each { |m| m.ifdefs.each { |c| features << c.name } }
+        when AST::Definitions::Union
+          defn.normal_arms.each { |a| a.ifdefs.each { |c| features << c.name } }
+        end
+        features.to_a
+      end
+
+      def compute_variants(defn, top_conditions, member_features)
+        # Generate all 2^N combinations of feature on/off
+        variants = []
+        generate_combinations(member_features, 0, [], top_conditions) do |conditions, feature_states|
+          member_filter = build_member_filter(feature_states)
+          variants << { conditions: conditions, member_filter: member_filter }
+        end
+        variants
+      end
+
+      def generate_combinations(features, index, current_states, top_conditions, &block)
+        if index == features.length
+          all_conditions = top_conditions + current_states.map { |s| Preprocessor::IfdefCondition.new(s[:name], s[:negated]) }
+          yield all_conditions, current_states.dup
+          return
+        end
+
+        feature = features[index]
+
+        # Feature enabled
+        generate_combinations(features, index + 1,
+          current_states + [{ name: feature, negated: false }],
+          top_conditions, &block)
+
+        # Feature disabled
+        generate_combinations(features, index + 1,
+          current_states + [{ name: feature, negated: true }],
+          top_conditions, &block)
+      end
+
+      def build_member_filter(feature_states)
+        lambda do |member|
+          return true if member.ifdefs.empty?
+          # All of the member's conditions must be satisfied by the feature states
+          member.ifdefs.all? do |cond|
+            feature_states.any? { |s| s[:name] == cond.name && s[:negated] == cond.negated }
+          end
+        end
+      end
+
+      # Convert conditions array to a unique key string
+      def conditions_to_key(conditions)
+        conditions.map { |c| c.negated ? "!#{c.name}" : c.name }.join(",")
+      end
+
+      # Convert condition key to Go build tag
+      def condition_key_to_build_tag(key)
+        parts = key.split(",")
+        parts.map do |p|
+          if p.start_with?("!")
+            "!#{p[1..].downcase}"
+          else
+            p.downcase
+          end
+        end.join(" && ")
+      end
+
+      # Convert condition key to file name suffix
+      def condition_key_to_file_suffix(key)
+        parts = key.split(",")
+        parts.map do |p|
+          if p.start_with?("!")
+            "no_#{p[1..].downcase}"
+          else
+            p.downcase
+          end
+        end.join("_")
+      end
+
+      def render_build_tag(out, build_tag)
+        out.puts "//go:build #{build_tag}"
+        out.puts ""
+      end
+
+      def render_top_matter_conditional(out, include_errors: true)
+        out.puts "//lint:file-ignore S1005 The issue should be fixed in xdrgen. Unfortunately, there's no way to ignore a single file in staticcheck."
+        out.puts ""
+        out.puts "// DO NOT EDIT or your changes may be overwritten"
+        out.puts "package #{@namespace || "main"}"
+        out.puts ""
+        out.puts "import ("
+        out.puts '  "bytes"'
+        out.puts '  "encoding"'
+        out.puts '  "errors"' if include_errors
+        out.puts '  "fmt"'
+        out.puts ""
+        out.puts '  "github.com/stellar/go-xdr/xdr3"'
+        out.puts ")"
+        out.break
+      end
+
+      def render_top_matter_main_ifdef(out)
+        out.puts <<-EOS.strip_heredoc
+          //lint:file-ignore S1005 The issue should be fixed in xdrgen. Unfortunately, there's no way to ignore a single file in staticcheck.
+          //lint:file-ignore U1000 fmtTest is not needed anywhere, should be removed in xdrgen.
+
+          // Package #{@namespace || "main"} is generated from:
+          //
+          //  #{@output.relative_source_paths.join("\n//  ")}
+          //
+          // DO NOT EDIT or your changes may be overwritten
+          package #{@namespace || "main"}
+
+          import (
+            "encoding"
+            "errors"
+            "io"
+            "fmt"
+
+            "github.com/stellar/go-xdr/xdr3"
+          )
+        EOS
+        out.break
+        out.puts <<-EOS.strip_heredoc
+        // XdrFilesSHA256 is the SHA256 hashes of source files.
+        var XdrFilesSHA256 = map[string]string{
+          #{@output.relative_source_path_sha256_hashes.map(){ |path, hash| %{"#{path}": "#{hash}",} }.join("\n")}
+        }
+        EOS
+        out.break
+        out.puts <<-EOS.strip_heredoc
+          var ErrMaxDecodingDepthReached = errors.New("maximum decoding depth reached")
+
+          type xdrType interface {
+            xdrType()
+          }
+
+          type decoderFrom interface {
+            DecodeFrom(d *xdr.Decoder, maxDepth uint) (int, error)
+          }
+
+          // Unmarshal reads an xdr element from `r` into `v`.
+          func Unmarshal(r io.Reader, v interface{}) (int, error) {
+            return UnmarshalWithOptions(r, v, xdr.DefaultDecodeOptions)
+          }
+
+          // UnmarshalWithOptions works like Unmarshal but uses decoding options.
+          func UnmarshalWithOptions(r io.Reader, v interface{}, options xdr.DecodeOptions) (int, error) {
+            if decodable, ok := v.(decoderFrom); ok {
+              d := xdr.NewDecoderWithOptions(r, options)
+              return decodable.DecodeFrom(d, options.MaxDepth)
+            }
+            // delegate to xdr package's Unmarshal
+          	return xdr.UnmarshalWithOptions(r, v, options)
+          }
+
+          // Marshal writes an xdr element `v` into `w`.
+          func Marshal(w io.Writer, v interface{}) (int, error) {
+            if _, ok := v.(xdrType); ok {
+              if bm, ok := v.(encoding.BinaryMarshaler); ok {
+                b, err := bm.MarshalBinary()
+                if err != nil {
+                  return 0, err
+                }
+                return w.Write(b)
+              }
+            }
+            // delegate to xdr package's Marshal
+            return xdr.Marshal(w, v)
+          }
+        EOS
+        out.break
+      end
+
       def render_typedef(out, typedef)
-        # Typedefs that wrap a pointer type are not well supported in Go because
-        # Go does not allow pointer types to have methods. This prevents us from
-        # defining the EncodeTo method on these types which is very inconvenient
-        # for the render functions that generate structs that contain these
-        # types, because xdrgen doesn't know in that moment they are a type
-        # without EncodeTo. Since this type cannot have its own methods, we make
-        # it a type alias so at least it inherits the EncodeTo method from the
-        # aliased type. This is a bit of a hack, and the hack will only work as
-        # long as the aliased type is another defined type that has an EncodeTo.
         if typedef.sub_type == :optional
           out.puts "type #{name typedef} = #{reference typedef.declaration.type}"
         else
           out.puts "type #{name typedef} #{reference typedef.declaration.type}"
         end
 
-        # write sizing restrictions
         case typedef.declaration
         when Xdrgen::AST::Declarations::String
           render_maxsize_method out, typedef, typedef.declaration.resolved_size
@@ -88,6 +387,9 @@ module Xdrgen
       end
 
       def render_union_typedef(out, typedef, union)
+        # Resolve the actual arms to use - if we have a filter active, use it
+        arms = effective_arms(union)
+
         out.puts <<-EOS.strip_heredoc
           // SwitchFieldName returns the field name in which this union's
           // discriminant is stored
@@ -123,9 +425,7 @@ module Xdrgen
 
         out.break
 
-        # Add accessors for of form val, ok := union.GetArmName()
-        # and val := union.MustArmName()
-        union.arms.each do |arm|
+        arms.each do |arm|
           next if arm.void?
           out.puts   <<-EOS.strip_heredoc
             // Must#{name arm} retrieves the #{name arm} value from the union,
@@ -174,6 +474,54 @@ module Xdrgen
 
         @already_rendered << name(defn)
 
+        @active_member_filter = nil
+        render_definition_inner(out, defn)
+      end
+
+      def render_definition_with_filter(out, defn, member_filter)
+        if @already_rendered.include? name(defn)
+          unless defn.is_a?(AST::Definitions::Namespace)
+            $stderr.puts "warn: #{name(defn)} is defined twice.  skipping"
+          end
+          return
+        end
+
+        # For split types, nested definitions may also need filtering
+        render_nested_definitions_with_filter(out, defn, member_filter)
+        render_source_comment(out, defn)
+
+        @already_rendered << name(defn)
+
+        @active_member_filter = member_filter
+        render_definition_inner(out, defn)
+        @active_member_filter = nil
+      end
+
+      def render_nested_definitions_with_filter(out, defn, member_filter)
+        return unless defn.respond_to? :nested_definitions
+        defn.nested_definitions.each do |ndefn|
+          # Check if the member containing this nested definition passes the filter
+          # by finding which member contains this nested definition
+          parent_member = find_parent_member(defn, ndefn)
+          if parent_member && member_filter && !member_filter.call(parent_member)
+            next
+          end
+          render_definition(out, ndefn)
+        end
+      end
+
+      def find_parent_member(defn, ndefn)
+        case defn
+        when AST::Definitions::Struct
+          defn.members.find { |m| m.declaration.type == ndefn }
+        when AST::Definitions::Union
+          defn.normal_arms.find { |a| !a.void? && a.declaration.type == ndefn }
+        else
+          nil
+        end
+      end
+
+      def render_definition_inner(out, defn)
         case defn
         when AST::Definitions::Struct ;
           render_struct out, defn
@@ -198,9 +546,6 @@ module Xdrgen
           render_xdr_type_interface out, name(defn)
         when AST::Definitions::Typedef ;
           render_typedef out, defn
-          # Typedefs that wrap a pointer type are not supported in Go because Go
-          # does not allow pointer types to have methods. Don't define methods
-          # for the type because that will be a Go compiler error.
           if defn.sub_type != :optional
             render_typedef_encode_to_interface out, defn
             render_decoder_from_interface out, name(defn)
@@ -228,28 +573,61 @@ module Xdrgen
         EOS
       end
 
+      # Returns the effective members for a struct, applying the active filter
+      def effective_members(struct)
+        members = struct.members
+        members = members.select { |m| @active_member_filter.call(m) } if @active_member_filter
+        members
+      end
+
+      # Returns the effective members for an enum, applying the active filter
+      def effective_enum_members(enum)
+        members = enum.members
+        members = members.select { |m| @active_member_filter.call(m) } if @active_member_filter
+        members
+      end
+
+      # Returns the effective arms for a union, applying the active filter
+      def effective_arms(union)
+        arms = union.normal_arms
+        arms = arms.select { |a| @active_member_filter.call(a) } if @active_member_filter
+        # Always include the default arm if present
+        if union.default_arm.present?
+          arms + [union.default_arm]
+        else
+          arms
+        end
+      end
+
+      def effective_normal_arms(union)
+        arms = union.normal_arms
+        arms = arms.select { |a| @active_member_filter.call(a) } if @active_member_filter
+        arms
+      end
+
       def render_struct(out, struct)
+        members = effective_members(struct)
         out.puts "type #{name struct} struct {"
         out.indent do
-
-          struct.members.each do |m|
+          members.each do |m|
             out.puts "#{name m} #{reference(m.declaration.type)} #{field_tag struct, m}"
           end
-
         end
         out.puts "}"
         out.break
       end
 
       def render_enum(out, enum)
+        members = effective_enum_members(enum)
+
         # render the "enum"
         out.puts "type #{name enum} int32"
         out.puts "const ("
         out.indent do
-          first_member = enum.members.first
+          first_member = members.first
           out.puts "#{name enum}#{name first_member} #{name enum} = #{first_member.value}"
 
-          rest_members = enum.members.drop(1)
+          rest_members = members.drop(1)
           rest_members.each do |m|
             out.puts "#{name enum}#{name m} #{name enum} = #{m.value}"
           end
@@ -260,7 +638,7 @@ module Xdrgen
         out.puts "var #{private_name enum}Map = map[int32]string{"
         out.indent do
 
-          enum.members.each do |m|
+          members.each do |m|
             out.puts "#{m.value}: \"#{name enum}#{name m}\","
           end
 
@@ -290,12 +668,14 @@ module Xdrgen
       end
 
       def render_union(out, union)
+        arms = effective_arms(union)
+        normal_arms = effective_normal_arms(union)
 
         out.puts "type #{name union} struct{"
         out.indent do
           out.puts "#{name union.discriminant} #{reference union.discriminant.type}"
 
-          union.arms.each do |arm|
+          arms.each do |arm|
             next if arm.void?
             out.puts "#{name arm} *#{reference arm.type} #{field_tag union, arm}"
           end
@@ -336,7 +716,7 @@ module Xdrgen
 
         # Add accessors for of form val, ok := union.GetArmName()
         # and val := union.MustArmName()
-        union.arms.each do |arm|
+        arms.each do |arm|
           next if arm.void?
           out.puts access_arm(arm)
         end
@@ -345,11 +725,12 @@ module Xdrgen
       end
 
       def render_struct_encode_to_interface(out, struct)
+        members = effective_members(struct)
         name = name(struct)
         out.puts "// EncodeTo encodes this value using the Encoder."
         out.puts "func (s *#{name}) EncodeTo(e *xdr.Encoder) error {"
         out.puts "  var err error"
-        struct.members.each do |m|
+        members.each do |m|
           mn = name(m)
           render_encode_to_body(out, "s.#{mn}", m.type, self_encode: false)
         end
@@ -410,10 +791,6 @@ module Xdrgen
         out.puts "// EncodeTo encodes this value using the Encoder."
         if is_fixed_array_type(type) ||
             (type.is_a?(AST::Identifier) && type.sub_type == :simple && type.resolved_type.is_a?(AST::Definitions::Typedef) && is_fixed_array_type(type.resolved_type.declaration.type))
-          # Implement EncodeTo by pointer for Go array types
-          # otherwise (if called by value), Go will make a heap allocation
-          # for every by-value call since the copy required by the call
-          # tends to escape the stack due to the large array sizes.
           out.puts "func (s *#{name}) EncodeTo(e *xdr.Encoder) error {"
         else
           out.puts "func (s #{name}) EncodeTo(e *xdr.Encoder) error {"
@@ -425,9 +802,6 @@ module Xdrgen
         out.break
       end
 
-      # render_encode_to_body assumes there is an `e` variable containing an
-      # xdr.Encoder, and a variable defined by `var` that is the value to
-      # encode.
       def render_encode_to_body(out, var, type, self_encode:)
         def check_error(str)
           <<-EOS
@@ -473,9 +847,7 @@ EOS
             if self_encode
               newvar = "#{name type}(#{var})"
               if type.resolved_type.is_a?(AST::Definitions::Typedef) && is_fixed_array_type(type.resolved_type.declaration.type)
-                # Go array types implement EncodeTo by pointer
                 if type.is_a?(AST::Identifier)
-                  # we are already calling by pointer, so we just need to cast
                   newvar = "(*#{name type})(#{var})"
                 else
                   newvar = "(*#{name type})(&#{var})"
@@ -534,6 +906,7 @@ EOS
       end
 
       def render_struct_decode_from_interface(out, struct)
+        members = effective_members(struct)
         name = name(struct)
         out.puts "// DecodeFrom decodes this value using the Decoder."
         out.puts "func (s *#{name}) DecodeFrom(d *xdr.Decoder, maxDepth uint) (int, error) {"
@@ -544,7 +917,7 @@ EOS
         out.puts "  var err error"
         out.puts "  var n, nTmp int"
         declared_variables = []
-        struct.members.each do |m|
+        members.each do |m|
           mn = name(m)
           render_decode_from_body(out, "s.#{mn}", m.type, declared_variables: declared_variables, self_encode: false)
         end
@@ -645,9 +1018,6 @@ EOS
         end
       end
 
-      # render_decode_from_body assumes there is an `d` variable containing an
-      # xdr.Decoder, and a variable defined by `var` that is the value to
-      # encode.
       def render_decode_from_body(out, var, type, declared_variables:, self_encode:)
         tail = <<-EOS
   n += nTmp
@@ -986,7 +1356,6 @@ EOS
       def render_union_constructor(out, union)
         constructor_name  = "New#{name union}"
 
-
         discriminant_arg = private_name union.discriminant
         discriminant_type = reference union.discriminant.type
 
@@ -1054,9 +1423,11 @@ EOS
       end
 
       def switch_for(out, union, ident)
+        normal_arms = effective_normal_arms(union)
+
         out.puts "switch #{reference union.discriminant.type}(#{ident}) {"
 
-        union.normal_arms.each do |arm|
+        normal_arms.each do |arm|
           arm.cases.each do |c|
 
             value = if c.value.is_a?(AST::Identifier)

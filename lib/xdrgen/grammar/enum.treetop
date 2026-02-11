@@ -10,10 +10,12 @@ grammar XdrEnumGrammar
 
 
   rule enum_body
-    "{" 
-    space? 
+    "{"
+    space?
     first_member_n:enum_member
-    additional_members_n:(space? "," space? enum_member )*
+    additional_members_n:(space? ","? space? enum_member )*
+    space?
+    ","?
     space?
     "}"
   end
