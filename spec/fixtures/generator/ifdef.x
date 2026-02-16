@@ -62,3 +62,16 @@ union MyUnion switch (UnionType type) {
     case UNION_D:
         void;
 };
+
+// A struct with a nested union that has an ifdef'd arm
+struct ContainerStruct {
+    int baseField;
+    union switch (UnionType type) {
+        case UNION_A: int dataA;
+        case UNION_B: unsigned int dataB;
+#ifdef FEATURE_A
+        case UNION_C: unsigned hyper dataC;
+#endif
+        case UNION_D: void;
+    } body;
+};

@@ -533,3 +533,283 @@ var (
 func (s MyUnion) xdrType() {}
 
 var _ xdrType = (*MyUnion)(nil)
+
+// ContainerStruct is an XDR Struct defines as:
+//
+//   struct ContainerStruct {
+//        int baseField;
+//        union switch (UnionType type) {
+//            case UNION_A: int dataA;
+//            case UNION_B: unsigned int dataB;
+//                    
+//            case UNION_C: unsigned hyper dataC;
+//          
+//            case UNION_D: void;
+//        } body;
+//    };
+//
+type ContainerStruct struct {
+  BaseField int32 
+  Body ContainerStructBody 
+}
+
+// EncodeTo encodes this value using the Encoder.
+func (s *ContainerStruct) EncodeTo(e *xdr.Encoder) error {
+  var err error
+  if _, err = e.EncodeInt(int32(s.BaseField)); err != nil {
+    return err
+  }
+  if err = s.Body.EncodeTo(e); err != nil {
+    return err
+  }
+  return nil
+}
+
+var _ decoderFrom = (*ContainerStruct)(nil)
+// DecodeFrom decodes this value using the Decoder.
+func (s *ContainerStruct) DecodeFrom(d *xdr.Decoder, maxDepth uint) (int, error) {
+  if maxDepth == 0 {
+    return 0, fmt.Errorf("decoding ContainerStruct: %w", ErrMaxDecodingDepthReached)
+  }
+  maxDepth -= 1
+  var err error
+  var n, nTmp int
+  s.BaseField, nTmp, err = d.DecodeInt()
+  n += nTmp
+  if err != nil {
+    return n, fmt.Errorf("decoding Int: %w", err)
+  }
+  nTmp, err = s.Body.DecodeFrom(d, maxDepth)
+  n += nTmp
+  if err != nil {
+    return n, fmt.Errorf("decoding ContainerStructBody: %w", err)
+  }
+  return n, nil
+}
+
+// MarshalBinary implements encoding.BinaryMarshaler.
+func (s ContainerStruct) MarshalBinary() ([]byte, error) {
+  b := bytes.Buffer{}
+  e := xdr.NewEncoder(&b)
+  err := s.EncodeTo(e)
+  return b.Bytes(), err
+}
+
+// UnmarshalBinary implements encoding.BinaryUnmarshaler.
+func (s *ContainerStruct) UnmarshalBinary(inp []byte) error {
+  r := bytes.NewReader(inp)
+  o := xdr.DefaultDecodeOptions
+  o.MaxInputLen = len(inp)
+  d := xdr.NewDecoderWithOptions(r, o)
+  _, err := s.DecodeFrom(d, o.MaxDepth)
+  return err
+}
+
+var (
+  _ encoding.BinaryMarshaler   = (*ContainerStruct)(nil)
+  _ encoding.BinaryUnmarshaler = (*ContainerStruct)(nil)
+)
+
+// xdrType signals that this type represents XDR values defined by this package.
+func (s ContainerStruct) xdrType() {}
+
+var _ xdrType = (*ContainerStruct)(nil)
+
+// ContainerStructBody is an XDR NestedUnion defines as:
+//
+//   union switch (UnionType type) {
+//            case UNION_A: int dataA;
+//            case UNION_B: unsigned int dataB;
+//                    
+//            case UNION_C: unsigned hyper dataC;
+//          
+//            case UNION_D: void;
+//        }
+//
+type ContainerStructBody struct{
+  Type UnionType
+  DataA *int32 
+  DataB *uint32 
+}
+
+// SwitchFieldName returns the field name in which this union's
+// discriminant is stored
+func (u ContainerStructBody) SwitchFieldName() string {
+  return "Type"
+}
+
+// ArmForSwitch returns which field name should be used for storing
+// the value for an instance of ContainerStructBody
+func (u ContainerStructBody) ArmForSwitch(sw int32) (string, bool) {
+switch UnionType(sw) {
+    case UnionTypeUnionA:
+      return "DataA", true
+    case UnionTypeUnionB:
+      return "DataB", true
+    case UnionTypeUnionD:
+      return "", true
+}
+return "-", false
+}
+
+// NewContainerStructBody creates a new  ContainerStructBody.
+func NewContainerStructBody(aType UnionType, value interface{}) (result ContainerStructBody, err error) {
+  result.Type = aType
+switch UnionType(aType) {
+    case UnionTypeUnionA:
+                  tv, ok := value.(int32)
+            if !ok {
+              err = errors.New("invalid value, must be int32")
+              return
+            }
+            result.DataA = &tv
+    case UnionTypeUnionB:
+                  tv, ok := value.(uint32)
+            if !ok {
+              err = errors.New("invalid value, must be uint32")
+              return
+            }
+            result.DataB = &tv
+    case UnionTypeUnionD:
+      // void
+}
+  return
+}
+// MustDataA retrieves the DataA value from the union,
+// panicing if the value is not set.
+func (u ContainerStructBody) MustDataA() int32 {
+  val, ok := u.GetDataA()
+
+  if !ok {
+    panic("arm DataA is not set")
+  }
+
+  return val
+}
+
+// GetDataA retrieves the DataA value from the union,
+// returning ok if the union's switch indicated the value is valid.
+func (u ContainerStructBody) GetDataA() (result int32, ok bool) {
+  armName, _ := u.ArmForSwitch(int32(u.Type))
+
+  if armName == "DataA" {
+    result = *u.DataA
+    ok = true
+  }
+
+  return
+}
+// MustDataB retrieves the DataB value from the union,
+// panicing if the value is not set.
+func (u ContainerStructBody) MustDataB() uint32 {
+  val, ok := u.GetDataB()
+
+  if !ok {
+    panic("arm DataB is not set")
+  }
+
+  return val
+}
+
+// GetDataB retrieves the DataB value from the union,
+// returning ok if the union's switch indicated the value is valid.
+func (u ContainerStructBody) GetDataB() (result uint32, ok bool) {
+  armName, _ := u.ArmForSwitch(int32(u.Type))
+
+  if armName == "DataB" {
+    result = *u.DataB
+    ok = true
+  }
+
+  return
+}
+
+// EncodeTo encodes this value using the Encoder.
+func (u ContainerStructBody) EncodeTo(e *xdr.Encoder) error {
+  var err error
+  if   err = u.Type.EncodeTo(e); err != nil {
+    return err
+  }
+switch UnionType(u.Type) {
+    case UnionTypeUnionA:
+        if _, err = e.EncodeInt(int32((*u.DataA))); err != nil {
+    return err
+  }
+return nil
+    case UnionTypeUnionB:
+        if _, err = e.EncodeUint(uint32((*u.DataB))); err != nil {
+    return err
+  }
+return nil
+    case UnionTypeUnionD:
+      // Void
+return nil
+}
+  return fmt.Errorf("Type (UnionType) switch value '%d' is not valid for union ContainerStructBody", u.Type)
+}
+
+var _ decoderFrom = (*ContainerStructBody)(nil)
+// DecodeFrom decodes this value using the Decoder.
+func (u *ContainerStructBody) DecodeFrom(d *xdr.Decoder, maxDepth uint) (int, error) {
+  if maxDepth == 0 {
+    return 0, fmt.Errorf("decoding ContainerStructBody: %w", ErrMaxDecodingDepthReached)
+  }
+  maxDepth -= 1
+  var err error
+  var n, nTmp int
+  nTmp, err = u.Type.DecodeFrom(d, maxDepth)
+  n += nTmp
+  if err != nil {
+    return n, fmt.Errorf("decoding UnionType: %w", err)
+  }
+switch UnionType(u.Type) {
+    case UnionTypeUnionA:
+        u.DataA = new(int32)
+  (*u.DataA), nTmp, err = d.DecodeInt()
+  n += nTmp
+  if err != nil {
+    return n, fmt.Errorf("decoding Int: %w", err)
+  }
+  return n, nil
+    case UnionTypeUnionB:
+        u.DataB = new(uint32)
+  (*u.DataB), nTmp, err = d.DecodeUint()
+  n += nTmp
+  if err != nil {
+    return n, fmt.Errorf("decoding Unsigned int: %w", err)
+  }
+  return n, nil
+    case UnionTypeUnionD:
+      // Void
+  return n, nil
+}
+  return n, fmt.Errorf("union ContainerStructBody has invalid Type (UnionType) switch value '%d'", u.Type)
+}
+
+// MarshalBinary implements encoding.BinaryMarshaler.
+func (s ContainerStructBody) MarshalBinary() ([]byte, error) {
+  b := bytes.Buffer{}
+  e := xdr.NewEncoder(&b)
+  err := s.EncodeTo(e)
+  return b.Bytes(), err
+}
+
+// UnmarshalBinary implements encoding.BinaryUnmarshaler.
+func (s *ContainerStructBody) UnmarshalBinary(inp []byte) error {
+  r := bytes.NewReader(inp)
+  o := xdr.DefaultDecodeOptions
+  o.MaxInputLen = len(inp)
+  d := xdr.NewDecoderWithOptions(r, o)
+  _, err := s.DecodeFrom(d, o.MaxDepth)
+  return err
+}
+
+var (
+  _ encoding.BinaryMarshaler   = (*ContainerStructBody)(nil)
+  _ encoding.BinaryUnmarshaler = (*ContainerStructBody)(nil)
+)
+
+// xdrType signals that this type represents XDR values defined by this package.
+func (s ContainerStructBody) xdrType() {}
+
+var _ xdrType = (*ContainerStructBody)(nil)

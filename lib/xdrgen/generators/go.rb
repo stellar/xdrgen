@@ -5,6 +5,7 @@ module Xdrgen
 
       def generate
         @already_rendered = []
+        @split_nested_def_names = Set.new
 
         # Collect all feature flags used across all definitions
         features = collect_all_features(@top)
@@ -30,7 +31,8 @@ module Xdrgen
         main_defs = []
         conditional_defs = {} # condition_key => [{defn:, member_filter:}]
 
-        collect_all_defs_flat(@top).each do |defn|
+        all_top_defs = collect_all_defs_flat(@top)
+        all_top_defs.each do |defn|
           placement = compute_placement(defn)
           case placement[:type]
           when :main
@@ -44,6 +46,22 @@ module Xdrgen
               key = conditions_to_key(variant[:conditions])
               conditional_defs[key] ||= []
               conditional_defs[key] << { defn: defn, member_filter: variant[:member_filter] }
+            end
+          end
+        end
+
+        # Second pass: find nested definitions with ifdef'd members that need
+        # independent split rendering in conditional files
+        @split_nested_def_names = Set.new
+        all_top_defs.each do |defn|
+          collect_split_nested_defs_recursive(defn).each do |ndefn|
+            ndefn_features = collect_direct_member_features(ndefn)
+            ndefn_variants = compute_variants(ndefn, ndefn.ifdefs, ndefn_features)
+            @split_nested_def_names << name(ndefn)
+            ndefn_variants.each do |variant|
+              key = conditions_to_key(variant[:conditions])
+              conditional_defs[key] ||= []
+              conditional_defs[key] << { defn: ndefn, member_filter: variant[:member_filter] }
             end
           end
         end
@@ -157,7 +175,40 @@ module Xdrgen
         when AST::Definitions::Union
           defn.normal_arms.each { |a| a.ifdefs.each { |c| features << c.name } }
         end
+        # Recurse into nested definitions to bubble up their features
+        if defn.respond_to?(:nested_definitions)
+          defn.nested_definitions.each do |ndefn|
+            collect_defn_member_features(ndefn).each { |f| features << f }
+          end
+        end
         features.to_a
+      end
+
+      # Non-recursive version: only checks a definition's own direct members
+      def collect_direct_member_features(defn)
+        features = Set.new
+        case defn
+        when AST::Definitions::Struct
+          defn.members.each { |m| m.ifdefs.each { |c| features << c.name } }
+        when AST::Definitions::Enum
+          defn.members.each { |m| m.ifdefs.each { |c| features << c.name } }
+        when AST::Definitions::Union
+          defn.normal_arms.each { |a| a.ifdefs.each { |c| features << c.name } }
+        end
+        features.to_a
+      end
+
+      # Recursively find nested definitions that have their own ifdef'd members
+      def collect_split_nested_defs_recursive(defn)
+        result = []
+        return result unless defn.respond_to?(:nested_definitions)
+        defn.nested_definitions.each do |ndefn|
+          if collect_direct_member_features(ndefn).any?
+            result << ndefn
+          end
+          result.concat(collect_split_nested_defs_recursive(ndefn))
+        end
+        result
       end
 
       def compute_variants(defn, top_conditions, member_features)
@@ -456,7 +507,10 @@ module Xdrgen
 
       def render_nested_definitions(out, defn)
         return unless defn.respond_to? :nested_definitions
-        defn.nested_definitions.each{|ndefn| render_definition out, ndefn}
+        defn.nested_definitions.each do |ndefn|
+          next if @split_nested_def_names.include?(name(ndefn))
+          render_definition out, ndefn
+        end
       end
 
       def render_definition(out, defn)
@@ -500,6 +554,7 @@ module Xdrgen
       def render_nested_definitions_with_filter(out, defn, member_filter)
         return unless defn.respond_to? :nested_definitions
         defn.nested_definitions.each do |ndefn|
+          next if @split_nested_def_names.include?(name(ndefn))
           # Check if the member containing this nested definition passes the filter
           # by finding which member contains this nested definition
           parent_member = find_parent_member(defn, ndefn)

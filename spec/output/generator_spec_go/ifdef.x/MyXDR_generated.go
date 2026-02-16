@@ -19,7 +19,7 @@ import (
 
 // XdrFilesSHA256 is the SHA256 hashes of source files.
 var XdrFilesSHA256 = map[string]string{
-  "spec/fixtures/generator/ifdef.x": "245f0042c06d1db77785f9aeb36684e6fe1e35a7e1ac8edc36aacb7bf63985f5",
+  "spec/fixtures/generator/ifdef.x": "d9a6d6f15bd1bdf6e26e1c1e02a718a490b7cf9b5797b90f867e476abe1c02fd",
 }
 
 var ErrMaxDecodingDepthReached = errors.New("maximum decoding depth reached")
