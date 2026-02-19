@@ -273,9 +273,9 @@ module Xdrgen
         parts = key.split(",")
         parts.map do |p|
           if p.start_with?("!")
-            "no_#{p[1..].downcase}"
+            "#{p[1..].downcase}_off"
           else
-            p.downcase
+            "#{p.downcase}_on"
           end
         end.join("_")
       end
