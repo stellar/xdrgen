@@ -12,13 +12,23 @@ module Xdrgen
       @options     = options
     end
 
+    memoize def raw_source
+     @source_paths.map{|p| IO.read(p, encoding: "UTF-8")}.join("\n")
+    end
+
+    memoize def preprocessor
+      Preprocessor.new(raw_source)
+    end
+
     memoize def source
-     @source_paths.map{|p| IO.read(p)}.join("\n")
+      preprocessor.cleaned_source
     end
 
     memoize def ast
       parser = Parser.new
-      parser.parse(source)
+      result = parser.parse(source)
+      preprocessor.annotate_ast(result)
+      result
     end
 
     def compile

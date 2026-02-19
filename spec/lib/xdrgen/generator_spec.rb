@@ -9,6 +9,9 @@ describe Xdrgen::Generators do
     languages.each do |lang|
       next if focus_basename.present? && File.basename(path) != focus_basename
       next if focus_language.present? && lang != focus_language
+      # ifdef.x uses #ifdef/#else which produces duplicate type names;
+      # only the Go generator supports splitting these into build-tagged files
+      next if File.basename(path) == "ifdef.x" && lang != "go"
 
       it "can generate #{File.basename path} in #{lang}" do
         c = generate lang, path

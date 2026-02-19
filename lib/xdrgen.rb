@@ -10,6 +10,7 @@ module Xdrgen
   autoload :CLI
   autoload :Generators
   autoload :Parser
+  autoload :Preprocessor
   autoload :Util
 
   autoload :Output
