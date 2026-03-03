@@ -16,7 +16,7 @@ files that have been tested with it are the .x files used for the [Stellar
 protocol](https://github.com/stellar/stellar-xdr).
 
 > [!NOTE]
-> **Generators are no longer being maintained in this repository.**
+> **Generators are no longer maintained in this repository.**
 >
 > If you're building a code generator, use xdrgen as a library (see below).
 >
