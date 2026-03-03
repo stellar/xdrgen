@@ -2,7 +2,7 @@ module Xdrgen
   class Compilation
     extend Memoist
 
-    def initialize(source_paths, output_dir:".", language: :ruby, generator: nil, namespace: nil, options: {})
+    def initialize(source_paths, output_dir:".", language: nil, generator: nil, namespace: nil, options: {})
       raise "An empty list of source paths (.x files) provided. At least one source file must be provided to compile." if source_paths.empty?
       @source_paths = source_paths
       @output_dir  = output_dir
