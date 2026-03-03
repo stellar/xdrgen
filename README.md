@@ -29,7 +29,7 @@ protocol](https://github.com/stellar/stellar-xdr).
 > in the repository history at commit
 > [2efacde](https://github.com/stellar/xdrgen/tree/2efacde612445d97e0548131ed699e8130bdeb7b)
 > if they need to be used with the binary, otherwise any new maintenance of code
-> generators should ideally happen using xdrgen as a library.
+> generators should happen using xdrgen as a library.
 >
 > The JavaScript and Go generators still live here at this time.
 
