@@ -16,15 +16,22 @@ files that have been tested with it are the .x files used for the [Stellar
 protocol](https://github.com/stellar/stellar-xdr).
 
 > [!NOTE]
-> **Generators are no longer included in this repository.** If you're building a
-> code generator, use xdrgen as a library (see below). Generators that were
-> previously included (Python, Rust) have been slowly moved out to other
-> repositories, usually close to the Stellar XDR libraries they generated. For
-> any that were not moved but deleted (C#, Elixir, Ruby), they can be found in
-> the repository history at commit
+> **Generators are no longer being maintained in this repository.**
+>
+> If you're building a code generator, use xdrgen as a library (see below).
+>
+> Generators that were previously included (Python, Java, Rust) have been moved
+> out to other repositories close to the Stellar XDR libraries they generated.
+> This happened in https://github.com/stellar/xdrgen/pull/226 and
+> https://github.com/stellar/xdrgen/pull/221.
+>
+> For any that were not moved but deleted (C#, Elixir, Ruby), they can be found
+> in the repository history at commit
 > [2efacde](https://github.com/stellar/xdrgen/tree/2efacde612445d97e0548131ed699e8130bdeb7b)
-> if they need to be used with the binary, otherwise any new maintenance of
-> those code generators should ideally happen using xdrgen as a library.
+> if they need to be used with the binary, otherwise any new maintenance of code
+> generators should ideally happen using xdrgen as a library.
+>
+> The JavaScript and Go generators still live here at this time.
 
 ## Usage as a library
 
