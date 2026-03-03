@@ -23,29 +23,22 @@ var XdrFilesSHA256 = map[string]string{
   "spec/fixtures/generator/nesting.x": "5537949272c11f1bd09cf613a3751668b5018d686a1c2aaa3baa91183ca18f6a",
 }
 
-var ErrMaxDecodingDepthReached = errors.New("maximum decoding depth reached")
-
 type xdrType interface {
   xdrType()
 }
 
-type decoderFrom interface {
-  DecodeFrom(d *xdr.Decoder, maxDepth uint) (int, error)
-}
+// ErrMaxDecodingDepthReached is returned when the maximum decoding depth is
+// exceeded. This prevents stack overflow from deeply nested structures.
+var ErrMaxDecodingDepthReached = errors.New("maximum decoding depth reached")
 
-// Unmarshal reads an xdr element from `r` into `v`.
-func Unmarshal(r io.Reader, v interface{}) (int, error) {
-  return UnmarshalWithOptions(r, v, xdr.DefaultDecodeOptions)
-}
-
-// UnmarshalWithOptions works like Unmarshal but uses decoding options.
-func UnmarshalWithOptions(r io.Reader, v interface{}, options xdr.DecodeOptions) (int, error) {
-  if decodable, ok := v.(decoderFrom); ok {
-    d := xdr.NewDecoderWithOptions(r, options)
-    return decodable.DecodeFrom(d, options.MaxDepth)
+// Unmarshal reads an xdr element from `data` into `v`.
+func Unmarshal(data []byte, v interface{}) (int, error) {
+  if decodable, ok := v.(xdr.DecoderFrom); ok {
+    d := xdr.NewDecoder(data)
+    return decodable.DecodeFrom(d, d.MaxDepth())
   }
   // delegate to xdr package's Unmarshal
-	return xdr.UnmarshalWithOptions(r, v, options)
+  return xdr.Unmarshal(data, v)
 }
 
 // Marshal writes an xdr element `v` into `w`.
@@ -77,6 +70,10 @@ const (
   UnionKeyTwo UnionKey = 2
   UnionKeyOffer UnionKey = 3
 )
+const (
+  _UnionKey_Min int32 = 1
+  _UnionKey_Max int32 = 3
+)
 var unionKeyMap = map[int32]string{
   1: "UnionKeyOne",
   2: "UnionKeyTwo",
@@ -86,8 +83,7 @@ var unionKeyMap = map[int32]string{
 // ValidEnum validates a proposed value for this enum.  Implements
 // the Enum interface for UnionKey
 func (e UnionKey) ValidEnum(v int32) bool {
-  _, ok := unionKeyMap[v]
-  return ok
+  return v >= _UnionKey_Min && v <= _UnionKey_Max
 }
 // String returns the name of `e`
 func (e UnionKey) String() string {
@@ -97,24 +93,23 @@ func (e UnionKey) String() string {
 
 // EncodeTo encodes this value using the Encoder.
 func (e UnionKey) EncodeTo(enc *xdr.Encoder) error {
-  if _, ok := unionKeyMap[int32(e)]; !ok {
+  if int32(e) < _UnionKey_Min || int32(e) > _UnionKey_Max {
     return fmt.Errorf("'%d' is not a valid UnionKey enum value", e)
   }
   _, err := enc.EncodeInt(int32(e))
   return err
 }
-var _ decoderFrom = (*UnionKey)(nil)
-// DecodeFrom decodes this value using the Decoder.
+var _ xdr.DecoderFrom = (*UnionKey)(nil)
+// DecodeFrom decodes this value from the given decoder.
 func (e *UnionKey) DecodeFrom(d *xdr.Decoder, maxDepth uint) (int, error) {
   if maxDepth == 0 {
     return 0, fmt.Errorf("decoding UnionKey: %w", ErrMaxDecodingDepthReached)
   }
-  maxDepth -= 1
   v, n, err := d.DecodeInt()
   if err != nil {
     return n, fmt.Errorf("decoding UnionKey: %w", err)
   }
-  if _, ok := unionKeyMap[v]; !ok {
+  if v < _UnionKey_Min || v > _UnionKey_Max {
     return n, fmt.Errorf("'%d' is not a valid UnionKey enum value", v)
   }
   *e = UnionKey(v)
@@ -130,11 +125,8 @@ func (s UnionKey) MarshalBinary() ([]byte, error) {
 
 // UnmarshalBinary implements encoding.BinaryUnmarshaler.
 func (s *UnionKey) UnmarshalBinary(inp []byte) error {
-  r := bytes.NewReader(inp)
-  o := xdr.DefaultDecodeOptions
-  o.MaxInputLen = len(inp)
-  d := xdr.NewDecoderWithOptions(r, o)
-  _, err := s.DecodeFrom(d, o.MaxDepth)
+  d := xdr.NewDecoder(inp)
+  _, err := s.DecodeFrom(d, d.MaxDepth())
   return err
 }
 
@@ -163,8 +155,8 @@ func (s Foo) EncodeTo(e *xdr.Encoder) error {
   return nil
 }
 
-var _ decoderFrom = (*Foo)(nil)
-// DecodeFrom decodes this value using the Decoder.
+var _ xdr.DecoderFrom = (*Foo)(nil)
+// DecodeFrom decodes this value from the given decoder.
 func (s *Foo) DecodeFrom(d *xdr.Decoder, maxDepth uint) (int, error) {
   if maxDepth == 0 {
     return 0, fmt.Errorf("decoding Foo: %w", ErrMaxDecodingDepthReached)
@@ -192,11 +184,8 @@ func (s Foo) MarshalBinary() ([]byte, error) {
 
 // UnmarshalBinary implements encoding.BinaryUnmarshaler.
 func (s *Foo) UnmarshalBinary(inp []byte) error {
-  r := bytes.NewReader(inp)
-  o := xdr.DefaultDecodeOptions
-  o.MaxInputLen = len(inp)
-  d := xdr.NewDecoderWithOptions(r, o)
-  _, err := s.DecodeFrom(d, o.MaxDepth)
+  d := xdr.NewDecoder(inp)
+  _, err := s.DecodeFrom(d, d.MaxDepth())
   return err
 }
 
@@ -229,8 +218,8 @@ func (s *MyUnionOne) EncodeTo(e *xdr.Encoder) error {
   return nil
 }
 
-var _ decoderFrom = (*MyUnionOne)(nil)
-// DecodeFrom decodes this value using the Decoder.
+var _ xdr.DecoderFrom = (*MyUnionOne)(nil)
+// DecodeFrom decodes this value from the given decoder.
 func (s *MyUnionOne) DecodeFrom(d *xdr.Decoder, maxDepth uint) (int, error) {
   if maxDepth == 0 {
     return 0, fmt.Errorf("decoding MyUnionOne: %w", ErrMaxDecodingDepthReached)
@@ -256,11 +245,8 @@ func (s MyUnionOne) MarshalBinary() ([]byte, error) {
 
 // UnmarshalBinary implements encoding.BinaryUnmarshaler.
 func (s *MyUnionOne) UnmarshalBinary(inp []byte) error {
-  r := bytes.NewReader(inp)
-  o := xdr.DefaultDecodeOptions
-  o.MaxInputLen = len(inp)
-  d := xdr.NewDecoderWithOptions(r, o)
-  _, err := s.DecodeFrom(d, o.MaxDepth)
+  d := xdr.NewDecoder(inp)
+  _, err := s.DecodeFrom(d, d.MaxDepth())
   return err
 }
 
@@ -298,8 +284,8 @@ func (s *MyUnionTwo) EncodeTo(e *xdr.Encoder) error {
   return nil
 }
 
-var _ decoderFrom = (*MyUnionTwo)(nil)
-// DecodeFrom decodes this value using the Decoder.
+var _ xdr.DecoderFrom = (*MyUnionTwo)(nil)
+// DecodeFrom decodes this value from the given decoder.
 func (s *MyUnionTwo) DecodeFrom(d *xdr.Decoder, maxDepth uint) (int, error) {
   if maxDepth == 0 {
     return 0, fmt.Errorf("decoding MyUnionTwo: %w", ErrMaxDecodingDepthReached)
@@ -330,11 +316,8 @@ func (s MyUnionTwo) MarshalBinary() ([]byte, error) {
 
 // UnmarshalBinary implements encoding.BinaryUnmarshaler.
 func (s *MyUnionTwo) UnmarshalBinary(inp []byte) error {
-  r := bytes.NewReader(inp)
-  o := xdr.DefaultDecodeOptions
-  o.MaxInputLen = len(inp)
-  d := xdr.NewDecoderWithOptions(r, o)
-  _, err := s.DecodeFrom(d, o.MaxDepth)
+  d := xdr.NewDecoder(inp)
+  _, err := s.DecodeFrom(d, d.MaxDepth())
   return err
 }
 
@@ -419,49 +402,37 @@ switch UnionKey(aType) {
 // MustOne retrieves the One value from the union,
 // panicing if the value is not set.
 func (u MyUnion) MustOne() MyUnionOne {
-  val, ok := u.GetOne()
-
-  if !ok {
-    panic("arm One is not set")
+  if UnionKey(u.Type) == UnionKeyOne {
+    return *u.One
   }
-
-  return val
+  panic("arm One is not set")
 }
 
 // GetOne retrieves the One value from the union,
 // returning ok if the union's switch indicated the value is valid.
 func (u MyUnion) GetOne() (result MyUnionOne, ok bool) {
-  armName, _ := u.ArmForSwitch(int32(u.Type))
-
-  if armName == "One" {
+  if UnionKey(u.Type) == UnionKeyOne {
     result = *u.One
     ok = true
   }
-
   return
 }
 // MustTwo retrieves the Two value from the union,
 // panicing if the value is not set.
 func (u MyUnion) MustTwo() MyUnionTwo {
-  val, ok := u.GetTwo()
-
-  if !ok {
-    panic("arm Two is not set")
+  if UnionKey(u.Type) == UnionKeyTwo {
+    return *u.Two
   }
-
-  return val
+  panic("arm Two is not set")
 }
 
 // GetTwo retrieves the Two value from the union,
 // returning ok if the union's switch indicated the value is valid.
 func (u MyUnion) GetTwo() (result MyUnionTwo, ok bool) {
-  armName, _ := u.ArmForSwitch(int32(u.Type))
-
-  if armName == "Two" {
+  if UnionKey(u.Type) == UnionKeyTwo {
     result = *u.Two
     ok = true
   }
-
   return
 }
 
@@ -489,8 +460,8 @@ return nil
   return fmt.Errorf("Type (UnionKey) switch value '%d' is not valid for union MyUnion", u.Type)
 }
 
-var _ decoderFrom = (*MyUnion)(nil)
-// DecodeFrom decodes this value using the Decoder.
+var _ xdr.DecoderFrom = (*MyUnion)(nil)
+// DecodeFrom decodes this value from the given decoder.
 func (u *MyUnion) DecodeFrom(d *xdr.Decoder, maxDepth uint) (int, error) {
   if maxDepth == 0 {
     return 0, fmt.Errorf("decoding MyUnion: %w", ErrMaxDecodingDepthReached)
@@ -505,7 +476,9 @@ func (u *MyUnion) DecodeFrom(d *xdr.Decoder, maxDepth uint) (int, error) {
   }
 switch UnionKey(u.Type) {
     case UnionKeyOne:
-        u.One = new(MyUnionOne)
+        if u.One == nil {
+    u.One = new(MyUnionOne)
+  }
   nTmp, err = (*u.One).DecodeFrom(d, maxDepth)
   n += nTmp
   if err != nil {
@@ -513,7 +486,9 @@ switch UnionKey(u.Type) {
   }
   return n, nil
     case UnionKeyTwo:
-        u.Two = new(MyUnionTwo)
+        if u.Two == nil {
+    u.Two = new(MyUnionTwo)
+  }
   nTmp, err = (*u.Two).DecodeFrom(d, maxDepth)
   n += nTmp
   if err != nil {
@@ -537,11 +512,8 @@ func (s MyUnion) MarshalBinary() ([]byte, error) {
 
 // UnmarshalBinary implements encoding.BinaryUnmarshaler.
 func (s *MyUnion) UnmarshalBinary(inp []byte) error {
-  r := bytes.NewReader(inp)
-  o := xdr.DefaultDecodeOptions
-  o.MaxInputLen = len(inp)
-  d := xdr.NewDecoderWithOptions(r, o)
-  _, err := s.DecodeFrom(d, o.MaxDepth)
+  d := xdr.NewDecoder(inp)
+  _, err := s.DecodeFrom(d, d.MaxDepth())
   return err
 }
 
