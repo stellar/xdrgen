@@ -7,7 +7,7 @@ module Xdrgen
       opts = Slop.parse! args do
         banner 'Usage: xdrgen -o OUTPUT_DIR INPUT --language=javascript'
         on 'o', 'output=', 'The output directory'
-        on 'l', 'language=', 'The output language'
+        on 'l', 'language=', 'The output language', default: 'javascript'
         on 'n', 'namespace=', '"namespace" to generate code within (language-specific)'
       end
 
