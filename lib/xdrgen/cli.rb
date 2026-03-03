@@ -5,9 +5,9 @@ module Xdrgen
     def self.run(args)
       args = args.dup
       opts = Slop.parse! args do
-        banner 'Usage: xdrgen -o OUTPUT_DIR INPUT --language=ruby'
+        banner 'Usage: xdrgen -o OUTPUT_DIR INPUT --language=javascript'
         on 'o', 'output=', 'The output directory'
-        on 'l', 'language=', 'The output language', default: 'ruby'
+        on 'l', 'language=', 'The output language', default: 'javascript'
         on 'n', 'namespace=', '"namespace" to generate code within (language-specific)'
       end
 

@@ -2,23 +2,36 @@
 
 `xdrgen` is a code generator that takes XDR IDL files (`.x` files) as specified
 in [RFC 4506](http://tools.ietf.org/html/rfc4506.html) and provides the AST to
-code generators. It can be used as a library with custom generators, or for
-legacy purposes as a CLI with any of the built-in legacy generators.
+code generators. It is intended to be used as a library with custom generators.
 
 `xdrgen` requires ruby 3.1 to 3.3 to run.
 
 ## Status
 
-Xdrgen is an early project but also relatively stable and major changes have
-not been made to the library for sometime.
+Xdrgen is a relatively stable library and major changes have not been made to
+it for sometime.
 
 Aside from the test fixtures in [spec/fixtures](spec/fixtures), the only .x
 files that have been tested with it are the .x files used for the [Stellar
 protocol](https://github.com/stellar/stellar-xdr).
 
-If you're building a new code generator, the preferred way to provide a code
-generator to xdrgen is to use it as a library. See below for examples for how
-to do so.
+> [!NOTE]
+> **Generators are no longer maintained in this repository.**
+>
+> If you're building a code generator, use xdrgen as a library (see below).
+>
+> Generators that were previously included (Python, Java, Rust) have been moved
+> out to other repositories close to the Stellar XDR libraries they generated.
+> This happened in https://github.com/stellar/xdrgen/pull/226 and
+> https://github.com/stellar/xdrgen/pull/221.
+>
+> For any that were not moved but deleted (C#, Elixir, Ruby), they can be found
+> in the repository history at commit
+> [2efacde](https://github.com/stellar/xdrgen/tree/2efacde612445d97e0548131ed699e8130bdeb7b)
+> if they need to be used with the binary, otherwise any new maintenance of code
+> generators should happen using xdrgen as a library.
+>
+> The JavaScript and Go generators still live here at this time.
 
 ## Usage as a library
 
@@ -67,18 +80,7 @@ The command line:
 
 `xdrgen [-o OUTPUT_DIR] [-l LANGUAGE] [-n NAMESPACE] [INPUT_FILES ...]`
 
-Xdrgen has support for built-in generators via the CLI's `-l` option, but they
-are not maintained, not tested, and are preserved for legacy usage.
+The CLI still has the following built-in generators:
 
-- ruby: complete support
-- javascript: complete support
-- golang: currently using a fork of go-xdr, but has complete support
-- elixir: support is experimental as the SDK is in early development. Generated
-  code requires [:exdr](https://github.com/revelrylabs/exdr) in your deps
-- C#: complete support
-
-## Contributing new generators / languages
-
-Instead of contributing new generators to this repository, use xdrgen as a
-library and maintain the generator independently where you can test and
-maintain it.
+- javascript
+- golang
