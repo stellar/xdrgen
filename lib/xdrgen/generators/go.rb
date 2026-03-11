@@ -571,6 +571,9 @@ EOS
           else
             mn = name(arm)
             type = arm.type
+            out2.puts "  if err = xdr.TrackOutputBytesOf[#{reference arm.type}](d); err != nil {"
+            out2.puts "    return n, fmt.Errorf(\"decoding #{reference arm.type}: %w\", err)"
+            out2.puts "  }"
             out2.puts "  u.#{mn} = new(#{reference arm.type})"
             render_decode_from_body(out2, "(*u.#{mn})",type, declared_variables: [], self_encode: false)
           end
@@ -662,6 +665,9 @@ EOS
           out.puts tail
           out.puts "  #{var} = nil"
           out.puts "  if b {"
+          out.puts "     if err = xdr.TrackOutputBytesOf[#{name type}](d); err != nil {"
+          out.puts "       return n, fmt.Errorf(\"decoding #{name type}: %w\", err)"
+          out.puts "     }"
           out.puts "     #{var} = new(#{name type})"
         end
         case type
@@ -704,6 +710,9 @@ EOS
               out.puts tail
               out.puts "  #{var} = nil"
               out.puts "  if b {"
+              out.puts "     if err = xdr.TrackOutputBytesOf[#{name type.resolved_type.declaration.type}](d); err != nil {"
+              out.puts "       return n, fmt.Errorf(\"decoding #{name type.resolved_type.declaration.type}: %w\", err)"
+              out.puts "     }"
               out.puts "     #{var} = new(#{name type.resolved_type.declaration.type})"
             end
             var = "(*#{name type})(#{var})" if self_encode
@@ -744,9 +753,25 @@ EOS
             out.puts "    if il, ok := d.InputLen(); ok && uint(il) < uint(l) {"
             out.puts "        return n, fmt.Errorf(\"decoding #{name type}: length (%d) exceeds remaining input length (%d)\", l, il)"
             out.puts "    }"
-            out.puts "    #{var} = make([]#{name type}, l)"
+            # Cap pre-allocation to avoid memory amplification from untrusted inputs.
+            # The InputLen check above compares element count against remaining
+            # input bytes, but each element may be much larger in memory than on
+            # the wire. Capping initial allocation and growing via append ensures
+            # memory usage stays proportional to data actually decoded.
+            slice_var = var  # save before optional handling may reassign var
+            out.puts "    {"
+            out.puts "    initialCap := l"
+            out.puts "    if initialCap > xdr.MaxPrealloc {"
+            out.puts "        initialCap = xdr.MaxPrealloc"
+            out.puts "    }"
+            out.puts "    #{slice_var} = make([]#{name type}, 0, initialCap)"
+            out.puts "    var empty #{name type}"
             out.puts "    for i := uint32(0); i < l; i++ {"
-            element_var =   "#{var}[i]"
+            out.puts "        if err = xdr.TrackOutputBytesOf[#{name type}](d); err != nil {"
+            out.puts "            return n, fmt.Errorf(\"decoding #{name type}: %w\", err)"
+            out.puts "        }"
+            out.puts "        #{slice_var} = append(#{slice_var}, empty)"
+            element_var =   "#{slice_var}[i]"
             optional_within = type.is_a?(AST::Identifier) && type.resolved_type.sub_type == :optional
             if optional_within
               out.puts "      var eb bool"
@@ -754,6 +779,9 @@ EOS
               out.puts tail
               out.puts "      #{element_var} = nil"
               out.puts "      if eb {"
+              out.puts "         if err = xdr.TrackOutputBytesOf[#{name type.resolved_type.declaration.type}](d); err != nil {"
+              out.puts "           return n, fmt.Errorf(\"decoding #{name type.resolved_type.declaration.type}: %w\", err)"
+              out.puts "         }"
               out.puts "         #{element_var} = new(#{name type.resolved_type.declaration.type})"
               var = "(*#{element_var})"
             end
@@ -762,6 +790,7 @@ EOS
             if optional_within
               out.puts "    }"
             end
+            out.puts "    }"
             out.puts "    }"
             out.puts "  }"
           else

@@ -552,13 +552,24 @@ func (s *Hashes2) DecodeFrom(d *xdr.Decoder, maxDepth uint) (int, error) {
     if il, ok := d.InputLen(); ok && uint(il) < uint(l) {
         return n, fmt.Errorf("decoding Hash: length (%d) exceeds remaining input length (%d)", l, il)
     }
-    (*s) = make([]Hash, l)
+    {
+    initialCap := l
+    if initialCap > xdr.MaxPrealloc {
+        initialCap = xdr.MaxPrealloc
+    }
+    (*s) = make([]Hash, 0, initialCap)
+    var empty Hash
     for i := uint32(0); i < l; i++ {
+        if err = xdr.TrackOutputBytesOf[Hash](d); err != nil {
+            return n, fmt.Errorf("decoding Hash: %w", err)
+        }
+        (*s) = append((*s), empty)
       nTmp, err = (*s)[i].DecodeFrom(d, maxDepth)
   n += nTmp
   if err != nil {
     return n, fmt.Errorf("decoding Hash: %w", err)
   }
+    }
     }
   }
   return n, nil
@@ -631,13 +642,24 @@ func (s *Hashes3) DecodeFrom(d *xdr.Decoder, maxDepth uint) (int, error) {
     if il, ok := d.InputLen(); ok && uint(il) < uint(l) {
         return n, fmt.Errorf("decoding Hash: length (%d) exceeds remaining input length (%d)", l, il)
     }
-    (*s) = make([]Hash, l)
+    {
+    initialCap := l
+    if initialCap > xdr.MaxPrealloc {
+        initialCap = xdr.MaxPrealloc
+    }
+    (*s) = make([]Hash, 0, initialCap)
+    var empty Hash
     for i := uint32(0); i < l; i++ {
+        if err = xdr.TrackOutputBytesOf[Hash](d); err != nil {
+            return n, fmt.Errorf("decoding Hash: %w", err)
+        }
+        (*s) = append((*s), empty)
       nTmp, err = (*s)[i].DecodeFrom(d, maxDepth)
   n += nTmp
   if err != nil {
     return n, fmt.Errorf("decoding Hash: %w", err)
   }
+    }
     }
   }
   return n, nil
@@ -1006,6 +1028,9 @@ func (s *MyStruct) DecodeFrom(d *xdr.Decoder, maxDepth uint) (int, error) {
   }
   s.Field2 = nil
   if b {
+     if err = xdr.TrackOutputBytesOf[Hash](d); err != nil {
+       return n, fmt.Errorf("decoding Hash: %w", err)
+     }
      s.Field2 = new(Hash)
   nTmp, err = s.Field2.DecodeFrom(d, maxDepth)
   n += nTmp
@@ -1114,13 +1139,24 @@ func (s *LotsOfMyStructs) DecodeFrom(d *xdr.Decoder, maxDepth uint) (int, error)
     if il, ok := d.InputLen(); ok && uint(il) < uint(l) {
         return n, fmt.Errorf("decoding MyStruct: length (%d) exceeds remaining input length (%d)", l, il)
     }
-    s.Members = make([]MyStruct, l)
+    {
+    initialCap := l
+    if initialCap > xdr.MaxPrealloc {
+        initialCap = xdr.MaxPrealloc
+    }
+    s.Members = make([]MyStruct, 0, initialCap)
+    var empty MyStruct
     for i := uint32(0); i < l; i++ {
+        if err = xdr.TrackOutputBytesOf[MyStruct](d); err != nil {
+            return n, fmt.Errorf("decoding MyStruct: %w", err)
+        }
+        s.Members = append(s.Members, empty)
       nTmp, err = s.Members[i].DecodeFrom(d, maxDepth)
   n += nTmp
   if err != nil {
     return n, fmt.Errorf("decoding MyStruct: %w", err)
   }
+    }
     }
   }
   return n, nil
@@ -1571,7 +1607,10 @@ switch Color(u.Color) {
       // Void
   return n, nil
     default:
-        u.Blah2 = new(int32)
+        if err = xdr.TrackOutputBytesOf[int32](d); err != nil {
+    return n, fmt.Errorf("decoding int32: %w", err)
+  }
+  u.Blah2 = new(int32)
   (*u.Blah2), nTmp, err = d.DecodeInt()
   n += nTmp
   if err != nil {

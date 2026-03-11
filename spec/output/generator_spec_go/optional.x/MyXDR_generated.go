@@ -186,6 +186,9 @@ func (s *HasOptions) DecodeFrom(d *xdr.Decoder, maxDepth uint) (int, error) {
   }
   s.FirstOption = nil
   if b {
+     if err = xdr.TrackOutputBytesOf[Int](d); err != nil {
+       return n, fmt.Errorf("decoding Int: %w", err)
+     }
      s.FirstOption = new(Int)
   s.FirstOption, nTmp, err = d.DecodeInt()
   n += nTmp
@@ -200,6 +203,9 @@ func (s *HasOptions) DecodeFrom(d *xdr.Decoder, maxDepth uint) (int, error) {
   }
   s.SecondOption = nil
   if b {
+     if err = xdr.TrackOutputBytesOf[Int](d); err != nil {
+       return n, fmt.Errorf("decoding Int: %w", err)
+     }
      s.SecondOption = new(Int)
   s.SecondOption, nTmp, err = d.DecodeInt()
   n += nTmp
@@ -214,6 +220,9 @@ func (s *HasOptions) DecodeFrom(d *xdr.Decoder, maxDepth uint) (int, error) {
   }
   s.ThirdOption = nil
   if b {
+     if err = xdr.TrackOutputBytesOf[Arr](d); err != nil {
+       return n, fmt.Errorf("decoding Arr: %w", err)
+     }
      s.ThirdOption = new(Arr)
   nTmp, err = s.ThirdOption.DecodeFrom(d, maxDepth)
   n += nTmp
