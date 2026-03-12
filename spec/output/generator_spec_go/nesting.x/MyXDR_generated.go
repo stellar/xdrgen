@@ -505,7 +505,10 @@ func (u *MyUnion) DecodeFrom(d *xdr.Decoder, maxDepth uint) (int, error) {
   }
 switch UnionKey(u.Type) {
     case UnionKeyOne:
-        u.One = new(MyUnionOne)
+        if err = xdr.TrackOutputBytesOf[MyUnionOne](d); err != nil {
+    return n, fmt.Errorf("decoding MyUnionOne: %w", err)
+  }
+  u.One = new(MyUnionOne)
   nTmp, err = (*u.One).DecodeFrom(d, maxDepth)
   n += nTmp
   if err != nil {
@@ -513,7 +516,10 @@ switch UnionKey(u.Type) {
   }
   return n, nil
     case UnionKeyTwo:
-        u.Two = new(MyUnionTwo)
+        if err = xdr.TrackOutputBytesOf[MyUnionTwo](d); err != nil {
+    return n, fmt.Errorf("decoding MyUnionTwo: %w", err)
+  }
+  u.Two = new(MyUnionTwo)
   nTmp, err = (*u.Two).DecodeFrom(d, maxDepth)
   n += nTmp
   if err != nil {

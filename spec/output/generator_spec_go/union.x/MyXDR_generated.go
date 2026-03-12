@@ -417,7 +417,10 @@ func (u *MyUnion) DecodeFrom(d *xdr.Decoder, maxDepth uint) (int, error) {
   }
 switch UnionKey(u.Type) {
     case UnionKeyError:
-        u.Error = new(Error)
+        if err = xdr.TrackOutputBytesOf[Error](d); err != nil {
+    return n, fmt.Errorf("decoding Error: %w", err)
+  }
+  u.Error = new(Error)
   nTmp, err = (*u.Error).DecodeFrom(d, maxDepth)
   n += nTmp
   if err != nil {
@@ -425,7 +428,10 @@ switch UnionKey(u.Type) {
   }
   return n, nil
     case UnionKeyMulti:
-        u.Things = new([]Multi)
+        if err = xdr.TrackOutputBytesOf[[]Multi](d); err != nil {
+    return n, fmt.Errorf("decoding []Multi: %w", err)
+  }
+  u.Things = new([]Multi)
   var l uint32
   l, nTmp, err = d.DecodeUint()
   n += nTmp
@@ -437,13 +443,24 @@ switch UnionKey(u.Type) {
     if il, ok := d.InputLen(); ok && uint(il) < uint(l) {
         return n, fmt.Errorf("decoding Multi: length (%d) exceeds remaining input length (%d)", l, il)
     }
-    (*u.Things) = make([]Multi, l)
+    {
+    initialCap := l
+    if initialCap > xdr.MaxPrealloc {
+        initialCap = xdr.MaxPrealloc
+    }
+    (*u.Things) = make([]Multi, 0, initialCap)
+    var empty Multi
     for i := uint32(0); i < l; i++ {
+        if err = xdr.TrackOutputBytesOf[Multi](d); err != nil {
+            return n, fmt.Errorf("decoding Multi: %w", err)
+        }
+        (*u.Things) = append((*u.Things), empty)
       nTmp, err = (*u.Things)[i].DecodeFrom(d, maxDepth)
   n += nTmp
   if err != nil {
     return n, fmt.Errorf("decoding Multi: %w", err)
   }
+    }
     }
   }
   return n, nil
@@ -626,7 +643,10 @@ func (u *IntUnion) DecodeFrom(d *xdr.Decoder, maxDepth uint) (int, error) {
   }
 switch int32(u.Type) {
     case 0:
-        u.Error = new(Error)
+        if err = xdr.TrackOutputBytesOf[Error](d); err != nil {
+    return n, fmt.Errorf("decoding Error: %w", err)
+  }
+  u.Error = new(Error)
   nTmp, err = (*u.Error).DecodeFrom(d, maxDepth)
   n += nTmp
   if err != nil {
@@ -634,7 +654,10 @@ switch int32(u.Type) {
   }
   return n, nil
     case 1:
-        u.Things = new([]Multi)
+        if err = xdr.TrackOutputBytesOf[[]Multi](d); err != nil {
+    return n, fmt.Errorf("decoding []Multi: %w", err)
+  }
+  u.Things = new([]Multi)
   var l uint32
   l, nTmp, err = d.DecodeUint()
   n += nTmp
@@ -646,13 +669,24 @@ switch int32(u.Type) {
     if il, ok := d.InputLen(); ok && uint(il) < uint(l) {
         return n, fmt.Errorf("decoding Multi: length (%d) exceeds remaining input length (%d)", l, il)
     }
-    (*u.Things) = make([]Multi, l)
+    {
+    initialCap := l
+    if initialCap > xdr.MaxPrealloc {
+        initialCap = xdr.MaxPrealloc
+    }
+    (*u.Things) = make([]Multi, 0, initialCap)
+    var empty Multi
     for i := uint32(0); i < l; i++ {
+        if err = xdr.TrackOutputBytesOf[Multi](d); err != nil {
+            return n, fmt.Errorf("decoding Multi: %w", err)
+        }
+        (*u.Things) = append((*u.Things), empty)
       nTmp, err = (*u.Things)[i].DecodeFrom(d, maxDepth)
   n += nTmp
   if err != nil {
     return n, fmt.Errorf("decoding Multi: %w", err)
   }
+    }
     }
   }
   return n, nil
