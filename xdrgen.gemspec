@@ -17,14 +17,16 @@ Gem::Specification.new do |spec|
   spec.test_files    = spec.files.grep(%r{^(test|spec|features)/})
   spec.require_paths = ["lib"]
 
-  spec.required_ruby_version = '>= 2.1.0'
+  spec.required_ruby_version = '>= 2.5.0'
 
   spec.add_dependency "treetop", "~> 1.5.3"
   spec.add_dependency "activesupport", "~> 6"
   spec.add_dependency "slop", "~> 3.4"
   spec.add_dependency "memoist", "~> 0.11.0"
-  # https://stackoverflow.com/questions/79360526/uninitialized-constant-activesupportloggerthreadsafelevellogger-nameerror
-  spec.add_dependency "concurrent-ruby", "<= 1.3.4"
+  # >= 1.3.7 fixes GHSA-h8w8-99g7-qmvj, GHSA-wv3x-4vxv-whpp and GHSA-6wx8-w4f5-wwcr
+  spec.add_dependency "concurrent-ruby", ">= 1.3.7"
+  # required at load time by lib/xdrgen.rb; no longer a default gem on Ruby >= 3.5
+  spec.add_dependency "logger"
   
   spec.add_development_dependency "bundler", "~> 2"
   spec.add_development_dependency "rake", "~> 12.0"
