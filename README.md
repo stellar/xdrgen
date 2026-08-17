@@ -33,6 +33,11 @@ protocol](https://github.com/stellar/stellar-xdr).
 >
 > The JavaScript and Go generators still live here at this time.
 
+> [!WARNING]
+> .x files to the parser and code generators in this repository are considered a
+> trusted input, and the parser and code generators are not defensive to injection.
+> Use only with trusted inputs.
+
 ## Usage as a library
 
 Add this line to your application's Gemfile:
