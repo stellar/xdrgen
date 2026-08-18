@@ -3,7 +3,6 @@ module Xdrgen::Generators
 
   autoload :Base
   autoload :Go
-  autoload :Javascript
 
   def self.for_language(language)
     const_get language.to_s.classify

@@ -1,7 +1,7 @@
 require 'spec_helper'
 
 describe Xdrgen::Generators do
-  languages = %w(javascript go)
+  languages = %w(go)
   focus_language = "" #"go"
   focus_basename = "" #"optional.x"
 
