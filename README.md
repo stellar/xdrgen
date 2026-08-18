@@ -87,4 +87,4 @@ The command line:
 
 The CLI still has the following built-in generators:
 
-- golang
+- go
