@@ -31,7 +31,7 @@ protocol](https://github.com/stellar/stellar-xdr).
 > if they need to be used with the binary, otherwise any new maintenance of code
 > generators should happen using xdrgen as a library.
 >
-> The JavaScript and Go generators still live here at this time.
+> The Go generator still lives here at this time.
 
 > [!WARNING]
 > .x files to the parser and code generators in this repository are considered a
@@ -87,5 +87,4 @@ The command line:
 
 The CLI still has the following built-in generators:
 
-- javascript
-- golang
+- go
