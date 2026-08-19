@@ -1,4 +1,7 @@
 require "xdrgen/version"
+# activesupport 6 references ::Logger without requiring it, and
+# concurrent-ruby >= 1.3.5 no longer requires it either, so load it first.
+require "logger"
 require "active_support/all"
 require 'memoist'
 
